@@ -129,9 +129,18 @@ store'dan gerçek Supabase'e taşınıyor.
 - [x] 12 migration canlı projeye uygulandı; `pnpm db:verify` ile 14 tablo + 4 fonksiyon fiilen doğrulandı.
 - [x] `@supabase/ssr` client'ları (browser/server) + `src/proxy.ts` (Next.js 16'da `middleware.ts`'in yerini alır) + `pnpm db:types` ile şemadan üretilen tipler.
 - [x] Gerçek Supabase Auth (`src/lib/auth.tsx`); kimlik `auth.users`'tan, yetki bağlamı (tenant/rol) `profiles`'tan. Kayıt formu yok — şartname §5.1 gereği kullanıcılar davetle gelir. İlk yönetici için tek seferlik `pnpm bootstrap:tenant`.
-- [ ] **Veri katmanı**: `tenant_controls`/`evidences`/`findings`/`audit_log` gerçek tablolardan okunsun (`store-logic.ts`'teki saf mantık korunur).
-- [ ] Kontrol kütüphanesini canlıya seed et (`pnpm seed:controls` — henüz hiç canlıya karşı koşmadı).
-- [ ] **Playwright akışları geçici olarak devre dışı** (`playwright.config.ts` → `GECIS_SURUYOR`). Kural 8'in bilinçli ve işaretlenmiş ihlali: giriş gerçek Auth'tan geçiyor ama veri hâlâ localStorage'da, yani testler tutarsız bir dünyaya bakıyor. Veri katmanı bitince akışlar gerçek kullanıcı + gerçek veriye karşı yeniden yazılacak ve bu bayrak kaldırılacak.
+- [x] Kontrol kütüphanesi canlıya seed edildi (`pnpm seed:controls`): 2 çerçeve, 17 kontrol, 2 eşleme. `TODO-DOGRULA` etiketleri korunuyor.
+- [x] Kuruma kontrol paketi atandı (`pnpm assign:controls`) — şartname §5.1'in onboarding adımı.
+- [x] **Veri katmanı**: store ve tüm sayfalar gerçek tablolardan okuyor; `src/lib/mock-data.ts` uygulama kodunda artık kullanılmıyor.
+
+**Bu geçişin açtığı, kapatılması gereken borçlar:**
+
+- [ ] **audit_log yazması atomik değil.** Ana tablo yazması ve `audit_log` insert'i iki ayrı PostgREST isteği; ilki başarılı olup ikincisi başarısız olursa denetim izinde boşluk kalır. Doğru yer veritabanı trigger'ı (`tenant_controls`/`findings` üzerinde AFTER INSERT/UPDATE → `audit_log`), böylece iz uygulamanın iyi niyetine değil şemaya bağlı olur. Bkz. `src/lib/supabase/veri.ts` → `appendAuditRow`.
+- [ ] **Denetçi paylaşımı (`/paylasim/:token`) çalışmıyor.** Sayfa oturumsuz açılır ama RLS politikaları `current_tenant_id()`'ye dayandığı için anon kullanıcıya hiçbir satır dönmez; geçerli token bile "geçersiz" görünür. Mock'ta çalışıyordu çünkü hiçbir erişim kontrolü yoktu. Token doğrulaması sunucu tarafına taşınmalı (token'a bağlı RLS politikası veya Route Handler). M4 kabul kriteri bu düzelene kadar karşılanmıyor.
+- [ ] **`evidences.kaynak_kontrol_id` kolonu yok.** "Bir kanıt, dört çerçeve" yansıtmasında kanıtın hangi kontrolden geldiği DB'de kaybolur (yalnızca `audit_log` detayında kalır); yansıtılan kanıt doğrudan yüklenmiş gibi görünür.
+- [ ] **Kanıt süresi dolması** artık yalnızca yükleme anında hesaplanıyor; DB'de "karsilaniyor" kalıp UI'da "kismi" görünen kayıtlar oluşabilir. Cron/trigger ile şemaya taşınmalı.
+- [ ] `scripts/generate-yk-beyani.ts` hâlâ `mock-data`'dan okuyor.
+- [ ] **Playwright akışları devre dışı** (`playwright.config.ts` → `GECIS_SURUYOR`). Kural 8'in bilinçli ve işaretlenmiş ihlali. Artık gerçek kullanıcı + gerçek veriye karşı yeniden yazılabilirler; bunun için test kullanıcısının şifresi CI/env'den gelmeli.
 
 ### M6 — MVP kapısına hazırlık (Faz 2 başlangıcı)
 - Üretim barındırma kararının uygulanması (yurt içi / self-hosted Postgres taşıma provası: dump→restore→smoke test).

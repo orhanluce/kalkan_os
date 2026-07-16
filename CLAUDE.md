@@ -2,18 +2,27 @@
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
 ## Mevcut aşama (güncellenir)
-Kurucunun kendi ayrı Supabase hesabında canlı bir proje var (`jgunbctnoprklseusaee`,
-Session Pooler üzerinden bağlanıyoruz — direct connection IPv6-only olduğu için).
-`pnpm db:link` ile bağlandı; 9 migration dosyası **gerçekten uygulandı**
-(`pnpm db:push`, 16 Temmuz 2026) ve `supabase migration list` ile local/remote
-eşleşmesi doğrulandı. Şema canlıda var — ama uygulama kodu hâlâ mock/localStorage
-store'a bağlı, gerçek Supabase client'a geçiş henüz yapılmadı; deploy de yok.
+Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler
+üzerinden bağlanıyoruz — direct connection IPv6-only. 12 migration uygulandı ve
+`pnpm db:verify` ile fiilen doğrulandı (14 tablo, 4 fonksiyon). Kontrol
+kütüphanesi seed edildi (2 çerçeve, 17 kontrol) ve ilk kuruma atandı.
 
-M1-M5 (kontrol kütüphanesi, kanıt motoru, boşluk/olgunluk panosu, denetçi
-paylaşımı, temel güvenlik sertleştirme) mock/localStorage store üzerinde
-tamamlandı. Mimari kararı ve M5.5 (kanıt bütünlüğü derinleştirme: hash
-zinciri, Merkle batch, anchor provider, dört-göz onayı) için bkz.
-docs/ROADMAP.md §1.1 ve M5.5 — 16 Temmuz 2026'da eklendi, henüz kodlanmadı.
+**Uygulama artık gerçek Supabase'e bağlı**: kimlik Supabase Auth'tan, yetki
+bağlamı `profiles`'tan, veri gerçek tablolardan. `src/lib/mock-data.ts`
+uygulama kodunda kullanılmıyor (yalnızca `scripts/generate-yk-beyani.ts`
+hâlâ okuyor). Deploy yok.
+
+M1-M5 mock store üzerinde tamamlanmıştı. M5.5'in **mantık ve şema katmanı
+bitti**: audit_log hash zinciri, dört-göz onayı (`evidence_reviews`), RFC 6962
+Merkle + proof, `EvidenceAnchorProvider`, kanıt zarfı (canonical JSON) ve
+bağımsız doğrulama — hepsi testli. M5.5'in **UI'ı yok**; bu katmanlar henüz
+hiçbir ekrana bağlı değil.
+
+**Geçişin açtığı borçlar** (docs/ROADMAP.md "Supabase geçişi" altında listeli,
+"bitti" demeden önce oku): audit_log yazması atomik değil (trigger'a taşınmalı);
+denetçi paylaşımı `/paylasim/:token` çalışmıyor (RLS anon'a satır vermiyor, M4
+kabul kriteri karşılanmıyor); Playwright akışları devre dışı (kural 8 ihlali,
+işaretli).
 
 **RLS artık gerçekten test edilebilir** (kural 1 için mazeret yok): PGlite
 (Postgres'in WASM derlemesi, kurulum gerektirmez) ile gerçek migration

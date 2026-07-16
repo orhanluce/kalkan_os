@@ -14,29 +14,31 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/empty-state";
-import { mockControls, mockFrameworks, mockProfiles } from "@/lib/mock-data";
 import { useLocalStore } from "@/lib/store";
 import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
 
 const TUMU = "tumu";
 
-// base-ui Select `items` olmadan ham değeri gösterir ("tumu", "f-vii128") —
-// value→label haritası zorunlu.
-const FRAMEWORK_FILTER_ITEMS: Record<string, string> = {
-  [TUMU]: "Tümü",
-  ...Object.fromEntries(mockFrameworks.map((f) => [f.id, f.code])),
-};
-
 export default function ControlsPage() {
-  const { tenantControls } = useLocalStore();
+  const { tenantControls, kutuphane, kurum } = useLocalStore();
   const [frameworkId, setFrameworkId] = useState<string>(TUMU);
+
+  // base-ui Select `items` olmadan ham değeri gösterir — value→label
+  // haritası zorunlu. Artık çerçeveler DB'den geldiği için modül düzeyinde
+  // değil, veriden türetiliyor.
+  const FRAMEWORK_FILTER_ITEMS: Record<string, string> = {
+    [TUMU]: "Tümü",
+    ...Object.fromEntries(kutuphane.frameworks.map((f) => [f.id, f.code])),
+  };
 
   const durumByControlId = new Map(tenantControls.map((tc) => [tc.controlId, tc.durum]));
   const sorumluByControlId = new Map(tenantControls.map((tc) => [tc.controlId, tc.sorumluUserId]));
-  const frameworkById = new Map(mockFrameworks.map((f) => [f.id, f]));
-  const profileById = new Map(mockProfiles.map((p) => [p.id, p]));
+  const frameworkById = new Map(kutuphane.frameworks.map((f) => [f.id, f]));
+  const profileById = new Map(kurum.profiller.map((p) => [p.id, p]));
   const controls =
-    frameworkId === TUMU ? mockControls : mockControls.filter((c) => c.frameworkId === frameworkId);
+    frameworkId === TUMU
+      ? kutuphane.controls
+      : kutuphane.controls.filter((c) => c.frameworkId === frameworkId);
 
   return (
     <div className="flex flex-col gap-6">
@@ -61,7 +63,7 @@ export default function ControlsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={TUMU}>Tümü</SelectItem>
-            {mockFrameworks.map((f) => (
+            {kutuphane.frameworks.map((f) => (
               <SelectItem key={f.id} value={f.id}>
                 {f.code}
               </SelectItem>

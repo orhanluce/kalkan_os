@@ -1,17 +1,22 @@
 "use client";
 
-import { mockProfiles } from "@/lib/mock-data";
+import { useLocalStore } from "@/lib/store";
 import type { AuditLogEntry } from "@/lib/types";
 import { AUDIT_EYLEM_LABEL } from "@/lib/ui-labels";
 
-const profileById = new Map(mockProfiles.map((p) => [p.id, p]));
-
-function aktorAdi(actorId: string | null): string {
-  if (!actorId) return "Sistem";
-  return profileById.get(actorId)?.fullName ?? "Bilinmeyen kullanıcı";
-}
-
 export function AuditLogList({ entries }: { entries: AuditLogEntry[] }) {
+  const { kurum } = useLocalStore();
+  const profileById = new Map(kurum.profiller.map((p) => [p.id, p]));
+
+  function aktorAdi(actorId: string | null): string {
+    // actorId null: sistem eylemi (örn. kanıt süresi dolması).
+    if (!actorId) return "Sistem";
+    // Profil bulunamayabilir: kullanıcı başka bir kiracıya taşınmış veya
+    // silinmişse RLS onu bu listede döndürmez. Kaydı gizlemek yerine
+    // aktörün bilinmediğini söylüyoruz — denetim izinde kayıt kaybolmamalı.
+    return profileById.get(actorId)?.fullName ?? "Bilinmeyen kullanıcı";
+  }
+
   if (entries.length === 0) {
     return <p className="text-sm text-muted-foreground">Henüz denetim kaydı yok.</p>;
   }

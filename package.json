@@ -18,7 +18,8 @@
     "generate:yk-beyani": "tsx scripts/generate-yk-beyani.ts",
     "db:verify": "tsx scripts/db-verify.ts",
     "db:types": "tsx scripts/db-types.ts",
-    "bootstrap:tenant": "tsx scripts/bootstrap-tenant.ts"
+    "bootstrap:tenant": "tsx scripts/bootstrap-tenant.ts",
+    "assign:controls": "tsx scripts/assign-controls.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

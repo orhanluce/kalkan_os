@@ -3,7 +3,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateMaturityScore, topRiskyOpenControls } from "@/lib/maturity";
-import { mockControls, mockFrameworks, mockTenant } from "@/lib/mock-data";
 import { useLocalStore } from "@/lib/store";
 import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
 import type { Durum } from "@/lib/types";
@@ -16,9 +15,9 @@ const EMPTY_DAGILIM: Record<Durum, number> = {
 };
 
 export default function DashboardPage() {
-  const { tenantControls, findings } = useLocalStore();
-  const score = calculateMaturityScore(tenantControls, mockControls);
-  const risky = topRiskyOpenControls(tenantControls, mockControls, 10);
+  const { tenantControls, findings, kutuphane, kurum, yukleniyor } = useLocalStore();
+  const score = calculateMaturityScore(tenantControls, kutuphane.controls);
+  const risky = topRiskyOpenControls(tenantControls, kutuphane.controls, 10);
   const openFindings = findings.filter((f) => f.durum === "acik").length;
 
   const dagilim = tenantControls.reduce<Record<Durum, number>>(
@@ -29,8 +28,8 @@ export default function DashboardPage() {
     { ...EMPTY_DAGILIM },
   );
 
-  const controlToFrameworkId = new Map(mockControls.map((c) => [c.id, c.frameworkId]));
-  const dagilimByFramework = mockFrameworks.map((framework) => {
+  const controlToFrameworkId = new Map(kutuphane.controls.map((c) => [c.id, c.frameworkId]));
+  const dagilimByFramework = kutuphane.frameworks.map((framework) => {
     const counts = tenantControls.reduce<Record<Durum, number>>(
       (acc, tc) => {
         if (controlToFrameworkId.get(tc.controlId) === framework.id) acc[tc.durum] += 1;
@@ -41,11 +40,17 @@ export default function DashboardPage() {
     return { framework, counts };
   });
 
+  // Yükleme sırasında sıfırlar göstermek, "hiç kontrolünüz yok" gibi okunur —
+  // bir uyum panosunda bu, olmayan bir gerçeği iddia etmektir.
+  if (yukleniyor) {
+    return <p className="text-sm text-muted-foreground">Yükleniyor…</p>;
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{mockTenant.name}</h1>
-        <p className="text-sm text-muted-foreground">Uyum Panosu · yerel oturum verisi</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{kurum.tenant?.name ?? "—"}</h1>
+        <p className="text-sm text-muted-foreground">Uyum Panosu</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

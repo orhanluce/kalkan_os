@@ -21,7 +21,6 @@ import { EmptyState } from "@/components/empty-state";
 import { findEquivalentControlIds } from "@/lib/control-mappings";
 import { sha256Hex, validateEvidenceFile } from "@/lib/evidence";
 import type { Evidence } from "@/lib/evidence-types";
-import { mockControlMappings, mockControls, mockFrameworks, mockProfiles } from "@/lib/mock-data";
 import { useLocalStore } from "@/lib/store";
 import type { Durum, EvidenceTip } from "@/lib/types";
 import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
@@ -35,24 +34,35 @@ const TIP_LABEL: Record<EvidenceTip, string> = {
 const TIP_OPTIONS = Object.keys(TIP_LABEL) as EvidenceTip[];
 const ATANMADI = "atanmadi";
 
-// base-ui Select'te <SelectValue /> `items` verilmezse seçili değerin ham
-// halini ("acik", "u-uyum") gösterir — Türkçe etiketi değil. Her Select'e
-// value→label haritası geçmek zorunlu (bkz. e2e/sorumlu-atama.spec.ts).
-const SORUMLU_ITEMS: Record<string, string> = {
-  [ATANMADI]: "Atanmadı",
-  ...Object.fromEntries(mockProfiles.map((p) => [p.id, p.fullName])),
-};
-
 export default function ControlDetailPage() {
   const params = useParams<{ id: string }>();
-  const control = mockControls.find((c) => c.id === params.id);
-  const { tenantControls, evidencesByControl, auditLog, setDurum, setNot, setSorumlu, addEvidence } =
-    useLocalStore();
+  const {
+    tenantControls,
+    evidencesByControl,
+    auditLog,
+    kutuphane,
+    kurum,
+    yukleniyor,
+    setDurum,
+    setNot,
+    setSorumlu,
+    addEvidence,
+  } = useLocalStore();
+
+  const control = kutuphane.controls.find((c) => c.id === params.id);
+
+  // base-ui Select'te <SelectValue /> `items` verilmezse seçili değerin ham
+  // halini ("acik", bir UUID) gösterir — Türkçe etiketi değil. Her Select'e
+  // value→label haritası geçmek zorunlu (bkz. e2e/sorumlu-atama.spec.ts).
+  const SORUMLU_ITEMS: Record<string, string> = {
+    [ATANMADI]: "Atanmadı",
+    ...Object.fromEntries(kurum.profiller.map((p) => [p.id, p.fullName])),
+  };
 
   const tenantControl = tenantControls.find((tc) => tc.controlId === params.id);
   const evidences = evidencesByControl[params.id] ?? [];
-  const equivalentControls = findEquivalentControlIds(params.id, mockControlMappings)
-    .map((id) => mockControls.find((c) => c.id === id))
+  const equivalentControls = findEquivalentControlIds(params.id, kutuphane.mappings)
+    .map((id) => kutuphane.controls.find((c) => c.id === id))
     .filter((c): c is NonNullable<typeof c> => Boolean(c));
 
   // Bu kontrole ait kayıtlar: doğrudan tenant_controls hedefli olanlar, ve
@@ -81,6 +91,13 @@ export default function ControlDetailPage() {
     const result = validateEvidenceFile(selected);
     setFile(result.valid ? selected : null);
     setFileError(result.error);
+  }
+
+  // Yükleme kontrolü ÖNCE gelmeli: kütüphane asenkron geldiği için control
+  // ilk render'da her zaman undefined'dır ve bu olmadan sayfa, var olan bir
+  // kontrol için "bulunamadı" derdi.
+  if (yukleniyor) {
+    return <p className="text-sm text-muted-foreground">Yükleniyor…</p>;
   }
 
   if (!control || !tenantControl) {
@@ -160,7 +177,7 @@ export default function ControlDetailPage() {
             </p>
             <ul className="flex flex-col gap-2">
               {equivalentControls.map((ec) => {
-                const framework = mockFrameworks.find((f) => f.id === ec.frameworkId);
+                const framework = kutuphane.frameworks.find((f) => f.id === ec.frameworkId);
                 return (
                   <li key={ec.id} className="text-sm">
                     <Link href={`/controls/${ec.id}`} className="hover:underline">
@@ -214,7 +231,7 @@ export default function ControlDetailPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ATANMADI}>Atanmadı</SelectItem>
-                {mockProfiles.map((p) => (
+                {kurum.profiller.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.fullName}
                   </SelectItem>

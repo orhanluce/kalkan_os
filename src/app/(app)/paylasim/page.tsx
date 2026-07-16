@@ -14,7 +14,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { mockFrameworks, mockTenant } from "@/lib/mock-data";
 import { generateShareToken, isShareLinkValid } from "@/lib/share-links";
 import { useLocalStore } from "@/lib/store";
 
@@ -28,16 +27,18 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-// base-ui Select `items` olmadan ham değeri ("f-vii128") gösterir.
-const FRAMEWORK_ITEMS: Record<string, string> = Object.fromEntries(
-  mockFrameworks.map((f) => [f.id, f.code]),
-);
-
 export default function PaylasimPage() {
-  const { shareLinks, addShareLink } = useLocalStore();
-  const frameworkById = new Map(mockFrameworks.map((f) => [f.id, f]));
+  const { shareLinks, addShareLink, kutuphane } = useLocalStore();
 
-  const [frameworkId, setFrameworkId] = useState(mockFrameworks[0].id);
+  // base-ui Select `items` olmadan ham değeri (UUID) gösterir.
+  const FRAMEWORK_ITEMS: Record<string, string> = Object.fromEntries(
+    kutuphane.frameworks.map((f) => [f.id, f.code]),
+  );
+  const frameworkById = new Map(kutuphane.frameworks.map((f) => [f.id, f]));
+
+  // Çerçeveler asenkron geldiği için ilk render'da liste boş olabilir:
+  // frameworks[0].id doğrudan okunsaydı sayfa çökerdi.
+  const [frameworkId, setFrameworkId] = useState<string>("");
   const [sonGecerlilik, setSonGecerlilik] = useState(defaultSonGecerlilik);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
@@ -45,7 +46,8 @@ export default function PaylasimPage() {
     e.preventDefault();
     addShareLink({
       id: crypto.randomUUID(),
-      tenantId: mockTenant.id,
+      // Gerçek tenant_id'yi store, oturumdaki kiracıdan yazar.
+      tenantId: "",
       token: generateShareToken(),
       kapsam: { frameworkId },
       olusturan: null,
@@ -92,7 +94,7 @@ export default function PaylasimPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockFrameworks.map((f) => (
+                  {kutuphane.frameworks.map((f) => (
                     <SelectItem key={f.id} value={f.id}>
                       {f.code}
                     </SelectItem>

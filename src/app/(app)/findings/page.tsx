@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/empty-state";
-import { mockTenant } from "@/lib/mock-data";
 import { useLocalStore } from "@/lib/store";
 import type { Finding, Onem } from "@/lib/types";
 import {
@@ -41,8 +40,11 @@ export default function FindingsPage() {
     e.preventDefault();
     if (!baslik.trim()) return;
     addFinding({
+      // id ve tenantId burada yalnızca tipi karşılamak için: gerçek değerleri
+      // veritabanı (gen_random_uuid) ve store (oturumdaki kiracı) belirler.
+      // İstemcinin verdiği tenant_id RLS tarafından zaten reddedilirdi.
       id: crypto.randomUUID(),
-      tenantId: mockTenant.id,
+      tenantId: "",
       kaynak,
       onem,
       baslik: baslik.trim(),
