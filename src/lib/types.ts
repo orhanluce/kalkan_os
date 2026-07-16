@@ -66,3 +66,17 @@ export interface Finding {
   hedefKapama: string | null;
   durum: FindingDurum;
 }
+
+export interface ShareLinkKapsam {
+  frameworkId: string;
+}
+
+export interface ShareLink {
+  id: string;
+  tenantId: string;
+  token: string;
+  kapsam: ShareLinkKapsam;
+  olusturan: string | null;
+  sonGecerlilik: string; // ISO tarih
+  createdAt: string;
+}

@@ -1,0 +1,161 @@
+"use client";
+
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { mockFrameworks, mockTenant } from "@/lib/mock-data";
+import { generateShareToken, isShareLinkValid } from "@/lib/share-links";
+import { useLocalStore } from "@/lib/store";
+
+function defaultSonGecerlilik(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toISOString().slice(0, 10);
+}
+
+export default function PaylasimPage() {
+  const { shareLinks, addShareLink } = useLocalStore();
+  const frameworkById = new Map(mockFrameworks.map((f) => [f.id, f]));
+
+  const [frameworkId, setFrameworkId] = useState(mockFrameworks[0].id);
+  const [sonGecerlilik, setSonGecerlilik] = useState(defaultSonGecerlilik);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    addShareLink({
+      id: crypto.randomUUID(),
+      tenantId: mockTenant.id,
+      token: generateShareToken(),
+      kapsam: { frameworkId },
+      olusturan: null,
+      sonGecerlilik: `${sonGecerlilik}T23:59:59.000Z`,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  function linkUrl(token: string): string {
+    if (typeof window === "undefined") return `/paylasim/${token}`;
+    return `${window.location.origin}/paylasim/${token}`;
+  }
+
+  async function handleCopy(token: string) {
+    await navigator.clipboard.writeText(linkUrl(token));
+    setCopiedToken(token);
+    setTimeout(() => setCopiedToken((t) => (t === token ? null : t)), 1500);
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Denetçi Paylaşımı</h1>
+        <p className="text-sm text-muted-foreground">
+          Süreli, salt-okunur paylaşım linkleri — yalnızca seçilen çerçevenin kontrol durumlarını
+          gösterir.
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Yeni Link Oluştur</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>Çerçeve</Label>
+              <Select value={frameworkId} onValueChange={(v) => setFrameworkId(v ?? frameworkId)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {mockFrameworks.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="son-gecerlilik">Son geçerlilik</Label>
+              <Input
+                id="son-gecerlilik"
+                type="date"
+                value={sonGecerlilik}
+                onChange={(e) => setSonGecerlilik(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit">Link Oluştur</Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{shareLinks.length} link</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {shareLinks.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Henüz paylaşım linki oluşturulmadı.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Çerçeve</TableHead>
+                  <TableHead>Oluşturulma</TableHead>
+                  <TableHead>Son Geçerlilik</TableHead>
+                  <TableHead>Durum</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shareLinks.map((sl) => {
+                  const valid = isShareLinkValid(sl, new Date());
+                  return (
+                    <TableRow key={sl.id}>
+                      <TableCell>{frameworkById.get(sl.kapsam.frameworkId)?.code}</TableCell>
+                      <TableCell>{new Date(sl.createdAt).toLocaleDateString("tr-TR")}</TableCell>
+                      <TableCell>{new Date(sl.sonGecerlilik).toLocaleDateString("tr-TR")}</TableCell>
+                      <TableCell>
+                        <Badge variant={valid ? "default" : "destructive"}>
+                          {valid ? "Geçerli" : "Süresi Doldu"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleCopy(sl.token)}>
+                          {copiedToken === sl.token ? "Kopyalandı" : "Linki Kopyala"}
+                        </Button>
+                        <a
+                          href={`/paylasim/${sl.token}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex"
+                        >
+                          <Button variant="ghost" size="sm">
+                            Önizle
+                          </Button>
+                        </a>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

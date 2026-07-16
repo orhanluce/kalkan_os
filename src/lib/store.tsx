@@ -18,7 +18,7 @@ import { findEquivalentControlIds } from "./control-mappings";
 import { deriveDurumFromEvidenceExpiry } from "./evidence";
 import type { Evidence } from "./evidence-types";
 import { mockControlMappings, mockFindings, mockTenantControls } from "./mock-data";
-import type { Durum, Finding, TenantControl } from "./types";
+import type { Durum, Finding, ShareLink, TenantControl } from "./types";
 
 const STORAGE_KEY = "kalkan-os-local-store-v1";
 
@@ -26,6 +26,7 @@ interface StoreState {
   tenantControls: TenantControl[];
   findings: Finding[];
   evidencesByControl: Record<string, Evidence[]>;
+  shareLinks: ShareLink[];
 }
 
 interface StoreApi extends StoreState {
@@ -34,6 +35,7 @@ interface StoreApi extends StoreState {
   addEvidence: (evidence: Evidence) => void;
   addFinding: (finding: Finding) => void;
   toggleFindingDurum: (findingId: string) => void;
+  addShareLink: (shareLink: ShareLink) => void;
 }
 
 function initialState(): StoreState {
@@ -41,6 +43,7 @@ function initialState(): StoreState {
     tenantControls: mockTenantControls,
     findings: mockFindings,
     evidencesByControl: {},
+    shareLinks: [],
   };
 }
 
@@ -50,7 +53,10 @@ function initialState(): StoreState {
 function loadInitialState(): StoreState {
   if (typeof window === "undefined") return initialState();
   const raw = window.localStorage.getItem(STORAGE_KEY);
-  const loaded = raw ? (JSON.parse(raw) as StoreState) : initialState();
+  // Spread over a fresh initialState() so fields added in later versions of
+  // this store (e.g. shareLinks) backfill instead of coming back undefined
+  // for a browser that persisted an older shape.
+  const loaded = raw ? { ...initialState(), ...(JSON.parse(raw) as StoreState) } : initialState();
   return applyExpiryDowngrades(loaded, new Date());
 }
 
@@ -152,9 +158,21 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const addShareLink = useCallback((shareLink: ShareLink) => {
+    setState((s) => ({ ...s, shareLinks: [shareLink, ...s.shareLinks] }));
+  }, []);
+
   const value = useMemo<StoreApi>(
-    () => ({ ...state, setDurum, setNot, addEvidence, addFinding, toggleFindingDurum }),
-    [state, setDurum, setNot, addEvidence, addFinding, toggleFindingDurum],
+    () => ({
+      ...state,
+      setDurum,
+      setNot,
+      addEvidence,
+      addFinding,
+      toggleFindingDurum,
+      addShareLink,
+    }),
+    [state, setDurum, setNot, addEvidence, addFinding, toggleFindingDurum, addShareLink],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
