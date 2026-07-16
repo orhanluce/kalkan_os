@@ -24,11 +24,19 @@ denetçi paylaşımı `/paylasim/:token` çalışmıyor (RLS anon'a satır vermi
 kabul kriteri karşılanmıyor); Playwright akışları devre dışı (kural 8 ihlali,
 işaretli).
 
-**RLS artık gerçekten test edilebilir** (kural 1 için mazeret yok): PGlite
+**RLS gerçekten test ediliyor** (kural 1 için mazeret yok): PGlite
 (Postgres'in WASM derlemesi, kurulum gerektirmez) ile gerçek migration
 dosyalarına karşı Vitest'te koşuyoruz — bkz. `src/lib/__tests__/helpers/pg.ts`
 ve `rls-*.test.ts`. Yeni bir tablo/politika eklerken RLS testi de yaz.
 Bu aynı zamanda kural 4'ü fiilen kanıtlar: şema düz Postgres'te koşuyor.
+
+**Ama PGlite testleri Supabase'i tam taklit etmez — ve bu bir kez canlıyı
+bozdu.** Supabase eklentileri `extensions` şemasına kurar, PGlite `public`'e;
+`set search_path = public` ile kilitli fonksiyonlar canlıda `digest()`'i
+bulamadığı için her `tenant_controls` güncellemesi sessizce patlıyordu ve hash
+zinciri hiç çalışmıyordu — 193 test yeşilken. Bu yüzden: **şemaya dokunan her
+migration'dan sonra canlıya karşı gerçek bir yazma dene.** `pnpm db:verify`
+tabloların var olduğunu gösterir, çalıştıklarını değil.
 
 Hâlâ **doğrulanamayan** ve "yazıldı ama doğrulanmadı" diye işaretlenmesi
 gerekenler: Supabase Auth'un kendisi (auth.uid()/auth.users testlerde

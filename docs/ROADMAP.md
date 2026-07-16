@@ -135,7 +135,12 @@ store'dan gerçek Supabase'e taşınıyor.
 
 **Bu geçişin açtığı, kapatılması gereken borçlar:**
 
-- [ ] **audit_log yazması atomik değil.** Ana tablo yazması ve `audit_log` insert'i iki ayrı PostgREST isteği; ilki başarılı olup ikincisi başarısız olursa denetim izinde boşluk kalır. Doğru yer veritabanı trigger'ı (`tenant_controls`/`findings` üzerinde AFTER INSERT/UPDATE → `audit_log`), böylece iz uygulamanın iyi niyetine değil şemaya bağlı olur. Bkz. `src/lib/supabase/veri.ts` → `appendAuditRow`.
+- [x] ~~audit_log yazması atomik değil~~ — **kapatıldı** (`20260717090000_audit_triggers.sql`). Kayıtları artık trigger'lar üretiyor: iz ana yazmayla aynı transaction'da doğuyor ve istemcinin `audit_log`'a insert yetkisi kaldırıldı. Böylece istemci, kimliği doğru ama içeriği uydurma bir kayıt (hiç olmamış bir eylem) da yazamıyor.
+
+> **Bu iş sırasında bulunan gerçek hata — ders olarak burada duruyor:**
+> Canlıda her `tenant_controls` güncellemesi `function digest(text, unknown) does not exist` ile **sessizce başarısız oluyordu** ve hash zinciri hiç çalışmıyordu. Sebep: Supabase `pgcrypto`'yu `extensions` şemasına kurar, PGlite `public`'e; fonksiyonlar `set search_path = public` ile kilitliydi. **193 test yeşilken canlı bozuktu.**
+> Düzeltme: `20260717093000_fix_digest_search_path.sql`.
+> Çıkarım: PGlite testleri RLS mantığını kanıtlar, **Supabase'in kurulum farklarını kanıtlamaz**. Şemaya dokunan her migration'dan sonra canlıya karşı gerçek bir yazma denemesi yapılmalı — `pnpm db:verify` tabloların varlığını gösterir, çalıştıklarını değil.
 - [ ] **Denetçi paylaşımı (`/paylasim/:token`) çalışmıyor.** Sayfa oturumsuz açılır ama RLS politikaları `current_tenant_id()`'ye dayandığı için anon kullanıcıya hiçbir satır dönmez; geçerli token bile "geçersiz" görünür. Mock'ta çalışıyordu çünkü hiçbir erişim kontrolü yoktu. Token doğrulaması sunucu tarafına taşınmalı (token'a bağlı RLS politikası veya Route Handler). M4 kabul kriteri bu düzelene kadar karşılanmıyor.
 - [ ] **`evidences.kaynak_kontrol_id` kolonu yok.** "Bir kanıt, dört çerçeve" yansıtmasında kanıtın hangi kontrolden geldiği DB'de kaybolur (yalnızca `audit_log` detayında kalır); yansıtılan kanıt doğrudan yüklenmiş gibi görünür.
 - [ ] **Kanıt süresi dolması** artık yalnızca yükleme anında hesaplanıyor; DB'de "karsilaniyor" kalıp UI'da "kismi" görünen kayıtlar oluşabilir. Cron/trigger ile şemaya taşınmalı.

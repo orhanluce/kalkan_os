@@ -80,20 +80,23 @@ describe("CLAUDE.md kural 2: audit_log append-only", () => {
 
 // Önceki turda bulunan ve düzeltilen açık: actor_id kontrolü yoktu, herhangi
 // bir tenant üyesi başkasının adına sahte denetim kaydı yazabiliyordu.
-describe("audit_log aktör sahteciliği (önceki turda düzeltildi)", () => {
-  it("kullanıcı kendi adına denetim kaydı yazabilir", async () => {
-    await db.asUser(
-      A.userId,
-      `insert into public.audit_log (tenant_id, actor_id, eylem) values ($1, $2, 'durum_degisti')`,
-      [A.tenantId, A.userId],
-    );
-
-    const { rows } = await db.asUser(A.userId, `select count(*)::int as n from public.audit_log`);
-    expect(rows[0].n).toBe(1);
+// Denetim kayıtlarını artık YALNIZCA trigger'lar üretir
+// (20260717090000_audit_triggers.sql). İstemcinin insert politikası
+// kaldırıldı: eskiden actor_id = auth.uid() şartıyla yazabiliyordu, yani
+// kimliği doğru ama İÇERİĞİ uydurma bir kayıt (hiç olmamış bir eylem)
+// yazılabilirdi. Şimdi ne yazılacağına şema karar veriyor.
+describe("audit_log: istemci yazamaz", () => {
+  it("kullanıcı kendi adına bile denetim kaydı YAZAMAZ", async () => {
+    await expect(
+      db.asUser(
+        A.userId,
+        `insert into public.audit_log (tenant_id, actor_id, eylem) values ($1, $2, 'durum_degisti')`,
+        [A.tenantId, A.userId],
+      ),
+    ).rejects.toThrow();
   });
 
   it("kullanıcı BAŞKASININ adına denetim kaydı YAZAMAZ", async () => {
-    // A, kendi tenant'ında ama B'nin kimliğiyle kayıt yazmayı deniyor.
     await expect(
       db.asUser(
         A.userId,
@@ -103,12 +106,15 @@ describe("audit_log aktör sahteciliği (önceki turda düzeltildi)", () => {
     ).rejects.toThrow();
   });
 
-  it("kullanıcı actor_id'yi null bırakıp kaydı sisteme atfedemez", async () => {
+  it("kullanıcı olmamış bir eylemi uyduramaz", async () => {
+    // Asıl kazanç bu: eskiden kimlik doğru olduğu sürece istemci istediği
+    // eylemi loglayabilirdi — örneğin hiç yapılmamış bir onayı.
     await expect(
       db.asUser(
         A.userId,
-        `insert into public.audit_log (tenant_id, actor_id, eylem) values ($1, null, 'kanit_suresi_doldu')`,
-        [A.tenantId],
+        `insert into public.audit_log (tenant_id, actor_id, eylem, hedef_tablo)
+         values ($1, $2, 'paylasim_linki_olusturuldu', 'share_links')`,
+        [A.tenantId, A.userId],
       ),
     ).rejects.toThrow();
   });

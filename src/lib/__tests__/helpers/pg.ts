@@ -29,6 +29,20 @@ const MIGRATIONS_DIR = join(process.cwd(), "supabase", "migrations");
  * ayardan (request.jwt.claim.sub) okuyoruz.
  */
 const AUTH_STUB = `
+  -- Supabase eklentileri "extensions" şemasına kurar, PGlite ise public'e.
+  -- Bu fark canlıda gerçek bir hataya yol açtı: digest() çağıran fonksiyonlar
+  -- search_path = public ile kilitliydi ve Supabase'de digest() görünmüyordu —
+  -- testler yeşil olduğu halde her tenant_controls güncellemesi canlıda
+  -- patlıyordu (bkz. 20260717093000).
+  --
+  -- Şemayı burada oluşturuyoruz ki migration'lardaki
+  -- "set search_path = public, extensions" ifadesi testlerde de gerçek bir
+  -- şemaya işaret etsin. Bu, farkı TAM kapatmaz (pgcrypto burada hâlâ
+  -- public'te) — PGlite eklentileri şema seçimine izin vermiyor. Yani şema
+  -- düzeyindeki bu tür Supabase farklılıkları için testler yeterli değildir;
+  -- canlıya karşı doğrulama şart (pnpm db:verify ve gerçek bir yazma denemesi).
+  create schema if not exists extensions;
+
   create schema if not exists auth;
 
   create table auth.users (

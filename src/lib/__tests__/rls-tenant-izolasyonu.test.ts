@@ -37,11 +37,10 @@ beforeAll(async () => {
      values ($1, 'sizma_testi', 'kritik', 'A bulgusu'), ($2, 'denetim', 'orta', 'B bulgusu')`,
     [A.tenantId, B.tenantId],
   );
-  await db.sql(
-    `insert into public.audit_log (tenant_id, actor_id, eylem)
-     values ($1, $2, 'durum_degisti'), ($3, $4, 'durum_degisti')`,
-    [A.tenantId, A.userId, B.tenantId, B.userId],
-  );
+  // audit_log'a elle yazmıyoruz: yukarıdaki evidences/findings insert'leri
+  // zaten trigger yoluyla denetim kaydı üretti
+  // (20260717090000_audit_triggers.sql). Elle yazmak hem artık mümkün değil
+  // hem de gereksiz olurdu.
   await db.sql(
     `insert into public.share_links (tenant_id, son_gecerlilik)
      values ($1, now() + interval '30 days'), ($2, now() + interval '30 days')`,
@@ -79,8 +78,10 @@ describe("M1 kabul kriteri: tenant izolasyonu (okuma)", () => {
   it("audit_log: A, B'nin denetim kaydını göremez", async () => {
     const { rows } = await db.asUser(A.userId, `select tenant_id from public.audit_log`);
 
-    expect(rows).toHaveLength(1);
-    expect(rows[0].tenant_id).toBe(A.tenantId);
+    // Kayıtlar trigger'lardan doğduğu için sayıları seed'e bağlı; sınadığımız
+    // şey sayı değil: dönen HİÇBİR kayıt B'ye ait olmamalı.
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((r) => r.tenant_id === A.tenantId)).toBe(true);
   });
 
   it("share_links: A, B'nin paylaşım linkini (ve token'ını) göremez", async () => {

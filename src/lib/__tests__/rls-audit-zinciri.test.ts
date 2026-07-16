@@ -15,19 +15,47 @@ let seed: Awaited<ReturnType<typeof seedTwoTenants>>;
 beforeEach(async () => {
   db = await createTestDb();
   seed = await seedTwoTenants(db);
+
+  // Her iki kiracıya da kontrolü ata: audit kayıtları artık gerçek
+  // eylemlerden (tenant_controls güncellemesi) trigger yoluyla doğuyor.
+  for (const t of [seed.A, seed.B]) {
+    await db.sql(
+      `insert into public.tenant_controls (tenant_id, control_id, durum) values ($1, $2, 'acik')`,
+      [t.tenantId, seed.controlId],
+    );
+  }
 });
 
 afterEach(async () => {
   await db.close();
 });
 
-/** Tenant A adına, gerçek istemci yolundan (RLS uygulanarak) audit kaydı yazar. */
-async function yaz(eylem: string, detay: Record<string, unknown> | null = null) {
+/**
+ * Gerçek bir eylem yapar; audit kaydını TRIGGER yazar.
+ *
+ * İstemci audit_log'a doğrudan yazamadığı için (20260717090000) testler de
+ * yazmaz — bu iyi: artık sınadığımız şey "bir kayıt uydurabilir miyiz"
+ * değil, "gerçek bir eylem doğru izi bırakıyor mu".
+ */
+async function durumDegistir(durum: string, userId = seed.A.userId, tenantId = seed.A.tenantId) {
+  await db.asUser(userId, `update public.tenant_controls set durum = $1 where tenant_id = $2`, [
+    durum,
+    tenantId,
+  ]);
+}
+
+async function notGuncelle(not: string) {
+  await db.asUser(seed.A.userId, `update public.tenant_controls set not_metni = $1 where tenant_id = $2`, [
+    not,
+    seed.A.tenantId,
+  ]);
+}
+
+async function sorumluAta(userId: string | null) {
   await db.asUser(
     seed.A.userId,
-    `insert into public.audit_log (tenant_id, actor_id, eylem, hedef_tablo, hedef_id, detay)
-     values ($1, $2, $3, 'tenant_controls', $4, $5)`,
-    [seed.A.tenantId, seed.A.userId, eylem, seed.controlId, detay ? JSON.stringify(detay) : null],
+    `update public.tenant_controls set sorumlu_user_id = $1 where tenant_id = $2`,
+    [userId, seed.A.tenantId],
   );
 }
 
@@ -37,17 +65,46 @@ async function zinciriDogrula(tenantId: string) {
 }
 
 describe("audit_log hash zinciri", () => {
-  it("sağlam zincir doğrulamayı geçer", async () => {
-    await yaz("durum_degisti", { durum: "karsilaniyor" });
-    await yaz("not_guncellendi");
-    await yaz("sorumlu_atandi", { yeni: seed.A.userId });
+  it("gerçek eylemler trigger yoluyla iz bırakır ve zincir sağlamdır", async () => {
+    await durumDegistir("karsilaniyor");
+    await notGuncelle("bir not");
+    await sorumluAta(seed.A.userId);
 
+    const { rows } = await db.sql(
+      `select eylem from public.audit_log where tenant_id = $1 order by seq asc`,
+      [seed.A.tenantId],
+    );
+    expect(rows.map((r) => r.eylem)).toEqual([
+      "durum_degisti",
+      "not_guncellendi",
+      "sorumlu_atandi",
+    ]);
     expect(await zinciriDogrula(seed.A.tenantId)).toEqual([]);
   });
 
+  it("not içeriği denetim kaydına YAZILMAZ (kural 7)", async () => {
+    await notGuncelle("gizli musteri bilgisi iceren not");
+
+    const { rows } = await db.sql(
+      `select detay from public.audit_log where tenant_id = $1 and eylem = 'not_guncellendi'`,
+      [seed.A.tenantId],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].detay).toBeNull();
+  });
+
+  it("değişmeyen bir güncelleme iz bırakmaz", async () => {
+    await durumDegistir("acik"); // zaten 'acik'
+
+    const { rows } = await db.sql(`select count(*)::int as n from public.audit_log where tenant_id = $1`, [
+      seed.A.tenantId,
+    ]);
+    expect(rows[0].n).toBe(0);
+  });
+
   it("her kayıt bir öncekinin hash'ini taşır; ilk kaydın öncülü yoktur", async () => {
-    await yaz("durum_degisti");
-    await yaz("not_guncellendi");
+    await durumDegistir("karsilaniyor");
+    await notGuncelle("not");
 
     const { rows } = await db.sql(
       `select seq, previous_event_hash, event_hash from public.audit_log
@@ -62,8 +119,8 @@ describe("audit_log hash zinciri", () => {
   });
 
   it("kurcalanan bir kayıt tespit edilir", async () => {
-    await yaz("durum_degisti", { durum: "karsilaniyor" });
-    await yaz("not_guncellendi");
+    await durumDegistir("karsilaniyor");
+    await notGuncelle("not");
     expect(await zinciriDogrula(seed.A.tenantId)).toEqual([]);
 
     // Uygulama rolü bunu YAPAMAZ (revoke + politika yok) — burada
@@ -81,9 +138,9 @@ describe("audit_log hash zinciri", () => {
   });
 
   it("silinen bir kayıt tespit edilir", async () => {
-    await yaz("durum_degisti");
-    await yaz("not_guncellendi");
-    await yaz("sorumlu_atandi");
+    await durumDegistir("karsilaniyor");
+    await notGuncelle("not");
+    await sorumluAta(seed.A.userId);
 
     // Ortadaki kaydı sil: ardılının previous_event_hash'i artık öncülünün
     // hash'iyle uyuşmaz.
@@ -97,9 +154,11 @@ describe("audit_log hash zinciri", () => {
     expect(String(bozuk[0].sebep)).toContain("previous_event_hash");
   });
 
-  it("istemci event_hash'i uyduramaz — trigger üzerine yazar", async () => {
-    await db.asUser(
-      seed.A.userId,
+  it("RLS'i bypass eden yol bile hash'i uyduramaz — trigger üzerine yazar", async () => {
+    // İstemci artık audit_log'a hiç yazamıyor (bkz. rls-guvenlik.test.ts),
+    // ama veritabanına doğrudan erişen biri yazabilir. Onun bile hash
+    // üretmesine izin verilmez: trigger gönderilen değerleri ezer.
+    await db.sql(
       `insert into public.audit_log (tenant_id, actor_id, eylem, event_hash, previous_event_hash)
        values ($1, $2, 'durum_degisti', 'sahte-hash', 'sahte-onceki')`,
       [seed.A.tenantId, seed.A.userId],
@@ -117,13 +176,9 @@ describe("audit_log hash zinciri", () => {
   });
 
   it("tenant zincirleri birbirinden bağımsızdır", async () => {
-    await yaz("durum_degisti");
-    await db.asUser(
-      seed.B.userId,
-      `insert into public.audit_log (tenant_id, actor_id, eylem) values ($1, $2, 'durum_degisti')`,
-      [seed.B.tenantId, seed.B.userId],
-    );
-    await yaz("not_guncellendi");
+    await durumDegistir("karsilaniyor");
+    await durumDegistir("kismi", seed.B.userId, seed.B.tenantId);
+    await notGuncelle("not");
 
     // B'nin ilk kaydı, A'nın kayıtlarından etkilenmemeli: kendi zincirinin
     // başı olmalı. Aksi halde bir tenant'ın olay sayısı diğerine sızardı.
@@ -138,9 +193,9 @@ describe("audit_log hash zinciri", () => {
   });
 
   it("kurcalanan kayıt, bir sonrakinin zincirini de bozar (tespit tek satırda gizlenemez)", async () => {
-    await yaz("durum_degisti", { durum: "karsilaniyor" });
-    await yaz("not_guncellendi");
-    await yaz("sorumlu_atandi");
+    await durumDegistir("karsilaniyor");
+    await notGuncelle("not");
+    await sorumluAta(seed.A.userId);
 
     // Saldırgan hem içeriği değiştirip hem de kendi event_hash'ini yeniden
     // hesaplayarak ilk satırı "tutarlı" hale getirse bile, ardılın

@@ -8,6 +8,11 @@
 // reddedilen bir yazmayı kullanıcıya başarılı gibi gösterebilirdi — uyum
 // panosunda bu, olmayan bir uyumu iddia etmek demektir.
 //
+// DENETİM İZİ BURADA YAZILMAZ: audit_log kayıtlarını veritabanı trigger'ları
+// üretir (20260717090000_audit_triggers.sql). Buradan yazmak hem çift kayıt
+// olurdu hem de izi, her mutasyonu ekleyen kişinin audit satırını da eklemeyi
+// hatırlamasına bağlardı.
+//
 // Durum geçişlerinin saf mantığı (kanıt süresi → durum türetme) hâlâ
 // store-logic.ts / evidence.ts'te; burası yalnızca React + Supabase
 // bağlantısıdır.
@@ -27,7 +32,6 @@ import { findEquivalentControlIds } from "./control-mappings";
 import type { StoreState } from "./store-logic";
 import { createClient } from "./supabase/client";
 import {
-  appendAuditRow,
   fetchKurum,
   fetchKutuphane,
   fetchStoreState,
@@ -144,59 +148,38 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
 
   const setDurum = useCallback(
     (controlId: string, durum: Durum) =>
-      calistir(async (db, tenantId, actorId) => {
-        const onceki = state.tenantControls.find((tc) => tc.controlId === controlId)?.durum;
-        if (onceki === durum) return;
-
+      calistir(async (db) => {
         const { error } = await db
           .from("tenant_controls")
           .update({ durum })
           .eq("control_id", controlId);
         if (error) throw error;
-
-        await appendAuditRow(db, tenantId, actorId, "durum_degisti", "tenant_controls", controlId, {
-          onceki,
-          durum,
-        });
       }),
-    [calistir, state.tenantControls],
+    [calistir],
   );
 
   const setNot = useCallback(
     (controlId: string, notMetni: string) =>
-      calistir(async (db, tenantId, actorId) => {
-        const yeni = notMetni || null;
+      calistir(async (db) => {
         const { error } = await db
           .from("tenant_controls")
-          .update({ not_metni: yeni })
+          .update({ not_metni: notMetni || null })
           .eq("control_id", controlId);
         if (error) throw error;
-
-        // Not İÇERİĞİ audit detayına yazılmaz (CLAUDE.md kural 7) —
-        // yalnızca değiştiği bilgisi.
-        await appendAuditRow(db, tenantId, actorId, "not_guncellendi", "tenant_controls", controlId, null);
       }),
     [calistir],
   );
 
   const setSorumlu = useCallback(
     (controlId: string, sorumluUserId: string | null) =>
-      calistir(async (db, tenantId, actorId) => {
-        const onceki = state.tenantControls.find((tc) => tc.controlId === controlId)?.sorumluUserId ?? null;
-        if (onceki === sorumluUserId) return;
-
+      calistir(async (db) => {
         const { error } = await db
           .from("tenant_controls")
           .update({ sorumlu_user_id: sorumluUserId })
           .eq("control_id", controlId);
         if (error) throw error;
-
-        await appendAuditRow(db, tenantId, actorId, "sorumlu_atandi", "tenant_controls", controlId, {
-          onceki,
-          yeni: sorumluUserId,
-        });
       }),
-    [calistir, state.tenantControls],
+    [calistir],
   );
 
   const addEvidence = useCallback(
@@ -209,28 +192,16 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
         ];
 
         for (const controlId of hedefKontroller) {
-          const { data, error } = await db
-            .from("evidences")
-            .insert({
-              tenant_id: tenantId,
-              control_id: controlId,
-              tip: evidence.tip,
-              storage_path: evidence.storagePathOrLink || null,
-              hash_sha256: evidence.hashSha256,
-              yukleyen: actorId,
-              gecerlilik_bitis: evidence.gecerlilikBitis,
-            })
-            .select("id")
-            .single();
-          if (error) throw error;
-
-          // Kanıt içeriği/dosya adı loglanmaz (kural 7); hash ve tip yeter.
-          await appendAuditRow(db, tenantId, actorId, "kanit_eklendi", "evidences", data.id, {
-            controlId,
+          const { error } = await db.from("evidences").insert({
+            tenant_id: tenantId,
+            control_id: controlId,
             tip: evidence.tip,
-            hashSha256: evidence.hashSha256,
-            ...(controlId === evidence.controlId ? {} : { kaynakKontrolId: evidence.controlId }),
+            storage_path: evidence.storagePathOrLink || null,
+            hash_sha256: evidence.hashSha256,
+            yukleyen: actorId,
+            gecerlilik_bitis: evidence.gecerlilikBitis,
           });
+          if (error) throw error;
 
           // Kanıt geldi: kontrolün durumu kanıtın geçerliliğine göre türetilir.
           const yeniDurum = deriveDurumFromEvidenceExpiry(
@@ -250,52 +221,40 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
 
   const addFinding = useCallback(
     (finding: Finding) =>
-      calistir(async (db, tenantId, actorId) => {
-        const { data, error } = await db
-          .from("findings")
-          .insert({
-            tenant_id: tenantId,
-            kaynak: finding.kaynak,
-            onem: finding.onem,
-            baslik: finding.baslik,
-            aksiyon_plani: finding.aksiyonPlani,
-            yk_onay_tarihi: finding.ykOnayTarihi,
-            hedef_kapama: finding.hedefKapama,
-            durum: finding.durum,
-          })
-          .select("id")
-          .single();
-        if (error) throw error;
-
-        await appendAuditRow(db, tenantId, actorId, "bulgu_eklendi", "findings", data.id, {
+      calistir(async (db, tenantId) => {
+        const { error } = await db.from("findings").insert({
+          tenant_id: tenantId,
           kaynak: finding.kaynak,
           onem: finding.onem,
+          baslik: finding.baslik,
+          aksiyon_plani: finding.aksiyonPlani,
+          yk_onay_tarihi: finding.ykOnayTarihi,
+          hedef_kapama: finding.hedefKapama,
+          durum: finding.durum,
         });
+        if (error) throw error;
       }),
     [calistir],
   );
 
   const toggleFindingDurum = useCallback(
     (findingId: string) =>
-      calistir(async (db, tenantId, actorId) => {
+      calistir(async (db) => {
         const mevcut = state.findings.find((f) => f.id === findingId);
         if (!mevcut) return;
-        const yeni = mevcut.durum === "acik" ? "kapali" : "acik";
 
-        const { error } = await db.from("findings").update({ durum: yeni }).eq("id", findingId);
+        const { error } = await db
+          .from("findings")
+          .update({ durum: mevcut.durum === "acik" ? "kapali" : "acik" })
+          .eq("id", findingId);
         if (error) throw error;
-
-        await appendAuditRow(db, tenantId, actorId, "bulgu_durumu_degisti", "findings", findingId, {
-          onceki: mevcut.durum,
-          yeni,
-        });
       }),
     [calistir, state.findings],
   );
 
   const updateFinding = useCallback(
     (findingId: string, patch: Partial<Finding>) =>
-      calistir(async (db, tenantId, actorId) => {
+      calistir(async (db) => {
         const { error } = await db
           .from("findings")
           .update({
@@ -309,11 +268,6 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
           })
           .eq("id", findingId);
         if (error) throw error;
-
-        // Serbest metin içeriği değil, hangi alanların değiştiği loglanır.
-        await appendAuditRow(db, tenantId, actorId, "bulgu_durumu_degisti", "findings", findingId, {
-          degisenAlanlar: Object.keys(patch),
-        });
       }),
     [calistir],
   );
@@ -321,25 +275,14 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
   const addShareLink = useCallback(
     (shareLink: ShareLink) =>
       calistir(async (db, tenantId, actorId) => {
-        const { data, error } = await db
-          .from("share_links")
-          .insert({
-            tenant_id: tenantId,
-            token: shareLink.token,
-            kapsam: { frameworkId: shareLink.kapsam.frameworkId },
-            olusturan: actorId,
-            son_gecerlilik: shareLink.sonGecerlilik,
-          })
-          .select("id")
-          .single();
-        if (error) throw error;
-
-        // Token audit detayına YAZILMAZ — logdan okunabilseydi paylaşım
-        // linkinin gizliliği anlamsızlaşırdı (kural 7).
-        await appendAuditRow(db, tenantId, actorId, "paylasim_linki_olusturuldu", "share_links", data.id, {
-          frameworkId: shareLink.kapsam.frameworkId,
-          sonGecerlilik: shareLink.sonGecerlilik,
+        const { error } = await db.from("share_links").insert({
+          tenant_id: tenantId,
+          token: shareLink.token,
+          kapsam: { frameworkId: shareLink.kapsam.frameworkId },
+          olusturan: actorId,
+          son_gecerlilik: shareLink.sonGecerlilik,
         });
+        if (error) throw error;
       }),
     [calistir],
   );

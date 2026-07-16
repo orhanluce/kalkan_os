@@ -20,7 +20,7 @@ import type {
   Tenant,
   TenantControl,
 } from "../types";
-import type { Database, Json } from "./database.types";
+import type { Database } from "./database.types";
 
 export type Db = SupabaseClient<Database>;
 
@@ -197,41 +197,8 @@ export async function fetchStoreState(db: Db): Promise<StoreState> {
   };
 }
 
-/**
- * audit_log'a kayıt yazar.
- *
- * BİLİNEN SORUN — ATOMİKLİK: bu, ana tablo yazmasından AYRI bir isteğidir.
- * PostgREST üzerinden iki yazmayı tek transaction'da yapamıyoruz, dolayısıyla
- * ana yazma başarılı olup bu başarısız olursa denetim izinde boşluk kalır.
- * Bir uyum ürününde bu kalıcı bir çözüm DEĞİLDİR; doğru yer veritabanı
- * trigger'ıdır (tenant_controls/findings üzerinde AFTER INSERT/UPDATE →
- * audit_log), böylece iz uygulamanın iyi niyetine değil şemaya bağlı olur ve
- * atomik yazılır. docs/ROADMAP.md "Supabase geçişi"nde takip ediliyor.
- *
- * Hash zinciri zaten DB tarafında (audit_log_seal trigger'ı) kurulur —
- * buradan gönderilen hiçbir hash değeri kabul edilmez.
- */
-export async function appendAuditRow(
-  db: Db,
-  tenantId: string,
-  actorId: string,
-  eylem: AuditEylem,
-  hedefTablo: string | null,
-  hedefId: string | null,
-  detay: Record<string, unknown> | null,
-): Promise<void> {
-  const { error } = await db.from("audit_log").insert({
-    tenant_id: tenantId,
-    // actor_id = auth.uid() olmak ZORUNDA (RLS politikası): başkası adına
-    // kayıt yazılamaz, aksi halde denetim izi anlamsızlaşırdı.
-    actor_id: actorId,
-    eylem,
-    hedef_tablo: hedefTablo,
-    hedef_id: hedefId,
-    // Record<string, unknown> -> Json: içerik zaten JSON-serileştirilebilir
-    // değerlerden (çağıranlar yalnızca string/number/null yazıyor), ama
-    // TypeScript bunu unknown üzerinden kanıtlayamıyor.
-    detay: detay as Json,
-  });
-  if (error) throw error;
-}
+// NOT: burada audit_log'a yazan bir fonksiyon YOKTUR ve olmamalıdır.
+// Denetim kayıtlarını veritabanı trigger'ları üretir
+// (supabase/migrations/20260717090000_audit_triggers.sql) ve istemcinin
+// insert yetkisi kaldırılmıştır. Böylece iz, ana yazmayla aynı transaction'da
+// oluşur ve yeni bir kod yolu onu atlayamaz.
