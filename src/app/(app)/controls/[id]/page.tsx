@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { AuditLogList } from "@/components/audit-log-list";
 import { EmptyState } from "@/components/empty-state";
 import { findEquivalentControlIds } from "@/lib/control-mappings";
 import { sha256Hex, validateEvidenceFile } from "@/lib/evidence";
@@ -45,7 +46,7 @@ const SORUMLU_ITEMS: Record<string, string> = {
 export default function ControlDetailPage() {
   const params = useParams<{ id: string }>();
   const control = mockControls.find((c) => c.id === params.id);
-  const { tenantControls, evidencesByControl, setDurum, setNot, setSorumlu, addEvidence } =
+  const { tenantControls, evidencesByControl, auditLog, setDurum, setNot, setSorumlu, addEvidence } =
     useLocalStore();
 
   const tenantControl = tenantControls.find((tc) => tc.controlId === params.id);
@@ -53,6 +54,14 @@ export default function ControlDetailPage() {
   const equivalentControls = findEquivalentControlIds(params.id, mockControlMappings)
     .map((id) => mockControls.find((c) => c.id === id))
     .filter((c): c is NonNullable<typeof c> => Boolean(c));
+
+  // Bu kontrole ait kayıtlar: doğrudan tenant_controls hedefli olanlar, ve
+  // kanıt kayıtları (hedefId kanıt id'si olduğu için detay.controlId'den).
+  const controlAuditLog = auditLog.filter(
+    (e) =>
+      (e.hedefTablo === "tenant_controls" && e.hedefId === params.id) ||
+      (e.hedefTablo === "evidences" && e.detay?.controlId === params.id),
+  );
 
   const [notDraft, setNotDraft] = useState(tenantControl?.notMetni ?? "");
   const [tip, setTip] = useState<EvidenceTip>("dosya");
@@ -348,6 +357,18 @@ export default function ControlDetailPage() {
               ))}
             </ul>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Denetim İzi</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Bu kontrolde yapılan her değişiklik kayıt altındadır ve silinemez.
+          </p>
+          <AuditLogList entries={controlAuditLog} />
         </CardContent>
       </Card>
     </div>

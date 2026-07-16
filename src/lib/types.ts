@@ -75,6 +75,30 @@ export interface Finding {
   durum: FindingDurum;
 }
 
+// supabase/migrations/20260716120008_audit_log.sql ile hizalı.
+// Append-only (CLAUDE.md kural 2): bu kayıtlar hiçbir zaman güncellenmez
+// veya silinmez — store-logic.ts'te yalnızca ekleme yolu vardır.
+export type AuditEylem =
+  | "durum_degisti"
+  | "kanit_eklendi"
+  | "sorumlu_atandi"
+  | "not_guncellendi"
+  | "kanit_suresi_doldu"
+  | "bulgu_eklendi"
+  | "bulgu_durumu_degisti"
+  | "paylasim_linki_olusturuldu";
+
+export interface AuditLogEntry {
+  id: string;
+  tenantId: string;
+  actorId: string | null;
+  eylem: AuditEylem;
+  hedefTablo: string | null;
+  hedefId: string | null;
+  detay: Record<string, unknown> | null;
+  createdAt: string;
+}
+
 export interface ShareLinkKapsam {
   frameworkId: string;
 }

@@ -5,18 +5,26 @@
 // durum güncellenir, bulgu ekle/kapat) canlandırmak içindir — sekme
 // kapatılıp localStorage temizlenirse veri kaybolur, bu bilinçli bir
 // sınırdır (bkz. CLAUDE.md "Mevcut aşama").
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+//
+// Durum geçiş mantığının kendisi store-logic.ts'te saf fonksiyonlar
+// olarak durur; burası yalnızca React/localStorage bağlantısıdır.
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useAuth } from "./auth";
 import type { Evidence } from "./evidence-types";
-import { mockControlMappings, mockFindings, mockTenantControls } from "./mock-data";
-import { addEvidenceToState, applyExpiryDowngrades, type StoreState } from "./store-logic";
+import { mockControlMappings, mockFindings, mockTenant, mockTenantControls } from "./mock-data";
+import {
+  addEvidenceToState,
+  addFindingToState,
+  addShareLinkToState,
+  applyExpiryDowngrades,
+  setDurumInState,
+  setNotInState,
+  setSorumluInState,
+  toggleFindingDurumInState,
+  updateFindingInState,
+  type ActorContext,
+  type StoreState,
+} from "./store-logic";
 import type { Durum, Finding, ShareLink } from "./types";
 
 const STORAGE_KEY = "kalkan-os-local-store-v1";
@@ -38,6 +46,7 @@ function initialState(): StoreState {
     findings: mockFindings,
     evidencesByControl: {},
     shareLinks: [],
+    auditLog: [],
   };
 }
 
@@ -48,10 +57,10 @@ function loadInitialState(): StoreState {
   if (typeof window === "undefined") return initialState();
   const raw = window.localStorage.getItem(STORAGE_KEY);
   // Spread over a fresh initialState() so fields added in later versions of
-  // this store (e.g. shareLinks) backfill instead of coming back undefined
-  // for a browser that persisted an older shape.
+  // this store (e.g. shareLinks, auditLog) backfill instead of coming back
+  // undefined for a browser that persisted an older shape.
   const loaded = raw ? { ...initialState(), ...(JSON.parse(raw) as StoreState) } : initialState();
-  return applyExpiryDowngrades(loaded, new Date());
+  return applyExpiryDowngrades(loaded, { tenantId: mockTenant.id, actorId: null }, new Date());
 }
 
 const StoreContext = createContext<StoreApi | null>(null);
@@ -63,64 +72,74 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
   // ekstra bir yükleme efekti gerekmiyor.
   const [state, setState] = useState<StoreState>(loadInitialState);
 
+  // AuthProvider bu bileşeni sarar (bkz. components/store-provider.tsx), bu
+  // yüzden aktör kimliği buradan okunabilir. Gerçek Supabase'de bunun
+  // karşılığı auth.uid() olacak.
+  const { currentUser } = useAuth();
+  const ctx: ActorContext = useMemo(
+    () => ({ tenantId: mockTenant.id, actorId: currentUser?.id ?? null }),
+    [currentUser],
+  );
+
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
-  const setDurum = useCallback((controlId: string, durum: Durum) => {
-    setState((s) => ({
-      ...s,
-      tenantControls: s.tenantControls.map((tc) =>
-        tc.controlId === controlId ? { ...tc, durum } : tc,
-      ),
-    }));
-  }, []);
+  const setDurum = useCallback(
+    (controlId: string, durum: Durum) => {
+      setState((s) => setDurumInState(s, controlId, durum, ctx, new Date()));
+    },
+    [ctx],
+  );
 
-  const setNot = useCallback((controlId: string, notMetni: string) => {
-    setState((s) => ({
-      ...s,
-      tenantControls: s.tenantControls.map((tc) =>
-        tc.controlId === controlId ? { ...tc, notMetni } : tc,
-      ),
-    }));
-  }, []);
+  const setNot = useCallback(
+    (controlId: string, notMetni: string) => {
+      setState((s) => setNotInState(s, controlId, notMetni, ctx, new Date()));
+    },
+    [ctx],
+  );
 
-  const setSorumlu = useCallback((controlId: string, sorumluUserId: string | null) => {
-    setState((s) => ({
-      ...s,
-      tenantControls: s.tenantControls.map((tc) =>
-        tc.controlId === controlId ? { ...tc, sorumluUserId } : tc,
-      ),
-    }));
-  }, []);
+  const setSorumlu = useCallback(
+    (controlId: string, sorumluUserId: string | null) => {
+      setState((s) => setSorumluInState(s, controlId, sorumluUserId, ctx, new Date()));
+    },
+    [ctx],
+  );
 
-  const addEvidence = useCallback((evidence: Evidence) => {
-    setState((s) => addEvidenceToState(s, evidence, mockControlMappings, new Date()));
-  }, []);
+  const addEvidence = useCallback(
+    (evidence: Evidence) => {
+      setState((s) => addEvidenceToState(s, evidence, mockControlMappings, ctx, new Date()));
+    },
+    [ctx],
+  );
 
-  const addFinding = useCallback((finding: Finding) => {
-    setState((s) => ({ ...s, findings: [finding, ...s.findings] }));
-  }, []);
+  const addFinding = useCallback(
+    (finding: Finding) => {
+      setState((s) => addFindingToState(s, finding, ctx, new Date()));
+    },
+    [ctx],
+  );
 
-  const toggleFindingDurum = useCallback((findingId: string) => {
-    setState((s) => ({
-      ...s,
-      findings: s.findings.map((f) =>
-        f.id === findingId ? { ...f, durum: f.durum === "acik" ? "kapali" : "acik" } : f,
-      ),
-    }));
-  }, []);
+  const toggleFindingDurum = useCallback(
+    (findingId: string) => {
+      setState((s) => toggleFindingDurumInState(s, findingId, ctx, new Date()));
+    },
+    [ctx],
+  );
 
-  const updateFinding = useCallback((findingId: string, patch: Partial<Finding>) => {
-    setState((s) => ({
-      ...s,
-      findings: s.findings.map((f) => (f.id === findingId ? { ...f, ...patch } : f)),
-    }));
-  }, []);
+  const updateFinding = useCallback(
+    (findingId: string, patch: Partial<Finding>) => {
+      setState((s) => updateFindingInState(s, findingId, patch, ctx, new Date()));
+    },
+    [ctx],
+  );
 
-  const addShareLink = useCallback((shareLink: ShareLink) => {
-    setState((s) => ({ ...s, shareLinks: [shareLink, ...s.shareLinks] }));
-  }, []);
+  const addShareLink = useCallback(
+    (shareLink: ShareLink) => {
+      setState((s) => addShareLinkToState(s, shareLink, ctx, new Date()));
+    },
+    [ctx],
+  );
 
   const value = useMemo<StoreApi>(
     () => ({

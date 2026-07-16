@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/controls", label: "Kontrol Kütüphanesi" },
   { href: "/findings", label: "Bulgular" },
   { href: "/paylasim", label: "Paylaşım" },
+  { href: "/denetim-izi", label: "Denetim İzi" },
 ];
 
 export default function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {

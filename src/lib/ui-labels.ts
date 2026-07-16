@@ -1,4 +1,4 @@
-import type { Durum, Finding, FindingDurum, Onem, Role } from "./types";
+import type { AuditEylem, Durum, Finding, FindingDurum, Onem, Role } from "./types";
 
 export const DURUM_LABEL: Record<Durum, string> = {
   karsilaniyor: "Karşılanıyor",
@@ -45,4 +45,15 @@ export const ROLE_LABEL: Record<Role, string> = {
   admin: "Admin",
   uyum: "Uyum",
   denetci_misafir: "Denetçi (Misafir)",
+};
+
+export const AUDIT_EYLEM_LABEL: Record<AuditEylem, string> = {
+  durum_degisti: "Durum değişti",
+  kanit_eklendi: "Kanıt eklendi",
+  sorumlu_atandi: "Sorumlu atandı",
+  not_guncellendi: "Not güncellendi",
+  kanit_suresi_doldu: "Kanıt süresi doldu",
+  bulgu_eklendi: "Bulgu eklendi",
+  bulgu_durumu_degisti: "Bulgu güncellendi",
+  paylasim_linki_olusturuldu: "Paylaşım linki oluşturuldu",
 };
