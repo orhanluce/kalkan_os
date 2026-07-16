@@ -1,6 +1,7 @@
-# Supabase local dev config. Inert until `supabase` CLI + Docker are set up
-# (deferred per project decision — see docs/ROADMAP.md §5.1). Values below
-# match Supabase CLI defaults; adjust project_id once a real project exists.
+# Supabase yapılandırması. `supabase db push` uzak projeye migration
+# uygularken bu dosyayı okur. Yerel stack (`supabase start`) Docker
+# gerektirir ve bu makinede kurulu değil — aşağıdaki port'lar yalnızca
+# yerel stack kullanılırsa geçerlidir.
 project_id = "kalkan-os"
 
 [api]
@@ -12,7 +13,8 @@ max_rows = 1000
 
 [db]
 port = 54322
-major_version = 15
+# Uzak projeyle eşleşmeli — Supabase yeni projelerde Postgres 17 veriyor.
+major_version = 17
 
 [studio]
 enabled = true

@@ -2,9 +2,18 @@
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
 ## Mevcut aşama (güncellenir)
-Şu an **yerel geliştirme** aşamasındayız: canlı Supabase projesi yok, deploy yok.
-Kod ve migration'lar hazırlanıyor; gerçek Supabase/Node prod bağlantısı kurucu
-onayıyla ayrı bir adımda yapılacak.
+Kurucunun kendi ayrı Supabase hesabında canlı bir proje var (`jgunbctnoprklseusaee`,
+Session Pooler üzerinden bağlanıyoruz — direct connection IPv6-only olduğu için).
+`pnpm db:link` ile bağlandı; 9 migration dosyası **gerçekten uygulandı**
+(`pnpm db:push`, 16 Temmuz 2026) ve `supabase migration list` ile local/remote
+eşleşmesi doğrulandı. Şema canlıda var — ama uygulama kodu hâlâ mock/localStorage
+store'a bağlı, gerçek Supabase client'a geçiş henüz yapılmadı; deploy de yok.
+
+M1-M5 (kontrol kütüphanesi, kanıt motoru, boşluk/olgunluk panosu, denetçi
+paylaşımı, temel güvenlik sertleştirme) mock/localStorage store üzerinde
+tamamlandı. Mimari kararı ve M5.5 (kanıt bütünlüğü derinleştirme: hash
+zinciri, Merkle batch, anchor provider, dört-göz onayı) için bkz.
+docs/ROADMAP.md §1.1 ve M5.5 — 16 Temmuz 2026'da eklendi, henüz kodlanmadı.
 
 **RLS artık gerçekten test edilebilir** (kural 1 için mazeret yok): PGlite
 (Postgres'in WASM derlemesi, kurulum gerektirmez) ile gerçek migration

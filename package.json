@@ -12,6 +12,8 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "db:link": "tsx scripts/db-link.ts",
+    "db:push": "tsx scripts/db-push.ts",
     "seed:controls": "tsx scripts/seed-controls.ts",
     "generate:yk-beyani": "tsx scripts/generate-yk-beyani.ts"
   },
@@ -47,6 +49,7 @@
     "jsdom": "^29.1.1",
     "prettier": "^3.9.5",
     "prettier-plugin-tailwindcss": "^0.8.0",
+    "supabase": "^2.109.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.1",
     "typescript": "^5",
