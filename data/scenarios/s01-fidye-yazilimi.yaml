@@ -1,0 +1,307 @@
+# S01 — Fidye yazılımı ve iş sürekliliği
+#
+# KAYNAK: kurucunun verdiği simülasyon vizyon belgesi §8 (fidye yazılımı uçtan
+# uca senaryosu). Zaman çizelgesi ve karar noktaları o belgeden BİREBİR
+# alınmıştır — uydurulmamıştır (CLAUDE.md kural 12).
+#
+# icerik_durumu: UNVERIFIED_SAMPLE. Bu senaryo bir tatbikat taslağıdır;
+# gerçek bir kurumda oynanmadan önce kurumun kendi olay müdahale planına ve
+# gerçek RTO/RPO hedeflerine göre gözden geçirilmelidir. Buradaki süre
+# hedefleri (15 dk eskalasyon vb.) örnektir, mevzuattan türetilmemiştir.
+#
+# kontrol_kodlari: mevcut kontrol kütüphanesindeki madde_ref değerleridir.
+# Kütüphane henüz TODO-DOGRULA etiketli olduğu için eşleme de doğrulanmamış
+# sayılır (kural 3).
+
+kod: S01
+ad: Fidye yazılımı ve iş sürekliliği
+tehdit_kategorisi: fidye_yazilimi
+aciklama: >-
+  Bir finans kuruluşunda fidye yazılımı olayının tespitinden kurtarmaya kadar
+  olan süreci sınar: olay sınıflandırma, izolasyon, iş sürekliliği aktivasyonu,
+  delil koruma, bildirim değerlendirmesi ve yedekten dönüş. Katılımcıların
+  yalnızca planı bilip bilmediğini değil, zaman baskısı altında uygulayıp
+  uygulamadığını ölçer.
+
+surum: 1
+tahmini_dakika: 90
+hedef_roller:
+  - bilgi_guvenligi_yoneticisi
+  - soc_bt_operasyon
+  - is_surekliligi
+  - uyum_hukuk
+  - kurumsal_iletisim
+  - ust_yonetim
+on_kosullar: >-
+  Katılımcılar kendi rollerini bilmeli. Tatbikat yöneticisi kurumun güncel olay
+  müdahale planına ve yedekleme politikasına erişebilmelidir.
+
+# Zaman çizelgesi — belge §8.2'den birebir.
+injects:
+  - sira: 1
+    t_dakika: 0
+    baslik: Finans müdürü cihazında fidye yazılımı alarmı
+    icerik: >-
+      EDR konsolunda finans müdürünün dizüstü bilgisayarında şüpheli şifreleme
+      davranışı alarmı oluştu. Kullanıcı dosyalarının açılmadığını bildiriyor.
+    beklenen_davranis: Olay kaydı açılır ve ilk sınıflandırma yapılır.
+    gorunur_roller: []
+
+  - sira: 2
+    t_dakika: 5
+    baslik: İki cihazda daha benzer alarm
+    icerik: >-
+      Aynı departmandaki iki cihazda daha benzer alarm görüldü. Yayılma
+      şüphesi var.
+    beklenen_davranis: Etkilenen cihazlar izole edilir, kapsam belirlenir.
+    gorunur_roller: []
+
+  - sira: 3
+    t_dakika: 12
+    baslik: Ortak klasörler erişilemiyor
+    icerik: >-
+      Ortak dosya sunucusundaki klasörlere erişilemiyor. Operasyon ekibi
+      işlem yapamadığını bildiriyor.
+    beklenen_davranis: İş sürekliliği eskalasyonu başlatılır.
+    gorunur_roller: []
+
+  - sira: 4
+    t_dakika: 20
+    baslik: Saldırgan veri çaldığını iddia ediyor
+    icerik: >-
+      Şifrelenen cihazlarda bırakılan notta, müşteri verisinin kopyalandığı ve
+      ödeme yapılmazsa yayınlanacağı iddia ediliyor.
+    beklenen_davranis: Hukuk/uyum devreye alınır, delil toplama başlar.
+    gorunur_roller:
+      - bilgi_guvenligi_yoneticisi
+      - uyum_hukuk
+      - ust_yonetim
+
+  - sira: 5
+    t_dakika: 30
+    baslik: Son başarılı yedek 18 saat önce
+    icerik: >-
+      Yedekleme ekibi, son doğrulanmış yedeğin 18 saat önce alındığını
+      bildiriyor. Aradaki işlem verisi risk altında.
+    beklenen_davranis: RPO etkisi değerlendirilir, kurtarma kararı verilir.
+    gorunur_roller: []
+
+  - sira: 6
+    t_dakika: 40
+    baslik: Müşteri işlemlerinde gecikme
+    icerik: >-
+      Müşteri emirlerinde gecikme oluşmaya başladı. Çağrı merkezine şikayet
+      geliyor.
+    beklenen_davranis: Yönetim bilgilendirilir, müşteri iletişimi planlanır.
+    gorunur_roller: []
+
+  - sira: 7
+    t_dakika: 50
+    baslik: Basından soru geliyor
+    icerik: >-
+      Bir finans gazetecisi, kurumda kesinti olduğu yönünde bilgi aldığını
+      belirterek açıklama istiyor.
+    beklenen_davranis: Yetkili iletişim kanalı kullanılır, mesaj onaydan geçer.
+    gorunur_roller:
+      - kurumsal_iletisim
+      - ust_yonetim
+      - uyum_hukuk
+
+  - sira: 8
+    t_dakika: 60
+    baslik: Bildirim süresi riski oluşuyor
+    icerik: >-
+      Uyum birimi, olayın bildirim yükümlülüğü doğurabileceğini ve süre
+      sınırının yaklaştığını hatırlatıyor.
+    beklenen_davranis: Bildirim değerlendirmesi yapılır ve karara bağlanır.
+    gorunur_roller:
+      - uyum_hukuk
+      - ust_yonetim
+
+  - sira: 9
+    t_dakika: 75
+    baslik: Temiz ortam hazır
+    icerik: >-
+      BT ekibi temiz bir ortamın hazır olduğunu ve geri yüklemenin
+      başlatılabileceğini bildiriyor.
+    beklenen_davranis: Geri yükleme yapılır ve bütünlük doğrulanır.
+    gorunur_roller: []
+
+  - sira: 10
+    t_dakika: 90
+    baslik: Sistem kısmen açıldı
+    icerik: >-
+      Kritik sistemler kısmen hizmete alındı. Yönetim, ne zaman tam kapasiteye
+      dönüleceğini soruyor.
+    beklenen_davranis: RTO ölçülür, kalan risk raporlanır.
+    gorunur_roller: []
+
+# Karar noktaları — belge §8.3. Yalnızca çoktan seçmeli DEĞİL (§8.3 sonu).
+karar_noktalari:
+  - kod: KRITIK_SINIFLANDIRMA
+    inject_sira: 1
+    soru: Olay kritik olarak sınıflandırılmalı mı?
+    tip: secim
+    secenekler: [Evet, Hayır, Daha fazla bilgi bekle]
+    sure_limiti_dakika: 10
+
+  - kod: IZOLASYON
+    inject_sira: 2
+    soru: Etkilenen cihazlar ağdan izole edilsin mi?
+    tip: secim
+    secenekler: [Evet, Hayır]
+    sure_limiti_dakika: 10
+
+  - kod: OLAY_KOMUTANI
+    inject_sira: 2
+    soru: Olay komutanı kim olacak?
+    tip: serbest_metin
+    sure_limiti_dakika: 15
+
+  - kod: BCP_AKTIVASYON
+    inject_sira: 3
+    soru: İş sürekliliği planı devreye alınsın mı?
+    tip: secim
+    secenekler: [Evet, Hayır]
+    sure_limiti_dakika: 15
+
+  - kod: DELIL_KORUMA
+    inject_sira: 4
+    soru: Hangi deliller korunacak? Toplanan delil listesini yükleyin.
+    tip: dosya
+    sure_limiti_dakika: 20
+
+  - kod: YEDEKTEN_DONUS
+    inject_sira: 5
+    soru: Yedekten dönüş yapılsın mı? Gerekçeyi yazın.
+    tip: serbest_metin
+    sure_limiti_dakika: 15
+
+  - kod: YONETIM_BILGILENDIRME
+    inject_sira: 6
+    soru: Üst yönetim bilgilendirmesi onaylandı mı?
+    tip: onay
+    sure_limiti_dakika: 10
+
+  - kod: BILDIRIM_KARARI
+    inject_sira: 8
+    soru: Düzenleyiciye bildirim hazırlığı başlatılsın mı?
+    tip: secim
+    secenekler: [Evet, Hayır, Hukuk görüşü bekleniyor]
+    sure_limiti_dakika: 15
+
+  - kod: MUSTERI_MESAJI
+    inject_sira: 7
+    soru: Müşteriye verilecek mesaj taslağını yazın.
+    tip: serbest_metin
+    sure_limiti_dakika: 20
+
+# Beklenen aksiyonlar ve kontrol bağları — belge §8.4.
+# Simülasyonu ana ürüne bağlayan yer burasıdır.
+beklenen_aksiyonlar:
+  - kod: OLAY_SINIFLANDIRILDI
+    aciklama: Olay 15 dakika içinde kritik olarak sınıflandırıldı.
+    hedef_dakika: 15
+    kontrol_kodlari: [TODO-DOGRULA-14]
+
+  - kod: ESKALASYON_YAPILDI
+    aciklama: Bilgi güvenliği yöneticisine 15 dakika içinde eskale edildi.
+    hedef_dakika: 15
+    kontrol_kodlari: [TODO-DOGRULA-14]
+
+  - kod: BCP_DEVREDE
+    aciklama: İş sürekliliği planı 30 dakika içinde devreye alındı.
+    hedef_dakika: 30
+    kontrol_kodlari: [TODO-DOGRULA-07]
+
+  - kod: DELIL_TOPLANDI
+    aciklama: Delil listesi belgelendi ve korumaya alındı.
+    hedef_dakika: 40
+    kontrol_kodlari: [TODO-DOGRULA-13]
+
+  - kod: BILDIRIM_DEGERLENDIRILDI
+    aciklama: Bildirim yükümlülüğü değerlendirildi ve karara bağlandı.
+    hedef_dakika: 75
+    kontrol_kodlari: [TODO-DOGRULA-14]
+
+  - kod: YEDEKTEN_DONULDU
+    aciklama: Yedekten dönüş yapıldı ve bütünlük doğrulandı.
+    hedef_dakika: 90
+    kontrol_kodlari: [TODO-DOGRULA-07]
+
+# Puanlama kuralları — belge §9.1 bileşenleri ve §9.2 kural türleri.
+# Her kuralın açıklaması zorunlu: puan satırı gerekçesini taşımalı (kural 11).
+puanlama:
+  - kod: ESKALASYON_SURESI
+    tip: ACTION_COMPLETED_WITHIN
+    bilesen: zaman_hedefleri
+    agirlik: 25
+    beklenen_aksiyon: ESKALASYON_YAPILDI
+    parametreler: { dakika: 15 }
+    aciklama: Kritik olay 15 dakika içinde bilgi güvenliği yöneticisine eskale edilmeli.
+
+  - kod: SINIFLANDIRMA_YAPILDI
+    tip: ACTION_COMPLETED
+    bilesen: zorunlu_aksiyonlar
+    agirlik: 15
+    beklenen_aksiyon: OLAY_SINIFLANDIRILDI
+    parametreler: {}
+    aciklama: Olayın sınıflandırılmaması, sonraki tüm müdahale adımlarını geciktirir.
+
+  - kod: BCP_AKTIVASYONU
+    tip: ACTION_COMPLETED_WITHIN
+    bilesen: is_surekliligi
+    agirlik: 15
+    beklenen_aksiyon: BCP_DEVREDE
+    parametreler: { dakika: 30 }
+    aciklama: İş sürekliliği planı 30 dakika içinde devreye alınmalı.
+
+  - kod: DELIL_YETERLILIGI
+    tip: EVIDENCE_UPLOADED
+    bilesen: kanit_yeterliligi
+    agirlik: 10
+    beklenen_aksiyon: DELIL_TOPLANDI
+    parametreler: {}
+    aciklama: Delil listesi yüklenmezse olay sonrası adli inceleme dayanaksız kalır.
+
+  - kod: BILDIRIM_KARARI_VERILDI
+    tip: DECISION_SELECTED
+    bilesen: zorunlu_aksiyonlar
+    agirlik: 15
+    beklenen_aksiyon: BILDIRIM_DEGERLENDIRILDI
+    parametreler: { karar_kodu: BILDIRIM_KARARI }
+    aciklama: Bildirim yükümlülüğü değerlendirilmeden olay kapatılamaz.
+  # MANDATORY_FAIL: genel puan yüksek olsa bile kritik eksik varsa
+  # CRITICAL_FAILURE üretir (belge §9.3).
+  - kod: DELIL_KORUNMADI_KRITIK
+    tip: MANDATORY_FAIL_IF
+    bilesen: zorunlu_aksiyonlar
+    agirlik: 0
+    beklenen_aksiyon: DELIL_TOPLANDI
+    parametreler: { kosul: tamamlanmadi }
+    aciklama: >-
+      Delil korunmadıysa olay hiçbir puanla telafi edilemez: sonraki adli
+      inceleme ve olası hukuki süreç dayanaksız kalır.
+
+  - kod: RTO_HEDEFI
+    tip: RTO_WITHIN_TARGET
+    bilesen: is_surekliligi
+    agirlik: 10
+    beklenen_aksiyon: YEDEKTEN_DONULDU
+    parametreler: { hedef_dakika: 90 }
+    aciklama: Kritik sistemler 90 dakikalık RTO hedefi içinde hizmete alınmalı.
+
+  - kod: GOZLEMCI_DEGERLENDIRMESI
+    tip: OBSERVER_RATING
+    bilesen: gozlemci
+    agirlik: 10
+    parametreler: {}
+    aciklama: >-
+      Gözlemcinin genel değerlendirmesi. Tek başına toplam puanı belirlemez
+      (belge §9.3).
+
+debrief_sorulari:
+  - Eskalasyon hedefi tutmadıysa engel neydi?
+  - Yedekten dönüş kararını hangi bilgi eksikti?
+  - Bildirim değerlendirmesi hangi noktada tıkandı?
+  - Delil toplama sırasında hangi adım atlandı?

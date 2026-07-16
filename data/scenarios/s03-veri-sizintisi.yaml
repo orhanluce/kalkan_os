@@ -1,0 +1,158 @@
+# S03 — Veri sızıntısı ve düzenleyici bildirim
+#
+# KAYNAK: simülasyon vizyon belgesi §7.5 (S03).
+# icerik_durumu: UNVERIFIED_SAMPLE (kural 12).
+#
+# DİKKAT — bildirim süreleri: bu senaryo bildirim KARARININ verilip
+# verilmediğini ölçer, bildirimin hukuki süresini DEĞİL. Gerçek bildirim
+# süreleri mevzuata tabidir ve buraya yazılmamıştır (kural 3: mevzuat içeriği
+# uydurulmaz). Kurum kendi hukuk görüşüne göre süreyi tanımlamalıdır.
+
+kod: S03
+ad: Veri sızıntısı ve düzenleyici bildirim
+tehdit_kategorisi: veri_sizintisi
+aciklama: >-
+  Müşteri verisi sızıntısı şüphesinde kapsam belirleme, hukuk/uyum katılımı,
+  delil zinciri ve bildirim karar sürecini sınar.
+
+surum: 1
+tahmini_dakika: 75
+hedef_roller:
+  - bilgi_guvenligi_yoneticisi
+  - uyum_hukuk
+  - kurumsal_iletisim
+  - ust_yonetim
+on_kosullar: Kurumun veri sınıflandırma ve bildirim karar ağacı bilinmeli.
+
+injects:
+  - sira: 1
+    t_dakika: 0
+    baslik: DLP alarmı
+    icerik: >-
+      DLP sistemi, bir kullanıcı hesabından harici bir depolama servisine
+      büyük hacimli dosya aktarımı tespit etti.
+    beklenen_davranis: Olay kaydı açılır, aktarım durdurulur.
+    gorunur_roller: []
+
+  - sira: 2
+    t_dakika: 10
+    baslik: Etkilenen veri kapsamı
+    icerik: >-
+      İlk incelemede aktarılan dosyaların müşteri kimlik ve hesap bilgisi
+      içerebileceği görülüyor. Kapsam netleşmedi.
+    beklenen_davranis: Hukuk/uyum devreye alınır, kapsam çalışması başlatılır.
+    gorunur_roller: []
+
+  - sira: 3
+    t_dakika: 25
+    baslik: Delil zinciri sorusu
+    icerik: >-
+      Hukuk birimi, aktarımın kanıtlanabilir biçimde belgelenip
+      belgelenmediğini soruyor.
+    beklenen_davranis: Delil zinciri kurulur, kayıtlar korumaya alınır.
+    gorunur_roller:
+      - uyum_hukuk
+      - bilgi_guvenligi_yoneticisi
+
+  - sira: 4
+    t_dakika: 45
+    baslik: Bildirim karar ağacı
+    icerik: >-
+      Uyum birimi, olayın bildirim yükümlülüğü doğurup doğurmadığının
+      değerlendirilmesi gerektiğini bildiriyor.
+    beklenen_davranis: Bildirim değerlendirmesi yapılır, yönetim onayına sunulur.
+    gorunur_roller:
+      - uyum_hukuk
+      - ust_yonetim
+
+  - sira: 5
+    t_dakika: 60
+    baslik: Taslak bildirim
+    icerik: >-
+      Yönetim, bildirim yapılacaksa taslağın hazır olmasını istiyor.
+    beklenen_davranis: Taslak hazırlanır ve insan onayına sunulur.
+    gorunur_roller:
+      - uyum_hukuk
+      - kurumsal_iletisim
+      - ust_yonetim
+
+karar_noktalari:
+  - kod: AKTARIM_DURDURMA
+    inject_sira: 1
+    soru: Kullanıcının harici aktarım yetkisi durdurulsun mu?
+    tip: secim
+    secenekler: [Evet, Hayır]
+    sure_limiti_dakika: 10
+
+  - kod: KAPSAM_BELGESI
+    inject_sira: 2
+    soru: Etkilenen veri kapsamı belgesini yükleyin.
+    tip: dosya
+    sure_limiti_dakika: 25
+
+  - kod: BILDIRIM_DEGERLENDIRME
+    inject_sira: 4
+    soru: Bildirim yükümlülüğü değerlendirmesi sonucu nedir?
+    tip: serbest_metin
+    sure_limiti_dakika: 20
+
+  - kod: TASLAK_ONAY
+    inject_sira: 5
+    soru: Bildirim taslağı yönetim onayına sunuldu mu?
+    tip: onay
+    sure_limiti_dakika: 15
+
+beklenen_aksiyonlar:
+  - kod: AKTARIM_DURDURULDU
+    aciklama: Şüpheli aktarım 15 dakika içinde durduruldu.
+    hedef_dakika: 15
+    kontrol_kodlari: [TODO-DOGRULA-05]
+
+  - kod: KAPSAM_BELIRLENDI
+    aciklama: Etkilenen veri kapsamı belgelendi.
+    hedef_dakika: 40
+    kontrol_kodlari: [TODO-DOGRULA-13]
+
+  - kod: BILDIRIM_DEGERLENDIRILDI
+    aciklama: Bildirim yükümlülüğü değerlendirildi ve karara bağlandı.
+    hedef_dakika: 60
+    kontrol_kodlari: [TODO-DOGRULA-14]
+
+puanlama:
+  - kod: AKTARIM_DURDURMA_SURESI
+    tip: ACTION_COMPLETED_WITHIN
+    bilesen: zaman_hedefleri
+    agirlik: 25
+    beklenen_aksiyon: AKTARIM_DURDURULDU
+    parametreler: { dakika: 15 }
+    aciklama: Aktarım sürdükçe sızan veri hacmi artar.
+
+  - kod: KAPSAM_CALISMASI
+    tip: EVIDENCE_UPLOADED
+    bilesen: kanit_yeterliligi
+    agirlik: 20
+    beklenen_aksiyon: KAPSAM_BELIRLENDI
+    parametreler: {}
+    aciklama: Kapsam belgelenmezse bildirim kararı dayanaksız kalır.
+
+  - kod: BILDIRIM_KARARI
+    tip: MANDATORY_FAIL_IF
+    bilesen: zorunlu_aksiyonlar
+    agirlik: 35
+    beklenen_aksiyon: BILDIRIM_DEGERLENDIRILDI
+    parametreler: { kosul: tamamlanmadi }
+    aciklama: >-
+      Bildirim yükümlülüğü hiç değerlendirilmediyse olay kapatılamaz; bu,
+      diğer tüm başarılara rağmen kritik başarısızlıktır.
+
+  - kod: GOZLEMCI_DEGERLENDIRMESI
+    tip: OBSERVER_RATING
+    bilesen: gozlemci
+    agirlik: 10
+    parametreler: {}
+    aciklama: Gözlemcinin genel değerlendirmesi; tek başına toplam puanı belirlemez.
+
+debrief_sorulari:
+  - Kapsam belirleme neden uzadı?
+  - Hukuk birimi hangi aşamada devreye girdi?
+  - Bildirim karar ağacı net miydi?

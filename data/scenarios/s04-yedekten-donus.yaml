@@ -1,0 +1,140 @@
+# S04 — Yedekten geri dönüş ve RTO/RPO
+#
+# KAYNAK: simülasyon vizyon belgesi §7.5 (S04).
+# icerik_durumu: UNVERIFIED_SAMPLE (kural 12).
+#
+# RTO/RPO hedefleri (90/60 dakika) ÖRNEKTİR. Gerçek hedefler kurumun kendi
+# iş etki analizinden gelir; mevzuattan türetilmemiştir.
+
+kod: S04
+ad: Yedekten geri dönüş ve RTO/RPO
+tehdit_kategorisi: is_surekliligi
+aciklama: >-
+  Kritik sistem kesintisinde son sağlam yedeğin bulunması, geri yükleme
+  kararı, bütünlük doğrulama ve RTO/RPO hedeflerine ulaşılıp ulaşılmadığını
+  sınar. Yedeğin varlığı ile geri dönebilirliğin aynı şey olmadığını gösterir.
+
+surum: 1
+tahmini_dakika: 90
+hedef_roller:
+  - soc_bt_operasyon
+  - is_surekliligi
+  - ust_yonetim
+on_kosullar: Kurumun yedekleme politikası ve RTO/RPO hedefleri bilinmeli.
+
+injects:
+  - sira: 1
+    t_dakika: 0
+    baslik: Kritik sistem kesintisi
+    icerik: >-
+      Emir yönetim sisteminin veritabanı yanıt vermiyor. Kullanıcılar işlem
+      yapamıyor.
+    beklenen_davranis: Olay kaydı açılır, kesinti sınıflandırılır.
+    gorunur_roller: []
+
+  - sira: 2
+    t_dakika: 10
+    baslik: Son sağlam yedek aranıyor
+    icerik: >-
+      Yedekleme kataloğunda son iki gecelik yedeğin doğrulama kaydı yok.
+      Ondan önceki yedek 26 saat öncesine ait.
+    beklenen_davranis: RPO etkisi hesaplanır, geri yükleme kararı verilir.
+    gorunur_roller: []
+
+  - sira: 3
+    t_dakika: 30
+    baslik: Geri yükleme başladı
+    icerik: >-
+      Geri yükleme başlatıldı. Tahmini süre belirsiz.
+    beklenen_davranis: İş birimi bilgilendirilir, RTO takibi başlar.
+    gorunur_roller: []
+
+  - sira: 4
+    t_dakika: 60
+    baslik: Bütünlük şüphesi
+    icerik: >-
+      Geri yüklenen veritabanında bazı işlemlerin eksik olabileceği görüldü.
+    beklenen_davranis: Bütünlük doğrulaması yapılır, iş birimi onayı alınır.
+    gorunur_roller: []
+
+  - sira: 5
+    t_dakika: 85
+    baslik: Hizmete alma kararı
+    icerik: >-
+      Yönetim, sistemin hizmete alınıp alınamayacağını soruyor.
+    beklenen_davranis: RTO/RPO sonucu raporlanır, kalan risk yönetime sunulur.
+    gorunur_roller: []
+
+karar_noktalari:
+  - kod: GERI_YUKLEME_KARARI
+    inject_sira: 2
+    soru: Hangi yedekten dönülecek? Gerekçeyi yazın.
+    tip: serbest_metin
+    sure_limiti_dakika: 20
+
+  - kod: BUTUNLUK_DOGRULAMA
+    inject_sira: 4
+    soru: Bütünlük doğrulama sonucunu yükleyin.
+    tip: dosya
+    sure_limiti_dakika: 20
+
+  - kod: IS_BIRIMI_ONAYI
+    inject_sira: 5
+    soru: İş birimi hizmete alma onayı verdi mi?
+    tip: onay
+    sure_limiti_dakika: 10
+
+beklenen_aksiyonlar:
+  - kod: YEDEK_BELIRLENDI
+    aciklama: Geri dönülecek yedek 30 dakika içinde belirlendi.
+    hedef_dakika: 30
+    kontrol_kodlari: [TODO-DOGRULA-07]
+
+  - kod: BUTUNLUK_DOGRULANDI
+    aciklama: Geri yüklenen verinin bütünlüğü doğrulandı.
+    hedef_dakika: 75
+    kontrol_kodlari: [TODO-DOGRULA-07]
+
+  - kod: HIZMETE_ALINDI
+    aciklama: Sistem RTO hedefi içinde hizmete alındı.
+    hedef_dakika: 90
+    kontrol_kodlari: [TODO-DOGRULA-07]
+
+puanlama:
+  - kod: RTO_HEDEFI
+    tip: RTO_WITHIN_TARGET
+    bilesen: is_surekliligi
+    agirlik: 30
+    beklenen_aksiyon: HIZMETE_ALINDI
+    parametreler: { hedef_dakika: 90 }
+    aciklama: Sistem 90 dakikalık RTO hedefi içinde hizmete alınmalı (örnek hedef).
+
+  - kod: RPO_HEDEFI
+    tip: RPO_WITHIN_TARGET
+    bilesen: is_surekliligi
+    agirlik: 20
+    beklenen_aksiyon: YEDEK_BELIRLENDI
+    parametreler: { hedef_dakika: 60 }
+    aciklama: Veri kaybı 60 dakikalık RPO hedefini aşmamalı (örnek hedef).
+
+  - kod: BUTUNLUK_KRITIK
+    tip: MANDATORY_FAIL_IF
+    bilesen: zorunlu_aksiyonlar
+    agirlik: 30
+    beklenen_aksiyon: BUTUNLUK_DOGRULANDI
+    parametreler: { kosul: tamamlanmadi }
+    aciklama: >-
+      Bütünlük doğrulanmadan sistem hizmete alınırsa, hızlı dönüş bir başarı
+      değil gizli bir veri bütünlüğü riskidir.
+
+  - kod: GOZLEMCI_DEGERLENDIRMESI
+    tip: OBSERVER_RATING
+    bilesen: gozlemci
+    agirlik: 10
+    parametreler: {}
+    aciklama: Gözlemcinin genel değerlendirmesi; tek başına toplam puanı belirlemez.
+
+debrief_sorulari:
+  - Yedeklerin doğrulama kaydı neden eksikti?
+  - RPO kaybı iş birimine ne zaman bildirildi?
+  - Bütünlük doğrulaması olmadan hizmete alma baskısı oluştu mu?

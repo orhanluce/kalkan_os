@@ -1,0 +1,133 @@
+# S02 — Ayrıcalıklı hesap ele geçirilmesi
+#
+# KAYNAK: simülasyon vizyon belgesi §7.5 (S02). Oradaki gelişme başlıkları
+# esas alınmış, tatbikat metni yazılmıştır — mevzuattan türetilmemiştir.
+# icerik_durumu: UNVERIFIED_SAMPLE (kural 12).
+
+kod: S02
+ad: Ayrıcalıklı hesap ele geçirilmesi
+tehdit_kategorisi: hesap_ele_gecirme
+aciklama: >-
+  Bir yönetici hesabının ele geçirilmesi durumunda tespit, oturum iptali,
+  yetki gözden geçirme ve delil toplama süreçlerini sınar.
+
+surum: 1
+tahmini_dakika: 60
+hedef_roller:
+  - bilgi_guvenligi_yoneticisi
+  - soc_bt_operasyon
+  - uyum_hukuk
+on_kosullar: Kurumun ayrıcalıklı hesap envanteri ve MFA politikası bilinmeli.
+
+injects:
+  - sira: 1
+    t_dakika: 0
+    baslik: Şüpheli yönetici girişi
+    icerik: >-
+      Bir domain yönetici hesabı, mesai dışı saatte ve daha önce görülmemiş
+      bir konumdan oturum açtı.
+    beklenen_davranis: Olay kaydı açılır, hesap sahibi doğrulanır.
+    gorunur_roller: []
+
+  - sira: 2
+    t_dakika: 8
+    baslik: MFA anomalisi
+    icerik: >-
+      Aynı hesapta arka arkaya çok sayıda MFA isteği görülüyor; kullanıcı
+      bunları kendisinin başlatmadığını söylüyor.
+    beklenen_davranis: MFA yorgunluğu saldırısı değerlendirilir, oturum iptal edilir.
+    gorunur_roller: []
+
+  - sira: 3
+    t_dakika: 18
+    baslik: Yetki yükseltme
+    icerik: >-
+      Hesap, yeni bir kullanıcıya yönetici yetkisi verdi.
+    beklenen_davranis: Yetki değişikliği geri alınır, etkilenen hesaplar belirlenir.
+    gorunur_roller: []
+
+  - sira: 4
+    t_dakika: 30
+    baslik: Kritik konfigürasyon değişikliği
+    icerik: >-
+      Log iletim ayarlarında değişiklik yapıldığı görüldü; bazı kayıtlar
+      merkezî sisteme akmıyor olabilir.
+    beklenen_davranis: Delil koruma önceliklendirilir, log bütünlüğü kontrol edilir.
+    gorunur_roller:
+      - bilgi_guvenligi_yoneticisi
+      - uyum_hukuk
+
+karar_noktalari:
+  - kod: OTURUM_IPTALI
+    inject_sira: 2
+    soru: Hesabın tüm oturumları iptal edilsin mi?
+    tip: secim
+    secenekler: [Evet, Hayır, Önce izle]
+    sure_limiti_dakika: 10
+
+  - kod: HESAP_KAPATMA
+    inject_sira: 3
+    soru: Yönetici hesabı geçici olarak kapatılsın mı? Gerekçeyi yazın.
+    tip: serbest_metin
+    sure_limiti_dakika: 10
+
+  - kod: ETKILENEN_HESAPLAR
+    inject_sira: 3
+    soru: Etkilenen hesapların listesini yükleyin.
+    tip: dosya
+    sure_limiti_dakika: 20
+
+beklenen_aksiyonlar:
+  - kod: OTURUM_IPTAL_EDILDI
+    aciklama: Şüpheli oturumlar 15 dakika içinde iptal edildi.
+    hedef_dakika: 15
+    kontrol_kodlari: [TODO-DOGRULA-05]
+
+  - kod: YETKI_GERI_ALINDI
+    aciklama: Yetkisiz verilen yönetici yetkisi geri alındı.
+    hedef_dakika: 30
+    kontrol_kodlari: [TODO-DOGRULA-05]
+
+  - kod: LOG_BUTUNLUGU_KONTROL
+    aciklama: Log bütünlüğü kontrol edildi ve deliller korundu.
+    hedef_dakika: 45
+    kontrol_kodlari: [TODO-DOGRULA-13]
+
+puanlama:
+  - kod: OTURUM_IPTAL_SURESI
+    tip: ACTION_COMPLETED_WITHIN
+    bilesen: zaman_hedefleri
+    agirlik: 30
+    beklenen_aksiyon: OTURUM_IPTAL_EDILDI
+    parametreler: { dakika: 15 }
+    aciklama: Ele geçirilmiş oturum ne kadar açık kalırsa saldırganın erişimi o kadar uzar.
+
+  - kod: YETKI_GERI_ALMA
+    tip: ACTION_COMPLETED
+    bilesen: zorunlu_aksiyonlar
+    agirlik: 30
+    beklenen_aksiyon: YETKI_GERI_ALINDI
+    parametreler: {}
+    aciklama: Yetkisiz verilen yetki geri alınmazsa saldırgan erişimini kalıcılaştırır.
+
+  - kod: DELIL_KORUMA_KRITIK
+    tip: MANDATORY_FAIL_IF
+    bilesen: zorunlu_aksiyonlar
+    agirlik: 0
+    beklenen_aksiyon: LOG_BUTUNLUGU_KONTROL
+    parametreler: { kosul: tamamlanmadi }
+    aciklama: >-
+      Log bütünlüğü kontrol edilmediyse saldırganın ne yaptığı hiçbir zaman
+      kanıtlanamaz; diğer başarılar bunu telafi etmez.
+
+  - kod: GOZLEMCI_DEGERLENDIRMESI
+    tip: OBSERVER_RATING
+    bilesen: gozlemci
+    agirlik: 10
+    parametreler: {}
+    aciklama: Gözlemcinin genel değerlendirmesi; tek başına toplam puanı belirlemez.
+
+debrief_sorulari:
+  - Oturum iptali kararı neden gecikti?
+  - Ayrıcalıklı hesap envanteri güncel miydi?
+  - Log iletimi kesildiğini nasıl fark ettiniz?

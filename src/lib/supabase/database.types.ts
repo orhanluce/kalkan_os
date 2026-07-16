@@ -518,6 +518,282 @@ export type Database = {
           },
         ]
       }
+      scenario_control_mappings: {
+        Row: {
+          control_id: string
+          expected_action_id: string
+        }
+        Insert: {
+          control_id: string
+          expected_action_id: string
+        }
+        Update: {
+          control_id?: string
+          expected_action_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenario_control_mappings_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scenario_control_mappings_expected_action_id_fkey"
+            columns: ["expected_action_id"]
+            isOneToOne: false
+            referencedRelation: "scenario_expected_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scenario_decision_points: {
+        Row: {
+          id: string
+          inject_id: string | null
+          kod: string
+          secenekler: Json | null
+          soru: string
+          sure_limiti_dakika: number | null
+          tip: string
+          version_id: string
+        }
+        Insert: {
+          id?: string
+          inject_id?: string | null
+          kod: string
+          secenekler?: Json | null
+          soru: string
+          sure_limiti_dakika?: number | null
+          tip: string
+          version_id: string
+        }
+        Update: {
+          id?: string
+          inject_id?: string | null
+          kod?: string
+          secenekler?: Json | null
+          soru?: string
+          sure_limiti_dakika?: number | null
+          tip?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenario_decision_points_inject_id_fkey"
+            columns: ["inject_id"]
+            isOneToOne: false
+            referencedRelation: "scenario_injects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scenario_decision_points_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "scenario_template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scenario_expected_actions: {
+        Row: {
+          aciklama: string
+          hedef_dakika: number | null
+          id: string
+          kod: string
+          version_id: string
+        }
+        Insert: {
+          aciklama: string
+          hedef_dakika?: number | null
+          id?: string
+          kod: string
+          version_id: string
+        }
+        Update: {
+          aciklama?: string
+          hedef_dakika?: number | null
+          id?: string
+          kod?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenario_expected_actions_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "scenario_template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scenario_injects: {
+        Row: {
+          baslik: string
+          beklenen_davranis: string | null
+          gorunur_roller: string[]
+          icerik: string
+          id: string
+          sira: number
+          t_dakika: number
+          version_id: string
+        }
+        Insert: {
+          baslik: string
+          beklenen_davranis?: string | null
+          gorunur_roller?: string[]
+          icerik: string
+          id?: string
+          sira: number
+          t_dakika: number
+          version_id: string
+        }
+        Update: {
+          baslik?: string
+          beklenen_davranis?: string | null
+          gorunur_roller?: string[]
+          icerik?: string
+          id?: string
+          sira?: number
+          t_dakika?: number
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenario_injects_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "scenario_template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scenario_scoring_rules: {
+        Row: {
+          aciklama: string
+          agirlik: number
+          bilesen: string
+          expected_action_id: string | null
+          id: string
+          kod: string
+          parametreler: Json
+          tip: string
+          version_id: string
+        }
+        Insert: {
+          aciklama: string
+          agirlik: number
+          bilesen: string
+          expected_action_id?: string | null
+          id?: string
+          kod: string
+          parametreler?: Json
+          tip: string
+          version_id: string
+        }
+        Update: {
+          aciklama?: string
+          agirlik?: number
+          bilesen?: string
+          expected_action_id?: string | null
+          id?: string
+          kod?: string
+          parametreler?: Json
+          tip?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenario_scoring_rules_expected_action_id_fkey"
+            columns: ["expected_action_id"]
+            isOneToOne: false
+            referencedRelation: "scenario_expected_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scenario_scoring_rules_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "scenario_template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scenario_template_versions: {
+        Row: {
+          created_at: string
+          durum: string
+          hedef_roller: string[]
+          id: string
+          on_kosullar: string | null
+          surum: number
+          tahmini_dakika: number
+          template_id: string
+          yayinlandi_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          durum?: string
+          hedef_roller?: string[]
+          id?: string
+          on_kosullar?: string | null
+          surum: number
+          tahmini_dakika: number
+          template_id: string
+          yayinlandi_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          durum?: string
+          hedef_roller?: string[]
+          id?: string
+          on_kosullar?: string | null
+          surum?: number
+          tahmini_dakika?: number
+          template_id?: string
+          yayinlandi_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenario_template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "scenario_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scenario_templates: {
+        Row: {
+          aciklama: string | null
+          ad: string
+          created_at: string
+          icerik_durumu: string
+          id: string
+          kod: string
+          tehdit_kategorisi: string
+        }
+        Insert: {
+          aciklama?: string | null
+          ad: string
+          created_at?: string
+          icerik_durumu?: string
+          id?: string
+          kod: string
+          tehdit_kategorisi: string
+        }
+        Update: {
+          aciklama?: string | null
+          ad?: string
+          created_at?: string
+          icerik_durumu?: string
+          id?: string
+          kod?: string
+          tehdit_kategorisi?: string
+        }
+        Relationships: []
+      }
       share_links: {
         Row: {
           created_at: string

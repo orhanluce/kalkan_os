@@ -1,0 +1,133 @@
+# S05 — Kritik tedarikçi kesintisi
+#
+# KAYNAK: simülasyon vizyon belgesi §7.5 (S05).
+# icerik_durumu: UNVERIFIED_SAMPLE (kural 12).
+
+kod: S05
+ad: Kritik tedarikçi kesintisi
+tehdit_kategorisi: tedarikci_riski
+aciklama: >-
+  Kritik bir bulut/SaaS sağlayıcısının kesintisinde SLA takibi, alternatif
+  hizmete geçiş, müşteri etkisi ve tedarikçi eskalasyonunu sınar. Dış kaynak
+  kullanımında sorumluluğun devredilemeyeceğini gösterir.
+
+surum: 1
+tahmini_dakika: 60
+hedef_roller:
+  - soc_bt_operasyon
+  - is_surekliligi
+  - uyum_hukuk
+  - kurumsal_iletisim
+  - ust_yonetim
+on_kosullar: Kurumun kritik tedarikçi envanteri ve SLA şartları bilinmeli.
+
+injects:
+  - sira: 1
+    t_dakika: 0
+    baslik: Sağlayıcı kesintisi
+    icerik: >-
+      Kimlik doğrulama hizmeti aldığınız SaaS sağlayıcısı yanıt vermiyor.
+      Kullanıcılar sisteme giriş yapamıyor.
+    beklenen_davranis: Olay kaydı açılır, tedarikçi durum sayfası kontrol edilir.
+    gorunur_roller: []
+
+  - sira: 2
+    t_dakika: 10
+    baslik: SLA ve iletişim
+    icerik: >-
+      Sağlayıcı henüz resmî bir açıklama yapmadı. SLA'da tanımlı bildirim
+      süresi işlemeye başladı.
+    beklenen_davranis: Tedarikçi eskalasyon kanalı kullanılır.
+    gorunur_roller: []
+
+  - sira: 3
+    t_dakika: 25
+    baslik: Alternatif hizmet
+    icerik: >-
+      Kesintinin süresi belirsiz. Alternatif kimlik doğrulama yöntemine geçiş
+      değerlendirilmeli.
+    beklenen_davranis: Alternatif hizmete geçiş kararı verilir.
+    gorunur_roller: []
+
+  - sira: 4
+    t_dakika: 40
+    baslik: Müşteri etkisi
+    icerik: >-
+      Müşteriler işlem yapamadığını bildiriyor. Çağrı merkezinde yığılma var.
+    beklenen_davranis: Müşteri iletişimi yapılır, yönetim bilgilendirilir.
+    gorunur_roller: []
+
+karar_noktalari:
+  - kod: ESKALASYON
+    inject_sira: 2
+    soru: Tedarikçi eskalasyonu başlatılsın mı?
+    tip: secim
+    secenekler: [Evet, Hayır, Durum sayfasını bekle]
+    sure_limiti_dakika: 10
+
+  - kod: ALTERNATIF_GECIS
+    inject_sira: 3
+    soru: Alternatif hizmete geçilsin mi? Gerekçeyi yazın.
+    tip: serbest_metin
+    sure_limiti_dakika: 15
+
+  - kod: MUSTERI_MESAJI
+    inject_sira: 4
+    soru: Müşteri bilgilendirme mesajı onaylandı mı?
+    tip: onay
+    sure_limiti_dakika: 15
+
+beklenen_aksiyonlar:
+  - kod: TEDARIKCI_ESKALE
+    aciklama: Tedarikçi eskalasyonu 15 dakika içinde başlatıldı.
+    hedef_dakika: 15
+    kontrol_kodlari: [TODO-DOGRULA-08]
+
+  - kod: ALTERNATIF_DEGERLENDIRILDI
+    aciklama: Alternatif hizmete geçiş değerlendirildi ve karara bağlandı.
+    hedef_dakika: 35
+    kontrol_kodlari: [TODO-DOGRULA-07]
+
+  - kod: MUSTERI_BILGILENDIRILDI
+    aciklama: Müşteri bilgilendirmesi yapıldı.
+    hedef_dakika: 50
+    kontrol_kodlari: [TODO-DOGRULA-11]
+
+puanlama:
+  - kod: ESKALASYON_SURESI
+    tip: ACTION_COMPLETED_WITHIN
+    bilesen: zaman_hedefleri
+    agirlik: 25
+    beklenen_aksiyon: TEDARIKCI_ESKALE
+    parametreler: { dakika: 15 }
+    aciklama: SLA'daki bildirim süresi işlerken eskalasyon gecikirse hak kaybı doğar.
+
+  - kod: ALTERNATIF_KARARI
+    tip: DECISION_SELECTED
+    bilesen: is_surekliligi
+    agirlik: 30
+    beklenen_aksiyon: ALTERNATIF_DEGERLENDIRILDI
+    parametreler: { karar_kodu: ALTERNATIF_GECIS }
+    aciklama: >-
+      Dış kaynak kullanımı sorumluluğu devretmez: alternatif hiç
+      değerlendirilmediyse kurum kesintiyi tedarikçiye havale etmiş olur.
+
+  - kod: MUSTERI_ILETISIMI
+    tip: ACTION_COMPLETED_WITHIN
+    bilesen: rol_eskalasyon
+    agirlik: 20
+    beklenen_aksiyon: MUSTERI_BILGILENDIRILDI
+    parametreler: { dakika: 50 }
+    aciklama: Müşteri etkisi oluştuğunda bilgilendirme gecikmemeli.
+
+  - kod: GOZLEMCI_DEGERLENDIRMESI
+    tip: OBSERVER_RATING
+    bilesen: gozlemci
+    agirlik: 10
+    parametreler: {}
+    aciklama: Gözlemcinin genel değerlendirmesi; tek başına toplam puanı belirlemez.
+
+debrief_sorulari:
+  - Tedarikçi eskalasyon kanalı güncel miydi?
+  - Alternatif hizmete geçiş daha önce test edilmiş miydi?
+  - SLA'daki bildirim süresi takip edildi mi?

@@ -179,7 +179,16 @@ store'dan gerçek Supabase'e taşınıyor.
 - [ ] `scripts/generate-yk-beyani.ts` hâlâ `mock-data`'dan okuyor.
 - [ ] **Playwright akışları devre dışı** (`playwright.config.ts` → `GECIS_SURUYOR`). Kural 8'in bilinçli ve işaretlenmiş ihlali. Artık gerçek kullanıcı + gerçek veriye karşı yeniden yazılabilirler; bunun için test kullanıcısının şifresi CI/env'den gelmeli.
 
-### M7 — Simülasyon şablon motoru (kaynak: simülasyon belgesi §7, Faz 6)
+### M7 — Simülasyon şablon motoru ✅ (kaynak: simülasyon belgesi §7, Faz 6)
+
+**Durum: tamamlandı** (`20260717110000_scenario_templates.sql`, `pnpm seed:scenarios`).
+Canlıda: 5 şablon (hepsi `UNVERIFIED_SAMPLE`), 28 inject, 22 karar noktası, 18 beklenen aksiyon,
+**18 aksiyon→kontrol bağı**, 24 puanlama kuralı. Immutability canlıya karşı doğrulandı: yayınlanmış
+sürüm de, alt içeriği de (inject/puanlama kuralı) değiştirilemiyor.
+
+Şablonlar kiracıya ait DEĞİL, kontrol kütüphanesi gibi ortak referans veri — bu yüzden `tenant_id`
+yok. Kural 1'in "her tabloda tenant_id" şartı müşteri verisi içeren tablolar içindir; kiracıya ait
+olan şey simülasyonun kendisidir (M8: `simulation_runs.tenant_id`).
 
 Simülasyon ana üründen ayrı bir oyun DEĞİLDİR: her beklenen aksiyon bir kontrole bağlanır, her
 sonuç kanıt üretir. Bu taş yalnızca şablonu kurar, yürütmeyi değil.
