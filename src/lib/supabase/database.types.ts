@@ -673,6 +673,7 @@ export type Database = {
         }[]
       }
       evidence_durumu: { Args: { target_evidence_id: string }; Returns: string }
+      paylasim_goruntule: { Args: { p_token: string }; Returns: Json }
       tenant_has_profiles: {
         Args: { target_tenant_id: string }
         Returns: boolean
