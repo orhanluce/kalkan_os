@@ -39,9 +39,17 @@ migration'dan sonra canlıya karşı gerçek bir yazma dene.** `pnpm db:verify`
 tabloların var olduğunu gösterir, çalıştıklarını değil.
 
 Hâlâ **doğrulanamayan** ve "yazıldı ama doğrulanmadı" diye işaretlenmesi
-gerekenler: Supabase Auth'un kendisi (auth.uid()/auth.users testlerde
-stub'lanır), Storage'a gerçek dosya yükleme, ve deploy. Bunlar için
-"çalışıyor" deme.
+gerekenler: Storage'a gerçek dosya yükleme ve deploy. Bunlar için "çalışıyor"
+deme. (Supabase Auth artık doğrulandı: gerçek kullanıcı canlıda giriş yaptı,
+profil RLS altında okundu.)
+
+**Sıradaki büyük kapsam — simülasyon** (docs/ROADMAP.md §1.2, M7-M9): 17 Temmuz
+2026'da eklendi, henüz kodlanmadı. Simülasyon ayrı bir oyun değil, uyum
+işletim sisteminin test üretme katmanıdır: her beklenen aksiyon bir kontrole
+bağlanır, sonuçlar kanıt ve bulgu önerisi üretir. Önce **mevcut borçlar**
+kapatılmalı (özellikle denetçi paylaşımı: M4 kabul kriteri şu an
+karşılanmıyor) — belge de "ana fonksiyonlar simülasyon olmadan da çalışmalı"
+diyor.
 
 ## Değişmez kurallar
 1. Her tabloda tenant_id + RLS; RLS'i test etmeden hiçbir tablo "bitti" sayılmaz.
@@ -54,3 +62,12 @@ stub'lanır), Storage'a gerçek dosya yükleme, ve deploy. Bunlar için
 6. Türkçe UI, İngilizce kod/commit. Para/tarih formatları tr-TR.
 7. Gizli anahtarlar yalnızca .env; loglara PII/kanıt içeriği yazılmaz.
 8. Her taş sonunda: pnpm check (typecheck+lint+test) + ilgili Playwright akışı yeşil olmalı.
+9. Simülasyon ASLA gerçek bir üretim saldırısı başlatmaz; her tatbikat bildirimi/ekranı
+   açıkça TATBİKAT etiketi taşır (gerçek olayla karışması bir uyum ürününde felakettir).
+10. Yayınlanmış senaryo şablonu ve başlatılmış simülasyon snapshot'ı immutable: şablon
+   değişirse geçmiş simülasyon değişmez, yeni sürüm doğar.
+11. Puanlama deterministik ve açıklanabilir: aynı girdi aynı sonucu verir, her puan satırı
+   gerekçesini taşır. AI yalnızca gözlem notu özetleyebilir — puanı veya uyum durumunu
+   belirleyemez. Simülasyon bulgusu PROPOSED doğar, insan onaylamadan gerçek bulgu olmaz.
+12. Senaryo içeriği de mevzuat içeriği gibidir (kural 3): data/scenarios/*.yaml'dan seed
+   edilir, uydurulmaz, UNVERIFIED_SAMPLE etiketlenir.

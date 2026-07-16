@@ -40,6 +40,38 @@ O belgeden **kavramsal olarak** projeye alınanlar:
 
 Alınmayanlar: belgenin teknoloji yığını (NestJS/Prisma/Keycloak/MinIO/Turborepo), 9 rollük tam RBAC modeli (pilot ölçeği 5-15 kullanıcı için mevcut 3 rol + genişletilebilir tasarım yeterli, gerekirse ayrı bir milestone'a alınır), olay/delil odası (custody events, Faz 7 muadili — MVP dışı), RegChain/çok-kurumlu DLT (blockchain karar kapısı zaten "hayır" veriyor: tek kurum var, §2.3'teki 5 sorudan en az 4'ü olumsuz).
 
+### 1.2 Mimari karar kaydı — 17 Temmuz 2026 (simülasyon vizyonu)
+
+Kurucu ikinci bir vizyon belgesi verdi (`KALKAN_OS_Tam_MVP_Simulasyonlu_...md`). Belge, ürüne
+**siber dayanıklılık simülasyonu** modülü ekliyor: senaryo şablonları, canlı/zamanlı/hızlandırılmış
+tatbikat yürütme, deterministik puanlama ve simülasyon sonucundan otomatik bulgu üretimi.
+
+**Alınan (ürünün asıl değeri burada):** simülasyon modülünün tamamı — ama ayrı bir oyun olarak
+değil, belgenin kendi ifadesiyle "mevcut uyum ve kanıt işletim sisteminin test üretme katmanı"
+olarak. Vaat şu: ürün "belgen var mı?" diye sormakla kalmaz, "kontrolün gerçekten çalıştı mı?"
+sorusunu da sorar ve cevabı kanıta bağlar. Bkz. **M7-M9**.
+
+**Alınmayan:** belgenin teknoloji yığını (NestJS + Prisma + Turborepo + Keycloak + MinIO +
+Redis/BullMQ + Docker Compose). Gerekçe §1.1'dekiyle aynı ve artık daha güçlü: o karardan bu yana
+uygulama gerçek Supabase'e taşındı, 14 migration canlıda, 193 test yeşil. Geçiş, kanıtlanmış işi
+çöpe atar. Belgenin istediği yetenekler mevcut yığında karşılanıyor:
+
+| Belge | Bizdeki karşılığı |
+|---|---|
+| Keycloak/OIDC | Supabase Auth (canlıda çalışıyor) |
+| MinIO/S3 | Supabase Storage |
+| Prisma | `pnpm db:types` ile şemadan üretilen tipler |
+| Redis + BullMQ | Zamanlı inject'ler için `pg_cron`/scheduler — kuyruk altyapısı pilot ölçeğinde gereksiz |
+| Docker Compose | PGlite (test) + canlı Supabase; Docker bu makinede yok, gerekmedi |
+| NestJS API | Next.js Route Handlers + RLS |
+
+**Ertelenen:** 11 rollük tam RBAC (mevcut 3 rol + simülasyon rolleri M7'de eklenecek), CSV/XLSX
+import-export, PDF/ZIP raporlar (M9), OpenTelemetry, SBOM.
+
+**Belgeyle çelişen bir nokta, kayda geçsin:** belge "20-30 örnek kontrol" istiyor, bizde 17 var.
+Bu bir eksik değil bilinçli sınır: kontrol içeriği YAML'dan seed ediliyor ve kural 3 gereği
+uydurulamaz. Kontrol sayısı ancak doğrulanmış mevzuat maddesi eklendikçe artar.
+
 ---
 
 ## 2. Veri modeli çekirdeği (M1'de şema olarak yazılacak)
@@ -146,6 +178,36 @@ store'dan gerçek Supabase'e taşınıyor.
 - [ ] **Kanıt süresi dolması** artık yalnızca yükleme anında hesaplanıyor; DB'de "karsilaniyor" kalıp UI'da "kismi" görünen kayıtlar oluşabilir. Cron/trigger ile şemaya taşınmalı.
 - [ ] `scripts/generate-yk-beyani.ts` hâlâ `mock-data`'dan okuyor.
 - [ ] **Playwright akışları devre dışı** (`playwright.config.ts` → `GECIS_SURUYOR`). Kural 8'in bilinçli ve işaretlenmiş ihlali. Artık gerçek kullanıcı + gerçek veriye karşı yeniden yazılabilirler; bunun için test kullanıcısının şifresi CI/env'den gelmeli.
+
+### M7 — Simülasyon şablon motoru (kaynak: simülasyon belgesi §7, Faz 6)
+
+Simülasyon ana üründen ayrı bir oyun DEĞİLDİR: her beklenen aksiyon bir kontrole bağlanır, her
+sonuç kanıt üretir. Bu taş yalnızca şablonu kurar, yürütmeyi değil.
+
+- `scenario_templates` + `scenario_template_versions`: yayınlanmış şablon **immutable**; değişiklik yeni sürüm doğurur.
+- `scenario_injects` (zamanlı gelişmeler), `scenario_decision_points`, `scenario_expected_actions`, `scenario_roles`.
+- `scenario_scoring_rules`: kural türleri belgede sabit (`ACTION_COMPLETED_WITHIN`, `ROLE_NOTIFIED_WITHIN`, `RTO_WITHIN_TARGET`, `MANDATORY_FAIL_IF` …). Kurallar sürümlenir.
+- `scenario_control_mappings`: beklenen aksiyon → mevcut `controls` tablosu.
+- Seed: beş şablon (S01 fidye, S02 ayrıcalıklı hesap, S03 veri sızıntısı, S04 yedekten dönüş, S05 tedarikçi kesintisi) — `UNVERIFIED_SAMPLE` etiketli, `data/scenarios/*.yaml`'dan; kural 3'ün aynısı burada da geçerli.
+- **Kabul:** yayınlanmış şablon değiştirilemez (RLS/trigger testi); her beklenen aksiyon en az bir kontrole bağlanabiliyor; beş şablon YAML'dan seed ediliyor; şablon sürümü geçmiş simülasyonları etkilemiyor.
+
+### M8 — Simülasyon yürütme + deterministik puanlama (Faz 7-8)
+
+- `simulation_runs` durum makinesi: `DRAFT → SCHEDULED → READY → RUNNING → PAUSED → COMPLETED → SCORING → REVIEWED → CLOSED`, `RUNNING → ABORTED`.
+- **Başlatılan run, şablonun immutable snapshot'ını kullanır** — şablon sonradan değişse bile geçmiş simülasyon değişmez (belge §10.7).
+- Üç mod: facilitated live, timed, accelerated demo. Hızlandırılmış modda rapor `SIMULATED_ACCELERATED` etiketi taşır.
+- Rol bazlı görünürlük: katılımcı yalnızca kendi rolüne yayınlanmış inject'i görür. Bu bir RLS testi konusudur, UI filtresi değil.
+- `simulation_decisions`, `simulation_tasks`, `simulation_observations`, `simulation_timeline_events`.
+- Deterministik puanlama: aynı girdi aynı sonucu verir; her puan satırı neden verildiğini gösterir; kritik zorunlu aksiyon eksikse genel puan yüksek olsa bile `CRITICAL_FAILURE`.
+- `simulation_finding_proposals`: öneri **`PROPOSED`** doğar; GRC/güvenlik yöneticisi kabul etmeden gerçek bulguya dönüşmez.
+- **Kabul:** aynı veri aynı puanı üretir (deterministiklik testi); katılımcı başka rolün gizli inject'ini SORGUYLA DA göremez; aynı inject iki kez yayınlanmaz (idempotency); pause sırasında zaman hesabı doğru; öneri onaylanmadan bulgu oluşmaz.
+
+### M9 — Fidye yazılımı dikey akışı + raporlar (Faz 9-10)
+
+- S01 baştan sona oynanabilir: 10 inject, RTO/RPO ölçümü, kanıt yükleme, en az üç bulgu önerisi.
+- Simülasyon sonuç manifesti: immutable, şablon sürümü + kararlar + kanıt hash'leri + puanlama kural sürümü + rapor hash'i (belge §11.3). Mevcut Merkle/anchor altyapısı (M5.5) burada kullanılır.
+- PDF: yönetim raporu, simülasyon raporu; rapor hash'i + QR doğrulama → mevcut `verification.ts`.
+- **Kabul:** simülasyon tamamlanmadan puanlama başlamıyor; başarısız kontrol otomatik öneri üretiyor; sonuç ana panoya yansıyor; QR doğrulama hassas veri sızdırmıyor.
 
 ### M6 — MVP kapısına hazırlık (Faz 2 başlangıcı)
 - Üretim barındırma kararının uygulanması (yurt içi / self-hosted Postgres taşıma provası: dump→restore→smoke test).
