@@ -15,7 +15,8 @@
     "db:link": "tsx scripts/db-link.ts",
     "db:push": "tsx scripts/db-push.ts",
     "seed:controls": "tsx scripts/seed-controls.ts",
-    "generate:yk-beyani": "tsx scripts/generate-yk-beyani.ts"
+    "generate:yk-beyani": "tsx scripts/generate-yk-beyani.ts",
+    "db:verify": "tsx scripts/db-verify.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
