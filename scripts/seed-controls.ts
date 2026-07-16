@@ -1,20 +1,22 @@
 // data/controls/*.yaml dosyalarını public.frameworks / public.controls /
 // public.control_mappings tablolarına yükler.
 //
-// DURUM: yazıldı ama ÇALIŞTIRILMADI — bu makinede canlı bir Supabase
-// projesi (SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY) bağlı değil (bkz.
-// docs/ROADMAP.md §5.1, CLAUDE.md "Mevcut aşama"). .env.local dolduktan
-// sonra `pnpm tsx scripts/seed-controls.ts` ile çalıştırılabilir hale gelir.
+//   pnpm seed:controls
 //
 // Service role key kullanır (RLS'i bypass eder) çünkü controls/frameworks
 // tabloları için client rollerine insert/update policy'si YOKTUR (bkz.
 // supabase/migrations/20260716120004_frameworks_controls.sql) — bilinçli
 // tasarım: mevzuat içeriği yalnız bu script üzerinden, insan onayından
-// geçmiş YAML'dan yazılabilir.
+// geçmiş YAML'dan yazılabilir (CLAUDE.md kural 3: mevzuat içeriği ASLA
+// üretilmez/uydurulmaz).
+//
+// upsert kullanır: YAML güncellenip yeniden çalıştırıldığında içerik
+// tazelenir, kopya satır oluşmaz.
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { load as parseYaml } from "js-yaml";
+import { loadEnvLocal, requireEnv } from "./env";
 
 interface ControlYaml {
   madde_ref: string;
@@ -45,16 +47,14 @@ function loadYamlFiles(): FrameworkYaml[] {
 }
 
 async function main() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceKey) {
-    throw new Error(
-      "NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY .env.local içinde yok — " +
-        "gerçek bir Supabase projesi bağlanmadan bu script çalıştırılamaz.",
-    );
-  }
+  // .env.local elle okunur: tsx onu kendiliğinden yüklemez, process.env'e
+  // güvenmek bu script'i "ayarlar eksik" diye patlatırdı.
+  const env = loadEnvLocal();
+  requireEnv(env, ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
 
-  const supabase = createClient(url, serviceKey);
+  const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
+  });
   const files = loadYamlFiles();
   const equivalences: Array<{ a: string; frameworkCode: string; b: string }> = [];
 
