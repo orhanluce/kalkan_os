@@ -69,6 +69,18 @@ function migrationFiles(): string[] {
 }
 
 /**
+ * Migration'lardaki tüm `revoke ...;` ifadelerini toplar. Gerçek Supabase'de
+ * bunlar tablo oluşturulurken verilen default grant'lardan sonra koştuğu için
+ * geçerlidir; bu harness'te toplu grant araya girdiğinden yeniden uygulanmalı.
+ */
+function revokeStatements(): string[] {
+  return migrationFiles().flatMap((file) => {
+    const sql = readFileSync(join(MIGRATIONS_DIR, file), "utf8");
+    return sql.match(/^\s*revoke\s+[^;]+;/gim) ?? [];
+  });
+}
+
+/**
  * Boş bir Postgres ayağa kaldırır, auth stub'ını ve ardından
  * supabase/migrations/*.sql dosyalarını SIRAYLA uygular. Migration'lar
  * elle kopyalanmaz — gerçek dosyalar okunur, böylece test ettiğimiz şey
@@ -94,13 +106,16 @@ export async function createTestDb(): Promise<TestDb> {
     grant usage on schema public to authenticated, anon;
     grant select, insert, update, delete on all tables in schema public to authenticated, anon;
   `);
-  // Not: evidences/audit_log üzerindeki update/delete REVOKE'ları migration
-  // içinde bu grant'lardan ÖNCE koştuğu için burada yeniden uygulanmalı —
-  // aksi halde yukarıdaki toplu grant onları geri açardı.
-  await db.exec(`
-    revoke update, delete on public.evidences from authenticated, anon;
-    revoke update, delete on public.audit_log from authenticated, anon;
-  `);
+  // Yukarıdaki toplu grant, migration'lardaki REVOKE'ları geri açar (onlar
+  // grant'tan ÖNCE koştu). Bu yüzden revoke'lar burada yeniden uygulanır.
+  //
+  // Liste elle tutulmaz, migration dosyalarından okunur: elle tutulduğunda
+  // yeni bir append-only tablo eklendiğinde unutulur ve test, append-only
+  // olmayan bir tabloyu append-only sanarak SESSİZCE yeşil kalırdı —
+  // evidence_reviews eklenirken tam olarak bu oldu.
+  for (const stmt of revokeStatements()) {
+    await db.exec(stmt);
+  }
 
   async function withRole<T>(
     role: string,
