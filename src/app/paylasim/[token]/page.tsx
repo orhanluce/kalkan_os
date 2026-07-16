@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyState } from "@/components/empty-state";
 import { mockControls, mockFrameworks, mockTenant } from "@/lib/mock-data";
 import { isShareLinkValid } from "@/lib/share-links";
 import { useLocalStore } from "@/lib/store";
@@ -24,11 +25,10 @@ export default function ShareLinkGuestPage() {
       </div>
 
       {!shareLink || !valid ? (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            Bu link geçersiz veya süresi dolmuş.
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="Bu link geçersiz veya süresi dolmuş"
+          description="Kurumunuzla iletişime geçip güncel bir paylaşım linki isteyin."
+        />
       ) : (
         <GuestScopedView
           frameworkId={shareLink.kapsam.frameworkId}

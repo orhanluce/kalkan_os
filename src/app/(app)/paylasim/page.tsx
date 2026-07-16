@@ -24,6 +24,10 @@ function defaultSonGecerlilik(): string {
   return d.toISOString().slice(0, 10);
 }
 
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function PaylasimPage() {
   const { shareLinks, addShareLink } = useLocalStore();
   const frameworkById = new Map(mockFrameworks.map((f) => [f.id, f]));
@@ -92,6 +96,7 @@ export default function PaylasimPage() {
               <Input
                 id="son-gecerlilik"
                 type="date"
+                min={todayIso()}
                 value={sonGecerlilik}
                 onChange={(e) => setSonGecerlilik(e.target.value)}
                 required

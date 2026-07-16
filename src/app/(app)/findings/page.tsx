@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyState } from "@/components/empty-state";
 import { mockTenant } from "@/lib/mock-data";
 import { useLocalStore } from "@/lib/store";
 import type { Finding, Onem } from "@/lib/types";
@@ -123,43 +124,50 @@ export default function FindingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{findings.length} bulgu</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Başlık</TableHead>
-                <TableHead>Kaynak</TableHead>
-                <TableHead>Önem</TableHead>
-                <TableHead>Hedef Kapama</TableHead>
-                <TableHead>Durum</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {findings.map((f) => (
-                <TableRow key={f.id}>
-                  <TableCell>{f.baslik}</TableCell>
-                  <TableCell>{KAYNAK_LABEL[f.kaynak]}</TableCell>
-                  <TableCell>
-                    <Badge variant={ONEM_BADGE_VARIANT[f.onem]}>{ONEM_LABEL[f.onem]}</Badge>
-                  </TableCell>
-                  <TableCell>{f.hedefKapama ?? "—"}</TableCell>
-                  <TableCell>{FINDING_DURUM_LABEL[f.durum]}</TableCell>
-                  <TableCell>
-                    <Button variant="outline" size="sm" onClick={() => toggleFindingDurum(f.id)}>
-                      {f.durum === "acik" ? "Kapat" : "Yeniden Aç"}
-                    </Button>
-                  </TableCell>
+      {findings.length === 0 ? (
+        <EmptyState
+          title="Henüz bulgu yok"
+          description="Yukarıdaki formla sızma testi, denetim veya iç tespit kaynaklı ilk bulguyu ekleyin."
+        />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>{findings.length} bulgu</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Başlık</TableHead>
+                  <TableHead>Kaynak</TableHead>
+                  <TableHead>Önem</TableHead>
+                  <TableHead>Hedef Kapama</TableHead>
+                  <TableHead>Durum</TableHead>
+                  <TableHead />
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {findings.map((f) => (
+                  <TableRow key={f.id}>
+                    <TableCell>{f.baslik}</TableCell>
+                    <TableCell>{KAYNAK_LABEL[f.kaynak]}</TableCell>
+                    <TableCell>
+                      <Badge variant={ONEM_BADGE_VARIANT[f.onem]}>{ONEM_LABEL[f.onem]}</Badge>
+                    </TableCell>
+                    <TableCell>{f.hedefKapama ?? "—"}</TableCell>
+                    <TableCell>{FINDING_DURUM_LABEL[f.durum]}</TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm" onClick={() => toggleFindingDurum(f.id)}>
+                        {f.durum === "acik" ? "Kapat" : "Yeniden Aç"}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

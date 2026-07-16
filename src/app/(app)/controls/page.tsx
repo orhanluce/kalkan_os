@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyState } from "@/components/empty-state";
 import { mockControls, mockFrameworks } from "@/lib/mock-data";
 import { useLocalStore } from "@/lib/store";
 import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
@@ -53,52 +54,59 @@ export default function ControlsPage() {
         </Select>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{controls.length} kontrol</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Çerçeve</TableHead>
-                <TableHead>Madde</TableHead>
-                <TableHead>Başlık</TableHead>
-                <TableHead>Periyot</TableHead>
-                <TableHead>Kritiklik</TableHead>
-                <TableHead>Durum</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {controls.map((c) => {
-                const durum = durumByControlId.get(c.id) ?? "acik";
-                return (
-                  <TableRow key={c.id}>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {frameworkById.get(c.frameworkId)?.code}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      <Link href={`/controls/${c.id}`} className="hover:underline">
-                        {c.maddeRef}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <Link href={`/controls/${c.id}`} className="hover:underline">
-                        {c.baslik}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="capitalize">{c.periyot.replace("_", " ")}</TableCell>
-                    <TableCell>{c.kritiklik}</TableCell>
-                    <TableCell>
-                      <Badge variant={DURUM_BADGE_VARIANT[durum]}>{DURUM_LABEL[durum]}</Badge>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {controls.length === 0 ? (
+        <EmptyState
+          title="Bu çerçevede kontrol bulunamadı"
+          description="Farklı bir çerçeve seçmeyi deneyin."
+        />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>{controls.length} kontrol</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Çerçeve</TableHead>
+                  <TableHead>Madde</TableHead>
+                  <TableHead>Başlık</TableHead>
+                  <TableHead>Periyot</TableHead>
+                  <TableHead>Kritiklik</TableHead>
+                  <TableHead>Durum</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {controls.map((c) => {
+                  const durum = durumByControlId.get(c.id) ?? "acik";
+                  return (
+                    <TableRow key={c.id}>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {frameworkById.get(c.frameworkId)?.code}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        <Link href={`/controls/${c.id}`} className="hover:underline">
+                          {c.maddeRef}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Link href={`/controls/${c.id}`} className="hover:underline">
+                          {c.baslik}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="capitalize">{c.periyot.replace("_", " ")}</TableCell>
+                      <TableCell>{c.kritiklik}</TableCell>
+                      <TableCell>
+                        <Badge variant={DURUM_BADGE_VARIANT[durum]}>{DURUM_LABEL[durum]}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

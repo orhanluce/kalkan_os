@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { EmptyState } from "@/components/empty-state";
 import { findEquivalentControlIds } from "@/lib/control-mappings";
 import { sha256Hex } from "@/lib/evidence";
 import type { Evidence } from "@/lib/evidence-types";
@@ -52,12 +53,11 @@ export default function ControlDetailPage() {
 
   if (!control || !tenantControl) {
     return (
-      <div className="text-sm text-muted-foreground">
-        Kontrol bulunamadı.{" "}
-        <Link href="/controls" className="underline">
-          Kütüphaneye dön
-        </Link>
-      </div>
+      <EmptyState
+        title="Kontrol bulunamadı"
+        description="Bu id'ye sahip bir kontrol yok — silinmiş veya yanlış bir link olabilir."
+        action={{ href: "/controls", label: "Kontrol Kütüphanesine dön" }}
+      />
     );
   }
 
