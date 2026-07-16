@@ -121,6 +121,18 @@ action_approvals   (id, finding_id, approver_user_id, decision, created_at)  -- 
 - Bulgu kapatmada **dört-göz onayı**: kapatma kanıtını yükleyen kullanıcı kendi bulgusunu tek başına nihai kapatamaz (`action_approvals`).
 - **Kabul:** tek bit değişen kanıt doğrulamada `FAILED` döner; kasıtlı bozulan audit_log zinciri testle tespit edilir; aynı kullanıcı kendi yüklediği kapatma kanıtını tek başına onaylayıp bulguyu kapatamaz (RLS/domain testi).
 
+### Supabase geçişi (M5.5 ile M6 arası — sürüyor)
+
+Şema ve saf mantık katmanı canlıya alındı; uygulama kodu mock/localStorage
+store'dan gerçek Supabase'e taşınıyor.
+
+- [x] 12 migration canlı projeye uygulandı; `pnpm db:verify` ile 14 tablo + 4 fonksiyon fiilen doğrulandı.
+- [x] `@supabase/ssr` client'ları (browser/server) + `src/proxy.ts` (Next.js 16'da `middleware.ts`'in yerini alır) + `pnpm db:types` ile şemadan üretilen tipler.
+- [x] Gerçek Supabase Auth (`src/lib/auth.tsx`); kimlik `auth.users`'tan, yetki bağlamı (tenant/rol) `profiles`'tan. Kayıt formu yok — şartname §5.1 gereği kullanıcılar davetle gelir. İlk yönetici için tek seferlik `pnpm bootstrap:tenant`.
+- [ ] **Veri katmanı**: `tenant_controls`/`evidences`/`findings`/`audit_log` gerçek tablolardan okunsun (`store-logic.ts`'teki saf mantık korunur).
+- [ ] Kontrol kütüphanesini canlıya seed et (`pnpm seed:controls` — henüz hiç canlıya karşı koşmadı).
+- [ ] **Playwright akışları geçici olarak devre dışı** (`playwright.config.ts` → `GECIS_SURUYOR`). Kural 8'in bilinçli ve işaretlenmiş ihlali: giriş gerçek Auth'tan geçiyor ama veri hâlâ localStorage'da, yani testler tutarsız bir dünyaya bakıyor. Veri katmanı bitince akışlar gerçek kullanıcı + gerçek veriye karşı yeniden yazılacak ve bu bayrak kaldırılacak.
+
 ### M6 — MVP kapısına hazırlık (Faz 2 başlangıcı)
 - Üretim barındırma kararının uygulanması (yurt içi / self-hosted Postgres taşıma provası: dump→restore→smoke test).
 - İlk konektör iskeleti (yalnızca arayüz + 1 örnek: dosya-tabanlı log içe aktarımı) — 5 konektör hedefi Faz 2 gövdesidir, MVP kapısı değildir.

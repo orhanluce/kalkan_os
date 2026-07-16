@@ -17,7 +17,8 @@
     "seed:controls": "tsx scripts/seed-controls.ts",
     "generate:yk-beyani": "tsx scripts/generate-yk-beyani.ts",
     "db:verify": "tsx scripts/db-verify.ts",
-    "db:types": "tsx scripts/db-types.ts"
+    "db:types": "tsx scripts/db-types.ts",
+    "bootstrap:tenant": "tsx scripts/bootstrap-tenant.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

@@ -16,16 +16,19 @@ const NAV_ITEMS = [
 ];
 
 export default function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, yukleniyor, logout } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!currentUser) router.replace("/giris");
-  }, [currentUser, router]);
+    // `yukleniyor` kontrolü şart: oturum Supabase'den asenkron gelir ve ilk
+    // render'da currentUser her zaman null'dur. Bunu beklemeden yönlendirmek,
+    // giriş yapmış kullanıcıyı her sayfa yüklemesinde /giris'e atardı.
+    if (!yukleniyor && !currentUser) router.replace("/giris");
+  }, [currentUser, yukleniyor, router]);
 
   // Yönlendirme gerçekleşene kadar korunan içeriği göstermeyelim — bu
   // gerçek bir erişim kontrolü değil, yalnızca UX (bkz. src/lib/auth.tsx).
-  if (!currentUser) return null;
+  if (yukleniyor || !currentUser) return null;
 
   return (
     <>
@@ -40,8 +43,11 @@ export default function AppLayout({ children }: Readonly<{ children: React.React
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-3">
+            {/* Kimlik doğrulama artık gerçek Supabase Auth; veri katmanı
+                henüz localStorage'da. Rozet, geçiş bitene kadar bu ayrımı
+                söylüyor — "canlı" demek, veriyi de canlı sanmaya yol açardı. */}
             <span className="rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-400">
-              Yerel mod — canlı Supabase bağlı değil
+              Veriler yerel — Supabase geçişi sürüyor
             </span>
             <span className="text-sm text-muted-foreground">
               {currentUser.fullName} · {ROLE_LABEL[currentUser.role]}

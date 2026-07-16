@@ -6,23 +6,36 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { mockProfiles } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth";
 
+// Kayıt (signup) formu BİLİNÇLİ olarak yoktur: şartname §5.1 gereği
+// kullanıcılar davetle gelir, kendi kendine kayıt olmaz. Bir uyum
+// ürününde herkesin hesap açabildiği bir kapı, kiracı sınırının anlamını
+// zayıflatırdı.
 export default function GirisPage() {
   const { login } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [sifre, setSifre] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [gonderiliyor, setGonderiliyor] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const result = login(email);
+    setError(null);
+    setGonderiliyor(true);
+
+    const result = await login(email, sifre);
+    setGonderiliyor(false);
+
     if (!result.ok) {
       setError(result.error);
       return;
     }
+    // refresh(): proxy.ts'in tazelenmiş oturumu görmesi için sunucu
+    // bileşenleri yeniden çalışmalı.
     router.push("/");
+    router.refresh();
   }
 
   return (
@@ -39,28 +52,35 @@ export default function GirisPage() {
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="ayse@demo.com"
                 required
               />
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full">
-              Giriş Yap
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="sifre">Şifre</Label>
+              <Input
+                id="sifre"
+                type="password"
+                autoComplete="current-password"
+                value={sifre}
+                onChange={(e) => setSifre(e.target.value)}
+                required
+              />
+            </div>
+            {error && (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            )}
+            <Button type="submit" className="w-full" disabled={gonderiliyor}>
+              {gonderiliyor ? "Giriş yapılıyor…" : "Giriş Yap"}
             </Button>
           </form>
-          <div className="mt-6 border-t pt-4 text-xs text-muted-foreground">
-            <p className="mb-1 font-medium">Yerel demo — şifre yok, gerçek kimlik doğrulama değil.</p>
-            <p>Demo kullanıcılar:</p>
-            <ul className="mt-1 flex flex-col gap-0.5">
-              {mockProfiles.map((p) => (
-                <li key={p.id}>
-                  {p.email} — {p.fullName} ({p.role})
-                </li>
-              ))}
-            </ul>
-          </div>
+          <p className="mt-6 border-t pt-4 text-xs text-muted-foreground">
+            Hesabınız kurum yöneticiniz tarafından oluşturulur.
+          </p>
         </CardContent>
       </Card>
     </div>

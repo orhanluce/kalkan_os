@@ -1,51 +1,114 @@
 "use client";
 
-// GERÇEK KİMLİK DOĞRULAMA DEĞİL. Supabase Auth bağlanana kadar
-// "giriş yapmış kullanıcı" kavramını UI'da göstermek için localStorage'a
-// yazılan bir simülasyon — şifre yok, herhangi bir e-posta değeri
-// mock-data.ts'teki listeyle eşleşiyorsa "oturum" açılır. Bu bir güvenlik
-// sınırı DEĞİLDİR (bkz. CLAUDE.md "Mevcut aşama").
-import { createContext, useContext, useState, type ReactNode } from "react";
-import { mockProfiles } from "./mock-data";
+// Gerçek kimlik doğrulama: Supabase Auth + profiles tablosu.
+//
+// İKİ PARÇA, İKİ AYRI KAYNAK:
+//   - Supabase Auth (auth.users): kimlik — "bu kişi kim".
+//   - profiles: yetki bağlamı — hangi kiracı, hangi rol.
+// İkisi ayrıdır çünkü rol/tenant bilgisini oturuma (JWT'ye) gömmek, rol
+// değiştiğinde eski token'ın eski yetkiyle dolaşmasına yol açardı. profiles
+// her istekte RLS tarafından okunur; tek doğru kaynak orasıdır.
+//
+// GÜVENLİK SINIRI: buradaki currentUser bir GÖRÜNTÜDÜR. UI'ı ona göre
+// çizmek meşru, ama yetkilendirmeyi ona dayamak değil — istemci state'i
+// kullanıcı tarafından değiştirilebilir. Gerçek sınır RLS'tir
+// (CLAUDE.md kural 1).
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createClient } from "./supabase/client";
 import type { Profile } from "./types";
-
-const SESSION_KEY = "kalkan-os-session-v1";
 
 interface AuthApi {
   currentUser: Profile | null;
-  login: (email: string) => { ok: boolean; error: string | null };
-  logout: () => void;
+  /** İlk oturum kontrolü sürerken true — UI "giriş yapılmamış" diye yanılmasın. */
+  yukleniyor: boolean;
+  login: (email: string, sifre: string) => Promise<{ ok: boolean; error: string | null }>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthApi | null>(null);
 
-function loadSession(): Profile | null {
-  if (typeof window === "undefined") return null;
-  const userId = window.localStorage.getItem(SESSION_KEY);
-  if (!userId) return null;
-  return mockProfiles.find((p) => p.id === userId) ?? null;
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<Profile | null>(loadSession);
+  const [currentUser, setCurrentUser] = useState<Profile | null>(null);
+  const [yukleniyor, setYukleniyor] = useState(true);
 
-  function login(email: string): { ok: boolean; error: string | null } {
-    const profile = mockProfiles.find((p) => p.email.toLowerCase() === email.trim().toLowerCase());
-    if (!profile) {
-      return { ok: false, error: "Bu e-posta ile eşleşen bir demo kullanıcı yok." };
+  const profiliYukle = useCallback(async (userId: string, email: string): Promise<Profile | null> => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, tenant_id, role, full_name")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    return {
+      id: data.id,
+      tenantId: data.tenant_id,
+      role: data.role as Profile["role"],
+      // full_name şemada nullable: adı girilmemiş kullanıcı için e-posta
+      // göstermek, arayüzde boş bir isim alanından iyidir.
+      fullName: data.full_name ?? email,
+      email,
+    };
+  }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    // onAuthStateChange ilk çağrıda mevcut oturumu da verir, bu yüzden
+    // ayrıca getSession() çağırmıyoruz — ikisi birlikte yarış oluştururdu.
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!session?.user) {
+        setCurrentUser(null);
+        setYukleniyor(false);
+        return;
+      }
+      setCurrentUser(await profiliYukle(session.user.id, session.user.email ?? ""));
+      setYukleniyor(false);
+    });
+
+    return () => sub.subscription.unsubscribe();
+  }, [profiliYukle]);
+
+  async function login(email: string, sifre: string) {
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: sifre,
+    });
+
+    if (error || !data.user) {
+      // Hata metni Supabase'den geldiği gibi gösterilmez: "user not found" ile
+      // "wrong password" ayrımı, saldırgana hangi e-postaların kayıtlı
+      // olduğunu söyler (kullanıcı numaralandırma).
+      return { ok: false, error: "E-posta veya şifre hatalı." };
     }
-    window.localStorage.setItem(SESSION_KEY, profile.id);
+
+    const profile = await profiliYukle(data.user.id, data.user.email ?? "");
+    if (!profile) {
+      // Auth kullanıcısı var ama profili yok: yetki bağlamı olmadan
+      // uygulamada hiçbir şey göremez. Oturumu açık bırakmak, kullanıcıyı
+      // her sayfası boş bir uygulamada dolaştırırdı.
+      await supabase.auth.signOut();
+      return {
+        ok: false,
+        error: "Hesabınız henüz bir kuruma bağlanmamış. Kurum yöneticinizle görüşün.",
+      };
+    }
+
     setCurrentUser(profile);
     return { ok: true, error: null };
   }
 
-  function logout() {
-    window.localStorage.removeItem(SESSION_KEY);
+  async function logout() {
+    await createClient().auth.signOut();
     setCurrentUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ currentUser, login, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ currentUser, yukleniyor, login, logout }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 
