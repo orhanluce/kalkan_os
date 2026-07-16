@@ -26,12 +26,21 @@ import type { Durum, EvidenceTip } from "@/lib/types";
 import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
 
 const DURUM_OPTIONS: Durum[] = ["karsilaniyor", "kismi", "acik", "kapsam_disi"];
-const TIP_OPTIONS: { value: EvidenceTip; label: string }[] = [
-  { value: "dosya", label: "Dosya" },
-  { value: "link", label: "Link" },
-  { value: "beyan", label: "Beyan" },
-];
+const TIP_LABEL: Record<EvidenceTip, string> = {
+  dosya: "Dosya",
+  link: "Link",
+  beyan: "Beyan",
+};
+const TIP_OPTIONS = Object.keys(TIP_LABEL) as EvidenceTip[];
 const ATANMADI = "atanmadi";
+
+// base-ui Select'te <SelectValue /> `items` verilmezse seçili değerin ham
+// halini ("acik", "u-uyum") gösterir — Türkçe etiketi değil. Her Select'e
+// value→label haritası geçmek zorunlu (bkz. e2e/sorumlu-atama.spec.ts).
+const SORUMLU_ITEMS: Record<string, string> = {
+  [ATANMADI]: "Atanmadı",
+  ...Object.fromEntries(mockProfiles.map((p) => [p.id, p.fullName])),
+};
 
 export default function ControlDetailPage() {
   const params = useParams<{ id: string }>();
@@ -167,6 +176,7 @@ export default function ControlDetailPage() {
               {DURUM_LABEL[tenantControl.durum]}
             </Badge>
             <Select
+              items={DURUM_LABEL}
               value={tenantControl.durum}
               onValueChange={(v) => setDurum(control!.id, v as Durum)}
             >
@@ -184,12 +194,13 @@ export default function ControlDetailPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label>Sorumlu</Label>
+            <Label htmlFor="sorumlu">Sorumlu</Label>
             <Select
+              items={SORUMLU_ITEMS}
               value={tenantControl.sorumluUserId ?? ATANMADI}
               onValueChange={(v) => setSorumlu(control!.id, v === ATANMADI ? null : v)}
             >
-              <SelectTrigger>
+              <SelectTrigger id="sorumlu">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -223,15 +234,15 @@ export default function ControlDetailPage() {
         <CardContent>
           <form onSubmit={handleEvidenceSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label>Tip</Label>
-              <Select value={tip} onValueChange={(v) => setTip(v as EvidenceTip)}>
-                <SelectTrigger>
+              <Label htmlFor="kanit-tip">Tip</Label>
+              <Select items={TIP_LABEL} value={tip} onValueChange={(v) => setTip(v as EvidenceTip)}>
+                <SelectTrigger id="kanit-tip">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {TIP_OPTIONS.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>
-                      {t.label}
+                    <SelectItem key={t} value={t}>
+                      {TIP_LABEL[t]}
                     </SelectItem>
                   ))}
                 </SelectContent>

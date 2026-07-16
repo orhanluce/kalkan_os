@@ -81,9 +81,13 @@ export default function FindingsPage() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Kaynak</Label>
-              <Select value={kaynak} onValueChange={(v) => setKaynak(v as Finding["kaynak"])}>
-                <SelectTrigger>
+              <Label htmlFor="kaynak">Kaynak</Label>
+              <Select
+                items={KAYNAK_LABEL}
+                value={kaynak}
+                onValueChange={(v) => setKaynak(v as Finding["kaynak"])}
+              >
+                <SelectTrigger id="kaynak">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -96,9 +100,9 @@ export default function FindingsPage() {
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Önem</Label>
-              <Select value={onem} onValueChange={(v) => setOnem(v as Onem)}>
-                <SelectTrigger>
+              <Label htmlFor="onem">Önem</Label>
+              <Select items={ONEM_LABEL} value={onem} onValueChange={(v) => setOnem(v as Onem)}>
+                <SelectTrigger id="onem">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

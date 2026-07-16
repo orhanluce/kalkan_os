@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -18,6 +19,13 @@ import { useLocalStore } from "@/lib/store";
 import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
 
 const TUMU = "tumu";
+
+// base-ui Select `items` olmadan ham değeri gösterir ("tumu", "f-vii128") —
+// value→label haritası zorunlu.
+const FRAMEWORK_FILTER_ITEMS: Record<string, string> = {
+  [TUMU]: "Tümü",
+  ...Object.fromEntries(mockFrameworks.map((f) => [f.id, f.code])),
+};
 
 export default function ControlsPage() {
   const { tenantControls } = useLocalStore();
@@ -40,9 +48,15 @@ export default function ControlsPage() {
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Çerçeve:</span>
-        <Select value={frameworkId} onValueChange={(v) => setFrameworkId(v ?? TUMU)}>
-          <SelectTrigger>
+        <Label htmlFor="cerceve-filtre" className="text-sm text-muted-foreground">
+          Çerçeve:
+        </Label>
+        <Select
+          items={FRAMEWORK_FILTER_ITEMS}
+          value={frameworkId}
+          onValueChange={(v) => setFrameworkId(v ?? TUMU)}
+        >
+          <SelectTrigger id="cerceve-filtre">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

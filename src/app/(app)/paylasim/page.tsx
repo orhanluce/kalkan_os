@@ -28,6 +28,11 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+// base-ui Select `items` olmadan ham değeri ("f-vii128") gösterir.
+const FRAMEWORK_ITEMS: Record<string, string> = Object.fromEntries(
+  mockFrameworks.map((f) => [f.id, f.code]),
+);
+
 export default function PaylasimPage() {
   const { shareLinks, addShareLink } = useLocalStore();
   const frameworkById = new Map(mockFrameworks.map((f) => [f.id, f]));
@@ -77,9 +82,13 @@ export default function PaylasimPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label>Çerçeve</Label>
-              <Select value={frameworkId} onValueChange={(v) => setFrameworkId(v ?? frameworkId)}>
-                <SelectTrigger>
+              <Label htmlFor="cerceve">Çerçeve</Label>
+              <Select
+                items={FRAMEWORK_ITEMS}
+                value={frameworkId}
+                onValueChange={(v) => setFrameworkId(v ?? frameworkId)}
+              >
+                <SelectTrigger id="cerceve">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
