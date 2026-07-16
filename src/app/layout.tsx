@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ClientStoreProvider } from "@/components/store-provider";
+import { ClientProviders } from "@/components/store-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,8 +18,8 @@ export const metadata: Metadata = {
   description: "Sürekli uyum yönetim paneli",
 };
 
-// Yalnızca fontlar + yerel store — header/nav (app) grubuna, guest paylaşım
-// görünümüne (paylasim/[token]) sızmasın diye ayrı tutuluyor.
+// Yalnızca fontlar + yerel store/auth — header/nav (app) grubuna, guest
+// paylaşım görünümüne (paylasim/[token]) sızmasın diye ayrı tutuluyor.
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -28,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="tr" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-background text-foreground">
-        <ClientStoreProvider>{children}</ClientStoreProvider>
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );

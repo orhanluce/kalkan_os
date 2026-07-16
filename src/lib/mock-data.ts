@@ -2,7 +2,15 @@
 // beslemek için kullanılır. GERÇEK MEVZUAT İÇERİĞİ DEĞİLDİR: madde_ref
 // alanları data/controls/vii-128-10.yaml ile aynı TODO-DOGRULA
 // disiplinini taşır. Bu dosya seed script'i tarafından KULLANILMAZ.
-import type { Control, ControlMapping, Finding, Framework, Tenant, TenantControl } from "./types";
+import type {
+  Control,
+  ControlMapping,
+  Finding,
+  Framework,
+  Profile,
+  Tenant,
+  TenantControl,
+} from "./types";
 
 export const mockTenant: Tenant = {
   id: "t-demo",
@@ -10,6 +18,13 @@ export const mockTenant: Tenant = {
   segment: "araci_kurum",
   createdAt: "2026-01-15T00:00:00Z",
 };
+
+// Gerçek Supabase Auth bağlanana kadar giriş/oturumun yerel simülasyonu
+// içindir — şifre yok, e-posta eşleşmesiyle "giriş" yapılır.
+export const mockProfiles: Profile[] = [
+  { id: "u-admin", tenantId: "t-demo", role: "admin", fullName: "Ayşe Yılmaz", email: "ayse@demo.com" },
+  { id: "u-uyum", tenantId: "t-demo", role: "uyum", fullName: "Mehmet Kaya", email: "mehmet@demo.com" },
+];
 
 export const mockFramework: Framework = {
   id: "f-vii128",

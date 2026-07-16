@@ -17,6 +17,14 @@ export interface Tenant {
   createdAt: string;
 }
 
+export interface Profile {
+  id: string;
+  tenantId: string;
+  role: Role;
+  fullName: string;
+  email: string;
+}
+
 export interface Framework {
   id: string;
   code: FrameworkCode;

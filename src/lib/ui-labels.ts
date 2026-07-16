@@ -1,4 +1,4 @@
-import type { Durum, Finding, FindingDurum, Onem } from "./types";
+import type { Durum, Finding, FindingDurum, Onem, Role } from "./types";
 
 export const DURUM_LABEL: Record<Durum, string> = {
   karsilaniyor: "Karşılanıyor",
@@ -39,4 +39,10 @@ export const KAYNAK_LABEL: Record<Finding["kaynak"], string> = {
   sizma_testi: "Sızma Testi",
   denetim: "Denetim",
   ic_tespit: "İç Tespit",
+};
+
+export const ROLE_LABEL: Record<Role, string> = {
+  admin: "Admin",
+  uyum: "Uyum",
+  denetci_misafir: "Denetçi (Misafir)",
 };

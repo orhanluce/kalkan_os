@@ -20,7 +20,7 @@ import { EmptyState } from "@/components/empty-state";
 import { findEquivalentControlIds } from "@/lib/control-mappings";
 import { sha256Hex, validateEvidenceFile } from "@/lib/evidence";
 import type { Evidence } from "@/lib/evidence-types";
-import { mockControlMappings, mockControls, mockFrameworks } from "@/lib/mock-data";
+import { mockControlMappings, mockControls, mockFrameworks, mockProfiles } from "@/lib/mock-data";
 import { useLocalStore } from "@/lib/store";
 import type { Durum, EvidenceTip } from "@/lib/types";
 import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
@@ -31,11 +31,13 @@ const TIP_OPTIONS: { value: EvidenceTip; label: string }[] = [
   { value: "link", label: "Link" },
   { value: "beyan", label: "Beyan" },
 ];
+const ATANMADI = "atanmadi";
 
 export default function ControlDetailPage() {
   const params = useParams<{ id: string }>();
   const control = mockControls.find((c) => c.id === params.id);
-  const { tenantControls, evidencesByControl, setDurum, setNot, addEvidence } = useLocalStore();
+  const { tenantControls, evidencesByControl, setDurum, setNot, setSorumlu, addEvidence } =
+    useLocalStore();
 
   const tenantControl = tenantControls.find((tc) => tc.controlId === params.id);
   const evidences = evidencesByControl[params.id] ?? [];
@@ -175,6 +177,26 @@ export default function ControlDetailPage() {
                 {DURUM_OPTIONS.map((d) => (
                   <SelectItem key={d} value={d}>
                     {DURUM_LABEL[d]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label>Sorumlu</Label>
+            <Select
+              value={tenantControl.sorumluUserId ?? ATANMADI}
+              onValueChange={(v) => setSorumlu(control!.id, v === ATANMADI ? null : v)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ATANMADI}>Atanmadı</SelectItem>
+                {mockProfiles.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.fullName}
                   </SelectItem>
                 ))}
               </SelectContent>

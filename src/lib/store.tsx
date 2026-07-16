@@ -32,6 +32,7 @@ interface StoreState {
 interface StoreApi extends StoreState {
   setDurum: (controlId: string, durum: Durum) => void;
   setNot: (controlId: string, notMetni: string) => void;
+  setSorumlu: (controlId: string, sorumluUserId: string | null) => void;
   addEvidence: (evidence: Evidence) => void;
   addFinding: (finding: Finding) => void;
   toggleFindingDurum: (findingId: string) => void;
@@ -122,6 +123,15 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const setSorumlu = useCallback((controlId: string, sorumluUserId: string | null) => {
+    setState((s) => ({
+      ...s,
+      tenantControls: s.tenantControls.map((tc) =>
+        tc.controlId === controlId ? { ...tc, sorumluUserId } : tc,
+      ),
+    }));
+  }, []);
+
   const addEvidence = useCallback((evidence: Evidence) => {
     setState((s) => {
       const asOf = new Date();
@@ -175,6 +185,7 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
       ...state,
       setDurum,
       setNot,
+      setSorumlu,
       addEvidence,
       addFinding,
       toggleFindingDurum,
@@ -185,6 +196,7 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
       state,
       setDurum,
       setNot,
+      setSorumlu,
       addEvidence,
       addFinding,
       toggleFindingDurum,

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/empty-state";
-import { mockControls, mockFrameworks } from "@/lib/mock-data";
+import { mockControls, mockFrameworks, mockProfiles } from "@/lib/mock-data";
 import { useLocalStore } from "@/lib/store";
 import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
 
@@ -24,7 +24,9 @@ export default function ControlsPage() {
   const [frameworkId, setFrameworkId] = useState<string>(TUMU);
 
   const durumByControlId = new Map(tenantControls.map((tc) => [tc.controlId, tc.durum]));
+  const sorumluByControlId = new Map(tenantControls.map((tc) => [tc.controlId, tc.sorumluUserId]));
   const frameworkById = new Map(mockFrameworks.map((f) => [f.id, f]));
+  const profileById = new Map(mockProfiles.map((p) => [p.id, p]));
   const controls =
     frameworkId === TUMU ? mockControls : mockControls.filter((c) => c.frameworkId === frameworkId);
 
@@ -73,6 +75,7 @@ export default function ControlsPage() {
                   <TableHead>Başlık</TableHead>
                   <TableHead>Periyot</TableHead>
                   <TableHead>Kritiklik</TableHead>
+                  <TableHead>Sorumlu</TableHead>
                   <TableHead>Durum</TableHead>
                 </TableRow>
               </TableHeader>
@@ -96,6 +99,9 @@ export default function ControlsPage() {
                       </TableCell>
                       <TableCell className="capitalize">{c.periyot.replace("_", " ")}</TableCell>
                       <TableCell>{c.kritiklik}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {profileById.get(sorumluByControlId.get(c.id) ?? "")?.fullName ?? "—"}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={DURUM_BADGE_VARIANT[durum]}>{DURUM_LABEL[durum]}</Badge>
                       </TableCell>
