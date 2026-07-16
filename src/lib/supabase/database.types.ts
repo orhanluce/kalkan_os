@@ -839,6 +839,395 @@ export type Database = {
           },
         ]
       }
+      simulation_decisions: {
+        Row: {
+          cevap: string | null
+          created_at: string
+          decision_point_id: string
+          evidence_id: string | null
+          id: string
+          katilimci_id: string
+          run_id: string
+          senaryo_dakika: number
+          tenant_id: string
+        }
+        Insert: {
+          cevap?: string | null
+          created_at?: string
+          decision_point_id: string
+          evidence_id?: string | null
+          id?: string
+          katilimci_id: string
+          run_id: string
+          senaryo_dakika: number
+          tenant_id: string
+        }
+        Update: {
+          cevap?: string | null
+          created_at?: string
+          decision_point_id?: string
+          evidence_id?: string | null
+          id?: string
+          katilimci_id?: string
+          run_id?: string
+          senaryo_dakika?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_decisions_decision_point_id_fkey"
+            columns: ["decision_point_id"]
+            isOneToOne: false
+            referencedRelation: "scenario_decision_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_decisions_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "evidences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_decisions_katilimci_id_fkey"
+            columns: ["katilimci_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_decisions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "simulation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_decisions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulation_finding_proposals: {
+        Row: {
+          baslik: string
+          control_id: string | null
+          created_at: string
+          durum: string
+          finding_id: string | null
+          gerekce: string
+          id: string
+          karar_at: string | null
+          karar_veren: string | null
+          onem: string
+          run_id: string
+          tenant_id: string
+        }
+        Insert: {
+          baslik: string
+          control_id?: string | null
+          created_at?: string
+          durum?: string
+          finding_id?: string | null
+          gerekce: string
+          id?: string
+          karar_at?: string | null
+          karar_veren?: string | null
+          onem: string
+          run_id: string
+          tenant_id: string
+        }
+        Update: {
+          baslik?: string
+          control_id?: string | null
+          created_at?: string
+          durum?: string
+          finding_id?: string | null
+          gerekce?: string
+          id?: string
+          karar_at?: string | null
+          karar_veren?: string | null
+          onem?: string
+          run_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_finding_proposals_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_finding_proposals_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "findings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_finding_proposals_karar_veren_fkey"
+            columns: ["karar_veren"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_finding_proposals_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "simulation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_finding_proposals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulation_inject_deliveries: {
+        Row: {
+          id: string
+          inject_id: string
+          run_id: string
+          tenant_id: string
+          yayinlandi_at: string
+          yayinlayan: string | null
+        }
+        Insert: {
+          id?: string
+          inject_id: string
+          run_id: string
+          tenant_id: string
+          yayinlandi_at?: string
+          yayinlayan?: string | null
+        }
+        Update: {
+          id?: string
+          inject_id?: string
+          run_id?: string
+          tenant_id?: string
+          yayinlandi_at?: string
+          yayinlayan?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_inject_deliveries_inject_id_fkey"
+            columns: ["inject_id"]
+            isOneToOne: false
+            referencedRelation: "scenario_injects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_inject_deliveries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "simulation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_inject_deliveries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_inject_deliveries_yayinlayan_fkey"
+            columns: ["yayinlayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulation_observations: {
+        Row: {
+          control_id: string | null
+          created_at: string
+          gozlemci_id: string
+          id: string
+          katilimcilara_acik: boolean
+          not_metni: string
+          run_id: string
+          senaryo_dakika: number | null
+          tenant_id: string
+        }
+        Insert: {
+          control_id?: string | null
+          created_at?: string
+          gozlemci_id: string
+          id?: string
+          katilimcilara_acik?: boolean
+          not_metni: string
+          run_id: string
+          senaryo_dakika?: number | null
+          tenant_id: string
+        }
+        Update: {
+          control_id?: string | null
+          created_at?: string
+          gozlemci_id?: string
+          id?: string
+          katilimcilara_acik?: boolean
+          not_metni?: string
+          run_id?: string
+          senaryo_dakika?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_observations_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_observations_gozlemci_id_fkey"
+            columns: ["gozlemci_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_observations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "simulation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_observations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulation_participants: {
+        Row: {
+          created_at: string
+          id: string
+          katilim_tipi: string
+          run_id: string
+          senaryo_rolu: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          katilim_tipi: string
+          run_id: string
+          senaryo_rolu: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          katilim_tipi?: string
+          run_id?: string
+          senaryo_rolu?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_participants_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "simulation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_participants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulation_runs: {
+        Row: {
+          ad: string
+          basladi_at: string | null
+          bitti_at: string | null
+          created_at: string
+          duraklatilan_saniye: number
+          duraklatildi_at: string | null
+          durum: string
+          id: string
+          mod: string
+          planlanan_baslangic: string | null
+          tenant_id: string
+          version_id: string
+          zaman_olcegi: number
+        }
+        Insert: {
+          ad: string
+          basladi_at?: string | null
+          bitti_at?: string | null
+          created_at?: string
+          duraklatilan_saniye?: number
+          duraklatildi_at?: string | null
+          durum?: string
+          id?: string
+          mod: string
+          planlanan_baslangic?: string | null
+          tenant_id: string
+          version_id: string
+          zaman_olcegi?: number
+        }
+        Update: {
+          ad?: string
+          basladi_at?: string | null
+          bitti_at?: string | null
+          created_at?: string
+          duraklatilan_saniye?: number
+          duraklatildi_at?: string | null
+          durum?: string
+          id?: string
+          mod?: string
+          planlanan_baslangic?: string | null
+          tenant_id?: string
+          version_id?: string
+          zaman_olcegi?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_runs_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "scenario_template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_controls: {
         Row: {
           control_id: string

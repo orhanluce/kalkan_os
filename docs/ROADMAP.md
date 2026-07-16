@@ -200,7 +200,26 @@ sonuç kanıt üretir. Bu taş yalnızca şablonu kurar, yürütmeyi değil.
 - Seed: beş şablon (S01 fidye, S02 ayrıcalıklı hesap, S03 veri sızıntısı, S04 yedekten dönüş, S05 tedarikçi kesintisi) — `UNVERIFIED_SAMPLE` etiketli, `data/scenarios/*.yaml`'dan; kural 3'ün aynısı burada da geçerli.
 - **Kabul:** yayınlanmış şablon değiştirilemez (RLS/trigger testi); her beklenen aksiyon en az bir kontrole bağlanabiliyor; beş şablon YAML'dan seed ediliyor; şablon sürümü geçmiş simülasyonları etkilemiyor.
 
-### M8 — Simülasyon yürütme + deterministik puanlama (Faz 7-8)
+### M8 — Simülasyon yürütme + deterministik puanlama (Faz 7-8) — şema + motor ✅, UI ✗
+
+**Tamamlanan:** şema (`20260717120000_simulation_runs.sql`) ve deterministik puanlama motoru
+(`src/lib/scoring.ts`). 42 test. Canlıda doğrulandı: run oluşuyor, bağlı şablon sürümü silinemiyor,
+geçersiz mod reddediliyor.
+
+- Rol bazlı inject görünürlüğü **RLS'te** (UI filtresi değil): katılımcı başka rolün gizli
+  gelişmesini sorguyla da göremiyor; yönetici/gözlemci hepsini görüyor; yayınlanmamış gelişme
+  kimseye görünmüyor. Aynı inject iki kez yayınlanamaz — idempotency şemada (unique), uygulama
+  koduna bırakılmadı.
+- Kararlar/gözlem notları append-only; katılımcı başkası adına karar veremez; gizli gözlem notu
+  katılımcıya kapalı; bulgu önerisini istemci yazamaz (sistem üretir, `PROPOSED` doğar).
+- Puanlama saf TS ve deterministik: rastgelelik/tarih okuma yok, her satır gerekçeli, gözlemci
+  puanı tek başına toplamı belirlemiyor, `MANDATORY_FAIL_IF` puana katılmıyor ama sonucu
+  `CRITICAL_FAILURE` yapıyor. Uygulanamayan kural paydadan düşüyor (eksik şablon, katılımcının
+  başarısızlığı gibi görünmesin).
+
+**Kalan (M8'in tamamlanması için):** control room / katılımcı / gözlemci ekranları, run durum
+makinesi geçişleri (start/pause/resume/abort) ve zamanlı inject yayını, puanlamanın DB'ye
+bağlanması (`simulation_scores`), öneri kabul akışı → gerçek bulgu.
 
 - `simulation_runs` durum makinesi: `DRAFT → SCHEDULED → READY → RUNNING → PAUSED → COMPLETED → SCORING → REVIEWED → CLOSED`, `RUNNING → ABORTED`.
 - **Başlatılan run, şablonun immutable snapshot'ını kullanır** — şablon sonradan değişse bile geçmiş simülasyon değişmez (belge §10.7).
