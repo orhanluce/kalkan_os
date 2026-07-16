@@ -1,0 +1,126 @@
+# DİKKAT — DOĞRULANMAMIŞ İSKELET (CLAUDE.md kural 3)
+#
+# Bu dosyadaki madde_ref, baslik ve aciklama alanları SPK VII-128.10 sayılı
+# Tebliğ'in resmi metninden BİREBİR alınmamıştır. Claude Code mevzuat metni
+# uyduramaz; bu yüzden madde referansları gerçek numaralar yerine
+# "TODO-DOGRULA-NN" placeholder'ı taşır ve başlık/açıklamalar sektördeki
+# tipik uyum alanlarına göre YAKLAŞIK olarak yazılmıştır.
+#
+# Bu dosya PRODUCTION SEED olarak KULLANILMAMALIDIR. Kurucu + hukuk bürosu
+# resmi tebliğ metniyle satır satır doğrulayıp madde_ref/baslik/aciklama
+# alanlarını güncellemeden (ve bu başlığı kaldırmadan) hiçbir tenant'a
+# gerçek veri olarak sunulmamalıdır. Bkz. docs/ROADMAP.md §5.2.
+#
+# durum: iskele-dogrulanmadi
+
+framework:
+  code: VII-128.10
+  name: "Yatırım Hizmetleri ve Faaliyetleri ile Yan Hizmetlere İlişkin Esaslar Hakkında Tebliğ (TASLAK BAŞLIK — DOĞRULANACAK)"
+  version: "TODO-DOGRULA"
+  yururluk_tarihi: null
+
+controls:
+  - madde_ref: TODO-DOGRULA-01
+    baslik: "Yönetim kurulu uyum sorumluluğu"
+    aciklama: "Yönetim kurulunun mevzuata sürekli uyumdan sorumlu olduğuna dair beyan ve karar kaydı."
+    kanit_tipi: [beyan, dosya]
+    periyot: yillik
+    kritiklik: 5
+
+  - madde_ref: TODO-DOGRULA-02
+    baslik: "İç kontrol sistemi kurulumu ve işleyişi"
+    aciklama: "İç kontrol fonksiyonunun tanımlı olduğunu ve düzenli çalıştığını gösteren doküman/rapor."
+    kanit_tipi: [dosya]
+    periyot: surekli
+    kritiklik: 4
+
+  - madde_ref: TODO-DOGRULA-03
+    baslik: "Risk yönetimi çerçevesi"
+    aciklama: "Kurumsal risk yönetimi politikası ve periyodik risk değerlendirme raporları."
+    kanit_tipi: [dosya]
+    periyot: yillik
+    kritiklik: 4
+
+  - madde_ref: TODO-DOGRULA-04
+    baslik: "İç denetim faaliyet raporu"
+    aciklama: "İç denetim biriminin yıllık faaliyet ve bulgu raporu."
+    kanit_tipi: [dosya]
+    periyot: yillik
+    kritiklik: 3
+
+  - madde_ref: TODO-DOGRULA-05
+    baslik: "Bilgi sistemleri güvenlik politikası"
+    aciklama: "Bilgi güvenliği politika dokümanı ve onay kaydı."
+    kanit_tipi: [dosya]
+    periyot: yillik
+    kritiklik: 5
+
+  - madde_ref: TODO-DOGRULA-06
+    baslik: "Sızma testi / güvenlik testi"
+    aciklama: "Yılda en az bir kez yaptırılan sızma testi raporu (geçerlilik süresi 1 yıl)."
+    kanit_tipi: [dosya]
+    periyot: yillik
+    kritiklik: 5
+
+  - madde_ref: TODO-DOGRULA-07
+    baslik: "İş sürekliliği ve felaket kurtarma planı"
+    aciklama: "İş sürekliliği planı ve en güncel tatbikat raporu (RTO/RPO alanları dahil)."
+    kanit_tipi: [dosya]
+    periyot: yillik
+    kritiklik: 5
+
+  - madde_ref: TODO-DOGRULA-08
+    baslik: "Dış kaynak kullanımı (outsourcing) sözleşmeleri"
+    aciklama: "Kritik dış hizmet sağlayıcılarla yapılan sözleşmelerin mevzuata uygunluk kontrolü."
+    kanit_tipi: [dosya, link]
+    periyot: yillik
+    kritiklik: 3
+
+  - madde_ref: TODO-DOGRULA-09
+    baslik: "Veri yerelleştirme / birincil-ikincil sistem konumu"
+    aciklama: "Birincil ve ikincil sistemlerin yurt içinde bulunduğuna dair teknik/sözleşmesel kanıt."
+    kanit_tipi: [dosya, beyan]
+    periyot: surekli
+    kritiklik: 5
+
+  - madde_ref: TODO-DOGRULA-10
+    baslik: "Personel yetkinlik ve lisanslama"
+    aciklama: "İlgili personelin SPK lisans/yetkinlik belgelerinin güncelliği."
+    kanit_tipi: [dosya]
+    periyot: surekli
+    kritiklik: 2
+
+  - madde_ref: TODO-DOGRULA-11
+    baslik: "Müşteri şikayetleri yönetimi"
+    aciklama: "Şikayet kayıt, takip ve çözüm süreci işleyiş kanıtı."
+    kanit_tipi: [dosya]
+    periyot: surekli
+    kritiklik: 2
+
+  - madde_ref: TODO-DOGRULA-12
+    baslik: "Çıkar çatışması politikası"
+    aciklama: "Çıkar çatışması politikası dokümanı ve ihlal kayıtları."
+    kanit_tipi: [dosya]
+    periyot: yillik
+    kritiklik: 3
+
+  - madde_ref: TODO-DOGRULA-13
+    baslik: "Kayıt saklama (record keeping) düzeni"
+    aciklama: "İşlem ve iletişim kayıtlarının mevzuatta öngörülen süre boyunca saklandığına dair kanıt."
+    kanit_tipi: [dosya, beyan]
+    periyot: surekli
+    kritiklik: 3
+
+  - madde_ref: TODO-DOGRULA-14
+    baslik: "Olay/ihlal bildirim süreci"
+    aciklama: "Önemli olay veya ihlallerin SPK/BDDK'ya bildirim sürecinin işlediğine dair kanıt."
+    kanit_tipi: [dosya, beyan]
+    periyot: olay_bazli
+    kritiklik: 5
+
+  - madde_ref: TODO-DOGRULA-15
+    baslik: "Sermaye yeterliliği izleme"
+    aciklama: "Sermaye yeterliliği rasyolarının düzenli izlendiğine dair rapor."
+    kanit_tipi: [dosya]
+    periyot: surekli
+    kritiklik: 4

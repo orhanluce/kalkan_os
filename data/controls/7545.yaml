@@ -1,0 +1,36 @@
+# DİKKAT — DOĞRULANMAMIŞ İSKELET, TASLAK/v0 (CLAUDE.md kural 3)
+#
+# 7545 sayılı Kanun'un ikincil mevzuatı henüz akışta (docs/ROADMAP.md §5.3).
+# Bu dosya sadece control_mappings ("bir kanıt, dört çerçeve") mekanizmasını
+# göstermek için hazırlanmış TASLAK/v0 iskeledir; madde_ref alanları
+# TODO-DOGRULA'dır ve gerçek kanuni referans DEĞİLDİR. Mevzuat Radar süreci
+# olgunlaştıkça (manuel küratörlük ile) bu dosya gerçek içerikle değiştirilir.
+#
+# durum: taslak-v0
+
+framework:
+  code: "7545"
+  name: "7545 sayılı Kanun İkincil Mevzuatı (TASLAK — DOĞRULANACAK)"
+  version: "v0-taslak"
+  yururluk_tarihi: null
+
+controls:
+  - madde_ref: TODO-DOGRULA-7545-01
+    baslik: "Bilgi güvenliği politikası (7545 karşılığı)"
+    aciklama: "VII-128.10 TODO-DOGRULA-05 ile eşdeğer olması beklenen bilgi güvenliği politikası şartı."
+    kanit_tipi: [dosya]
+    periyot: yillik
+    kritiklik: 5
+    esdeger_vii128_madde_ref: TODO-DOGRULA-05
+
+  - madde_ref: TODO-DOGRULA-7545-02
+    baslik: "İş sürekliliği planı (7545 karşılığı)"
+    aciklama: "VII-128.10 TODO-DOGRULA-07 ile eşdeğer olması beklenen iş sürekliliği/felaket kurtarma şartı."
+    kanit_tipi: [dosya]
+    periyot: yillik
+    kritiklik: 5
+    esdeger_vii128_madde_ref: TODO-DOGRULA-07
+
+# control_mappings yükleme sırasında bu iki kaydın "esdeger_vii128_madde_ref"
+# alanı kullanılarak public.control_mappings tablosuna (iliski: esdeger)
+# otomatik yazılması hedeflenir (bkz. scripts/seed-controls.ts TODO).
