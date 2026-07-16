@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Pano" },
   { href: "/controls", label: "Kontrol Kütüphanesi" },
   { href: "/findings", label: "Bulgular" },
+  { href: "/simulasyonlar", label: "Simülasyonlar" },
   { href: "/paylasim", label: "Paylaşım" },
   { href: "/denetim-izi", label: "Denetim İzi" },
 ];

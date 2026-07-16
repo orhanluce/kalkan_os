@@ -43,13 +43,17 @@ gerekenler: Storage'a gerçek dosya yükleme ve deploy. Bunlar için "çalışı
 deme. (Supabase Auth artık doğrulandı: gerçek kullanıcı canlıda giriş yaptı,
 profil RLS altında okundu.)
 
-**Sıradaki büyük kapsam — simülasyon** (docs/ROADMAP.md §1.2, M7-M9): 17 Temmuz
-2026'da eklendi, henüz kodlanmadı. Simülasyon ayrı bir oyun değil, uyum
-işletim sisteminin test üretme katmanıdır: her beklenen aksiyon bir kontrole
-bağlanır, sonuçlar kanıt ve bulgu önerisi üretir. Önce **mevcut borçlar**
-kapatılmalı (özellikle denetçi paylaşımı: M4 kabul kriteri şu an
-karşılanmıyor) — belge de "ana fonksiyonlar simülasyon olmadan da çalışmalı"
-diyor.
+**Simülasyon** (docs/ROADMAP.md §1.2, M7-M9): M7 bitti — 5 senaryo canlıda
+yayınlı, 18 aksiyon→kontrol bağı, yayınlanmış şablon immutable. M8'in şeması
+ve deterministik puanlama motoru (`src/lib/scoring.ts`) bitti; **yürütme
+ekranları yok** (`/simulasyonlar` yalnızca kütüphaneyi listeler). M9 (fidye
+dikey akışı, PDF/QR raporlar) hiç başlamadı.
+
+**Açık borçlar** (docs/ROADMAP.md "Supabase geçişi" altında listeli):
+Playwright akışları devre dışı — kural 8'in bilinçli, işaretli ihlali; gerçek
+kullanıcı şifresi CI/env'den gelmeli. `evidences.kaynak_kontrol_id` kolonu
+yok. Kanıt süresi yalnızca okuma anında hesaplanıyor. `generate-yk-beyani.ts`
+hâlâ mock-data okuyor.
 
 ## Değişmez kurallar
 1. Her tabloda tenant_id + RLS; RLS'i test etmeden hiçbir tablo "bitti" sayılmaz.
