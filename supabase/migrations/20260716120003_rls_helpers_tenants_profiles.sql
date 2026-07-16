@@ -50,6 +50,25 @@ create policy profiles_update_self on public.profiles
   using (id = auth.uid())
   with check (id = auth.uid());
 
+-- "Bu tenant'ın hiç profili var mı?" sorusu SECURITY DEFINER olmak ZORUNDA.
+-- Aksi halde politikanın içine düz bir `not exists (select ... from profiles)`
+-- yazmak İŞE YARAMAZ: alt sorgu da çağıranın RLS'ine tabi olur, henüz profili
+-- olmayan bir saldırgan için profiles_select_same_tenant hiçbir satır
+-- göstermez (current_tenant_id() null), alt sorgu boş döner ve "tenant boş"
+-- kontrolü daima TRUE olur — yani kontrol hiç yokmuş gibi davranır.
+-- Bu tam olarak ilk denemede yapılan hataydı; RLS testi (bkz.
+-- src/lib/__tests__/rls-guvenlik.test.ts) saldırganın INSERT'inin başarılı
+-- olduğunu göstererek yakaladı.
+create or replace function public.tenant_has_profiles(target_tenant_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (select 1 from public.profiles where tenant_id = target_tenant_id)
+$$;
+
 -- Self-serve bootstrap only: a brand-new authenticated user may create
 -- their own profile as 'admin' of a tenant, but only for a tenant that has
 -- no profiles yet (i.e. the tenant they themselves just created via
@@ -61,9 +80,7 @@ create policy profiles_insert_self on public.profiles
   with check (
     id = auth.uid()
     and role = 'admin'
-    and not exists (
-      select 1 from public.profiles existing where existing.tenant_id = profiles.tenant_id
-    )
+    and not public.tenant_has_profiles(tenant_id)
   );
 
 -- Inviting additional users (M1: "kullanıcı davet") is NOT this policy's

@@ -1,0 +1,173 @@
+// RLS testleri için gerçek Postgres. PGlite, Postgres'in WASM derlemesidir —
+// Docker/kurulum gerektirmez, ama RLS'i gerçekten uygular (spike ile
+// doğrulandı: iki farklı kullanıcı birbirinin satırını göremiyor).
+//
+// NEDEN BU YOL: CLAUDE.md kural 1 "RLS'i test etmeden hiçbir tablo bitti
+// sayılmaz" diyor ve docs/ROADMAP.md M1 kabul kriteri RLS testini açıkça
+// Vitest'te istiyor. Bu harness onu canlı bir Supabase projesi olmadan
+// mümkün kılıyor. Ayrıca kural 4'ü (saf Postgres kal, yurt içi barındırmaya
+// taşınabilir ol) fiilen kanıtlar: migration'lar Supabase'e özgü hiçbir
+// servis olmadan, düz Postgres üzerinde koşuyor.
+//
+// SINIRLARI (dürüstçe): auth.users/auth.uid()/auth.role() ve authenticated/
+// anon rolleri burada stub'lanır — gerçekte bunları Supabase sağlar. Yani bu
+// testler RLS politikalarının MANTIĞINI kanıtlar, Supabase Auth'un kendisini
+// değil. Storage ve gerçek JWT akışı da kapsam dışı.
+import { PGlite } from "@electric-sql/pglite";
+// pgcrypto PGlite'ta çekirdekte gelmez, açıkça yüklenir. Migration'ımız
+// (20260716120001_extensions.sql) onu `create extension` ile istiyor —
+// gerçek Postgres/Supabase'de de aynı şekilde bir eklenti olarak gelir.
+import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+
+const MIGRATIONS_DIR = join(process.cwd(), "supabase", "migrations");
+
+/**
+ * Supabase'in sağladığı auth yüzeyinin en küçük karşılığı. Gerçek
+ * Supabase'de auth.uid() JWT'deki `sub` claim'ini okur; burada da aynı
+ * ayardan (request.jwt.claim.sub) okuyoruz.
+ */
+const AUTH_STUB = `
+  create schema if not exists auth;
+
+  create table auth.users (
+    id uuid primary key,
+    email text
+  );
+
+  create or replace function auth.uid() returns uuid
+  language sql stable
+  as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+
+  create or replace function auth.role() returns text
+  language sql stable
+  as $$ select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon') $$;
+
+  create role authenticated;
+  create role anon;
+`;
+
+export interface TestDb {
+  /** Ham sorgu — superuser olarak koşar, RLS'i BYPASS eder (service_role muadili). */
+  sql: (query: string, params?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>;
+  /** Verilen kullanıcı kimliğiyle, `authenticated` rolü altında sorgu koşar (RLS uygulanır). */
+  asUser: (
+    userId: string,
+    query: string,
+    params?: unknown[],
+  ) => Promise<{ rows: Record<string, unknown>[] }>;
+  /** Oturum açmamış ziyaretçi (anon rolü) olarak sorgu koşar. */
+  asAnon: (query: string, params?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>;
+  close: () => Promise<void>;
+}
+
+function migrationFiles(): string[] {
+  return readdirSync(MIGRATIONS_DIR)
+    .filter((f) => f.endsWith(".sql"))
+    .sort(); // dosya adları zaman damgalı — alfabetik sıra = uygulama sırası
+}
+
+/**
+ * Boş bir Postgres ayağa kaldırır, auth stub'ını ve ardından
+ * supabase/migrations/*.sql dosyalarını SIRAYLA uygular. Migration'lar
+ * elle kopyalanmaz — gerçek dosyalar okunur, böylece test ettiğimiz şey
+ * gerçekten sevk edeceğimiz şema olur.
+ */
+export async function createTestDb(): Promise<TestDb> {
+  const db = new PGlite({ extensions: { pgcrypto } });
+
+  await db.exec(AUTH_STUB);
+  for (const file of migrationFiles()) {
+    const sql = readFileSync(join(MIGRATIONS_DIR, file), "utf8");
+    try {
+      await db.exec(sql);
+    } catch (err) {
+      throw new Error(`Migration başarısız: ${file}\n${(err as Error).message}`);
+    }
+  }
+
+  // İstemci rollerinin tablo düzeyinde erişimi olmalı; RLS bunun üzerine
+  // satır düzeyinde filtre uygular. Gerçek Supabase bunu kendi kurulumunda
+  // yapar (authenticated/anon rollerine şema geneli grant).
+  await db.exec(`
+    grant usage on schema public to authenticated, anon;
+    grant select, insert, update, delete on all tables in schema public to authenticated, anon;
+  `);
+  // Not: evidences/audit_log üzerindeki update/delete REVOKE'ları migration
+  // içinde bu grant'lardan ÖNCE koştuğu için burada yeniden uygulanmalı —
+  // aksi halde yukarıdaki toplu grant onları geri açardı.
+  await db.exec(`
+    revoke update, delete on public.evidences from authenticated, anon;
+    revoke update, delete on public.audit_log from authenticated, anon;
+  `);
+
+  async function withRole<T>(
+    role: string,
+    userId: string | null,
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    await db.exec(`set role ${role}`);
+    await db.query(`select set_config('request.jwt.claim.sub', $1, false)`, [userId ?? ""]);
+    await db.query(`select set_config('request.jwt.claim.role', $1, false)`, [role]);
+    try {
+      return await fn();
+    } finally {
+      await db.exec(`reset role`);
+    }
+  }
+
+  return {
+    sql: async (query, params) => db.query(query, params) as Promise<{ rows: Record<string, unknown>[] }>,
+    asUser: (userId, query, params) =>
+      withRole("authenticated", userId, () => db.query(query, params)) as Promise<{
+        rows: Record<string, unknown>[];
+      }>,
+    asAnon: (query, params) =>
+      withRole("anon", null, () => db.query(query, params)) as Promise<{
+        rows: Record<string, unknown>[];
+      }>,
+    close: () => db.close(),
+  };
+}
+
+/** İki tenant ve her birinde birer admin kullanıcı kurar. */
+export async function seedTwoTenants(db: TestDb) {
+  const A = {
+    tenantId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    userId: "a0000000-0000-0000-0000-000000000001",
+  };
+  const B = {
+    tenantId: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    userId: "b0000000-0000-0000-0000-000000000001",
+  };
+
+  await db.sql(`insert into auth.users (id, email) values ($1, 'a@demo.com'), ($2, 'b@demo.com')`, [
+    A.userId,
+    B.userId,
+  ]);
+  await db.sql(
+    `insert into public.tenants (id, name, segment) values ($1, 'Tenant A', 'araci_kurum'), ($2, 'Tenant B', 'pys')`,
+    [A.tenantId, B.tenantId],
+  );
+  await db.sql(
+    `insert into public.profiles (id, tenant_id, role, full_name)
+     values ($1, $2, 'admin', 'A Admin'), ($3, $4, 'admin', 'B Admin')`,
+    [A.userId, A.tenantId, B.userId, B.tenantId],
+  );
+
+  // Ortak referans verisi: bir çerçeve + bir kontrol.
+  const frameworkId = "f0000000-0000-0000-0000-000000000001";
+  const controlId = "c0000000-0000-0000-0000-000000000001";
+  await db.sql(
+    `insert into public.frameworks (id, code, name, version) values ($1, 'VII-128.10', 'Test', 'v0')`,
+    [frameworkId],
+  );
+  await db.sql(
+    `insert into public.controls (id, framework_id, madde_ref, baslik, periyot, kritiklik)
+     values ($1, $2, 'TODO-DOGRULA-01', 'Test kontrolü', 'yillik', 5)`,
+    [controlId, frameworkId],
+  );
+
+  return { A, B, frameworkId, controlId };
+}
