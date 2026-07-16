@@ -14,20 +14,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { findEquivalentControlIds } from "./control-mappings";
-import { deriveDurumFromEvidenceExpiry } from "./evidence";
 import type { Evidence } from "./evidence-types";
 import { mockControlMappings, mockFindings, mockTenantControls } from "./mock-data";
-import type { Durum, Finding, ShareLink, TenantControl } from "./types";
+import { addEvidenceToState, applyExpiryDowngrades, type StoreState } from "./store-logic";
+import type { Durum, Finding, ShareLink } from "./types";
 
 const STORAGE_KEY = "kalkan-os-local-store-v1";
-
-interface StoreState {
-  tenantControls: TenantControl[];
-  findings: Finding[];
-  evidencesByControl: Record<string, Evidence[]>;
-  shareLinks: ShareLink[];
-}
 
 interface StoreApi extends StoreState {
   setDurum: (controlId: string, durum: Durum) => void;
@@ -60,36 +52,6 @@ function loadInitialState(): StoreState {
   // for a browser that persisted an older shape.
   const loaded = raw ? { ...initialState(), ...(JSON.parse(raw) as StoreState) } : initialState();
   return applyExpiryDowngrades(loaded, new Date());
-}
-
-function applyEvidenceEntry(state: StoreState, evidence: Evidence, asOf: Date): StoreState {
-  const existing = state.evidencesByControl[evidence.controlId] ?? [];
-  const nextDurum = deriveDurumFromEvidenceExpiry("karsilaniyor", evidence.gecerlilikBitis, asOf);
-  return {
-    ...state,
-    evidencesByControl: {
-      ...state.evidencesByControl,
-      [evidence.controlId]: [...existing, evidence],
-    },
-    tenantControls: state.tenantControls.map((tc) =>
-      tc.controlId === evidence.controlId
-        ? { ...tc, durum: nextDurum, sonDegerlendirme: evidence.createdAt }
-        : tc,
-    ),
-  };
-}
-
-function applyExpiryDowngrades(state: StoreState, asOf: Date): StoreState {
-  return {
-    ...state,
-    tenantControls: state.tenantControls.map((tc) => {
-      const evidences = state.evidencesByControl[tc.controlId] ?? [];
-      const latest = evidences[evidences.length - 1];
-      if (!latest) return tc;
-      const durum = deriveDurumFromEvidenceExpiry(tc.durum, latest.gecerlilikBitis, asOf);
-      return durum === tc.durum ? tc : { ...tc, durum };
-    }),
-  };
 }
 
 const StoreContext = createContext<StoreApi | null>(null);
@@ -133,27 +95,7 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addEvidence = useCallback((evidence: Evidence) => {
-    setState((s) => {
-      const asOf = new Date();
-      let next = applyEvidenceEntry(s, evidence, asOf);
-
-      // "Bir kanıt, dört çerçeve": eşdeğer kontrollere de aynı kanıtı
-      // (kaynağı etiketlenmiş şekilde) yansıt.
-      for (const mappedControlId of findEquivalentControlIds(evidence.controlId, mockControlMappings)) {
-        next = applyEvidenceEntry(
-          next,
-          {
-            ...evidence,
-            id: `${evidence.id}-eslenik-${mappedControlId}`,
-            controlId: mappedControlId,
-            kaynakKontrolId: evidence.controlId,
-          },
-          asOf,
-        );
-      }
-
-      return next;
-    });
+    setState((s) => addEvidenceToState(s, evidence, mockControlMappings, new Date()));
   }, []);
 
   const addFinding = useCallback((finding: Finding) => {
