@@ -18,7 +18,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/empty-state";
 import { findEquivalentControlIds } from "@/lib/control-mappings";
-import { sha256Hex } from "@/lib/evidence";
+import { sha256Hex, validateEvidenceFile } from "@/lib/evidence";
 import type { Evidence } from "@/lib/evidence-types";
 import { mockControlMappings, mockControls, mockFrameworks } from "@/lib/mock-data";
 import { useLocalStore } from "@/lib/store";
@@ -49,7 +49,19 @@ export default function ControlDetailPage() {
   const [beyanMetni, setBeyanMetni] = useState("");
   const [gecerlilikBitis, setGecerlilikBitis] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  function handleFileChange(selected: File | null) {
+    if (!selected) {
+      setFile(null);
+      setFileError(null);
+      return;
+    }
+    const result = validateEvidenceFile(selected);
+    setFile(result.valid ? selected : null);
+    setFileError(result.error);
+  }
 
   if (!control || !tenantControl) {
     return (
@@ -70,6 +82,11 @@ export default function ControlDetailPage() {
 
       if (tip === "dosya") {
         if (!file) return;
+        const revalidated = validateEvidenceFile(file);
+        if (!revalidated.valid) {
+          setFileError(revalidated.error);
+          return;
+        }
         storagePathOrLink = file.name;
         hashSha256 = await sha256Hex(await file.arrayBuffer());
       } else if (tip === "link") {
@@ -205,9 +222,14 @@ export default function ControlDetailPage() {
                 <Input
                   id="dosya"
                   type="file"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt"
+                  onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  PDF, Word, Excel, PNG, JPG veya düz metin — en fazla 20 MB.
+                </p>
+                {fileError && <p className="text-xs text-destructive">{fileError}</p>}
               </div>
             )}
             {tip === "link" && (

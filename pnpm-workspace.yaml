@@ -5,3 +5,8 @@ allowBuilds:
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+overrides:
+  # next@16.2.10 bundles a vulnerable postcss@8.4.31 internally (GHSA-qx2v-qp2m-jg93,
+  # XSS via unescaped </style> in CSS stringify output). Force the tree-wide resolution
+  # to the patched line already used elsewhere (@tailwindcss/postcss resolves 8.5.19).
+  postcss: ">=8.5.10"

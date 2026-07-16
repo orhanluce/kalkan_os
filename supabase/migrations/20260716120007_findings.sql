@@ -20,6 +20,8 @@ create trigger findings_set_updated_at
 
 alter table public.findings enable row level security;
 
+-- Same tenant-scoped-not-role-scoped caveat as tenant_controls — see the
+-- TODO there.
 create policy findings_all_own_tenant on public.findings
   for all
   using (tenant_id = public.current_tenant_id())

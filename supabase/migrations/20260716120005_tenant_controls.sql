@@ -19,6 +19,11 @@ create trigger tenant_controls_set_updated_at
 
 alter table public.tenant_controls enable row level security;
 
+-- Tenant-scoped only, not role-scoped: any profile in the tenant — including
+-- a future denetci_misafir — gets full CRUD here. That's fine as long as
+-- denetci_misafir access stays anon-token-based (share_links), never an
+-- authenticated profile row. TODO(M4/M1): if denetci_misafir profiles ever
+-- get created, split this into role-aware policies (read-only for guests).
 create policy tenant_controls_all_own_tenant on public.tenant_controls
   for all
   using (tenant_id = public.current_tenant_id())

@@ -22,8 +22,14 @@ create policy audit_log_select_own_tenant on public.audit_log
   for select
   using (tenant_id = public.current_tenant_id());
 
+-- actor_id must match the real caller — without this, any tenant member
+-- could forge an audit_log row attributing an action to a different user,
+-- defeating the whole point of an audit trail. eylem/detay content still
+-- isn't verified (a client can log a claim without it being true); that
+-- gap closes in M2 when tenant_controls/evidences mutations get real
+-- triggers writing audit_log themselves instead of relying on client inserts.
 create policy audit_log_insert_own_tenant on public.audit_log
   for insert
-  with check (tenant_id = public.current_tenant_id());
+  with check (tenant_id = public.current_tenant_id() and actor_id = auth.uid());
 
 revoke update, delete on public.audit_log from authenticated, anon;

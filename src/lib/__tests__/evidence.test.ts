@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { sha256Hex, isEvidenceExpired, deriveDurumFromEvidenceExpiry } from "../evidence";
+import {
+  sha256Hex,
+  isEvidenceExpired,
+  deriveDurumFromEvidenceExpiry,
+  validateEvidenceFile,
+  MAX_EVIDENCE_FILE_SIZE_BYTES,
+} from "../evidence";
 
 describe("sha256Hex", () => {
   it("matches the known SHA-256 of an empty input", async () => {
@@ -52,5 +58,53 @@ describe("deriveDurumFromEvidenceExpiry", () => {
     expect(deriveDurumFromEvidenceExpiry("acik", "2026-01-01", asOf)).toBe("acik");
     expect(deriveDurumFromEvidenceExpiry("kismi", "2026-01-01", asOf)).toBe("kismi");
     expect(deriveDurumFromEvidenceExpiry("kapsam_disi", "2026-01-01", asOf)).toBe("kapsam_disi");
+  });
+});
+
+describe("validateEvidenceFile", () => {
+  it("accepts a PDF within the size limit", () => {
+    const result = validateEvidenceFile({ type: "application/pdf", size: 1024 });
+    expect(result).toEqual({ valid: true, error: null });
+  });
+
+  it("rejects a file over the size limit", () => {
+    const result = validateEvidenceFile({
+      type: "application/pdf",
+      size: MAX_EVIDENCE_FILE_SIZE_BYTES + 1,
+    });
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/20 MB/);
+  });
+
+  it("accepts a file exactly at the size limit", () => {
+    const result = validateEvidenceFile({
+      type: "application/pdf",
+      size: MAX_EVIDENCE_FILE_SIZE_BYTES,
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it("rejects an unsupported mime type (e.g. an executable)", () => {
+    const result = validateEvidenceFile({
+      type: "application/x-msdownload",
+      size: 1024,
+    });
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/desteklenmiyor/);
+  });
+
+  it("accepts each type in the allowlist", () => {
+    for (const type of [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "image/png",
+      "image/jpeg",
+      "text/plain",
+    ]) {
+      expect(validateEvidenceFile({ type, size: 1024 }).valid).toBe(true);
+    }
   });
 });
