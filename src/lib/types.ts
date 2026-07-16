@@ -36,6 +36,15 @@ export interface Control {
   kritiklik: 1 | 2 | 3 | 4 | 5;
 }
 
+export type ControlIliski = "esdeger" | "kismi";
+
+export interface ControlMapping {
+  id: string;
+  controlIdA: string;
+  controlIdB: string;
+  iliski: ControlIliski;
+}
+
 export interface TenantControl {
   id: string;
   tenantId: string;

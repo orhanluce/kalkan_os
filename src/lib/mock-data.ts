@@ -2,7 +2,7 @@
 // beslemek için kullanılır. GERÇEK MEVZUAT İÇERİĞİ DEĞİLDİR: madde_ref
 // alanları data/controls/vii-128-10.yaml ile aynı TODO-DOGRULA
 // disiplinini taşır. Bu dosya seed script'i tarafından KULLANILMAZ.
-import type { Control, Finding, Framework, Tenant, TenantControl } from "./types";
+import type { Control, ControlMapping, Finding, Framework, Tenant, TenantControl } from "./types";
 
 export const mockTenant: Tenant = {
   id: "t-demo",
@@ -18,6 +18,16 @@ export const mockFramework: Framework = {
   version: "TODO-DOGRULA",
   yururlukTarihi: null,
 };
+
+export const mockFramework7545: Framework = {
+  id: "f-7545",
+  code: "7545",
+  name: "7545 sayılı Kanun İkincil Mevzuatı (TASLAK — DOĞRULANACAK)",
+  version: "v0-taslak",
+  yururlukTarihi: null,
+};
+
+export const mockFrameworks: Framework[] = [mockFramework, mockFramework7545];
 
 export const mockControls: Control[] = [
   {
@@ -100,6 +110,34 @@ export const mockControls: Control[] = [
     periyot: "yillik",
     kritiklik: 3,
   },
+  // 7545 — taslak/v0, data/controls/7545.yaml ile aynı disiplin.
+  {
+    id: "c-7545-01",
+    frameworkId: "f-7545",
+    maddeRef: "TODO-DOGRULA-7545-01",
+    baslik: "Bilgi güvenliği politikası (7545 karşılığı)",
+    aciklama: "VII-128.10 TODO-DOGRULA-05 ile eşdeğer olması beklenen bilgi güvenliği politikası şartı.",
+    kanitTipi: ["dosya"],
+    periyot: "yillik",
+    kritiklik: 5,
+  },
+  {
+    id: "c-7545-02",
+    frameworkId: "f-7545",
+    maddeRef: "TODO-DOGRULA-7545-02",
+    baslik: "İş sürekliliği planı (7545 karşılığı)",
+    aciklama: "VII-128.10 TODO-DOGRULA-07 ile eşdeğer olması beklenen iş sürekliliği/felaket kurtarma şartı.",
+    kanitTipi: ["dosya"],
+    periyot: "yillik",
+    kritiklik: 5,
+  },
+];
+
+// "Bir kanıt, dört çerçeve": VII-128.10 kontrolüne yüklenen kanıt, eşlenik
+// 7545 kontrolünde de görünür (bkz. src/lib/store.tsx addEvidence).
+export const mockControlMappings: ControlMapping[] = [
+  { id: "cm-01", controlIdA: "c-05", controlIdB: "c-7545-01", iliski: "esdeger" },
+  { id: "cm-02", controlIdA: "c-07", controlIdB: "c-7545-02", iliski: "esdeger" },
 ];
 
 export const mockTenantControls: TenantControl[] = [
@@ -111,6 +149,8 @@ export const mockTenantControls: TenantControl[] = [
   { id: "tc-10", tenantId: "t-demo", controlId: "c-10", durum: "karsilaniyor", sorumluUserId: null, sonDegerlendirme: "2026-04-01", notMetni: null },
   { id: "tc-11", tenantId: "t-demo", controlId: "c-11", durum: "karsilaniyor", sorumluUserId: null, sonDegerlendirme: "2026-04-01", notMetni: null },
   { id: "tc-12", tenantId: "t-demo", controlId: "c-12", durum: "kapsam_disi", sorumluUserId: null, sonDegerlendirme: null, notMetni: "Bu segment için uygulanmıyor" },
+  { id: "tc-7545-01", tenantId: "t-demo", controlId: "c-7545-01", durum: "acik", sorumluUserId: null, sonDegerlendirme: null, notMetni: null },
+  { id: "tc-7545-02", tenantId: "t-demo", controlId: "c-7545-02", durum: "acik", sorumluUserId: null, sonDegerlendirme: null, notMetni: null },
 ];
 
 export const mockFindings: Finding[] = [

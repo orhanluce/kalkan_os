@@ -3,10 +3,17 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateMaturityScore, topRiskyOpenControls } from "@/lib/maturity";
-import { mockControls, mockTenant } from "@/lib/mock-data";
+import { mockControls, mockFrameworks, mockTenant } from "@/lib/mock-data";
 import { useLocalStore } from "@/lib/store";
 import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
 import type { Durum } from "@/lib/types";
+
+const EMPTY_DAGILIM: Record<Durum, number> = {
+  karsilaniyor: 0,
+  kismi: 0,
+  acik: 0,
+  kapsam_disi: 0,
+};
 
 export default function DashboardPage() {
   const { tenantControls, findings } = useLocalStore();
@@ -19,8 +26,20 @@ export default function DashboardPage() {
       acc[tc.durum] += 1;
       return acc;
     },
-    { karsilaniyor: 0, kismi: 0, acik: 0, kapsam_disi: 0 },
+    { ...EMPTY_DAGILIM },
   );
+
+  const controlToFrameworkId = new Map(mockControls.map((c) => [c.id, c.frameworkId]));
+  const dagilimByFramework = mockFrameworks.map((framework) => {
+    const counts = tenantControls.reduce<Record<Durum, number>>(
+      (acc, tc) => {
+        if (controlToFrameworkId.get(tc.controlId) === framework.id) acc[tc.durum] += 1;
+        return acc;
+      },
+      { ...EMPTY_DAGILIM },
+    );
+    return { framework, counts };
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,13 +84,33 @@ export default function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Durum Dağılımı</CardTitle>
+          <CardTitle>Durum Dağılımı (tüm çerçeveler)</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
           {(Object.keys(dagilim) as Durum[]).map((durum) => (
             <Badge key={durum} variant={DURUM_BADGE_VARIANT[durum]}>
               {DURUM_LABEL[durum]}: {dagilim[durum]}
             </Badge>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Çerçeve Bazında Dağılım</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {dagilimByFramework.map(({ framework, counts }) => (
+            <div key={framework.id} className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium">{framework.code}</span>
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(counts) as Durum[]).map((durum) => (
+                  <Badge key={durum} variant={DURUM_BADGE_VARIANT[durum]}>
+                    {DURUM_LABEL[durum]}: {counts[durum]}
+                  </Badge>
+                ))}
+              </div>
+            </div>
           ))}
         </CardContent>
       </Card>

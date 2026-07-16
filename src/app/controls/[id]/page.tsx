@@ -16,9 +16,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { findEquivalentControlIds } from "@/lib/control-mappings";
 import { sha256Hex } from "@/lib/evidence";
 import type { Evidence } from "@/lib/evidence-types";
-import { mockControls } from "@/lib/mock-data";
+import { mockControlMappings, mockControls, mockFrameworks } from "@/lib/mock-data";
 import { useLocalStore } from "@/lib/store";
 import type { Durum, EvidenceTip } from "@/lib/types";
 import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
@@ -37,6 +38,9 @@ export default function ControlDetailPage() {
 
   const tenantControl = tenantControls.find((tc) => tc.controlId === params.id);
   const evidences = evidencesByControl[params.id] ?? [];
+  const equivalentControls = findEquivalentControlIds(params.id, mockControlMappings)
+    .map((id) => mockControls.find((c) => c.id === id))
+    .filter((c): c is NonNullable<typeof c> => Boolean(c));
 
   const [notDraft, setNotDraft] = useState(tenantControl?.notMetni ?? "");
   const [tip, setTip] = useState<EvidenceTip>("dosya");
@@ -82,6 +86,7 @@ export default function ControlDetailPage() {
         hashSha256,
         gecerlilikBitis: gecerlilikBitis || null,
         createdAt: new Date().toISOString(),
+        kaynakKontrolId: null,
       };
       addEvidence(evidence);
       setFile(null);
@@ -105,6 +110,33 @@ export default function ControlDetailPage() {
         </p>
         <p className="mt-2 max-w-2xl text-sm">{control.aciklama}</p>
       </div>
+
+      {equivalentControls.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Eşlenik Kontroller</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-3 text-xs text-muted-foreground">
+              &ldquo;Bir kanıt, dört çerçeve&rdquo;: buraya yüklenen kanıt aşağıdaki kontrollerde de
+              otomatik görünür.
+            </p>
+            <ul className="flex flex-col gap-2">
+              {equivalentControls.map((ec) => {
+                const framework = mockFrameworks.find((f) => f.id === ec.frameworkId);
+                return (
+                  <li key={ec.id} className="text-sm">
+                    <Link href={`/controls/${ec.id}`} className="hover:underline">
+                      <span className="text-muted-foreground">{framework?.code}</span>{" "}
+                      {ec.maddeRef} — {ec.baslik}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -246,6 +278,15 @@ export default function ControlDetailPage() {
                   {ev.gecerlilikBitis && (
                     <p className="mt-1 text-xs text-muted-foreground">
                       Geçerlilik bitiş: {ev.gecerlilikBitis}
+                    </p>
+                  )}
+                  {ev.kaynakKontrolId && (
+                    <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                      Eşlenik kanıt —{" "}
+                      <Link href={`/controls/${ev.kaynakKontrolId}`} className="underline">
+                        kaynak kontrolden
+                      </Link>{" "}
+                      otomatik yansıtıldı
                     </p>
                   )}
                 </li>

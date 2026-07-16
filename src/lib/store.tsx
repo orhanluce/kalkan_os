@@ -14,9 +14,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { findEquivalentControlIds } from "./control-mappings";
 import { deriveDurumFromEvidenceExpiry } from "./evidence";
 import type { Evidence } from "./evidence-types";
-import { mockFindings, mockTenantControls } from "./mock-data";
+import { mockControlMappings, mockFindings, mockTenantControls } from "./mock-data";
 import type { Durum, Finding, TenantControl } from "./types";
 
 const STORAGE_KEY = "kalkan-os-local-store-v1";
@@ -51,6 +52,23 @@ function loadInitialState(): StoreState {
   const raw = window.localStorage.getItem(STORAGE_KEY);
   const loaded = raw ? (JSON.parse(raw) as StoreState) : initialState();
   return applyExpiryDowngrades(loaded, new Date());
+}
+
+function applyEvidenceEntry(state: StoreState, evidence: Evidence, asOf: Date): StoreState {
+  const existing = state.evidencesByControl[evidence.controlId] ?? [];
+  const nextDurum = deriveDurumFromEvidenceExpiry("karsilaniyor", evidence.gecerlilikBitis, asOf);
+  return {
+    ...state,
+    evidencesByControl: {
+      ...state.evidencesByControl,
+      [evidence.controlId]: [...existing, evidence],
+    },
+    tenantControls: state.tenantControls.map((tc) =>
+      tc.controlId === evidence.controlId
+        ? { ...tc, durum: nextDurum, sonDegerlendirme: evidence.createdAt }
+        : tc,
+    ),
+  };
 }
 
 function applyExpiryDowngrades(state: StoreState, asOf: Date): StoreState {
@@ -99,24 +117,25 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
 
   const addEvidence = useCallback((evidence: Evidence) => {
     setState((s) => {
-      const existing = s.evidencesByControl[evidence.controlId] ?? [];
-      const nextDurum = deriveDurumFromEvidenceExpiry(
-        "karsilaniyor",
-        evidence.gecerlilikBitis,
-        new Date(),
-      );
-      return {
-        ...s,
-        evidencesByControl: {
-          ...s.evidencesByControl,
-          [evidence.controlId]: [...existing, evidence],
-        },
-        tenantControls: s.tenantControls.map((tc) =>
-          tc.controlId === evidence.controlId
-            ? { ...tc, durum: nextDurum, sonDegerlendirme: evidence.createdAt }
-            : tc,
-        ),
-      };
+      const asOf = new Date();
+      let next = applyEvidenceEntry(s, evidence, asOf);
+
+      // "Bir kanıt, dört çerçeve": eşdeğer kontrollere de aynı kanıtı
+      // (kaynağı etiketlenmiş şekilde) yansıt.
+      for (const mappedControlId of findEquivalentControlIds(evidence.controlId, mockControlMappings)) {
+        next = applyEvidenceEntry(
+          next,
+          {
+            ...evidence,
+            id: `${evidence.id}-eslenik-${mappedControlId}`,
+            controlId: mappedControlId,
+            kaynakKontrolId: evidence.controlId,
+          },
+          asOf,
+        );
+      }
+
+      return next;
     });
   }, []);
 
