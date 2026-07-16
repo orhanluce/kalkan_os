@@ -35,6 +35,7 @@ interface StoreApi extends StoreState {
   addEvidence: (evidence: Evidence) => void;
   addFinding: (finding: Finding) => void;
   toggleFindingDurum: (findingId: string) => void;
+  updateFinding: (findingId: string, patch: Partial<Finding>) => void;
   addShareLink: (shareLink: ShareLink) => void;
 }
 
@@ -158,6 +159,13 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const updateFinding = useCallback((findingId: string, patch: Partial<Finding>) => {
+    setState((s) => ({
+      ...s,
+      findings: s.findings.map((f) => (f.id === findingId ? { ...f, ...patch } : f)),
+    }));
+  }, []);
+
   const addShareLink = useCallback((shareLink: ShareLink) => {
     setState((s) => ({ ...s, shareLinks: [shareLink, ...s.shareLinks] }));
   }, []);
@@ -170,9 +178,19 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
       addEvidence,
       addFinding,
       toggleFindingDurum,
+      updateFinding,
       addShareLink,
     }),
-    [state, setDurum, setNot, addEvidence, addFinding, toggleFindingDurum, addShareLink],
+    [
+      state,
+      setDurum,
+      setNot,
+      addEvidence,
+      addFinding,
+      toggleFindingDurum,
+      updateFinding,
+      addShareLink,
+    ],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

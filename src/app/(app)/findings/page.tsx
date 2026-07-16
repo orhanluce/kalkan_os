@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,13 +19,12 @@ import { EmptyState } from "@/components/empty-state";
 import { mockTenant } from "@/lib/mock-data";
 import { useLocalStore } from "@/lib/store";
 import type { Finding, Onem } from "@/lib/types";
-import { FINDING_DURUM_LABEL, ONEM_BADGE_VARIANT, ONEM_LABEL } from "@/lib/ui-labels";
-
-const KAYNAK_LABEL: Record<Finding["kaynak"], string> = {
-  sizma_testi: "Sızma Testi",
-  denetim: "Denetim",
-  ic_tespit: "İç Tespit",
-};
+import {
+  FINDING_DURUM_LABEL,
+  KAYNAK_LABEL,
+  ONEM_BADGE_VARIANT,
+  ONEM_LABEL,
+} from "@/lib/ui-labels";
 
 const KAYNAK_OPTIONS = Object.keys(KAYNAK_LABEL) as Finding["kaynak"][];
 const ONEM_OPTIONS = Object.keys(ONEM_LABEL) as Onem[];
@@ -149,7 +149,11 @@ export default function FindingsPage() {
               <TableBody>
                 {findings.map((f) => (
                   <TableRow key={f.id}>
-                    <TableCell>{f.baslik}</TableCell>
+                    <TableCell>
+                      <Link href={`/findings/${f.id}`} className="hover:underline">
+                        {f.baslik}
+                      </Link>
+                    </TableCell>
                     <TableCell>{KAYNAK_LABEL[f.kaynak]}</TableCell>
                     <TableCell>
                       <Badge variant={ONEM_BADGE_VARIANT[f.onem]}>{ONEM_LABEL[f.onem]}</Badge>
