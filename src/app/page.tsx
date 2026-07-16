@@ -1,16 +1,20 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateMaturityScore, topRiskyOpenControls } from "@/lib/maturity";
-import { mockControls, mockFindings, mockTenant, mockTenantControls } from "@/lib/mock-data";
+import { mockControls, mockTenant } from "@/lib/mock-data";
+import { useLocalStore } from "@/lib/store";
 import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
 import type { Durum } from "@/lib/types";
 
 export default function DashboardPage() {
-  const score = calculateMaturityScore(mockTenantControls, mockControls);
-  const risky = topRiskyOpenControls(mockTenantControls, mockControls, 10);
-  const openFindings = mockFindings.filter((f) => f.durum === "acik").length;
+  const { tenantControls, findings } = useLocalStore();
+  const score = calculateMaturityScore(tenantControls, mockControls);
+  const risky = topRiskyOpenControls(tenantControls, mockControls, 10);
+  const openFindings = findings.filter((f) => f.durum === "acik").length;
 
-  const dagilim = mockTenantControls.reduce<Record<Durum, number>>(
+  const dagilim = tenantControls.reduce<Record<Durum, number>>(
     (acc, tc) => {
       acc[tc.durum] += 1;
       return acc;
@@ -22,7 +26,7 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{mockTenant.name}</h1>
-        <p className="text-sm text-muted-foreground">Uyum Panosu · mock veri üzerinden</p>
+        <p className="text-sm text-muted-foreground">Uyum Panosu · yerel oturum verisi</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -54,7 +58,7 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <span className="text-4xl font-semibold tabular-nums">{mockTenantControls.length}</span>
+            <span className="text-4xl font-semibold tabular-nums">{tenantControls.length}</span>
           </CardContent>
         </Card>
       </div>

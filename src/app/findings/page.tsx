@@ -1,16 +1,59 @@
+"use client";
+
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { mockFindings } from "@/lib/mock-data";
+import { mockTenant } from "@/lib/mock-data";
+import { useLocalStore } from "@/lib/store";
+import type { Finding, Onem } from "@/lib/types";
 import { FINDING_DURUM_LABEL, ONEM_BADGE_VARIANT, ONEM_LABEL } from "@/lib/ui-labels";
 
-const KAYNAK_LABEL: Record<string, string> = {
+const KAYNAK_LABEL: Record<Finding["kaynak"], string> = {
   sizma_testi: "Sızma Testi",
   denetim: "Denetim",
   ic_tespit: "İç Tespit",
 };
 
+const KAYNAK_OPTIONS = Object.keys(KAYNAK_LABEL) as Finding["kaynak"][];
+const ONEM_OPTIONS = Object.keys(ONEM_LABEL) as Onem[];
+
 export default function FindingsPage() {
+  const { findings, addFinding, toggleFindingDurum } = useLocalStore();
+
+  const [baslik, setBaslik] = useState("");
+  const [kaynak, setKaynak] = useState<Finding["kaynak"]>("ic_tespit");
+  const [onem, setOnem] = useState<Onem>("orta");
+  const [hedefKapama, setHedefKapama] = useState("");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!baslik.trim()) return;
+    addFinding({
+      id: crypto.randomUUID(),
+      tenantId: mockTenant.id,
+      kaynak,
+      onem,
+      baslik: baslik.trim(),
+      aksiyonPlani: null,
+      ykOnayTarihi: null,
+      hedefKapama: hedefKapama || null,
+      durum: "acik",
+    });
+    setBaslik("");
+    setHedefKapama("");
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -22,7 +65,67 @@ export default function FindingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{mockFindings.length} bulgu</CardTitle>
+          <CardTitle>Yeni Bulgu</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-1 min-w-48 flex-col gap-1.5">
+              <Label htmlFor="baslik">Başlık</Label>
+              <Input
+                id="baslik"
+                value={baslik}
+                onChange={(e) => setBaslik(e.target.value)}
+                placeholder="Bulgu başlığı"
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Kaynak</Label>
+              <Select value={kaynak} onValueChange={(v) => setKaynak(v as Finding["kaynak"])}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {KAYNAK_OPTIONS.map((k) => (
+                    <SelectItem key={k} value={k}>
+                      {KAYNAK_LABEL[k]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Önem</Label>
+              <Select value={onem} onValueChange={(v) => setOnem(v as Onem)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ONEM_OPTIONS.map((o) => (
+                    <SelectItem key={o} value={o}>
+                      {ONEM_LABEL[o]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="hedef">Hedef kapama</Label>
+              <Input
+                id="hedef"
+                type="date"
+                value={hedefKapama}
+                onChange={(e) => setHedefKapama(e.target.value)}
+              />
+            </div>
+            <Button type="submit">Ekle</Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{findings.length} bulgu</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -33,10 +136,11 @@ export default function FindingsPage() {
                 <TableHead>Önem</TableHead>
                 <TableHead>Hedef Kapama</TableHead>
                 <TableHead>Durum</TableHead>
+                <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockFindings.map((f) => (
+              {findings.map((f) => (
                 <TableRow key={f.id}>
                   <TableCell>{f.baslik}</TableCell>
                   <TableCell>{KAYNAK_LABEL[f.kaynak]}</TableCell>
@@ -45,6 +149,11 @@ export default function FindingsPage() {
                   </TableCell>
                   <TableCell>{f.hedefKapama ?? "—"}</TableCell>
                   <TableCell>{FINDING_DURUM_LABEL[f.durum]}</TableCell>
+                  <TableCell>
+                    <Button variant="outline" size="sm" onClick={() => toggleFindingDurum(f.id)}>
+                      {f.durum === "acik" ? "Kapat" : "Yeniden Aç"}
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

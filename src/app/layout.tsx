@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { ClientStoreProvider } from "@/components/store-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -47,7 +48,9 @@ export default function RootLayout({
             </span>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+          <ClientStoreProvider>{children}</ClientStoreProvider>
+        </main>
       </body>
     </html>
   );

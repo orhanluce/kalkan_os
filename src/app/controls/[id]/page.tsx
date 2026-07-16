@@ -1,0 +1,259 @@
+"use client";
+
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { sha256Hex } from "@/lib/evidence";
+import type { Evidence } from "@/lib/evidence-types";
+import { mockControls } from "@/lib/mock-data";
+import { useLocalStore } from "@/lib/store";
+import type { Durum, EvidenceTip } from "@/lib/types";
+import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
+
+const DURUM_OPTIONS: Durum[] = ["karsilaniyor", "kismi", "acik", "kapsam_disi"];
+const TIP_OPTIONS: { value: EvidenceTip; label: string }[] = [
+  { value: "dosya", label: "Dosya" },
+  { value: "link", label: "Link" },
+  { value: "beyan", label: "Beyan" },
+];
+
+export default function ControlDetailPage() {
+  const params = useParams<{ id: string }>();
+  const control = mockControls.find((c) => c.id === params.id);
+  const { tenantControls, evidencesByControl, setDurum, setNot, addEvidence } = useLocalStore();
+
+  const tenantControl = tenantControls.find((tc) => tc.controlId === params.id);
+  const evidences = evidencesByControl[params.id] ?? [];
+
+  const [notDraft, setNotDraft] = useState(tenantControl?.notMetni ?? "");
+  const [tip, setTip] = useState<EvidenceTip>("dosya");
+  const [link, setLink] = useState("");
+  const [beyanMetni, setBeyanMetni] = useState("");
+  const [gecerlilikBitis, setGecerlilikBitis] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  if (!control || !tenantControl) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        Kontrol bulunamadı.{" "}
+        <Link href="/controls" className="underline">
+          Kütüphaneye dön
+        </Link>
+      </div>
+    );
+  }
+
+  async function handleEvidenceSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      let storagePathOrLink = "";
+      let hashSha256: string | null = null;
+
+      if (tip === "dosya") {
+        if (!file) return;
+        storagePathOrLink = file.name;
+        hashSha256 = await sha256Hex(await file.arrayBuffer());
+      } else if (tip === "link") {
+        storagePathOrLink = link;
+      } else {
+        storagePathOrLink = beyanMetni;
+      }
+
+      const evidence: Evidence = {
+        id: crypto.randomUUID(),
+        controlId: control!.id,
+        tip,
+        storagePathOrLink,
+        hashSha256,
+        gecerlilikBitis: gecerlilikBitis || null,
+        createdAt: new Date().toISOString(),
+      };
+      addEvidence(evidence);
+      setFile(null);
+      setLink("");
+      setBeyanMetni("");
+      setGecerlilikBitis("");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <Link href="/controls" className="text-sm text-muted-foreground hover:underline">
+          ← Kontrol Kütüphanesi
+        </Link>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{control.baslik}</h1>
+        <p className="text-sm text-muted-foreground">
+          {control.maddeRef} · kritiklik {control.kritiklik} · {control.periyot.replace("_", " ")}
+        </p>
+        <p className="mt-2 max-w-2xl text-sm">{control.aciklama}</p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Durum</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <Badge variant={DURUM_BADGE_VARIANT[tenantControl.durum]}>
+              {DURUM_LABEL[tenantControl.durum]}
+            </Badge>
+            <Select
+              value={tenantControl.durum}
+              onValueChange={(v) => setDurum(control!.id, v as Durum)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DURUM_OPTIONS.map((d) => (
+                  <SelectItem key={d} value={d}>
+                    {DURUM_LABEL[d]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="not">Not</Label>
+            <Textarea
+              id="not"
+              value={notDraft}
+              onChange={(e) => setNotDraft(e.target.value)}
+              onBlur={() => setNot(control!.id, notDraft)}
+              placeholder="Bu kontrolle ilgili not..."
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Kanıt Yükle</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleEvidenceSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label>Tip</Label>
+              <Select value={tip} onValueChange={(v) => setTip(v as EvidenceTip)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIP_OPTIONS.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {tip === "dosya" && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="dosya">Dosya (SHA-256 tarayıcıda hesaplanır)</Label>
+                <Input
+                  id="dosya"
+                  type="file"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  required
+                />
+              </div>
+            )}
+            {tip === "link" && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="link">Link</Label>
+                <Input
+                  id="link"
+                  type="url"
+                  value={link}
+                  onChange={(e) => setLink(e.target.value)}
+                  placeholder="https://..."
+                  required
+                />
+              </div>
+            )}
+            {tip === "beyan" && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="beyan">Beyan metni</Label>
+                <Textarea
+                  id="beyan"
+                  value={beyanMetni}
+                  onChange={(e) => setBeyanMetni(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="gecerlilik">Geçerlilik bitiş (opsiyonel)</Label>
+              <Input
+                id="gecerlilik"
+                type="date"
+                value={gecerlilikBitis}
+                onChange={(e) => setGecerlilikBitis(e.target.value)}
+              />
+            </div>
+
+            <Button type="submit" disabled={submitting} className="w-fit">
+              {submitting ? "Hesaplanıyor..." : "Kanıt Ekle"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Yüklenen Kanıtlar ({evidences.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {evidences.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Henüz kanıt yüklenmedi.</p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {evidences.map((ev) => (
+                <li key={ev.id} className="rounded-lg border p-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium capitalize">{ev.tip}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(ev.createdAt).toLocaleString("tr-TR")}
+                    </span>
+                  </div>
+                  <p className="mt-1 break-all text-muted-foreground">{ev.storagePathOrLink}</p>
+                  {ev.hashSha256 && (
+                    <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
+                      sha256: {ev.hashSha256}
+                    </p>
+                  )}
+                  {ev.gecerlilikBitis && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Geçerlilik bitiş: {ev.gecerlilikBitis}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

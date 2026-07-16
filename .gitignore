@@ -46,3 +46,6 @@ next-env.d.ts
 /test-results/
 /blob-report/
 /.playwright-mcp/
+
+# generated local artifacts (e.g. YK Beyanı PDF sample)
+/.local-output/

@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
-    "seed:controls": "tsx scripts/seed-controls.ts"
+    "seed:controls": "tsx scripts/seed-controls.ts",
+    "generate:yk-beyani": "tsx scripts/generate-yk-beyani.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
