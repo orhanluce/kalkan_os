@@ -51,16 +51,20 @@ export interface EvidenceAnchorProvider {
 }
 
 /**
- * Kanıt hash'lerinden parti kökü üretir.
+ * Kanıt ZARFI hash'lerinden (bkz. evidence-envelope.ts) parti kökü üretir.
  *
- * Yaprak sırası DETERMİNİSTİK olmalıdır (şartname §9.2) — aynı kanıt kümesi
- * her zaman aynı kökü vermeli, yoksa yeniden üretilen proof'lar tutmaz.
- * Sıralama çağırana bırakılmaz, burada yapılır: hash'e göre artan.
- * Yükleme zamanına göre sıralamak cazip ama kırılgandır — aynı milisaniyede
- * eklenen iki kanıtın sırası veritabanı planına kalırdı.
+ * Yapraklar dosya hash'leri değil zarf hash'leridir (şartname §9.2): dosya
+ * hash'ini sabitlemek yalnızca "bu bayt dizisi vardı" der, zarfı sabitlemek
+ * "bu dosya şu kaynaktan, şu tarihte, şu kontrol için sunulmuştu" der.
+ *
+ * Yaprak sırası DETERMİNİSTİK olmalıdır (§9.2) — aynı kanıt kümesi her zaman
+ * aynı kökü vermeli, yoksa yeniden üretilen proof'lar tutmaz. Sıralama
+ * çağırana bırakılmaz, burada yapılır: hash'e göre artan. Yükleme zamanına
+ * göre sıralamak cazip ama kırılgandır — aynı milisaniyede eklenen iki
+ * kanıtın sırası veritabanı planına kalırdı.
  */
-export async function batchRootFromHashes(evidenceHashes: string[]): Promise<string> {
-  return merkleRootHex([...evidenceHashes].sort());
+export async function batchRootFromHashes(envelopeHashes: string[]): Promise<string> {
+  return merkleRootHex([...envelopeHashes].sort());
 }
 
 /**
