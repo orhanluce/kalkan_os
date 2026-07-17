@@ -3,8 +3,8 @@ TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supab
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler
-üzerinden bağlanıyoruz — direct connection IPv6-only. 12 migration uygulandı ve
-`pnpm db:verify` ile fiilen doğrulandı (14 tablo, 4 fonksiyon). Kontrol
+üzerinden bağlanıyoruz — direct connection IPv6-only. 22 migration uygulandı
+(`pnpm db:push`); `pnpm db:verify` çekirdek tabloları fiilen doğrular. Kontrol
 kütüphanesi seed edildi (2 çerçeve, 17 kontrol) ve ilk kuruma atandı.
 
 **Uygulama artık gerçek Supabase'e bağlı**: kimlik Supabase Auth'tan, yetki
@@ -21,7 +21,8 @@ hiçbir ekrana bağlı değil.
 **Geçişin açtığı borçlar, çoğu kapandı** (docs/ROADMAP.md "Supabase geçişi" altında
 tam liste): audit_log yazması artık trigger'da (atomik); denetçi paylaşımı
 `paylasim_goruntule` RPC'siyle çalışıyor; Playwright akışları ayrı bir e2e
-kiracısına karşı yeniden yazıldı ve 9/9 yeşil (`pnpm e2e`). Kalan gerçek açık:
+kiracısına karşı yeniden yazıldı ve 10/10 yeşil (`pnpm e2e`, 1 bilinçli skip).
+Kalan gerçek açık:
 kanıt süresi dolması yalnızca yükleme anında hesaplanıyor, DB'de otomatik
 yeniden değerlendirilmiyor (bir test bunun için bilinçli `skip`).
 
