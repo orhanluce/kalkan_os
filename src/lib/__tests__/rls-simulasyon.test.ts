@@ -78,6 +78,13 @@ beforeEach(async () => {
             ($1, $2, $5, 'gozlemci', 'gozlemci')`,
     [runId, seed.A.tenantId, seed.A.userId, A_IKINCI, A_GOZLEMCI],
   );
+
+  // Tatbikatı çalışır duruma getir: durum makinesi (20260717130000) artık
+  // başlamamış tatbikatta gelişme yayınlanmasını ve karar verilmesini
+  // engelliyor. Bu dosya görünürlük kurallarını sınıyor, durum makinesini
+  // değil — o rls-simulasyon-durum.test.ts'in işi.
+  await db.sql(`update public.simulation_runs set durum = 'hazir' where id = $1`, [runId]);
+  await db.sql(`update public.simulation_runs set durum = 'calisiyor' where id = $1`, [runId]);
 });
 
 afterEach(async () => {

@@ -217,9 +217,27 @@ geçersiz mod reddediliyor.
   `CRITICAL_FAILURE` yapıyor. Uygulanamayan kural paydadan düşüyor (eksik şablon, katılımcının
   başarısızlığı gibi görünmesin).
 
-**Kalan (M8'in tamamlanması için):** control room / katılımcı / gözlemci ekranları, run durum
-makinesi geçişleri (start/pause/resume/abort) ve zamanlı inject yayını, puanlamanın DB'ye
-bağlanması (`simulation_scores`), öneri kabul akışı → gerçek bulgu.
+**Durum makinesi tamamlandı** (`20260717130000`): geçişler trigger'da zorlanıyor — oynanmadan
+puanlamaya geçilemiyor, kapanmış tatbikat yeniden açılamıyor, bittikten sonra gelişme
+eklenemiyor, yayınlanmamış gelişmenin kararı verilemiyor. Duraklatılan süre biriktiriliyor ve
+katılımcının yanıt süresine yazılmıyor.
+
+**Aksiyon sonuçları** (`20260717140000`): puanlama motorunun girdisi. Karar noktalarıyla otomatik
+bağ KURULMADI bilinçli olarak — "eskalasyon yapıldı" kararının verilmiş olması eskalasyonun
+gerçekten yapıldığı anlamına gelmez; yönetici/gözlemci neyin fiilen olduğunu işaretler.
+
+**Puanlama DB'ye bağlandı**: `POST /api/simulasyon/[id]/puanla`. İki aşamalı yetki — önce
+kullanıcının oturumuyla RLS altında okuma (başka kiracının tatbikatı zaten görünmez), sonra
+yalnızca yazma için service_role.
+
+**Uçtan uca canlıda doğrulandı** (`pnpm demo:simulation`): S01 fidye tatbikatı oynandı — 10
+gelişme, 4 karar, 6 aksiyon. Sonuç belgenin §8.5 örneğiyle birebir örtüştü: eskalasyon 42 dk
+(hedef 15) → başarısız → otomatik bulgu önerisi. Puan 50/100 ama **CRITICAL_FAILURE** (delil
+toplanmadı). 4 öneri üretildi, hepsi gerçek kontrollere bağlı, hepsi `PROPOSED`, hiçbiri onaysız
+bulguya dönüşmedi. Audit zinciri sağlam kaldı.
+
+**Kalan (M8'in tamamlanması için):** control room / katılımcı / gözlemci EKRANLARI, zamanlı inject
+otomatik yayını, öneri kabul akışı → gerçek bulgu (UI + RPC), gözlemci puanı toplama.
 
 - `simulation_runs` durum makinesi: `DRAFT → SCHEDULED → READY → RUNNING → PAUSED → COMPLETED → SCORING → REVIEWED → CLOSED`, `RUNNING → ABORTED`.
 - **Başlatılan run, şablonun immutable snapshot'ını kullanır** — şablon sonradan değişse bile geçmiş simülasyon değişmez (belge §10.7).

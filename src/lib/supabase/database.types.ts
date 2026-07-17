@@ -839,6 +839,71 @@ export type Database = {
           },
         ]
       }
+      simulation_action_results: {
+        Row: {
+          aciklama: string | null
+          created_at: string
+          expected_action_id: string
+          id: string
+          isaretleyen: string
+          run_id: string
+          senaryo_dakika: number | null
+          tamamlandi: boolean
+          tenant_id: string
+        }
+        Insert: {
+          aciklama?: string | null
+          created_at?: string
+          expected_action_id: string
+          id?: string
+          isaretleyen: string
+          run_id: string
+          senaryo_dakika?: number | null
+          tamamlandi: boolean
+          tenant_id: string
+        }
+        Update: {
+          aciklama?: string | null
+          created_at?: string
+          expected_action_id?: string
+          id?: string
+          isaretleyen?: string
+          run_id?: string
+          senaryo_dakika?: number | null
+          tamamlandi?: boolean
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_action_results_expected_action_id_fkey"
+            columns: ["expected_action_id"]
+            isOneToOne: false
+            referencedRelation: "scenario_expected_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_action_results_isaretleyen_fkey"
+            columns: ["isaretleyen"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_action_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "simulation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_action_results_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       simulation_decisions: {
         Row: {
           cevap: string | null
@@ -1224,6 +1289,54 @@ export type Database = {
             columns: ["version_id"]
             isOneToOne: false
             referencedRelation: "scenario_template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulation_scores: {
+        Row: {
+          durum: string
+          hesaplandi_at: string
+          id: string
+          kritik_basarisizliklar: Json
+          puan: number
+          run_id: string
+          satirlar: Json
+          tenant_id: string
+        }
+        Insert: {
+          durum: string
+          hesaplandi_at?: string
+          id?: string
+          kritik_basarisizliklar?: Json
+          puan: number
+          run_id: string
+          satirlar: Json
+          tenant_id: string
+        }
+        Update: {
+          durum?: string
+          hesaplandi_at?: string
+          id?: string
+          kritik_basarisizliklar?: Json
+          puan?: number
+          run_id?: string
+          satirlar?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_scores_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "simulation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_scores_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]

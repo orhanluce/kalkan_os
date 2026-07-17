@@ -20,7 +20,8 @@
     "db:types": "tsx scripts/db-types.ts",
     "bootstrap:tenant": "tsx scripts/bootstrap-tenant.ts",
     "assign:controls": "tsx scripts/assign-controls.ts",
-    "seed:scenarios": "tsx scripts/seed-scenarios.ts"
+    "seed:scenarios": "tsx scripts/seed-scenarios.ts",
+    "demo:simulation": "tsx scripts/demo-simulation.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
