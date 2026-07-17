@@ -43,6 +43,7 @@ function baseEvidence(overrides: Partial<Evidence> = {}): Evidence {
     classification: "ic_kullanim",
     retentionClass: "10y",
     capturedAt: null,
+    storageObjectKey: null,
     kaynakKontrolId: null,
     ...overrides,
   };

@@ -28,6 +28,7 @@ import {
   type SaklamaSinifi,
 } from "@/lib/evidence-types";
 import { useLocalStore } from "@/lib/store";
+import { createClient } from "@/lib/supabase/client";
 import type { Durum, EvidenceTip } from "@/lib/types";
 import {
   DURUM_BADGE_VARIANT,
@@ -126,6 +127,22 @@ export default function ControlDetailPage() {
     );
   }
 
+  // Kanıt dosyasını indir (M11). Bucket private olduğu için imzalı, KISA
+  // ÖMÜRLÜ (60 sn) bir URL üretilir — kalıcı bir bağlantı, kanıtı gören
+  // herkese süresiz erişim vermek olurdu. Erişimin asıl sınırı yine RLS:
+  // createSignedUrl yalnızca kullanıcının okuyabildiği nesne için çalışır.
+  async function kanitIndir(storageObjectKey: string) {
+    const db = createClient();
+    const { data, error } = await db.storage
+      .from("evidence")
+      .createSignedUrl(storageObjectKey, 60);
+    if (error || !data) {
+      setFileError(error?.message ?? "Dosya bağlantısı oluşturulamadı.");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  }
+
   async function handleEvidenceSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -165,8 +182,14 @@ export default function ControlDetailPage() {
         classification,
         retentionClass,
         capturedAt: capturedAt || null,
+        // Storage anahtarını STORE hesaplar ({tenant}/{hash}) — form tenant_id'yi
+        // burada bilmiyor. null geçiyoruz; addEvidence dosyayı yükleyip anahtarı
+        // kendisi yazıyor.
+        storageObjectKey: null,
       };
-      addEvidence(evidence);
+      // Dosya tipi kanıtta File'ı da geçir: store içerik-adresli olarak
+      // Storage'a yükler (M11). link/beyan tipinde yüklenecek dosya yok.
+      addEvidence(evidence, tip === "dosya" && file ? file : undefined);
       setFile(null);
       setLink("");
       setBeyanMetni("");
@@ -439,6 +462,15 @@ export default function ControlDetailPage() {
                     <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
                       sha256: {ev.hashSha256}
                     </p>
+                  )}
+                  {ev.storageObjectKey && (
+                    <button
+                      type="button"
+                      onClick={() => kanitIndir(ev.storageObjectKey!)}
+                      className="mt-1 text-xs underline underline-offset-2 hover:text-foreground"
+                    >
+                      Dosyayı indir
+                    </button>
                   )}
                   {ev.gecerlilikBitis && (
                     <p className="mt-1 text-xs text-muted-foreground">

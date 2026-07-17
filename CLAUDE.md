@@ -3,7 +3,7 @@ TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supab
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler
-üzerinden bağlanıyoruz — direct connection IPv6-only. 25 migration uygulandı
+üzerinden bağlanıyoruz — direct connection IPv6-only. 27 migration uygulandı
 (`pnpm db:push`); `pnpm db:verify` çekirdek tabloları fiilen doğrular. Kontrol
 kütüphanesi seed edildi (2 çerçeve, 17 kontrol) ve ilk kuruma atandı.
 
@@ -40,10 +40,16 @@ zinciri hiç çalışmıyordu — 193 test yeşilken. Bu yüzden: **şemaya doku
 migration'dan sonra canlıya karşı gerçek bir yazma dene.** `pnpm db:verify`
 tabloların var olduğunu gösterir, çalıştıklarını değil.
 
-Hâlâ **doğrulanamayan** ve "yazıldı ama doğrulanmadı" diye işaretlenmesi
-gerekenler: Storage'a gerçek dosya yükleme ve deploy. Bunlar için "çalışıyor"
-deme. (Supabase Auth artık doğrulandı: gerçek kullanıcı canlıda giriş yaptı,
-profil RLS altında okundu.)
+**Storage artık DOĞRULANDI** (M11, 17 Temmuz 2026): kanıt dosyaları private
+`evidence` bucket'ına içerik-adresli (`{tenant_id}/{sha256}`) yükleniyor,
+imzalı URL ile geri indiriliyor. Canlıya karşı script + tarayıcı e2e ile
+kanıtlandı: round-trip baytları aynı, başka tenant klasörüne yükleme RLS ile
+reddedildi, bucket private. PGlite storage şemasını taklit edemez —
+`storage.objects` RLS'i bu yüzden canlıda doğrulanır (pg.ts'e storage stub'ı
+yalnızca migration'ın APPLY olması için eklendi, RLS'i test etmek için değil).
+
+Hâlâ **doğrulanamayan** tek şey **deploy**. Bunun için "çalışıyor" deme.
+(Supabase Auth çok önce doğrulandı: gerçek kullanıcı canlıda giriş yaptı.)
 
 **Simülasyon** (docs/ROADMAP.md §1.2, M7-M9): M7 ve M8 bitti. 5 senaryo canlıda
 yayınlı, 18 aksiyon→kontrol bağı, yayınlanmış şablon immutable. Yürütme ekranı

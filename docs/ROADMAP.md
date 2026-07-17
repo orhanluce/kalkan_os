@@ -598,16 +598,30 @@ hash zinciri, dört-göz onayı (`evidence_reviews`), RFC 6962 Merkle + bağıms
 doğrulama kütüphanesi, YK Beyanı çapraz denetim motoru (M10), PGlite RLS test
 düzeni, canlı Supabase'e karşı e2e doğrulama disiplini.
 
-### M11 — Kanıt çekirdeği v2 (belge M01 / Faz 1)
+### M11 — Kanıt çekirdeği v2 (belge M01 / Faz 1) ⏳ Storage ✅, imza/redaction/CLI/ZIP ✗
 
 Kanıt "yüklenen dosya adı" olmaktan çıkar: dosya gerçekten Storage'da, zarf
 imzalı, paket bağımsız doğrulanabilir.
 
-- Gerçek dosya yükleme: Supabase Storage, `storage_object_key`/`storage_version_id`
-  dolu. Erişim ince bir katman arkasında (kural 4: on-prem hedefte MinIO).
-  CLAUDE.md'deki "Storage doğrulanamadı" kalemi burada kapanır.
+**Tamamlanan — gerçek dosya yükleme (`20260717200000`):** private `evidence`
+bucket'ı, içerik-adresli yol `{tenant_id}/{sha256}`, `storage.objects` üzerinde
+tenant-izolasyonlu RLS (SELECT + INSERT own-tenant; UPDATE/DELETE YOK, kural 2
+append-only). Yükleme store'da (`addEvidence(evidence, file)`), 409'u idempotent
+sayar — "bir kanıt, dört çerçeve" yansımasında dosya bir kez yüklenir, N satır
+aynı nesneyi paylaşır. İndirme imzalı, 60 sn ömürlü URL ile. `storage_object_key`
+artık gerçek nesneye işaret ediyor. **Canlıda doğrulandı** (script + e2e):
+round-trip baytları aynı, başka tenant klasörüne yükleme RLS ile reddedildi,
+bucket private; tarayıcıdan gerçek dosya yüklenip imzalı URL ile geri indirildi.
+CLAUDE.md'deki "Storage doğrulanamadı" kalemi KAPANDI.
+- `storage_version_id` null: içerik-adreslemede sürüm yolun kendisinde (dosya
+  değişirse hash değişir → yeni nesne). Kolon ileride bucket sürümleme açılırsa.
+- PGlite storage şemasını taklit edemez: pg.ts'e stub eklendi ama YALNIZCA
+  migration APPLY olsun diye; storage RLS'i gerçekten canlıda kanıtlandı.
+
+**KALAN (M11'in kapanması için):**
 - İmza: JWS + `signer_identity`; ilk sürümde sunucu anahtarı, alan yapısı
-  tenant-managed key'e açık. (Kütüphane seçimi bu taşta; saf JS şartı geçerli.)
+  tenant-managed key'e açık. **Anahtar yönetimi kurucu kararı** — hangi anahtar,
+  nerede saklanıyor; sormadan ilerleme.
 - Zarf v2 alanları: population/sample/dönem; güven bileşenleri (kaynak
   otoritesi, bağımsızlık, güncellik, tamlık, yeniden üretilebilirlik);
   redaction — raw/redacted ayrı hash, soy bağı korunur; `kaynak_kontrol_id`
@@ -617,10 +631,11 @@ imzalı, paket bağımsız doğrulanabilir.
 - ZIP denetim paketi: dosyalar + `pdfFileHash` + `packageManifestHash` →
   anchor/audit zinciri (M9 adım 12).
 - RFC 3161: bu taşta opsiyonel, production kapısında zorunlu (belgeyle uyumlu).
-- **Kabul:** tek bayt değişikliği doğrulamada yakalanır; paket repo DIŞINDA
-  temiz bir Node ortamında CLI ile doğrulanır; redacted sürüm farklı hash
-  taşır ama soyu korur; legal hold altındaki kanıt silinemez ve deneme audit
-  event üretir; Storage'a fiilen dosya gitti ve geri okundu.
+  **TSA seçimi kurucu kararı** (uyum kararı, uydurulmaz).
+- **Kabul (kalan):** tek bayt değişikliği doğrulamada yakalanır; paket repo
+  DIŞINDA temiz bir Node ortamında CLI ile doğrulanır; redacted sürüm farklı
+  hash taşır ama soyu korur; legal hold altındaki kanıt silinemez ve deneme
+  audit event üretir.
 
 ### M12 — Kontrol test motoru ve durum makinesi (belge M02)
 

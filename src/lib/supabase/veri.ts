@@ -118,7 +118,7 @@ export async function fetchKurum(db: Db): Promise<Kurum> {
 export async function fetchStoreState(db: Db): Promise<StoreState> {
   const [tc, ev, fnd, audit, share] = await Promise.all([
     db.from("tenant_controls").select("id, tenant_id, control_id, durum, sorumlu_user_id, son_degerlendirme, not_metni"),
-    db.from("evidences").select("id, tenant_id, control_id, tip, storage_path, hash_sha256, yukleyen, gecerlilik_bitis, created_at, mime_type, file_size, classification, retention_class, captured_at"),
+    db.from("evidences").select("id, tenant_id, control_id, tip, storage_path, hash_sha256, yukleyen, gecerlilik_bitis, created_at, mime_type, file_size, classification, retention_class, captured_at, storage_object_key"),
     db.from("findings").select("id, tenant_id, kaynak, onem, baslik, aksiyon_plani, yk_onay_tarihi, hedef_kapama, durum"),
     db.from("audit_log").select("id, tenant_id, actor_id, eylem, hedef_tablo, hedef_id, detay, created_at").order("seq", { ascending: false }),
     db.from("share_links").select("id, tenant_id, token, kapsam, olusturan, son_gecerlilik, created_at"),
@@ -148,6 +148,7 @@ export async function fetchStoreState(db: Db): Promise<StoreState> {
       classification: r.classification as Evidence["classification"],
       retentionClass: r.retention_class as Evidence["retentionClass"],
       capturedAt: r.captured_at,
+      storageObjectKey: r.storage_object_key,
       // ŞEMA EKSİĞİ: evidences tablosunda kaynak_kontrol_id kolonu yok, bu
       // yüzden "bir kanıt, dört çerçeve" yansıtmasında kanıtın hangi
       // kontrolden geldiği DB'de kaybolur (audit_log detayında duruyor ama

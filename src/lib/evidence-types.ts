@@ -28,6 +28,12 @@ export interface Evidence {
   /** Zarf (M9): dosyanın MIME tipi ve boyutu. Dosya olmayan kanıtta null. */
   mimeType: string | null;
   fileSize: number | null;
+  /**
+   * Storage'daki nesne anahtarı (M11): `{tenant_id}/{sha256}`. İndirme bunun
+   * üzerinden imzalı URL ile yapılır. Dosya olmayan veya Storage'a yüklenmeden
+   * önce (legacy) yazılmış kanıtta null.
+   */
+  storageObjectKey: string | null;
   /** Zarf (M9): kanıtın gizlilik sınıfı ve saklama süresi. */
   classification: KanitSinifi;
   retentionClass: SaklamaSinifi;

@@ -23,7 +23,6 @@
 import {
   EVIDENCE_ENVELOPE_SCHEMA,
   canonicalHash,
-  canonicalJson,
   kanonikZaman,
   type CanonicalDeger,
 } from "./canonical";

@@ -60,6 +60,45 @@ const AUTH_STUB = `
 
   create role authenticated;
   create role anon;
+
+  -- Supabase Storage şeması. PGlite'ta gelmez; gerçek Supabase'de
+  -- storage eklentisiyle gelir. auth stub'ıyla aynı gerekçe: migration'lar
+  -- (20260717200000) storage.buckets/objects'e dokunuyor ve bunlar olmadan
+  -- MIGRATION YÜKLEMESİ patlar — testin RLS'i değil, şemanın kendisi.
+  --
+  -- SINIRI DÜRÜSTÇE: bu stub yalnızca migration'ın APPLY olmasını sağlar.
+  -- storage.objects üzerindeki RLS'in kiracı sınırını GERÇEKTEN uyguladığı
+  -- (başka tenant yoluna yükleme reddi, bucket private) canlıya karşı
+  -- script'le doğrulandı — PGlite storage'ın gerçek davranışını taklit
+  -- etmediği için o kanıt burada değil, gerçek Supabase'de.
+  create schema if not exists storage;
+
+  create table storage.buckets (
+    id text primary key,
+    name text not null,
+    public boolean not null default false,
+    file_size_limit bigint,
+    allowed_mime_types text[]
+  );
+
+  create table storage.objects (
+    id uuid primary key default gen_random_uuid(),
+    bucket_id text references storage.buckets (id),
+    name text not null,
+    owner uuid,
+    created_at timestamptz default now()
+  );
+
+  -- storage.foldername(name): yol segmentlerini (dosya adı hariç) dizi olarak
+  -- döndürür. Gerçek Supabase'deki imzanın asgari karşılığı — RLS politikaları
+  -- (storage.foldername(name))[1] ile kiracı segmentini okuyor.
+  create or replace function storage.foldername(name text) returns text[]
+  language sql immutable
+  as $$
+    select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1]
+  $$;
+
+  alter table storage.objects enable row level security;
 `;
 
 export interface TestDb {

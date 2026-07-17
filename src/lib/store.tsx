@@ -51,7 +51,7 @@ interface StoreApi extends StoreState {
   setDurum: (controlId: string, durum: Durum) => Promise<void>;
   setNot: (controlId: string, notMetni: string) => Promise<void>;
   setSorumlu: (controlId: string, sorumluUserId: string | null) => Promise<void>;
-  addEvidence: (evidence: Evidence) => Promise<void>;
+  addEvidence: (evidence: Evidence, file?: File) => Promise<void>;
   addFinding: (finding: Finding) => Promise<void>;
   toggleFindingDurum: (findingId: string) => Promise<void>;
   updateFinding: (findingId: string, patch: Partial<Finding>) => Promise<void>;
@@ -184,8 +184,29 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
   );
 
   const addEvidence = useCallback(
-    (evidence: Evidence) =>
+    (evidence: Evidence, file?: File) =>
       calistir(async (db, tenantId, actorId) => {
+        // --- Dosyayı Storage'a yükle (M11) ---
+        // İçerik-adresli: yol = {tenant_id}/{hash}. Aynı bayt dizisi aynı yola
+        // gider, bu yüzden N kontrol satırı (aşağıdaki "dört çerçeve" döngüsü)
+        // dosyayı bir kez yükleyip aynı nesneyi paylaşır.
+        let storageObjectKey: string | null = null;
+        if (file && evidence.hashSha256) {
+          storageObjectKey = `${tenantId}/${evidence.hashSha256}`;
+          const { error: uploadError } = await db.storage
+            .from("evidence")
+            .upload(storageObjectKey, file, { contentType: file.type, upsert: false });
+
+          // 409 = nesne zaten var. İçerik-adreslemede bu bir HATA DEĞİL: aynı
+          // yol aynı baytları taşır (hash çakışması dışında, ki SHA-256'da
+          // pratik değil). Yeniden yüklemeyi başarı sayıyoruz — böylece
+          // append-only korunur (upsert:false, UPDATE politikası yok) ve aynı
+          // dosya farklı kontrollere sorunsuz yansır.
+          if (uploadError && !/exists|duplicate|409/i.test(uploadError.message)) {
+            throw uploadError;
+          }
+        }
+
         // "Bir kanıt, dört çerçeve": eşdeğer kontrollere de yansıt.
         const hedefKontroller = [
           evidence.controlId,
@@ -214,11 +235,10 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
             // elle yükleniyor. "MANUEL" gibi bir değer yazmak, olmayan bir
             // kaynak sistemi varmış gibi gösterirdi — null doğru cevap.
             source_system: null,
-            // storage_object_key/storage_version_id: uygulama dosyayı
-            // Storage'a YÜKLEMİYOR (bkz. 20260717190000). Dosya adını
-            // "storage anahtarı" diye yazmak, olmayan bir nesneye işaret eden
-            // bir iddia olurdu.
-            storage_object_key: null,
+            // Storage anahtarı artık GERÇEK bir nesneye işaret ediyor (M11).
+            // Dosya olmayan kanıtta (link/beyan) null — orada yüklenen dosya yok.
+            storage_object_key: storageObjectKey,
+            // Bucket sürümleme kapalı; içerik-adreslemede sürüm yolun kendisinde.
             storage_version_id: null,
           });
           if (error) throw error;
