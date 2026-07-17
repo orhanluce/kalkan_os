@@ -20,10 +20,21 @@ import { AuditLogList } from "@/components/audit-log-list";
 import { EmptyState } from "@/components/empty-state";
 import { findEquivalentControlIds } from "@/lib/control-mappings";
 import { sha256Hex, validateEvidenceFile } from "@/lib/evidence";
-import type { Evidence } from "@/lib/evidence-types";
+import {
+  KANIT_SINIFLARI,
+  SAKLAMA_SINIFLARI,
+  type Evidence,
+  type KanitSinifi,
+  type SaklamaSinifi,
+} from "@/lib/evidence-types";
 import { useLocalStore } from "@/lib/store";
 import type { Durum, EvidenceTip } from "@/lib/types";
-import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
+import {
+  DURUM_BADGE_VARIANT,
+  DURUM_LABEL,
+  KANIT_SINIFI_LABEL,
+  SAKLAMA_SINIFI_LABEL,
+} from "@/lib/ui-labels";
 
 const DURUM_OPTIONS: Durum[] = ["karsilaniyor", "kismi", "acik", "kapsam_disi"];
 const TIP_LABEL: Record<EvidenceTip, string> = {
@@ -78,6 +89,11 @@ export default function ControlDetailPage() {
   const [link, setLink] = useState("");
   const [beyanMetni, setBeyanMetni] = useState("");
   const [gecerlilikBitis, setGecerlilikBitis] = useState("");
+  // Zarf alanları (M9). Varsayılanlar en KISITLAYICI/en kısa değil, en
+  // yaygın olan: kullanıcı bilinçli seçsin diye zorunlu ama makul.
+  const [classification, setClassification] = useState<KanitSinifi>("ic_kullanim");
+  const [retentionClass, setRetentionClass] = useState<SaklamaSinifi>("10y");
+  const [capturedAt, setCapturedAt] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -141,6 +157,14 @@ export default function ControlDetailPage() {
         gecerlilikBitis: gecerlilikBitis || null,
         createdAt: new Date().toISOString(),
         kaynakKontrolId: null,
+        // Zarf (M9): mime/boyut dosyanın KENDİSİNDEN okunur, uydurulmaz.
+        // Dosya olmayan kanıtta (link/beyan) ikisi de null — orada bir dosya
+        // yok, olmayan bir dosyaya boyut atfetmek yanlış olurdu.
+        mimeType: tip === "dosya" && file ? file.type : null,
+        fileSize: tip === "dosya" && file ? file.size : null,
+        classification,
+        retentionClass,
+        capturedAt: capturedAt || null,
       };
       addEvidence(evidence);
       setFile(null);
@@ -324,6 +348,66 @@ export default function ControlDetailPage() {
                 value={gecerlilikBitis}
                 onChange={(e) => setGecerlilikBitis(e.target.value)}
               />
+            </div>
+
+            {/* --- Kanıt zarfı (M9) ---
+                Bu alanlar kanıtın KÖKENİNİ kaydeder ve mühürlenir. Zorunlu
+                olmaları bilinçli: boş bırakılıp sonradan varsayılan atansaydı,
+                zarf uydurulmuş bir köken iddiası taşırdı. */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="classification">Gizlilik sınıfı</Label>
+                <Select
+                  value={classification}
+                  onValueChange={(v) => setClassification(v as KanitSinifi)}
+                  items={KANIT_SINIFI_LABEL}
+                >
+                  <SelectTrigger id="classification">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {KANIT_SINIFLARI.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {KANIT_SINIFI_LABEL[s]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="retention">Saklama süresi</Label>
+                <Select
+                  value={retentionClass}
+                  onValueChange={(v) => setRetentionClass(v as SaklamaSinifi)}
+                  items={SAKLAMA_SINIFI_LABEL}
+                >
+                  <SelectTrigger id="retention">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SAKLAMA_SINIFLARI.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {SAKLAMA_SINIFI_LABEL[s]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="capturedAt">Kanıtın üretildiği tarih (opsiyonel)</Label>
+              <Input
+                id="capturedAt"
+                type="date"
+                value={capturedAt}
+                onChange={(e) => setCapturedAt(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Yüklendiği tarih değil, kanıtın oluşturulduğu tarih. Bilinmiyorsa boş bırakın —
+                tahmini bir tarih, olmayan bir güncelliği iddia eder.
+              </p>
             </div>
 
             <Button type="submit" disabled={submitting} className="w-fit">

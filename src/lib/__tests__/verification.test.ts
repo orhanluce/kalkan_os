@@ -8,11 +8,16 @@ import { verifyEvidence, type DogrulamaGirdisi } from "../verification";
 
 function zarf(patch: Partial<EvidenceEnvelope> = {}): EvidenceEnvelope {
   return {
-    evidenceId: "e0000000-0000-0000-0000-000000000001",
+    evidenceVersionId: "e0000000-0000-0000-0000-000000000001",
     tenantId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-    version: 1,
-    sha256: "ab".repeat(32),
-    sizeBytes: 12345,
+    versionNo: 1,
+    fileHash: "ab".repeat(32),
+    sema: "KALKAN_EVIDENCE_ENVELOPE_V1",
+    hashAlgorithm: "sha256",
+    fileSize: 12345,
+    storageObjectKey: null,
+    storageVersionId: null,
+    previousFileHash: null,
     mimeType: "application/pdf",
     sourceType: "MANUAL_UPLOAD",
     sourceSystem: "PENTEST_VENDOR",
@@ -21,7 +26,7 @@ function zarf(patch: Partial<EvidenceEnvelope> = {}): EvidenceEnvelope {
     uploadedBy: "a0000000-0000-0000-0000-000000000001",
     retentionClass: "AUDIT_10Y",
     classification: "CONFIDENTIAL",
-    previousVersionHash: null,
+    previousEnvelopeHash: null,
     controlRefs: ["CTRL-IAM-001"],
     legalHold: false,
     ...patch,
@@ -51,7 +56,7 @@ async function sabitlenmisGirdi(
 
   return {
     zarf: hedefZarf,
-    dosyadanHesaplananHash: hedefZarf.sha256,
+    dosyadanHesaplananHash: hedefZarf.fileHash,
     oncekiZarf: null,
     proof,
     batchRoot,
@@ -73,7 +78,7 @@ describe("verifyEvidence — sağlam kanıt", () => {
 
   it("kalabalık bir partideki kanıt da doğrulanır", async () => {
     const hedef = zarf();
-    const digerleri = [1, 2, 3, 4, 5].map((n) => zarf({ evidenceId: `e-${n}`, sha256: "cd".repeat(32) }));
+    const digerleri = [1, 2, 3, 4, 5].map((n) => zarf({ evidenceVersionId: `e-${n}`, fileHash: "cd".repeat(32) }));
 
     expect((await verifyEvidence(await sabitlenmisGirdi(hedef, digerleri), provider)).genel).toBe(
       "VERIFIED",
@@ -146,10 +151,10 @@ describe("verifyEvidence — kurcalama tespiti", () => {
     // Her iki parti de ÇOK yapraklı olmalı: tek yapraklı ağaçta proof boş
     // dizidir, dolayısıyla "başka partinin proof'u" ile kendi proof'u
     // ayırt edilemez ve test hiçbir şey sınamamış olurdu.
-    const dolgu = (n: number) => [1, 2, 3].map((i) => zarf({ evidenceId: `e-${n}-${i}` }));
+    const dolgu = (n: number) => [1, 2, 3].map((i) => zarf({ evidenceVersionId: `e-${n}-${i}` }));
 
     const girdi = await sabitlenmisGirdi(zarf(), dolgu(1));
-    const baska = await sabitlenmisGirdi(zarf({ evidenceId: "e-baska" }), dolgu(2));
+    const baska = await sabitlenmisGirdi(zarf({ evidenceVersionId: "e-baska" }), dolgu(2));
 
     expect(baska.proof).not.toEqual(girdi.proof); // test gerçekten bir şey değiştiriyor mu
 
@@ -174,7 +179,7 @@ describe("verifyEvidence — eksik girdiler", () => {
     const sonuc = await verifyEvidence(
       {
         zarf: zarf(),
-        dosyadanHesaplananHash: zarf().sha256,
+        dosyadanHesaplananHash: zarf().fileHash,
         oncekiZarf: null,
         proof: null,
         batchRoot: null,
@@ -216,8 +221,8 @@ describe("verifyEvidence — eksik girdiler", () => {
 
 describe("verifyEvidence — versiyon zinciri", () => {
   it("geçerli versiyon zinciri doğrulanır", async () => {
-    const v1 = zarf({ version: 1 });
-    const v2 = zarf({ version: 2, previousVersionHash: await envelopeHash(v1) });
+    const v1 = zarf({ versionNo: 1 });
+    const v2 = zarf({ versionNo: 2, previousEnvelopeHash: await envelopeHash(v1) });
 
     const girdi = await sabitlenmisGirdi(v2);
     const sonuc = await verifyEvidence({ ...girdi, oncekiZarf: v1 }, provider);
@@ -227,13 +232,13 @@ describe("verifyEvidence — versiyon zinciri", () => {
   });
 
   it("önceki versiyon değiştirilmişse FAILED", async () => {
-    const v1 = zarf({ version: 1 });
-    const v2 = zarf({ version: 2, previousVersionHash: await envelopeHash(v1) });
+    const v1 = zarf({ versionNo: 1 });
+    const v2 = zarf({ versionNo: 2, previousEnvelopeHash: await envelopeHash(v1) });
 
     const girdi = await sabitlenmisGirdi(v2);
     // Geçmişi yeniden yazma girişimi: v1 artık başka bir şey.
     const sonuc = await verifyEvidence(
-      { ...girdi, oncekiZarf: zarf({ version: 1, sha256: "ff".repeat(32) }) },
+      { ...girdi, oncekiZarf: zarf({ versionNo: 1, fileHash: "ff".repeat(32) }) },
       provider,
     );
 
@@ -242,7 +247,7 @@ describe("verifyEvidence — versiyon zinciri", () => {
   });
 
   it("öncüle işaret eden zarfın öncülü sunulmazsa kontrol yapılamaz", async () => {
-    const v2 = zarf({ version: 2, previousVersionHash: "cd".repeat(32) });
+    const v2 = zarf({ versionNo: 2, previousEnvelopeHash: "cd".repeat(32) });
     const girdi = await sabitlenmisGirdi(v2);
 
     const sonuc = await verifyEvidence({ ...girdi, oncekiZarf: null }, provider);
@@ -252,7 +257,7 @@ describe("verifyEvidence — versiyon zinciri", () => {
 
   it("versiyon 2 olduğu halde öncül hash'i boşsa FAILED", async () => {
     // İçsel olarak tutarsız zarf: zincirden kopmuş bir versiyon.
-    const girdi = await sabitlenmisGirdi(zarf({ version: 2, previousVersionHash: null }));
+    const girdi = await sabitlenmisGirdi(zarf({ versionNo: 2, previousEnvelopeHash: null }));
     const sonuc = await verifyEvidence(girdi, provider);
 
     expect(sonuc.genel).toBe("FAILED");
@@ -260,8 +265,8 @@ describe("verifyEvidence — versiyon zinciri", () => {
   });
 
   it("ilk versiyon olduğunu söyleyip öncül sunan zarf FAILED", async () => {
-    const girdi = await sabitlenmisGirdi(zarf({ version: 1, previousVersionHash: null }));
-    const sonuc = await verifyEvidence({ ...girdi, oncekiZarf: zarf({ version: 0 }) }, provider);
+    const girdi = await sabitlenmisGirdi(zarf({ versionNo: 1, previousEnvelopeHash: null }));
+    const sonuc = await verifyEvidence({ ...girdi, oncekiZarf: zarf({ versionNo: 0 }) }, provider);
 
     expect(sonuc.genel).toBe("FAILED");
   });
@@ -277,6 +282,6 @@ describe("verifyEvidence — gizlilik", () => {
     const metin = JSON.stringify(sonuc);
     expect(metin).not.toContain("GIZLI_TEDARIKCI_AS");
     expect(metin).not.toContain("gizli-kullanici-id");
-    expect(metin).not.toContain(gizli.sha256);
+    expect(metin).not.toContain(gizli.fileHash);
   });
 });

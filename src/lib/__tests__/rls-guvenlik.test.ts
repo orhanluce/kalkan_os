@@ -3,7 +3,7 @@
 // Postgres'te çalıştığını kanıtlar. O düzeltmeler o zaman "yazıldı ama
 // doğrulanmadı" diye işaretlenmişti — bu dosya o etiketi kaldırır.
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { createTestDb, seedTwoTenants, type TestDb } from "./helpers/pg";
+import { createTestDb, seedTwoTenants, type TestDb, ZARF_DEGERLERI, ZARF_KOLONLARI } from "./helpers/pg";
 
 let db: TestDb;
 let A: { tenantId: string; userId: string };
@@ -27,7 +27,8 @@ describe("CLAUDE.md kural 2: evidences append-only", () => {
   it("kanıt eklenebilir", async () => {
     await db.asUser(
       A.userId,
-      `insert into public.evidences (tenant_id, control_id, tip) values ($1, $2, 'beyan')`,
+      `insert into public.evidences (tenant_id, control_id, tip, ${ZARF_KOLONLARI})
+     values ($1, $2, 'beyan', ${ZARF_DEGERLERI})`,
       [A.tenantId, controlId],
     );
 
@@ -37,7 +38,8 @@ describe("CLAUDE.md kural 2: evidences append-only", () => {
 
   it("kendi kanıtı bile GÜNCELLENEMEZ", async () => {
     await db.sql(
-      `insert into public.evidences (tenant_id, control_id, tip, storage_path) values ($1, $2, 'beyan', 'orijinal')`,
+      `insert into public.evidences (tenant_id, control_id, tip, storage_path, ${ZARF_KOLONLARI})
+     values ($1, $2, 'beyan', 'orijinal', ${ZARF_DEGERLERI})`,
       [A.tenantId, controlId],
     );
 
@@ -47,7 +49,8 @@ describe("CLAUDE.md kural 2: evidences append-only", () => {
   });
 
   it("kendi kanıtı bile SİLİNEMEZ", async () => {
-    await db.sql(`insert into public.evidences (tenant_id, control_id, tip) values ($1, $2, 'beyan')`, [
+    await db.sql(`insert into public.evidences (tenant_id, control_id, tip, ${ZARF_KOLONLARI})
+     values ($1, $2, 'beyan', ${ZARF_DEGERLERI})`, [
       A.tenantId,
       controlId,
     ]);

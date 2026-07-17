@@ -6,7 +6,7 @@
 // ürününde görevler ayrılığı, uygulamanın hangi rolle bağlandığına bağlı
 // olmamalıdır.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createTestDb, seedTwoTenants, type TestDb } from "./helpers/pg";
+import { createTestDb, seedTwoTenants, type TestDb, ZARF_DEGERLERI, ZARF_KOLONLARI } from "./helpers/pg";
 
 let db: TestDb;
 let seed: Awaited<ReturnType<typeof seedTwoTenants>>;
@@ -33,8 +33,8 @@ afterEach(async () => {
 /** A.userId'nin yüklediği bir kanıt oluşturur ve id'sini döndürür. */
 async function kanitYukle(yukleyen: string | null = seed.A.userId): Promise<string> {
   const { rows } = await db.sql(
-    `insert into public.evidences (tenant_id, control_id, tip, yukleyen)
-     values ($1, $2, 'beyan', $3) returning id`,
+    `insert into public.evidences (tenant_id, control_id, tip, yukleyen, ${ZARF_KOLONLARI})
+     values ($1, $2, 'beyan', $3, ${ZARF_DEGERLERI}) returning id`,
     [seed.A.tenantId, seed.controlId, yukleyen],
   );
   return rows[0].id as string;

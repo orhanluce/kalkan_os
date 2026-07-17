@@ -84,3 +84,18 @@ export const AUDIT_EYLEM_LABEL: Record<AuditEylem, string> = {
   bulgu_durumu_degisti: "Bulgu güncellendi",
   paylasim_linki_olusturuldu: "Paylaşım linki oluşturuldu",
 };
+
+/** Kanıt zarfı (M9): gizlilik sınıfı ve saklama süresi etiketleri. */
+export const KANIT_SINIFI_LABEL: Record<string, string> = {
+  genel: "Genel",
+  ic_kullanim: "İç kullanım",
+  gizli: "Gizli",
+  cok_gizli: "Çok gizli",
+};
+
+export const SAKLAMA_SINIFI_LABEL: Record<string, string> = {
+  "1y": "1 yıl",
+  "5y": "5 yıl",
+  "10y": "10 yıl",
+  surekli: "Süresiz",
+};

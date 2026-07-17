@@ -1,14 +1,25 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { canonicalJson, envelopeHash, type EvidenceEnvelope } from "../evidence-envelope";
+import {
+  canonicalJson,
+  envelopeHash,
+  zarfOlustur,
+  type EvidenceEnvelope,
+  type EvidenceRow,
+} from "../evidence-envelope";
 
 function zarf(patch: Partial<EvidenceEnvelope> = {}): EvidenceEnvelope {
   return {
-    evidenceId: "e0000000-0000-0000-0000-000000000001",
+    evidenceVersionId: "e0000000-0000-0000-0000-000000000001",
     tenantId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-    version: 1,
-    sha256: "ab".repeat(32),
-    sizeBytes: 12345,
+    versionNo: 1,
+    fileHash: "ab".repeat(32),
+    sema: "KALKAN_EVIDENCE_ENVELOPE_V1",
+    hashAlgorithm: "sha256",
+    fileSize: 12345,
+    storageObjectKey: null,
+    storageVersionId: null,
+    previousFileHash: null,
     mimeType: "application/pdf",
     sourceType: "MANUAL_UPLOAD",
     sourceSystem: "PENTEST_VENDOR",
@@ -17,7 +28,7 @@ function zarf(patch: Partial<EvidenceEnvelope> = {}): EvidenceEnvelope {
     uploadedBy: "a0000000-0000-0000-0000-000000000001",
     retentionClass: "AUDIT_10Y",
     classification: "CONFIDENTIAL",
-    previousVersionHash: null,
+    previousEnvelopeHash: null,
     controlRefs: ["CTRL-IAM-001"],
     legalHold: false,
     ...patch,
@@ -108,5 +119,89 @@ describe("envelopeHash", () => {
 
   it("SHA-256 hex biçimindedir", async () => {
     expect(await envelopeHash(zarf())).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+describe("zarfOlustur — DB satırından zarf", () => {
+  function satir(patch: Partial<EvidenceRow> = {}): EvidenceRow {
+    return {
+      id: "e0000000-0000-0000-0000-000000000001",
+      tenant_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      tip: "dosya",
+      hash_sha256: "ab".repeat(32),
+      hash_algorithm: "sha256",
+      version_no: 1,
+      file_size: 12345,
+      mime_type: "application/pdf",
+      storage_object_key: null,
+      storage_version_id: null,
+      source_system: null,
+      captured_at: "2026-07-01T00:00:00+00:00",
+      created_at: "2026-07-16T10:00:00+00:00",
+      yukleyen: "a0000000-0000-0000-0000-000000000001",
+      retention_class: "10y",
+      classification: "gizli",
+      previous_file_hash: null,
+      previous_envelope_hash: null,
+      legal_hold: false,
+      envelope_schema_version: "KALKAN_EVIDENCE_ENVELOPE_V1",
+      ...patch,
+    };
+  }
+
+  it("zarf alanları tamsa zarf üretir", () => {
+    const z = zarfOlustur(satir(), ["CTRL-IAM-001"]);
+    expect(z?.evidenceVersionId).toBe("e0000000-0000-0000-0000-000000000001");
+    expect(z?.classification).toBe("gizli");
+    expect(z?.sourceType).toBe("dosya");
+  });
+
+  it("LEGACY kayıtta NULL döner — zarf UYDURMAZ", () => {
+    // Asıl mesele bu: eksik alanlara varsayılan atayıp zarf üretmek, olmayan
+    // bir köken iddiasını hash'lemek olurdu ve o hash denetim raporuna
+    // "doğrulandı" diye girerdi.
+    expect(zarfOlustur(satir({ envelope_schema_version: null }), [])).toBeNull();
+    expect(zarfOlustur(satir({ classification: null }), [])).toBeNull();
+    expect(zarfOlustur(satir({ retention_class: null }), [])).toBeNull();
+  });
+
+  it("tarihleri kanonikleştirir: Postgres'in +00:00'ı zarfta Z olur", () => {
+    // Aynı satır, iki farklı katmandan okunduğunda aynı hash vermeli.
+    const z = zarfOlustur(satir(), []);
+    expect(z?.uploadedAt).toBe("2026-07-16T10:00:00.000Z");
+    expect(z?.capturedAt).toBe("2026-07-01T00:00:00.000Z");
+  });
+
+  it("controlRefs sırası hash'i etkilemez", async () => {
+    const a = zarfOlustur(satir(), ["CTRL-B", "CTRL-A"]);
+    const b = zarfOlustur(satir(), ["CTRL-A", "CTRL-B"]);
+    expect(await envelopeHash(a!)).toBe(await envelopeHash(b!));
+  });
+
+  it("link/beyan kanıtta fileHash null olabilir", () => {
+    const z = zarfOlustur(satir({ tip: "link", hash_sha256: null, mime_type: null, file_size: null }), []);
+    expect(z?.fileHash).toBeNull();
+    expect(z?.sourceType).toBe("link");
+  });
+
+  it("storage alanları bugün boş — Storage'a yükleme yok", () => {
+    // Bu bir test değil, bir kaydın altını çizmek: zarf "dosya şurada
+    // duruyor" diyemez çünkü uygulama dosyayı Storage'a yüklemiyor.
+    const z = zarfOlustur(satir(), []);
+    expect(z?.storageObjectKey).toBeNull();
+    expect(z?.storageVersionId).toBeNull();
+  });
+
+  it("zarf alanı değişince hash değişir — köken mühürlü", async () => {
+    const temel = await envelopeHash(zarfOlustur(satir(), [])!);
+    for (const patch of [
+      { classification: "genel" },
+      { retention_class: "1y" },
+      { captured_at: "2020-01-01T00:00:00+00:00" },
+      { version_no: 2 },
+      { legal_hold: true },
+    ] as Partial<EvidenceRow>[]) {
+      expect(await envelopeHash(zarfOlustur(satir(patch), [])!)).not.toBe(temel);
+    }
   });
 });

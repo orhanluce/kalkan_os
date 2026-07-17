@@ -2,6 +2,9 @@
 
 # dependencies
 /node_modules
+# İç içe node_modules / .vite cache'i: vitest yanlış çalışma dizininden
+# koşarsa (cd ... && vitest) bir alt dizinde .vite cache bırakabiliyor.
+**/node_modules
 /.pnp
 .pnp.*
 .yarn/*

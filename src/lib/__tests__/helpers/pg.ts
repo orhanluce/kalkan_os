@@ -160,6 +160,22 @@ export async function createTestDb(): Promise<TestDb> {
   };
 }
 
+/**
+ * Kanıt zarfının zorunlu alanları (20260717190000'deki guard).
+ *
+ * NEDEN TESTLERDE BÖYLE BİR SABİT VAR: zarf göçünden sonra `evidences`'a
+ * yazılan her yeni satır zarflı olmak zorunda. Aşağıdaki testlerin çoğunun
+ * derdi zarf DEĞİL (kiracı izolasyonu, dört-göz, paylaşım) — ama kanıt
+ * eklemeden o davranışları sınayamıyorlar.
+ *
+ * Alternatif, zarf kolonlarına DB düzeyinde varsayılan vermekti; reddedildi:
+ * varsayılan bir köken, uydurulmuş bir kökendir ve tam da guard'ın engellemek
+ * için var olduğu şeydir. Test verisinin zarflı olması doğru — gerçek kayıtlar
+ * da zarflı olacak.
+ */
+export const ZARF_KOLONLARI = "classification, retention_class, envelope_schema_version";
+export const ZARF_DEGERLERI = "'gizli', '10y', 'KALKAN_EVIDENCE_ENVELOPE_V1'";
+
 /** İki tenant ve her birinde birer admin kullanıcı kurar. */
 export async function seedTwoTenants(db: TestDb) {
   const A = {

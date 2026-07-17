@@ -72,6 +72,113 @@ import-export, PDF/ZIP raporlar (M9), OpenTelemetry, SBOM.
 Bu bir eksik değil bilinçli sınır: kontrol içeriği YAML'dan seed ediliyor ve kural 3 gereği
 uydurulamaz. Kontrol sayısı ancak doğrulanmış mevzuat maddesi eklendikçe artar.
 
+### 1.5 Mimari karar kaydı — 17 Temmuz 2026 (2026 ürün araştırması: yetenekler kabul, yığın varsayımı üçüncü kez red)
+
+Kurucu dördüncü vizyon/araştırma belgesini verdi. Kopyası repoda:
+`docs/arastirma/KALKAN_OS_Urun_Gelistirme_Yol_Haritasi_2026.md` — önceki
+belgeler repo dışında kaldığı için sonraki oturumlar okuyamamıştı; bu hata
+tekrarlanmıyor.
+
+**Karar 1 — yetenek omurgası KABUL.** Belgenin bağımlılık sırası
+(*Evidence Envelope → Control Test/CCM → Scope Engine → Critical Service →
+Incident/Recovery → sonrası*) ürünün asıl değer zincirini doğru kuruyor ve
+mevcut işle örtüşüyor. Yeni taşlar M11-M15 bu omurgayı izler (aşağıda §"2026
+ürünleşme planı").
+
+**Karar 2 — teknoloji yığını varsayımı ÜÇÜNCÜ kez reddediliyor.** Belge
+"mevcut teknik temel: NestJS, Prisma, Redis/BullMQ, Keycloak, MinIO,
+OpenTelemetry, Docker" diyor. Bu iddia YANLIŞ: package.json'da bunların
+hiçbiri yok (17 Temmuz 2026'da grep ile doğrulandı). Gerçek yığın Next.js +
+Supabase; §1.1 ve §1.2'deki red gerekçeleri aynen geçerli ve artık daha da
+güçlü (25 migration canlıda, 400+ test, PGlite RLS düzeni, e2e canlı
+doğrulama disiplini). Karşılık tablosu (§1.2'dekinin devamı):
+
+| Belge varsayımı | Bizdeki karşılığı |
+|---|---|
+| Redis + BullMQ işleri | `pg_cron` + Next.js route handlers (idempotent job deseni korunur) |
+| MinIO Object Lock/WORM | Supabase Storage + append-only DB + hash zinciri + anchor. Gerçek WORM, yurt içi/on-prem hedefte MinIO ile gelir (kural 4 zaten bunu istiyor) — Storage erişimi bu yüzden ince bir katman arkasında tutulur |
+| Keycloak + ABAC | Supabase Auth + RLS + katılım/rol tabloları; ABAC ihtiyacı doğduğunda politika RLS'te kalır |
+| OpenTelemetry | Ertelendi; telemetri kanıt yerine geçmez (belgenin kendi notu) |
+| Prisma şeması | `pnpm db:types` ile şemadan üretilen tipler |
+
+Kurucu fiilen yığın geçişi istiyorsa bu ayrı ve pahalı bir karardır; bedeli
+(test düzeninin, migration geçmişinin ve canlı doğrulamaların yeniden inşası)
+açıkça konuşulmadan varsayılan cevap hayırdır.
+
+**Karar 3 — takvim değil kapı.** Belge 14 FTE × 52 hafta × 2 haftalık sprint
+varsayar. Bu proje tek kurucu + AI oturumlarıyla ilerliyor. Tarihli fazlar
+ALINMADI; belgenin sırası korunarak kapılı taşlara çevrildi (kural 5 ve §5
+madde 4: sıralama bağlayıcıdır, takvim değildir).
+
+**Karar 4 — belgenin bağımsız DOĞRULADIKLARI, kayda geçsin.** Belge, bu
+oturumlarda verilmiş birkaç kararı bilmeden aynen önermiş: RFC 8785 kanonik
+JSON (bugün geçildi), dört-hash'li paket bütünlüğü (bugün kuruldu), RFC 3161
+"ilk sürümde opsiyonel, production'da zorunlu" (bizim erteleme kararımızın
+aynısı), "Neo4j ekleme, Postgres node/edge + recursive CTE ile başla" (kural
+4'ün ruhu), `Failed ≠ Unknown ≠ Stale` ayrımı (bilinen kanıt-süresi borcumuzun
+genelleştirilmiş hali), `hash_algorithm` alanı zorunluluğu (bugün eklendi).
+Bağımsız yakınsama, bu kararların keyfî olmadığının kanıtıdır.
+
+**Karar 5 — ad çakışması.** Belge modülleri M01-M18 kodlarını kullanıyor;
+repo taşları M1-M10 (ve devamı M11+). Çakışma gerçek: belgenin M10'u TLPT,
+reponun M10'u YK Beyanı. Bu dosyada belge modülleri her zaman "belge M0X"
+diye anılır; repo taş numaraları çıplak kalır.
+
+**Karar 6 — inşa edilmeyecekler listesi aynen kabul.** Belge §11 (SIEM/EDR,
+vulnerability scanner, PAM, genel GRC, tam dijital ikiz vb. YENİDEN İNŞA
+EDİLMEZ; bunlar connector/test sağlayıcısıdır) ürün sınırını doğru çiziyor.
+
+### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
+
+**Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket
+manifesti iki ayrı katman; kanonikleştirme RFC 8785 (JCS).
+
+**Sorun 1 — ad yanıltıyordu.** `reportHash` adı, PDF DOSYASININ hash'i sanılmasına
+yol açıyordu; oysa değer raporun dayandığı VERİNİN hash'iydi. Bir bütünlük
+ürününde bir hash'in NEYİ doğruladığı hakkındaki belirsizlik, hash'in kendisi
+kadar ciddi bir kusurdur: yanlış şeyi doğruladığını sanan denetçi, aslında
+doğrulamadığı bir şeye güvenir.
+
+| Değer | Neyi doğrular |
+|---|---|
+| `reportDataHash` | Raporun dayandığı deterministik sonuç verisini |
+| `coreManifestHash` | Rapor verisi + kanıt zarflarının bütününü |
+| `pdfFileHash` | Üretilmiş PDF dosyasının baytlarını |
+| `packageManifestHash` | Dışa aktarılan ZIP paketinin içeriğini |
+
+**Sorun 2 — döngü.** Bir belge kendi hash'ini içeremez. Üretim sırası tek yönlü:
+ReportData → `reportDataHash` → çekirdek manifest (+kanıt zarfları) →
+`coreManifestHash` → PDF (içinde ilk iki hash + QR) → `pdfFileHash` → paket
+manifesti → `packageManifestHash` → anchor/audit zinciri. **PDF'in içine
+`pdfFileHash` veya `packageManifestHash` BASILMAZ** — ikisi de PDF'ten sonra doğar.
+
+**`pdf_file_hash` neden manifest tablosunda değil:** PDF her istekte yeniden
+üretiliyor ve baytları birebir aynı olmak zorunda değil (üretici `CreationDate`
+gibi alanlar gömer). Bir tatbikatın "tek bir PDF baytı" yok; olan şey dışa
+aktarılan SOMUT bir dosya. Bu yüzden `pdfFileHash`/`packageManifestHash` dışa
+aktarma kaydına ait. Manifest tablosuna koymak, her indirmede değişen bir değeri
+mühürlenmiş gibi göstermek olurdu.
+
+**RFC 8785 (JCS) — neden kendi kanonikleştirmemiz yetmiyordu:** eski uygulama
+anahtarları sıralıyordu ve bizim veri tiplerimiz için doğru çıktı veriyordu — ama
+bir STANDARDA değil, `JSON.stringify`'ın davranışına yaslanıyordu. Bağımsız
+denetçi hash'i Python/Java/Go ile yeniden hesaplayacaksa dayanacağı şey "JS böyle
+yapıyor" olamaz. `canonicalize` (RFC 8785 referans JS implementasyonu) eklendi;
+saf JS, kural 4'ü bozmuyor. **Geçiş sessizce hash bozmadı** —
+`canonical.test.ts` eski algoritmayla JCS'in zarf verisi üzerinde birebir aynı
+çıktıyı verdiğini kanıtlıyor.
+
+Ayrıca sabitlenenler: tarihler UTC/RFC 3339 (`kanonikZaman` — Postgres'in
+`+00:00`'ı ile JS'in `Z`'si aynı hash'e düşsün diye), Postgres `numeric`'in
+string hali (`kanonikSayi`), `null` ≠ boş dizi ≠ eksik alan, ve hash şema
+sürümleri hash'lenen verinin İÇİNDE (`KALKAN_REPORT_DATA_V1` vb.) — doğrulayan
+taraf hangi kuralla hesaplayacağını manifestin kendisinden öğrensin diye.
+
+**Sıralama:** DB'den geliş sırası hiçbir hash'i etkilemez. Bu bir kez gerçek bir
+hataya yol açtı (manifest sıralanıyordu ama ReportData sıralanmıyordu ve
+`reportDataHash` manifestin içine girdiği için sıra mühre sızıyordu). Zorunlu
+test: aynı veri 100 farklı rastgele satır sırasıyla → aynı hash.
+
 ### 1.3 Mimari karar kaydı — 17 Temmuz 2026 (OKTAGON-R ile ilişki)
 
 Kurucu, `C:\Users\orhan\OKTAGON_R`'da paralel bir oturumda geliştirilen ayrı bir projeyi
@@ -324,12 +431,97 @@ eklendi (`rls-simulasyon-durum.test.ts`).
 - `simulation_finding_proposals`: öneri **`PROPOSED`** doğar; GRC/güvenlik yöneticisi kabul etmeden gerçek bulguya dönüşmez.
 - **Kabul:** aynı veri aynı puanı üretir (deterministiklik testi); katılımcı başka rolün gizli inject'ini SORGUYLA DA göremez; aynı inject iki kez yayınlanmaz (idempotency); pause sırasında zaman hesabı doğru; öneri onaylanmadan bulgu oluşmaz.
 
-### M9 — Fidye yazılımı dikey akışı + raporlar (Faz 9-10)
+### M9 — Fidye yazılımı dikey akışı + raporlar (Faz 9-10) ⏳ manifest+PDF+QR ✅, panosu/S01/yönetim raporu ✗
 
-- S01 baştan sona oynanabilir: 10 inject, RTO/RPO ölçümü, kanıt yükleme, en az üç bulgu önerisi.
-- Simülasyon sonuç manifesti: immutable, şablon sürümü + kararlar + kanıt hash'leri + puanlama kural sürümü + rapor hash'i (belge §11.3). Mevcut Merkle/anchor altyapısı (M5.5) burada kullanılır.
-- PDF: yönetim raporu, simülasyon raporu; rapor hash'i + QR doğrulama → mevcut `verification.ts`.
-- **Kabul:** simülasyon tamamlanmadan puanlama başlamıyor; başarısız kontrol otomatik öneri üretiyor; sonuç ana panoya yansıyor; QR doğrulama hassas veri sızdırmıyor.
+**Tamamlanan — mühür ve rapor zinciri.** Puanlama rotası artık sonucu mühürlüyor:
+`simulation_result_manifests` (append-only, immutable trigger, tatbikat başına tek
+satır) + `simulation_manifest_receipts` (makbuz ayrı tabloda — `anchor_batches`
+desenindeki gerekçeyle: makbuz sonradan gelebilir, manifest satırı immutable
+kalmalı). Mantık `src/lib/simulation-manifest.ts` (22 test), şema testi
+`rls-simulasyon-manifest.test.ts` (14 test).
+
+**Bütünlük modeli §1.4'te** (dört hash, iki katman, RFC 8785). Adım 1-4 bitti.
+
+- ✅ Manifest: immutable, şablon sürümü + kararlar + kanıt hash'leri + puanlama
+  kural hash'i + `reportDataHash`. Merkle kökü `merkle.ts`, mühür `anchor.ts`'in
+  `EvidenceAnchorProvider`'ı üzerinden (local sağlayıcı — RFC 3161 bilinçli
+  ertelendi, bkz. aşağıdaki borç).
+- ✅ PDF: **simülasyon raporu** (`/api/simulasyon/[id]/rapor`, Playwright runtime
+  bağımlılığı), rapor hash'i + QR → herkese açık `/dogrula/[hash]`.
+- ✅ Kabul: simülasyon tamamlanmadan puanlama başlamıyor (M8 durum makinesi);
+  başarısız kontrol otomatik öneri üretiyor (M8); **QR doğrulama hassas veri
+  sızdırmıyor** — `manifest_dogrula` RPC'si yalnızca beş alan döndürür (hash,
+  zaman, mühür durumu); puan/kurum/senaryo bilinçli olarak yok. Hem PGlite hem
+  e2e testiyle kapıya bağlandı.
+- ✅ Canlıda doğrulandı (kural: `db:verify` çalıştığını değil var olduğunu gösterir):
+  manifest gerçekten yazıldı, makbuz düştü, `manifest_dogrula` canlıda döndü,
+  değişmezlik trigger'ı service_role'ün UPDATE'ini reddetti.
+- ✅ `e2e/simulasyon.spec.ts`: gerçek Chromium gerçek PDF üretti (%PDF imzası),
+  QR'ın adresi oturumsuz açıldı, kurum/senaryo/puan sızmadı.
+
+**M9'un tamamlanma sırası (kurucu talimatı, 17 Temmuz 2026).** Bu sıra
+bağlayıcıydı; aynı gün akşamı kurucunun 2026 araştırma belgesi geldi (§1.5) ve
+kalan adımlar yeni taş sırasına DEVREDİLDİ. Hiçbir adım düşmedi — her birinin
+yeni adresi aşağıda. M9 bu haliyle kapanmış sayılmaz; kalanları M11-M13'ün
+kabul kapılarında yaşıyor.
+
+1. ✅ Kanonik `ReportData` ve dört ayrı hash tanımı (§1.4). Sonradan RFC 8785
+   kendi uygulamamıza taşındı; referans implementasyon testte hakem
+   (`canonical.ts` başlığı ve `canonical.test.ts` uygunluk külliyatı).
+2. ✅ Evidence Envelope şema göçü (`20260717190000`): zarf alanları eklendi,
+   guard yeni satırda tam zarf zorluyor, eski satırlar `LEGACY_FILE_HASH_ONLY`.
+3. ✅ Manifest v2 zarf hash'ini taşıyor: puanlama rotası `zarfOlustur` +
+   `envelopeHash` ile her kanıt için `fileHash` + `envelopeHash` mühürlüyor.
+4. → **M12** S01'in 10 inject'inin eksiksiz oynanması
+5. → **M11** gerçek dosya yükleme (Storage) + kabul akışının UI'a bağlanması
+6. → **M13** RTO/RPO hedef kaynağı (kurum profili) ve ölçümü
+7. → **M12** en az üç bulgu önerisi (S01 akışı içinde)
+8. → **M12** bulguların aksiyona dönüştürülmesi + verified closure
+9. → **M13** ana panoya sonuçların yansıması
+10. ✅ Tatbikat PDF'i
+11. → **M13** ayrı yönetim kurulu PDF'i (tatbikat raporunun kopyası OLMAYACAK:
+    özet risk, RTO/RPO sonucu, kritik üçüncü taraflar, açık bulgular, kabul
+    edilen artık riskler, aksiyon sahipleri, karar gerektiren konular)
+12. → **M11** ZIP paket manifesti ve `packageManifestHash`'in anchor/audit
+    zincirine yazımı
+13. → **M12** S01 uçtan uca testi (S05 testi kabul için YETERLİ DEĞİL)
+
+Ana panoda görünmesi gerekenler (adım 9): son S01 skoru, RTO ve RPO durumu,
+kritik/yüksek bulgular, gecikmiş aksiyonlar, kanıt bütünlüğü durumu, son
+tatbikat tarihi, yeniden test tarihi.
+
+**Kanıt zarfı borcu — M9 KAPANMADAN çözülecek (adım 2-3).** Manifest bugün
+`evidences.hash_sha256`'yı, yani DOSYA hash'ini mühürlüyor; M5.5'in zarf hash'ini
+değil. Sebep şema: `evidences` tablosunda zarfın alanları yok. Tipler v2'de hazır
+(`ManifestKanit`: `fileHash` + `envelopeHash` + `envelopeSchemaVersion` + `durum`)
+ve mevcut kayıtlar **`LEGACY_FILE_HASH_ONLY`** taşıyor — bu kayıtlar "dosya
+bütünlüğü doğrulandı" diyebilir, "kanıt kökeni ve zarf zinciri doğrulandı"
+DİYEMEZ. Eksik alan uydurulmayacak; eski kayıtlar legacy kalacak.
+
+Göç edilecek asgari alanlar: `evidenceVersionId`, `versionNumber`, `fileSize`,
+`mimeType`, `storageObjectKey`, `storageVersionId`, `sourceSystem`, `sourceType`,
+`capturedAt`, `retentionClass`, `classification`, `previousVersionHash`,
+`previousEnvelopeHash`, `hashAlgorithm`, `envelopeSchemaVersion`.
+
+**S01 ve RTO/RPO — hedef YAML'a yazılmayacak, kurum profilinden gelecek (adım 6).**
+Önceki oturumun tespiti eksikti: S01'in RTO hedefi (`hedef_dakika: 90`) **zaten
+uydurulmuş bir sayı** ve YAML'ın kendi başlığı (satır 9) bunu söylüyor. Yani
+sorun "RPO eklemek uydurma olur" değil; mevcut RTO hedefi de uydurma. Karar:
+hedefler senaryo şablonundan değil, kurumun onaylı BIA/iş sürekliliği
+profilinden okunacak.
+
+Hedef yoksa simülasyon DURMAZ; sonuç `TARGET_NOT_DEFINED`/`DEĞERLENDİRİLEMEDİ`
+olur (ölçüm yine raporlanır: "RTO ölçümü 90 dakika, hedef tanımlanmamış") ve
+otomatik bulgu açılır: *"Kritik hizmet için yönetimce onaylanmış RTO/RPO hedefi
+tanımlanmamıştır."* Örnek seed'de temsili hedef kullanılabilir ama açıkça
+**`DEMO_TARGET`** etiketli olmalı, gerçek mevzuat hedefi gibi gösterilmemeli.
+
+Not — repoda olmayan referanslar: kurucu spesifikasyonundaki `CTRL-RTO-001` /
+`CTRL-RPO-001` kontrol kodları bu repoda YOK (S01 `TODO-DOGRULA-07/13/14`
+kullanıyor) ve `organizationProfile.criticalServices...` diye bir şema da yok
+(`tenants` tablosunda yalnızca `id, name, segment, created_at`). Adım 6, kurum
+profili şemasını sıfırdan yazmayı içerir; kontrol kodları ise ancak doğrulanmış
+mevzuat maddesi geldiğinde (kural 3) eklenebilir.
 
 ### M10 — Yönetim Kurulu Beyanı ve çapraz denetim ✅ şema+motor, UI ✗ (kaynak: kurucu spesifikasyonu, 17 Temmuz 2026)
 
@@ -379,6 +571,125 @@ açıkça söylüyor ve bu uyarı hem seed veride hem UI'da korunmalı.
 - Üretim barındırma kararının uygulanması (yurt içi / self-hosted Postgres taşıma provası: dump→restore→smoke test).
 - İlk konektör iskeleti (yalnızca arayüz + 1 örnek: dosya-tabanlı log içe aktarımı) — 5 konektör hedefi Faz 2 gövdesidir, MVP kapısı değildir.
 - **Kabul:** taşıma provası belgelenmiş; konektör arayüzü tanımlı; 1 yıllık sözleşme görüşmesine çıkılabilir demo.
+
+---
+
+## 2026 ürünleşme planı — M11 ve sonrası (kaynak: §1.5, belge: docs/arastirma/)
+
+2026 araştırma belgesinin yetenek omurgası, mevcut yığın ve tek-kurucu
+kapasitesiyle kapılı taşlara çevrildi. Sıra bağlayıcı, takvim yok (kural 5).
+
+### Boşluk haritası — belge modülü → repodaki bugün → nereye
+
+| Belge modülü | Repoda bugün | Nereye |
+|---|---|---|
+| M01 Evidence Envelope & Integrity | Zarf şeması + RFC 8785 + dört hash + immutable manifest + `hash_algorithm` + `legal_hold` VAR. İmza (JWS), gerçek dosya yükleme, redaction, örneklem/dönem, güven skoru, verify CLI, ZIP paketi YOK | **M11** |
+| M02 Test DSL & CCM | Simülasyon puanlama motoru deterministik ama kontrol testi değil; durum makinesi 4 kaba durum (`karsilaniyor/kismi/acik/kapsam_disi`); Stale/Unknown ayrımı yok; kanıt süresi DB'de yeniden değerlendirilmiyor (bilinen borç) | **M12** |
+| M03 Scope Engine & Knowledge Graph | 2 çerçeve + 17 kontrol + crosswalk eşleme ("bir kanıt, dört çerçeve") var; mevzuat sürümleme, uygulanabilirlik kuralları, as-of-date, değişiklik etkisi, OSCAL yok | **M14** |
+| M04 Critical Service & Impact Tolerance | YOK (`tenants`: id, name, segment) — M9 adım 6'nın kurum profili kararıyla birleşiyor | **M13** |
+| M05 Incident Clock | YOK | **M15** |
+| M06 Recovery Proof & Reconciliation | S01/S04 senaryoları RTO/RPO ölçüyor; finansal mutabakat, restore kanıtı, dual sign-off yok | **M15** |
+| M07 CFO Kalkanı | YOK | ertelendi (kapı: M11-M13 çekirdeği + kurumsal pilot adayı) |
+| M08 Connector Platform | YOK | ertelendi (kapı: M12'de manuel/fixture testleri oturduktan ve gerçek sistem erişimi olan bir design partner bulunduktan sonra) |
+| M09-M18 (3rd party, TLPT, DORA, Stress, CRQ, AI, PQC, SBOM, Passport) | YOK | belgenin kendi P1/P2/P3 sırası ve giriş kapılarıyla ertelendi |
+
+Belgenin bilmediği mevcut varlıklar (yeni plana taşınan sermaye): audit_log
+hash zinciri, dört-göz onayı (`evidence_reviews`), RFC 6962 Merkle + bağımsız
+doğrulama kütüphanesi, YK Beyanı çapraz denetim motoru (M10), PGlite RLS test
+düzeni, canlı Supabase'e karşı e2e doğrulama disiplini.
+
+### M11 — Kanıt çekirdeği v2 (belge M01 / Faz 1)
+
+Kanıt "yüklenen dosya adı" olmaktan çıkar: dosya gerçekten Storage'da, zarf
+imzalı, paket bağımsız doğrulanabilir.
+
+- Gerçek dosya yükleme: Supabase Storage, `storage_object_key`/`storage_version_id`
+  dolu. Erişim ince bir katman arkasında (kural 4: on-prem hedefte MinIO).
+  CLAUDE.md'deki "Storage doğrulanamadı" kalemi burada kapanır.
+- İmza: JWS + `signer_identity`; ilk sürümde sunucu anahtarı, alan yapısı
+  tenant-managed key'e açık. (Kütüphane seçimi bu taşta; saf JS şartı geçerli.)
+- Zarf v2 alanları: population/sample/dönem; güven bileşenleri (kaynak
+  otoritesi, bağımsızlık, güncellik, tamlık, yeniden üretilebilirlik);
+  redaction — raw/redacted ayrı hash, soy bağı korunur; `kaynak_kontrol_id`
+  (yansıtılan kanıt soyu — eski borç).
+- Bağımsız verify CLI (`scripts/verify-evidence.ts`): kendi RFC 8785
+  uygulamamız bunu mümkün kıldı (dış paket tsx'ten çözülemiyordu, §1.5).
+- ZIP denetim paketi: dosyalar + `pdfFileHash` + `packageManifestHash` →
+  anchor/audit zinciri (M9 adım 12).
+- RFC 3161: bu taşta opsiyonel, production kapısında zorunlu (belgeyle uyumlu).
+- **Kabul:** tek bayt değişikliği doğrulamada yakalanır; paket repo DIŞINDA
+  temiz bir Node ortamında CLI ile doğrulanır; redacted sürüm farklı hash
+  taşır ama soyu korur; legal hold altındaki kanıt silinemez ve deneme audit
+  event üretir; Storage'a fiilen dosya gitti ve geri okundu.
+
+### M12 — Kontrol test motoru ve durum makinesi (belge M02)
+
+- `control_test_definitions` + `test_runs`; ilk türler: `manual-procedure`,
+  `configuration-assertion`, `sample-review`, `attack-simulation` (mevcut
+  tatbikat motoru bu türün sağlayıcısıdır), `restore-test` (S04).
+- Yeni kontrol durum makinesi; `Failed ≠ Unknown ≠ Stale ≠ Exception accepted`
+  (kural 13). Toplama/connector arızası asla `Failed` üretmez.
+- Freshness: `pg_cron` ile kanıt süresi dolunca `Stale` — bilinen borç ve
+  bilinçli skip'li e2e testi burada kapanır.
+- Verified closure: bulgu kapanışı başarılı retest kanıtı + yetkili onay
+  ister (kural 14); ticket/aksiyon kapanışı kontrol kapanışı sayılmaz.
+- S01 dikey akışı: 10 inject, kanıt yükleme, ≥3 bulgu önerisi, aksiyon,
+  retest, S01'e özel e2e (M9 adım 4, 7, 8, 13).
+- **Kabul:** aynı test aynı fixture ile deterministik sonuç verir; başarısız
+  test → bulgu → aksiyon → retest → verified closure zinciri uçtan uca canlıda;
+  S01 e2e yeşil; stale kanıt panoda görünür.
+
+### M13 — Kurum profili, kritik hizmet ve YK çıktıları (belge M04)
+
+- Kurum profili + `critical_business_services` + `impact_tolerances`
+  (RTO/RPO dakika, onaylayan organ, son test, actual result). Seed'deki
+  temsili hedefler `DEMO_TARGET` etiketli (kural 3'ün ruhu).
+- Bağımlılık node/edge tabloları — Postgres + recursive CTE; Neo4j YOK
+  (belgenin kendi kararı, kural 4 ile uyumlu).
+- Simülasyon RTO/RPO hedefi kurum profilinden okunur; hedef yoksa
+  `TARGET_NOT_DEFINED` + otomatik bulgu: "Kritik hizmet için yönetimce
+  onaylanmış RTO/RPO hedefi tanımlanmamıştır." (M9 adım 6.)
+- Ana pano kartları (M9 adım 9): son tatbikat + skor, RTO/RPO durumu,
+  kritik/yüksek bulgular, geciken aksiyonlar, kanıt bütünlüğü
+  (FULL_ENVELOPE / LEGACY oranı), yeniden test tarihi.
+- YK çıktıları: M10 beyan UI'ı + yönetim kurulu PDF'i (M9 adım 11) —
+  `generate-yk-beyani.ts` emekli edilir (mock-data borcu kapanır).
+- Tolerans değişikliği yönetim kararı + audit event olmadan yürürlüğe girmez.
+- **Kabul:** bir kritik hizmetten destekleyen sistem/ekip/tedarikçiye
+  gidilebilir; senaryo sonucu toleransla otomatik karşılaştırılır; beyan
+  ekranları canlıda; pano gerçek veriyle dolu.
+
+### M14 — Kapsam motoru ve mevzuat sürümleme (belge M03)
+
+- `regulation_sources` + `requirements` + `applicability_rules`; resmî kaynak
+  soyu, yayım/yürürlük/ilga tarihleri, as-of-date sorgusu, değişiklik etkisi.
+- İçerik genişlemesi kural 3 disipliniyle: yalnız doğrulanmış madde; mevcut
+  TODO-DOGRULA'lar burada kapanmaya başlar. AI eşleme yalnız ADAY üretir,
+  insan onayı şart (belgeyle uyumlu).
+- OSCAL-lite export: veri modeli uyumlu tutulur, iç model OSCAL'e zorlanmaz
+  (belge karar #9).
+- **Kabul:** muafiyet bir kontrolü `Passed` yapmaz; as-of-date geçmiş tarih
+  için doğru sürümü döndürür; kontrol sonucu requirement paragrafına kadar
+  izlenebilir.
+
+### M15 — Olay saati ve kurtarma kanıtı (belge M05 + M06)
+
+- Olay zaman çizelgesi, sınıflandırma, bildirim kuralları (SPK/7545/KVKK
+  konfigürasyonu; DORA paketi ertelendi), gönderim kayıtları ve sürümleme.
+- `recovery_attempts` + actual RTO/RPO + finansal mutabakat (defter/bakiye/
+  kayıt sayısı) + exception/dual sign-off; S01/S04 tatbikatlarına bağlanır.
+- **Kabul:** olay sınıfı değişince saatler deterministik yeniden oluşur;
+  teknik restore başarılı ama mutabakat başarısızsa `Recovered` sayılmaz;
+  rapor düzenlemesi önceki gönderimi değiştirmez, yeni sürüm doğar.
+
+### Ertelenenler ve giriş kapıları
+
+Belgenin P1/P2/P3 modülleri (CFO Kalkanı, connector platformu, DORA/FIRE,
+TLPT, 3./n. taraf grafiği, Stress Lab, CRQ-lite, AI assurance, PQC, SBOM,
+Passport/benchmark) M15 sonrasına ertelendi. Her birinin giriş kapısı
+belgede tanımlı; ek kapımız: çekirdek (M11-M15) canlıda en az bir gerçek
+kurum verisiyle çalışmadan hiçbiri başlamaz. Belge §11'in "inşa edilmeyecekler"
+listesi aynen geçerli.
 
 ---
 

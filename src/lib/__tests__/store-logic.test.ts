@@ -38,6 +38,11 @@ function baseEvidence(overrides: Partial<Evidence> = {}): Evidence {
     hashSha256: null,
     gecerlilikBitis: null,
     createdAt: "2026-07-16T00:00:00Z",
+    mimeType: null,
+    fileSize: null,
+    classification: "ic_kullanim",
+    retentionClass: "10y",
+    capturedAt: null,
     kaynakKontrolId: null,
     ...overrides,
   };

@@ -644,36 +644,81 @@ export type Database = {
       }
       evidences: {
         Row: {
+          captured_at: string | null
+          classification: string | null
           control_id: string
           created_at: string
+          envelope_schema_version: string | null
+          file_size: number | null
           gecerlilik_bitis: string | null
+          hash_algorithm: string
           hash_sha256: string | null
           id: string
+          legal_hold: boolean
+          mime_type: string | null
+          previous_envelope_hash: string | null
+          previous_evidence_id: string | null
+          previous_file_hash: string | null
+          retention_class: string | null
+          source_system: string | null
+          storage_object_key: string | null
           storage_path: string | null
+          storage_version_id: string | null
           tenant_id: string
           tip: string
+          version_no: number
           yukleyen: string | null
         }
         Insert: {
+          captured_at?: string | null
+          classification?: string | null
           control_id: string
           created_at?: string
+          envelope_schema_version?: string | null
+          file_size?: number | null
           gecerlilik_bitis?: string | null
+          hash_algorithm?: string
           hash_sha256?: string | null
           id?: string
+          legal_hold?: boolean
+          mime_type?: string | null
+          previous_envelope_hash?: string | null
+          previous_evidence_id?: string | null
+          previous_file_hash?: string | null
+          retention_class?: string | null
+          source_system?: string | null
+          storage_object_key?: string | null
           storage_path?: string | null
+          storage_version_id?: string | null
           tenant_id: string
           tip: string
+          version_no?: number
           yukleyen?: string | null
         }
         Update: {
+          captured_at?: string | null
+          classification?: string | null
           control_id?: string
           created_at?: string
+          envelope_schema_version?: string | null
+          file_size?: number | null
           gecerlilik_bitis?: string | null
+          hash_algorithm?: string
           hash_sha256?: string | null
           id?: string
+          legal_hold?: boolean
+          mime_type?: string | null
+          previous_envelope_hash?: string | null
+          previous_evidence_id?: string | null
+          previous_file_hash?: string | null
+          retention_class?: string | null
+          source_system?: string | null
+          storage_object_key?: string | null
           storage_path?: string | null
+          storage_version_id?: string | null
           tenant_id?: string
           tip?: string
+          version_no?: number
           yukleyen?: string | null
         }
         Relationships: [
@@ -682,6 +727,13 @@ export type Database = {
             columns: ["control_id"]
             isOneToOne: false
             referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidences_previous_evidence_id_fkey"
+            columns: ["previous_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "evidences"
             referencedColumns: ["id"]
           },
           {
@@ -1401,6 +1453,54 @@ export type Database = {
           },
         ]
       }
+      simulation_manifest_receipts: {
+        Row: {
+          anchored_at: string
+          created_at: string
+          id: string
+          manifest_id: string
+          payload: Json | null
+          saglayici: string
+          seq: number
+          tenant_id: string
+        }
+        Insert: {
+          anchored_at: string
+          created_at?: string
+          id?: string
+          manifest_id: string
+          payload?: Json | null
+          saglayici: string
+          seq?: never
+          tenant_id: string
+        }
+        Update: {
+          anchored_at?: string
+          created_at?: string
+          id?: string
+          manifest_id?: string
+          payload?: Json | null
+          saglayici?: string
+          seq?: never
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_manifest_receipts_manifest_id_fkey"
+            columns: ["manifest_id"]
+            isOneToOne: false
+            referencedRelation: "simulation_result_manifests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_manifest_receipts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       simulation_observations: {
         Row: {
           control_id: string | null
@@ -1514,6 +1614,60 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulation_result_manifests: {
+        Row: {
+          core_manifest: Json
+          core_manifest_hash: string
+          id: string
+          merkle_root: string
+          muhurlendi_at: string
+          report_data: Json | null
+          report_data_hash: string
+          run_id: string
+          seq: number
+          tenant_id: string
+        }
+        Insert: {
+          core_manifest: Json
+          core_manifest_hash: string
+          id?: string
+          merkle_root: string
+          muhurlendi_at?: string
+          report_data?: Json | null
+          report_data_hash: string
+          run_id: string
+          seq?: never
+          tenant_id: string
+        }
+        Update: {
+          core_manifest?: Json
+          core_manifest_hash?: string
+          id?: string
+          merkle_root?: string
+          muhurlendi_at?: string
+          report_data?: Json | null
+          report_data_hash?: string
+          run_id?: string
+          seq?: never
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_result_manifests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "simulation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_result_manifests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -1738,8 +1892,26 @@ export type Database = {
           merkle_root: string
         }[]
       }
+      evidence_butunluk_durumu: {
+        Args: { target_evidence_id: string }
+        Returns: string
+      }
       evidence_durumu: { Args: { target_evidence_id: string }; Returns: string }
+      manifest_dogrula: {
+        Args: { target_hash: string }
+        Returns: {
+          anchored_at: string
+          durum: string
+          muhurlendi_at: string
+          report_data_hash: string
+          saglayici: string
+        }[]
+      }
       paylasim_goruntule: { Args: { p_token: string }; Returns: Json }
+      simulation_manifest_durumu: {
+        Args: { target_manifest_id: string }
+        Returns: string
+      }
       tenant_has_profiles: {
         Args: { target_tenant_id: string }
         Returns: boolean

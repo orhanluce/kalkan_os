@@ -7,7 +7,7 @@
 // Bu testler gerçek Postgres'te (PGlite) gerçek migration dosyalarına karşı
 // koşar — bkz. helpers/pg.ts.
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { createTestDb, seedTwoTenants, type TestDb } from "./helpers/pg";
+import { createTestDb, seedTwoTenants, type TestDb, ZARF_DEGERLERI, ZARF_KOLONLARI } from "./helpers/pg";
 
 let db: TestDb;
 let A: { tenantId: string; userId: string };
@@ -28,8 +28,8 @@ beforeAll(async () => {
     [A.tenantId, controlId, B.tenantId],
   );
   await db.sql(
-    `insert into public.evidences (tenant_id, control_id, tip, storage_path)
-     values ($1, $2, 'beyan', 'A kanıtı'), ($3, $2, 'beyan', 'B kanıtı')`,
+    `insert into public.evidences (tenant_id, control_id, tip, storage_path, ${ZARF_KOLONLARI})
+     values ($1, $2, 'beyan', 'A kanıtı', ${ZARF_DEGERLERI}), ($3, $2, 'beyan', 'B kanıtı', ${ZARF_DEGERLERI})`,
     [A.tenantId, controlId, B.tenantId],
   );
   await db.sql(
@@ -138,7 +138,8 @@ describe("M1 kabul kriteri: tenant izolasyonu (yazma)", () => {
     await expect(
       db.asUser(
         A.userId,
-        `insert into public.evidences (tenant_id, control_id, tip) values ($1, $2, 'beyan')`,
+        `insert into public.evidences (tenant_id, control_id, tip, ${ZARF_KOLONLARI})
+     values ($1, $2, 'beyan', ${ZARF_DEGERLERI})`,
         [B.tenantId, controlId],
       ),
     ).rejects.toThrow();

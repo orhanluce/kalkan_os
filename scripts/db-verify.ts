@@ -26,6 +26,8 @@ const BEKLENEN_TABLOLAR = [
   "anchor_batches",
   "anchor_batch_leaves",
   "anchor_receipts",
+  "simulation_result_manifests",
+  "simulation_manifest_receipts",
 ];
 
 // Migration'larla gelen fonksiyonlar: tablo var ama fonksiyon yoksa şema
@@ -38,6 +40,12 @@ const BEKLENEN_FONKSIYONLAR: { ad: string; args: Record<string, unknown> }[] = [
     ad: "evidence_anchor_bilgisi",
     args: { target_evidence_id: "00000000-0000-0000-0000-000000000000" },
   },
+  {
+    ad: "simulation_manifest_durumu",
+    args: { target_manifest_id: "00000000-0000-0000-0000-000000000000" },
+  },
+  // QR doğrulamasının herkese açık giriş noktası (M9).
+  { ad: "manifest_dogrula", args: { target_hash: "0".repeat(64) } },
 ];
 
 async function main() {

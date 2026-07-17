@@ -3,7 +3,7 @@ TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supab
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler
-üzerinden bağlanıyoruz — direct connection IPv6-only. 22 migration uygulandı
+üzerinden bağlanıyoruz — direct connection IPv6-only. 25 migration uygulandı
 (`pnpm db:push`); `pnpm db:verify` çekirdek tabloları fiilen doğrular. Kontrol
 kütüphanesi seed edildi (2 çerçeve, 17 kontrol) ve ilk kuruma atandı.
 
@@ -49,8 +49,43 @@ profil RLS altında okundu.)
 yayınlı, 18 aksiyon→kontrol bağı, yayınlanmış şablon immutable. Yürütme ekranı
 (`/simulasyonlar/[id]`) canlıda: tatbikat başlat/yürüt/puanla/öneri kabul et
 akışı `e2e/simulasyon.spec.ts` ile gerçek Chromium + gerçek Supabase'e karşı
-doğrulandı. M9 (fidye dikey akışı, PDF/QR raporlar) hiç başlamadı. M10 (YK
-Beyanı + çapraz denetim, docs/ROADMAP.md M10) şema+motor bitti, UI yok.
+doğrulandı.
+
+**2026 ürünleşme planı kabul edildi (17 Temmuz 2026 akşamı).** Kurucunun
+araştırma belgesi `docs/arastirma/KALKAN_OS_Urun_Gelistirme_Yol_Haritasi_2026.md`
+kopyalandı; karar kaydı ROADMAP §1.5, yeni taş sırası ROADMAP "2026 ürünleşme
+planı" bölümünde: **M11** kanıt çekirdeği v2 (Storage'a gerçek yükleme, JWS
+imza, redaction, verify CLI, ZIP paketi) → **M12** kontrol test motoru +
+`Failed≠Unknown≠Stale` durum makinesi + S01 dikey → **M13** kurum profili +
+kritik hizmet + RTO/RPO toleransları + ana pano + YK çıktıları → **M14**
+kapsam motoru → **M15** olay saati + kurtarma kanıtı. Belgenin yığın varsayımı
+(NestJS/Prisma/Keycloak/MinIO/BullMQ) ÜÇÜNCÜ kez reddedildi — package.json'da
+hiçbiri yok, karşılık tablosu §1.5'te.
+
+**M9/M10 kapanmadı, kalanları M11-M13'e devredildi** — adım adım eşleme
+ROADMAP M9 bölümünde. Bugün biten: bütünlük modeli (dört ayrı hash:
+`reportDataHash`/`coreManifestHash`/`pdfFileHash`/`packageManifestHash`, §1.4),
+mühür zinciri (`simulation_result_manifests`, immutable trigger canlıda
+service_role UPDATE'ini reddetti), tatbikat PDF + QR + oturumsuz `/dogrula`
+(canlıda sızdırmadığı doğrulandı) ve **kanıt zarfı şema göçü**
+(`20260717190000`): guard yeni satırda tam zarf zoruyor, eski kayıtlar
+`LEGACY_FILE_HASH_ONLY` (dosya bütünlüğü ✓, köken zinciri ✗ — uydurmuyoruz),
+manifest artık `fileHash` + `envelopeHash` mühürlüyor.
+
+**RFC 8785 kendi uygulamamız** (`src/lib/canonical.ts`): `canonicalize` paketi
+runtime'dan ÇIKARILDI (yalnız `import` koşulu tanımlıyor, tsx script'leri
+çözemiyor — bağımsız verify CLI'yi imkânsız kılıyordu); referans implementasyon
+devDependency olarak testte hakem (`canonical.test.ts` uygunluk külliyatı).
+
+**Doğrulama durumu (17 Temmuz 2026 akşamı, ölçülmüş):** JCS yeniden yazımı
+sonrası tam takım yeşil — **450 birim (27 dosya) + 11 e2e (1 bilinçli skip)**.
+Canlıda doğrulandı: yeni kanıtlar `FULL_ENVELOPE`, zarf hash'i tsx script'inden
+hesaplanabiliyor (kendi RFC 8785 uygulamamızın varlık sebebi), zarf guard'ı
+canlıda zarfsız INSERT'i reddetti. `docs/arastirma/` kopyası `diff` ile kaynağa
+karşı birebir çıktı. **Tek kalan: çalışma alanı commit'lenmemiş** — M9 adım 1-3
++ 2026 planı tek oturumun işi, kurucu onayıyla commit'lenmeli.
+
+M10 (YK Beyanı, ROADMAP M10) şema+motor bitti; UI'ı M13'te.
 
 **Açık borçlar** (docs/ROADMAP.md'de tam liste): `evidences.kaynak_kontrol_id`
 kolonu yok (yansıtılan kanıt doğrudan yüklenmiş gibi görünür). Kanıt süresi
@@ -78,3 +113,11 @@ Yönetim Kurulu Beyanı modülü onun yerini almalı ama henüz bağlanmadı.
    belirleyemez. Simülasyon bulgusu PROPOSED doğar, insan onaylamadan gerçek bulgu olmaz.
 12. Senaryo içeriği de mevzuat içeriği gibidir (kural 3): data/scenarios/*.yaml'dan seed
    edilir, uydurulmaz, UNVERIFIED_SAMPLE etiketlenir.
+13. Kontrol/test sonuç durumları birleştirilemez: `Failed` ≠ `Unknown` ≠ `Stale` ≠
+   `Exception accepted`. Toplama/connector arızası ASLA `Failed` üretmez — `Unknown` üretir.
+   (2026 belgesi M02; M12'de şemaya girer, ilke şimdiden geçerli.)
+14. Bulgu kapanışı yeniden test ister: başarılı retest kanıtı + yetkili onayı olmadan kritik
+   bulgu kapanamaz; ticket/aksiyon kapanışı kontrol kapanışı sayılmaz. (2026 belgesi karar #4.)
+15. Bir hash'in NEYİ doğruladığı adında yazar (`reportDataHash` ≠ `pdfFileHash` ≠
+   `coreManifestHash` ≠ `packageManifestHash`); kanıt köken güvencesi zarfsız verilemez —
+   zarfsız eski kayıt `LEGACY_FILE_HASH_ONLY` kalır, alan uydurulmaz.

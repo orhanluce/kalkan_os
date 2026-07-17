@@ -4,7 +4,7 @@
 // Denetçi OTURUMSUZ gelir (asAnon): bu testlerin tamamı, hesabı olmayan bir
 // kullanıcının yalnızca token ile ne görebildiğini sınar.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createTestDb, seedTwoTenants, type TestDb } from "./helpers/pg";
+import { createTestDb, seedTwoTenants, type TestDb, ZARF_DEGERLERI, ZARF_KOLONLARI } from "./helpers/pg";
 
 let db: TestDb;
 let seed: Awaited<ReturnType<typeof seedTwoTenants>>;
@@ -43,13 +43,14 @@ beforeEach(async () => {
   );
 
   await db.sql(
-    `insert into public.evidences (tenant_id, control_id, tip, storage_path, hash_sha256)
-     values ($1, $2, 'beyan', 'A gizli kanit yolu', 'aa11')`,
+    `insert into public.evidences (tenant_id, control_id, tip, storage_path, hash_sha256, ${ZARF_KOLONLARI})
+     values ($1, $2, 'beyan', 'A gizli kanit yolu', 'aa11', ${ZARF_DEGERLERI})`,
     [seed.A.tenantId, seed.controlId],
   );
   // B'nin aynı kontrole ait kanıtı: A'nın paylaşımında SAYILMAMALI.
   await db.sql(
-    `insert into public.evidences (tenant_id, control_id, tip, storage_path) values ($1, $2, 'beyan', 'B kaniti')`,
+    `insert into public.evidences (tenant_id, control_id, tip, storage_path, ${ZARF_KOLONLARI})
+     values ($1, $2, 'beyan', 'B kaniti', ${ZARF_DEGERLERI})`,
     [seed.B.tenantId, seed.controlId],
   );
 });

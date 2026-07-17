@@ -5,7 +5,7 @@
 // (db.sql) ile yazılır. Bu yüzden testler iki şeyi ayrı ayrı sınar —
 // kullanıcı bunları YAZAMAZ, ama kendi kiracısınınkini OKUYABİLİR.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createTestDb, seedTwoTenants, type TestDb } from "./helpers/pg";
+import { createTestDb, seedTwoTenants, type TestDb, ZARF_DEGERLERI, ZARF_KOLONLARI } from "./helpers/pg";
 
 let db: TestDb;
 let seed: Awaited<ReturnType<typeof seedTwoTenants>>;
@@ -24,8 +24,8 @@ afterEach(async () => {
 
 async function kanitYukle(tenantId: string): Promise<string> {
   const { rows } = await db.sql(
-    `insert into public.evidences (tenant_id, control_id, tip, yukleyen)
-     values ($1, $2, 'beyan', null) returning id`,
+    `insert into public.evidences (tenant_id, control_id, tip, yukleyen, ${ZARF_KOLONLARI})
+     values ($1, $2, 'beyan', null, ${ZARF_DEGERLERI}) returning id`,
     [tenantId, seed.controlId],
   );
   return rows[0].id as string;

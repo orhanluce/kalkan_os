@@ -106,6 +106,13 @@ interface PuanSatiri {
   gerekce: string;
 }
 
+/** Mühürlenmiş sonuç manifesti (M9). */
+interface Muhur {
+  core_manifest_hash: string;
+  report_data_hash: string;
+  muhurlendi_at: string;
+}
+
 interface PuanSonucu {
   puan: number;
   durum: string;
@@ -145,6 +152,7 @@ export default function TatbikatDetayPage() {
   const [beklenenAksiyonlar, setBeklenenAksiyonlar] = useState<BeklenenAksiyon[]>([]);
   const [aksiyonSonuclari, setAksiyonSonuclari] = useState<AksiyonSonucu[]>([]);
   const [puan, setPuan] = useState<PuanSonucu | null>(null);
+  const [muhur, setMuhur] = useState<Muhur | null>(null);
   const [oneriler, setOneriler] = useState<OneriSatiri[]>([]);
   const [tenantProfilleri, setTenantProfilleri] = useState<{ id: string; full_name: string }[]>([]);
 
@@ -250,6 +258,14 @@ export default function TatbikatDetayPage() {
         .eq("run_id", params.id)
         .maybeSingle();
       setPuan(scoreRow as unknown as PuanSonucu | null);
+
+      // Mühür (M9). RLS altında okunur — başka kiracının manifesti görünmez.
+      const { data: manifestRow } = await db
+        .from("simulation_result_manifests")
+        .select("core_manifest_hash, report_data_hash, muhurlendi_at")
+        .eq("run_id", params.id)
+        .maybeSingle();
+      setMuhur(manifestRow as unknown as Muhur | null);
 
       const { data: oneriRows } = await db
         .from("simulation_finding_proposals")
@@ -698,6 +714,39 @@ export default function TatbikatDetayPage() {
                 {PUANLAMA_DURUM_LABEL[puan.durum] ?? puan.durum}
               </Badge>
             </div>
+
+            {/* --- MÜHÜR (M9) --- */}
+            {muhur && (
+              <div className="rounded-md border bg-muted/30 p-3">
+                <p className="text-sm font-medium">Sonuç mühürlendi</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Bu tatbikatın sonucu değiştirilemez biçimde kaydedildi. Rapordaki karekod,
+                  hesabı olmayan bir denetçinin belgeyi doğrulamasına imkân verir; doğrulama
+                  sayfası raporun içeriğini göstermez.
+                </p>
+                <p className="mt-2 break-all font-mono text-[10px] text-muted-foreground">
+                  {muhur.core_manifest_hash}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-3 text-sm">
+                  <a
+                    className="underline underline-offset-4"
+                    href={`/api/simulasyon/${params.id}/rapor`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Raporu indir (PDF)
+                  </a>
+                  <a
+                    className="underline underline-offset-4"
+                    href={`/dogrula/${muhur.core_manifest_hash}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Doğrulama sayfası
+                  </a>
+                </div>
+              </div>
+            )}
 
             {puan.kritik_basarisizliklar.length > 0 && (
               <div className="rounded-md border border-destructive/50 bg-destructive/5 p-3">

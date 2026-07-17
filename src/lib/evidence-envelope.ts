@@ -1,26 +1,56 @@
-// Kanıt zarfı (Evidence Envelope) — şartname §2.4, docs/ROADMAP.md M5.5.
+// Kanıt zarfı (Evidence Envelope) — şartname §2.4, docs/ROADMAP.md M5.5 + M9.
 //
 // Zarf, kanıt DOSYASININ değil, kanıtın KİMLİĞİNİN kaydıdır: hangi dosya
-// (sha256), nereden geldi, ne zaman yakalandı, kim yükledi, hangi kontrollere
-// dayanıyor. Merkle ağacının hash'lediği yapraklar bu zarfların hash'leridir
-// — dosyaların değil.
+// (hash), nereden geldi, ne zaman yakalandı, kim yükledi, hangi kontrollere
+// dayanıyor, ne kadar saklanacak, hangi gizlilik sınıfında. Merkle ağacının
+// hash'lediği yapraklar bu zarfların hash'leridir — dosyaların değil.
 //
 // NEDEN DOSYA DEĞİL DE ZARF: dosyanın hash'ini sabitlemek yalnızca "bu bayt
 // dizisi vardı" der. Zarfı sabitlemek "bu dosya, şu kaynaktan, şu tarihte,
 // şu kontrol için sunulmuştu" der. Denetimde kanıt değeri olan ikincisidir —
 // bir sızma testi raporunun değişmediğini göstermek, onun HANGİ TARİHTE ve
 // HANGİ kontrol için sunulduğunu göstermeden yarım kalır.
+//
+// ADLANDIRMA — M9'da düzeltildi: eski `previousVersionHash` alanı, adına
+// rağmen önceki versiyonun ZARF hash'ini tutuyordu (kendi yorumu söylüyordu).
+// Ad, tuttuğu şeyi gizliyordu. Artık iki alan var ve ikisi de ne olduğunu
+// söylüyor:
+//   previousFileHash     -> önceki sürümün DOSYASI neydi
+//   previousEnvelopeHash -> önceki sürümün KÖKEN İDDİASI neydi
+// Yalnızca dosya zincirini tutmak, "dosya değişti ama kaynağı/sınıfı da mı
+// değişti" sorusunu cevapsız bırakırdı.
 
-import { sha256Hex } from "./evidence";
+import {
+  EVIDENCE_ENVELOPE_SCHEMA,
+  canonicalHash,
+  canonicalJson,
+  kanonikZaman,
+  type CanonicalDeger,
+} from "./canonical";
 
-/** Şartname §2.4'teki zarf yapısı. */
+/** Şartname §2.4'teki zarf yapısı (M9'da genişletildi). */
 export interface EvidenceEnvelope {
-  evidenceId: string;
+  /** Hash şema sürümü — doğrulayan taraf hangi kuralla hesaplayacağını bilmeli. */
+  sema: string;
+  /**
+   * Bu SÜRÜMÜN kimliği.
+   *
+   * `evidences` tablosu append-only (kural 2): UPDATE yolu yok, yani her satır
+   * bir sürümdür ve satırın id'si sürümün id'sidir. Ayrı bir "version" tablosu
+   * açmak, aynı olguyu iki yerde tutmak olurdu.
+   */
+  evidenceVersionId: string;
   tenantId: string;
-  version: number;
-  sha256: string;
-  sizeBytes: number;
-  mimeType: string;
+  versionNo: number;
+  /** Dosyanın hash'i. link/beyan tipi kanıtta dosya yoktur: null. */
+  fileHash: string | null;
+  hashAlgorithm: string;
+  fileSize: number | null;
+  mimeType: string | null;
+  /** Storage'daki nesne anahtarı ve sürüm kimliği. Bkz. 20260717190000: bugün boş. */
+  storageObjectKey: string | null;
+  storageVersionId: string | null;
+  /** `evidences.tip`: dosya | link | beyan. */
   sourceType: string;
   sourceSystem: string | null;
   capturedAt: string | null;
@@ -28,46 +58,80 @@ export interface EvidenceEnvelope {
   uploadedBy: string | null;
   retentionClass: string;
   classification: string;
-  /** Önceki versiyonun ZARF hash'i — versiyon zincirini kurar. İlkinde null. */
-  previousVersionHash: string | null;
+  previousFileHash: string | null;
+  previousEnvelopeHash: string | null;
   controlRefs: string[];
   legalHold: boolean;
 }
 
-type CanonicalDeger = string | number | boolean | null | CanonicalDeger[];
+export { canonicalJson, type CanonicalDeger } from "./canonical";
+
+/** Zarfın kanonik (RFC 8785) temsilinin SHA-256'sı. Merkle yaprağı budur. */
+export function envelopeHash(envelope: EvidenceEnvelope): Promise<string> {
+  return canonicalHash(envelope as unknown as CanonicalDeger);
+}
+
+/** `evidences` satırının zarfa giren alanları. */
+export interface EvidenceRow {
+  id: string;
+  tenant_id: string;
+  tip: string;
+  hash_sha256: string | null;
+  hash_algorithm: string;
+  version_no: number;
+  file_size: number | null;
+  mime_type: string | null;
+  storage_object_key: string | null;
+  storage_version_id: string | null;
+  source_system: string | null;
+  captured_at: string | null;
+  created_at: string;
+  yukleyen: string | null;
+  retention_class: string | null;
+  classification: string | null;
+  previous_file_hash: string | null;
+  previous_envelope_hash: string | null;
+  legal_hold: boolean;
+  envelope_schema_version: string | null;
+}
 
 /**
- * Deterministik JSON temsili.
+ * DB satırından zarf kurar.
  *
- * NEDEN JSON.stringify YETMEZ: anahtar sırasını ekleme sırasına göre korur.
- * Aynı zarf, alanları farklı sırayla kurulmuş iki kod yolundan geçtiğinde
- * farklı metin — dolayısıyla farklı hash — üretirdi. O noktada "hash
- * eşleşmiyor" bulgusu kurcalamayı değil, nesnenin nasıl inşa edildiğini
- * gösterirdi ve tüm bütünlük iddiası anlamsızlaşırdı.
- *
- * SINIR — DÜRÜSTÇE: bu RFC 8785'in (JSON Canonicalization Scheme) tamamı
- * DEĞİLDİR. Anahtarları sıralar ve boşluk bırakmaz; RFC 8785'in kayan nokta
- * normalleştirmesi ve unicode escape kuralları uygulanmaz. Zarf alanları
- * yalnızca string, tam sayı, boolean, null ve string[] tiplerinde olduğu
- * için bu fark bugün ürüne yansımaz. Zarfa kayan nokta veya iç içe nesne
- * eklenecek olursa burası gerçek bir RFC 8785 implementasyonuyla
- * değiştirilmelidir.
+ * NULL DÖNER, UYDURMAZ: `envelope_schema_version` boşsa bu kayıt zarf
+ * alanları olmadan yazılmış (M9 öncesi). Eksik alanlara varsayılan atayıp
+ * zarf üretmek, olmayan bir köken iddiasını hash'lemek olurdu — ve o hash,
+ * kanıt değeri olmayan bir sayı olarak denetim raporuna girerdi. Çağıran bu
+ * kaydı LEGACY_FILE_HASH_ONLY olarak taşımalı.
  */
-export function canonicalJson(value: CanonicalDeger | Record<string, CanonicalDeger>): string {
-  if (value === null || typeof value !== "object") return JSON.stringify(value);
-  if (Array.isArray(value)) {
-    // Dizi sırası ANLAMLIDIR ve korunur: controlRefs'in sırası çağıranın
-    // verisidir, sıralamak veriyi değiştirmek olurdu.
-    return `[${value.map((v) => canonicalJson(v)).join(",")}]`;
-  }
+export function zarfOlustur(row: EvidenceRow, controlRefs: string[]): EvidenceEnvelope | null {
+  if (row.envelope_schema_version === null) return null;
+  if (row.retention_class === null || row.classification === null) return null;
 
-  const keys = Object.keys(value).sort();
-  const parts = keys.map((k) => `${JSON.stringify(k)}:${canonicalJson(value[k])}`);
-  return `{${parts.join(",")}}`;
+  return {
+    sema: row.envelope_schema_version,
+    evidenceVersionId: row.id,
+    tenantId: row.tenant_id,
+    versionNo: row.version_no,
+    fileHash: row.hash_sha256,
+    hashAlgorithm: row.hash_algorithm,
+    fileSize: row.file_size,
+    mimeType: row.mime_type,
+    storageObjectKey: row.storage_object_key,
+    storageVersionId: row.storage_version_id,
+    sourceType: row.tip,
+    sourceSystem: row.source_system,
+    capturedAt: kanonikZaman(row.captured_at),
+    uploadedAt: kanonikZaman(row.created_at) as string,
+    uploadedBy: row.yukleyen,
+    retentionClass: row.retention_class,
+    classification: row.classification,
+    previousFileHash: row.previous_file_hash,
+    previousEnvelopeHash: row.previous_envelope_hash,
+    // Sıra mührün parçası olmamalı: aynı kontrol kümesi aynı hash'i vermeli.
+    controlRefs: [...controlRefs].sort(),
+    legalHold: row.legal_hold,
+  };
 }
 
-/** Zarfın kanonik temsilinin SHA-256'sı. Merkle yaprağı budur. */
-export async function envelopeHash(envelope: EvidenceEnvelope): Promise<string> {
-  const canonical = canonicalJson(envelope as unknown as Record<string, CanonicalDeger>);
-  return sha256Hex(new TextEncoder().encode(canonical).buffer as ArrayBuffer);
-}
+export { EVIDENCE_ENVELOPE_SCHEMA };

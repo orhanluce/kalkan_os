@@ -52,10 +52,16 @@ function kontrol(ad: string, sonuc: KontrolSonuc, aciklama: string): DogrulamaKo
 
 async function dosyaHashKontrolu(girdi: DogrulamaGirdisi): Promise<DogrulamaKontrolu> {
   const ad = "Dosya hash eslesmesi";
+
+  // link/beyan tipi kanıtta dosya YOKTUR. Bunu "kaldi" saymak, dosyasız bir
+  // kanıt tipini kurcalanmış gibi gösterirdi.
+  if (girdi.zarf.fileHash === null) {
+    return kontrol(ad, "yok", "Bu kanit tipinde dosya yok; yalnizca zarf uzerinden dogrulandi.");
+  }
   if (girdi.dosyadanHesaplananHash === null) {
     return kontrol(ad, "yok", "Dosya sunulmadi; yalnizca zarf uzerinden dogrulandi.");
   }
-  return girdi.dosyadanHesaplananHash === girdi.zarf.sha256
+  return girdi.dosyadanHesaplananHash === girdi.zarf.fileHash
     ? kontrol(ad, "gecti", "Dosyanin SHA-256'si zarftaki degerle ayni.")
     : kontrol(ad, "kaldi", "Dosyanin SHA-256'si zarftaki degerle UYUSMUYOR: dosya degistirilmis.");
 }
@@ -64,15 +70,15 @@ async function versiyonZinciriKontrolu(girdi: DogrulamaGirdisi): Promise<Dogrula
   const ad = "Versiyon zinciri";
   const { zarf, oncekiZarf } = girdi;
 
-  if (zarf.previousVersionHash === null) {
+  if (zarf.previousEnvelopeHash === null) {
     if (oncekiZarf !== null) {
       // Zarf "ilk versiyonum" diyor ama bir öncül sunuldu: ikisinden biri
       // yanlış, sessizce geçilemez.
       return kontrol(ad, "kaldi", "Zarf ilk versiyon oldugunu belirtiyor ama bir onceki versiyon sunuldu.");
     }
-    return zarf.version === 1
+    return zarf.versionNo === 1
       ? kontrol(ad, "gecti", "Ilk versiyon; oncul beklenmiyor.")
-      : kontrol(ad, "kaldi", `Versiyon ${zarf.version} ama oncul zarf hash'i bos.`);
+      : kontrol(ad, "kaldi", `Versiyon ${zarf.versionNo} ama oncul zarf hash'i bos.`);
   }
 
   if (oncekiZarf === null) {
@@ -80,9 +86,19 @@ async function versiyonZinciriKontrolu(girdi: DogrulamaGirdisi): Promise<Dogrula
   }
 
   const beklenen = await envelopeHash(oncekiZarf);
-  return beklenen === zarf.previousVersionHash
-    ? kontrol(ad, "gecti", "Onceki versiyonun zarf hash'i zincirle eslesiyor.")
-    : kontrol(ad, "kaldi", "Onceki versiyonun zarf hash'i zincirle UYUSMUYOR.");
+  if (beklenen !== zarf.previousEnvelopeHash) {
+    return kontrol(ad, "kaldi", "Onceki versiyonun zarf hash'i zincirle UYUSMUYOR.");
+  }
+
+  // Zarf zinciri tuttu; DOSYA zinciri de tutmalı. İkisi ayrı sorular:
+  // zarf hash'i kökenin, dosya hash'i içeriğin zinciri. Yalnızca ilkini
+  // kontrol etmek, "köken kaydı doğru ama işaret ettiği dosya başka" halini
+  // gözden kaçırırdı.
+  if (zarf.previousFileHash !== null && zarf.previousFileHash !== oncekiZarf.fileHash) {
+    return kontrol(ad, "kaldi", "Onceki versiyonun DOSYA hash'i zincirle UYUSMUYOR.");
+  }
+
+  return kontrol(ad, "gecti", "Onceki versiyonun zarf ve dosya hash'leri zincirle eslesiyor.");
 }
 
 async function merkleProofKontrolu(girdi: DogrulamaGirdisi): Promise<DogrulamaKontrolu> {

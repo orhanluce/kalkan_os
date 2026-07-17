@@ -26,6 +26,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth } from "./auth";
+import { EVIDENCE_ENVELOPE_SCHEMA } from "./canonical";
 import { deriveDurumFromEvidenceExpiry } from "./evidence";
 import type { Evidence } from "./evidence-types";
 import { findEquivalentControlIds } from "./control-mappings";
@@ -200,6 +201,25 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
             hash_sha256: evidence.hashSha256,
             yukleyen: actorId,
             gecerlilik_bitis: evidence.gecerlilikBitis,
+            // --- Zarf alanları (M9) ---
+            // Bunlar UYDURULMUYOR: mime/boyut dosyanın kendisinden, sınıf ve
+            // saklama süresi kullanıcının formda verdiği cevaptan geliyor.
+            envelope_schema_version: EVIDENCE_ENVELOPE_SCHEMA,
+            mime_type: evidence.mimeType,
+            file_size: evidence.fileSize,
+            classification: evidence.classification,
+            retention_class: evidence.retentionClass,
+            captured_at: evidence.capturedAt,
+            // source_system: kanıt bir dış sistemden otomatik çekilmiyor;
+            // elle yükleniyor. "MANUEL" gibi bir değer yazmak, olmayan bir
+            // kaynak sistemi varmış gibi gösterirdi — null doğru cevap.
+            source_system: null,
+            // storage_object_key/storage_version_id: uygulama dosyayı
+            // Storage'a YÜKLEMİYOR (bkz. 20260717190000). Dosya adını
+            // "storage anahtarı" diye yazmak, olmayan bir nesneye işaret eden
+            // bir iddia olurdu.
+            storage_object_key: null,
+            storage_version_id: null,
           });
           if (error) throw error;
 

@@ -1,7 +1,7 @@
 // M10 kabul kriteri: "sunulmuş beyan ve cevapları değiştirilemez"
 // (docs/ROADMAP.md M10).
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createTestDb, seedTwoTenants, type TestDb } from "./helpers/pg";
+import { createTestDb, seedTwoTenants, type TestDb, ZARF_DEGERLERI, ZARF_KOLONLARI } from "./helpers/pg";
 
 let db: TestDb;
 let seed: Awaited<ReturnType<typeof seedTwoTenants>>;
@@ -114,7 +114,8 @@ describe("YK Beyanı: sunulduktan sonra immutable", () => {
       [declarationId],
     );
     const { rows: ev } = await db.sql(
-      `insert into public.evidences (tenant_id, control_id, tip) values ($1, $2, 'beyan') returning id`,
+      `insert into public.evidences (tenant_id, control_id, tip, ${ZARF_KOLONLARI})
+     values ($1, $2, 'beyan', ${ZARF_DEGERLERI}) returning id`,
       [seed.A.tenantId, seed.controlId],
     );
     await db.asUser(

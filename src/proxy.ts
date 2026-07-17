@@ -21,8 +21,14 @@ import { supabaseAyarlari } from "./lib/supabase/env";
  * /paylasim BİLİNÇLİ olarak açıktır: bağımsız denetçi, hesabı olmadan
  * süreli bir token ile girer (docs/ROADMAP.md M4). Erişimi token'ın
  * kendisi ve share_links üzerindeki RLS sınırlar — oturum değil.
+ *
+ * /dogrula da BİLİNÇLİ olarak açıktır (M9): rapordaki karekodu okutan denetçinin
+ * hesabı yoktur. Buradaki risk /paylasim'dan daha düşük çünkü sayfa hiçbir
+ * kiracı verisi göstermez — yalnızca manifest_dogrula'nın döndürdüğü beş
+ * minimize alan (hash, zaman, mühür durumu). Tabloların kendisine erişimi
+ * hâlâ RLS engelliyor.
  */
-const ACIK_YOLLAR = ["/giris", "/paylasim", "/auth"];
+const ACIK_YOLLAR = ["/giris", "/paylasim", "/auth", "/dogrula"];
 
 function acikYolMu(pathname: string): boolean {
   return ACIK_YOLLAR.some((yol) => pathname === yol || pathname.startsWith(`${yol}/`));
