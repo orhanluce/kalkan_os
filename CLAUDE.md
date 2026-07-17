@@ -102,8 +102,16 @@ doğrulandı (retestsiz red, FAILED retest red, başarılı retest+onay kapatır
 Yol boyunca bir PGlite≠Postgres farkı düzeltildi: `audit_findings` `text[] ||
 'literal'` (canlıda OK, PGlite'ta "malformed array literal") → `array_append`.
 
-M12'de KALAN (ROADMAP M12): test çalıştırma rotası/UI (motor+öneri hazır, ekran
-yok), öneri→kabul rotası, freshness otomasyonu, tenant_controls'a bağlama + pano,
+**Test çalıştırma + öneri kabul rotaları (M12, canlıda e2e):**
+`POST /api/kontrol-test/[id]/calistir` (gözlem→motor→test_run, FAILED ise öneri)
+ve `POST /api/kontrol-test/oneri/[oneriId]` (KABUL gerçek bulgu, retest_gerekli
+tanımdan). `e2e/kontrol-test.spec.ts`: FAILED→öneri, TOPLAMA ARIZASI→UNKNOWN+öneri
+YOK (kural 13 uçtan uca), kabul→bulgu, retestsiz kapatma reddi, retest→kapanış.
+Sonucu MOTOR belirler (rota değil); test_run/öneri INSERT kullanıcı oturumuyla
+(RLS), service_role yalnız öneri kararında.
+
+M12'de KALAN (ROADMAP M12): test tanımı yönetimi + çalıştırma/öneri EKRANLARI
+(rotalar hazır, UI yok), freshness otomasyonu, tenant_controls'a bağlama + pano,
 S01 dikey akışı.
 
 Hâlâ **doğrulanamayan** tek şey **deploy**. Bunun için "çalışıyor" deme.

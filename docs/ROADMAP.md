@@ -729,7 +729,7 @@ reddedildi, soy sorgulanabiliyor (`evidence_redaksiyon_soyu`).
 **Kabul (KALAN):** legal hold altındaki kanıt silinemez ve deneme audit event
 üretir; redaction UI (yükleme formu).
 
-### M12 — Kontrol test motoru ve durum makinesi (belge M02) ⏳ motor+durum sözlüğü ✅ + bulgu/verified-closure ✅, test-rota/freshness/pano ✗
+### M12 — Kontrol test motoru ve durum makinesi (belge M02) ⏳ motor+durum ✅ + bulgu/verified-closure ✅ + test-rota+öneri ✅, UI/freshness/pano ✗
 
 **Tamamlanan — deterministik motor + kural 13 durum sözlüğü (`control-test.ts`,
 `20260717230000/230001`):** kontrolün "tasarlandı" değil "çalışıyor" durumunu
@@ -778,10 +778,23 @@ kural 11+14):**
   `array_append`'e çevrildi (canlıda birebir aynı) — findings güncellemeleri
   artık PGlite'ta da test edilebilir, closure guard testleri bu sayede koşuyor.
 
+**Tamamlanan 3 — test çalıştırma + öneri kabul rotaları (canlıda e2e):**
+- `POST /api/kontrol-test/[id]/calistir`: gözlemi alır, motoru koşar, `test_run`
+  yazar, FAILED + otomatik_bulgu ise öneri doğurur. Sonucu MOTOR belirler, rota
+  değil (kural 13 tek yerde). test_run + öneri INSERT'i kullanıcı oturumuyla
+  (RLS tenant'ı zorluyor); service_role yalnız öneri kararında.
+- `POST /api/kontrol-test/oneri/[oneriId]`: KABUL gerçek bulgu oluşturur
+  (kullanıcı oturumuyla → audit doğru atfeder), `retest_gerekli`'yi tanımdan
+  taşır, `kaynak_test_definition_id` bağlar; RET yalnız durumu günceller
+  (service_role). M8 öneri rotasının aynı deseni.
+- **`e2e/kontrol-test.spec.ts` (gerçek Chromium + gerçek Supabase):** FAILED →
+  öneri; TOPLAMA ARIZASI → UNKNOWN ve öneri YOK (kural 13 uçtan uca); kabul →
+  bulgu (retest_gerekli + kaynak bağı doğrulandı); retestsiz kapatma reddedildi;
+  başarılı retest → kapanış. Test tanımı UI'ı yok, fixture bir MANUAL_PROCEDURE
+  tanımı seed ediyor.
+
 **KALAN:**
-- Test çalıştırma rotası/UI: motor + öneri üretimi hazır ama uygulamadan test
-  koşup test_run yazan + öneriyi doğuran ekran/route yok (bugün yalnız script).
-- Öneri → kabul rotası (M8'deki `oneri` route deseni kontrol testi için).
+- Test tanımı yönetimi + test çalıştırma/öneri EKRANLARI (rotalar hazır, UI yok).
 - Freshness otomasyonu: `pg_cron` ile kanıt süresi dolunca STALE — motor STALE'i
   hesaplıyor ama DB'de zamanlı yeniden değerlendirme yok (eski borç, skip'li e2e
   burada kapanır).

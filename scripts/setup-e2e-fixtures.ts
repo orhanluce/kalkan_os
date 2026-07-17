@@ -133,9 +133,32 @@ async function main() {
   //    observations/finding_proposals/action_results/scores CASCADE ile
   //    kendiliğinden temizlenir (bkz. 20260717120000/130000/140000
   //    migration'larındaki "on delete cascade") — ayrı ayrı silmiyoruz.
-  for (const tablo of ["evidences", "findings", "share_links", "audit_log", "simulation_runs"]) {
+  //    control_test_definitions silinince test_runs + finding_proposals
+  //    CASCADE ile gider.
+  for (const tablo of [
+    "evidences",
+    "findings",
+    "share_links",
+    "audit_log",
+    "simulation_runs",
+    "control_test_definitions",
+  ]) {
     await db.from(tablo).delete().eq("tenant_id", tenant.id);
   }
+
+  // 5) Kontrol test motoru (M12) için bir test tanımı seed et — UI henüz yok,
+  //    e2e rotaları bu tanıma karşı koşuyor. MANUAL_PROCEDURE: sonuç sinyali
+  //    (iddiaKarsilandi) gözlemde gelir, connector gerekmez.
+  await db.from("control_test_definitions").insert({
+    tenant_id: tenant.id,
+    control_id: controls[0].id,
+    tur: "MANUAL_PROCEDURE",
+    ad: "E2E: MFA tüm ayrıcalıklı hesaplarda zorunlu",
+    tazelik_gun: 90,
+    basarisizlik_onem: "kritik",
+    otomatik_bulgu: true,
+    retest_gerekli: true,
+  });
 
   console.log(`E2E fiksturu hazir: ${controls.length} kontrol atandi, veriler sifirlandi.`);
 }
