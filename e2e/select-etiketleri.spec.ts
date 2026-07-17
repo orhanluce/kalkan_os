@@ -1,24 +1,20 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { girisYap, kontrolAc } from "./helpers";
 
 // Regresyon koruması: base-ui'de <SelectValue />, Select.Root'a `items`
 // (value→label haritası) verilmezse seçili değerin HAM halini gösterir —
-// kullanıcı "Açık" yerine "acik", "Ayşe Yılmaz" yerine "u-admin" görür.
+// kullanıcı "Açık" yerine "acik", "Ayşe Yılmaz" yerine bir UUID görür.
 // Bu, CLAUDE.md kural 6'yı ("Türkçe UI") ihlal eder ve gözle bakarken
 // kolayca kaçırılır. Aşağıdaki testler her Select'in etiket gösterdiğini
 // doğrular.
 
-async function girisYap(page: import("@playwright/test").Page) {
-  await page.goto("/giris");
-  await page.getByLabel("E-posta").fill("ayse@demo.com");
-  await page.getByRole("button", { name: "Giriş Yap" }).click();
-  await expect(page.getByRole("heading", { name: "Demo Aracı Kurum A.Ş." })).toBeVisible();
-}
-
 test("kontrol detayındaki Select'ler ham değer değil Türkçe etiket gösterir", async ({ page }) => {
   await girisYap(page);
-  await page.goto("/controls/c-06");
+  // Bu spec'e özel bir kontrol kodu: diğer spec dosyaları farklı kodlar
+  // kullanır, böylece testler workers:1 altında sırayla koşsa bile
+  // birbirinin durum/sorumlu değişikliğinden etkilenmez.
+  await kontrolAc(page, "TODO-DOGRULA-01");
 
-  // c-06 mock'ta "acik" durumunda — "Açık" yazmalı, "acik" değil.
   const durumTrigger = page.getByRole("combobox").first();
   await expect(durumTrigger).toContainText("Açık");
   await expect(durumTrigger).not.toContainText("acik");
@@ -38,11 +34,10 @@ test("kontrol kütüphanesi çerçeve filtresi etiket gösterir", async ({ page 
   await expect(filtre).toContainText("Tümü");
   await expect(filtre).not.toContainText("tumu");
 
-  // Bir çerçeve seçilince kodu görünmeli, ham id ("f-vii128") değil.
+  // Bir çerçeve seçilince kodu görünmeli, ham UUID değil.
   await filtre.click();
   await page.getByRole("option", { name: "VII-128.10" }).click();
   await expect(filtre).toContainText("VII-128.10");
-  await expect(filtre).not.toContainText("f-vii128");
 });
 
 test("bulgular formundaki Select'ler etiket gösterir", async ({ page }) => {
@@ -60,7 +55,13 @@ test("paylaşım formundaki çerçeve Select'i etiket gösterir", async ({ page 
   await girisYap(page);
   await page.goto("/paylasim");
 
+  // Hangi çerçevenin varsayılan seçili geldiği (kodun alfabetik sırasına
+  // göre "7545" mi "VII-128.10" mu önce gelir) bu testin konusu değil —
+  // asıl regresyon, seçilince ham UUID değil ÇERÇEVE KODU görünmesi. Bu
+  // yüzden açıkça VII-128.10'u seçip onu doğruluyoruz.
   const cerceve = page.getByLabel("Çerçeve");
+  await expect(cerceve).not.toHaveText("");
+  await cerceve.click();
+  await page.getByRole("option", { name: "VII-128.10" }).click();
   await expect(cerceve).toContainText("VII-128.10");
-  await expect(cerceve).not.toContainText("f-vii128");
 });

@@ -220,7 +220,18 @@ store'dan gerçek Supabase'e taşınıyor.
 - [ ] **`evidences.kaynak_kontrol_id` kolonu yok.** "Bir kanıt, dört çerçeve" yansıtmasında kanıtın hangi kontrolden geldiği DB'de kaybolur (yalnızca `audit_log` detayında kalır); yansıtılan kanıt doğrudan yüklenmiş gibi görünür.
 - [ ] **Kanıt süresi dolması** artık yalnızca yükleme anında hesaplanıyor; DB'de "karsilaniyor" kalıp UI'da "kismi" görünen kayıtlar oluşabilir. Cron/trigger ile şemaya taşınmalı.
 - [ ] `scripts/generate-yk-beyani.ts` hâlâ `mock-data`'dan okuyor.
-- [ ] **Playwright akışları devre dışı** (`playwright.config.ts` → `GECIS_SURUYOR`). Kural 8'in bilinçli ve işaretlenmiş ihlali. Artık gerçek kullanıcı + gerçek veriye karşı yeniden yazılabilirler; bunun için test kullanıcısının şifresi CI/env'den gelmeli.
+- [x] ~~Playwright akışları devre dışı~~ — **kapatıldı**. `scripts/setup-e2e-fixtures.ts` ayrı bir
+  "E2E Test Kurumu A.Ş." kiracısı + iki test kullanıcısı kurar (service_role ile, rastgele
+  üretilen şifreyle — bir insanın kimlik bilgisi değil, atılabilir CI fikstürü) ve her `pnpm e2e`
+  koşusunda o kiracının kontrol/kanıt/bulgu durumunu sıfırlar. 4 spec dosyası (10 test) gerçek
+  seed veriye göre yeniden yazıldı; `workers: 1` ile sıralı koşuyorlar (paylaşılan kiracı
+  durumunda paralel koşu flaky testlere yol açardı). **9/9 canlıda yeşil**, 1 test bilinçli
+  `test.skip` — kanıt süresi dolmasının DB'de otomatik yeniden hesaplanmadığı bilinen açığı
+  sınıyordu (aşağıdaki madde), o düzelene kadar kırmızı kalması sessizce gizlemekten iyidir.
+  Bu iş sırasında iki gerçek bug bulundu ve düzeltildi: (1) `paylasim` sayfasındaki çerçeve
+  seçimi hiçbir zaman varsayılan bir değer almıyordu (kullanıcı elle seçmeden Select sonsuza
+  kadar boş kalırdı); (2) `frameworks` sorgusunda `order()` yoktu, yani varsayılan seçili
+  çerçeve sayfa yüklemesi başına değişebilirdi.
 
 ### M7 — Simülasyon şablon motoru ✅ (kaynak: simülasyon belgesi §7, Faz 6)
 

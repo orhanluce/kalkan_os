@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test",
+    "e2e": "pnpm e2e:fixtures && playwright test",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "db:link": "tsx scripts/db-link.ts",
     "db:push": "tsx scripts/db-push.ts",
@@ -23,7 +23,8 @@
     "seed:scenarios": "tsx scripts/seed-scenarios.ts",
     "demo:simulation": "tsx scripts/demo-simulation.ts",
     "seed:beyan": "tsx scripts/seed-beyan.ts",
-    "demo:beyan": "tsx scripts/demo-beyan.ts"
+    "demo:beyan": "tsx scripts/demo-beyan.ts",
+    "e2e:fixtures": "tsx scripts/setup-e2e-fixtures.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

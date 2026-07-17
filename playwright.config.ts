@@ -1,23 +1,22 @@
 import { defineConfig, devices } from "@playwright/test";
+import { loadEnvLocal } from "./scripts/env";
 
-// GEÇİCİ: e2e akışları Supabase geçişi boyunca devre dışı.
-//
-// SEBEP: giriş artık gerçek Supabase Auth'tan geçiyor (şifreli, gerçek
-// kullanıcı gerektiriyor) ama veri katmanı hâlâ localStorage'da. Yani
-// testler tutarsız bir dünyaya bakıyor: gerçek kimlik, mock veri. Bu
-// haldeyken düzeltmek, geçiş bitince ikinci kez atılacak kod üretirdi.
-//
-// BURASI KURAL 8'İN (her taş sonunda Playwright yeşil) AÇIK BİR İHLALİDİR
-// ve öyle işaretlenmiştir — testleri sessizce silmek yerine görünür
-// bırakıyoruz. Geçişin son adımı (veri katmanı) bittiğinde bu blok
-// kaldırılacak ve akışlar gerçek kullanıcı + gerçek veriye karşı yeniden
-// yazılacak. Bkz. docs/ROADMAP.md "Supabase geçişi".
-const GECIS_SURUYOR = true;
+// .env.local Next.js dev server'a (webServer altında) otomatik yüklenir,
+// ama Playwright'ın kendi test process'ine YÜKLENMEZ — testler
+// process.env.E2E_USER_EMAIL/PASSWORD okuyabilsin diye burada elle
+// yapıyoruz (bkz. e2e/helpers.ts).
+for (const [key, value] of Object.entries(loadEnvLocal())) {
+  process.env[key] ??= value;
+}
 
 export default defineConfig({
   testDir: "./e2e",
-  testIgnore: GECIS_SURUYOR ? ["**/*.spec.ts"] : [],
-  fullyParallel: true,
+  // fullyParallel: false + workers: 1: testler ayrı bir e2e kiracısını
+  // paylaşıyor (bkz. scripts/setup-e2e-fixtures.ts). Paralel koşu, bir
+  // testin bıraktığı DB durumunun başka bir testin ortasında değişmesine
+  // yol açabilir — sıralı koşu bu sınıfı flaky testi baştan eler.
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: "list",

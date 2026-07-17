@@ -36,9 +36,14 @@ export default function PaylasimPage() {
   );
   const frameworkById = new Map(kutuphane.frameworks.map((f) => [f.id, f]));
 
-  // Çerçeveler asenkron geldiği için ilk render'da liste boş olabilir:
-  // frameworks[0].id doğrudan okunsaydı sayfa çökerdi.
+  // frameworkId "kullanıcı elle bir şey seçti mi" durumunu tutar; boşsa
+  // henüz seçmemiştir. Çerçeveler asenkron geldiği için ilk render'da liste
+  // boş olabilir — frameworks[0].id'yi state'e ATAMAK yerine (effect içinde
+  // setState, gereksiz bir render turu ve lint'in react-hooks/
+  // set-state-in-effect kuralının uyardığı desen) render sırasında TÜRETİYORUZ:
+  // kullanıcı seçim yapmadıysa ilk çerçeve varsayılan olarak kullanılır.
   const [frameworkId, setFrameworkId] = useState<string>("");
+  const seciliFrameworkId = frameworkId || (kutuphane.frameworks[0]?.id ?? "");
   const [sonGecerlilik, setSonGecerlilik] = useState(defaultSonGecerlilik);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
@@ -49,7 +54,7 @@ export default function PaylasimPage() {
       // Gerçek tenant_id'yi store, oturumdaki kiracıdan yazar.
       tenantId: "",
       token: generateShareToken(),
-      kapsam: { frameworkId },
+      kapsam: { frameworkId: seciliFrameworkId },
       olusturan: null,
       sonGecerlilik: `${sonGecerlilik}T23:59:59.000Z`,
       createdAt: new Date().toISOString(),
@@ -87,8 +92,8 @@ export default function PaylasimPage() {
               <Label htmlFor="cerceve">Çerçeve</Label>
               <Select
                 items={FRAMEWORK_ITEMS}
-                value={frameworkId}
-                onValueChange={(v) => setFrameworkId(v ?? frameworkId)}
+                value={seciliFrameworkId}
+                onValueChange={(v) => setFrameworkId(v ?? seciliFrameworkId)}
               >
                 <SelectTrigger id="cerceve">
                   <SelectValue />

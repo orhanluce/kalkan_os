@@ -33,7 +33,10 @@ export interface Kutuphane {
 
 export async function fetchKutuphane(db: Db): Promise<Kutuphane> {
   const [fw, ctrl, map] = await Promise.all([
-    db.from("frameworks").select("id, code, name, version, yururluk_tarihi"),
+    // order olmadan Postgres'in dönüş sırası tanımsızdır (genelde ekleme
+    // sırası, ama garanti değil) — bu, "varsayılan seçili çerçeve" gibi bir
+    // UI davranışını sayfa yüklemesi başına DEĞİŞEBİLİR hale getirirdi.
+    db.from("frameworks").select("id, code, name, version, yururluk_tarihi").order("code"),
     db.from("controls").select("id, framework_id, madde_ref, baslik, aciklama, kanit_tipi, periyot, kritiklik"),
     db.from("control_mappings").select("id, control_id_a, control_id_b, iliski"),
   ]);

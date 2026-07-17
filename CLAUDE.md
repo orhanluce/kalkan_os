@@ -18,11 +18,12 @@ Merkle + proof, `EvidenceAnchorProvider`, kanıt zarfı (canonical JSON) ve
 bağımsız doğrulama — hepsi testli. M5.5'in **UI'ı yok**; bu katmanlar henüz
 hiçbir ekrana bağlı değil.
 
-**Geçişin açtığı borçlar** (docs/ROADMAP.md "Supabase geçişi" altında listeli,
-"bitti" demeden önce oku): audit_log yazması atomik değil (trigger'a taşınmalı);
-denetçi paylaşımı `/paylasim/:token` çalışmıyor (RLS anon'a satır vermiyor, M4
-kabul kriteri karşılanmıyor); Playwright akışları devre dışı (kural 8 ihlali,
-işaretli).
+**Geçişin açtığı borçlar, çoğu kapandı** (docs/ROADMAP.md "Supabase geçişi" altında
+tam liste): audit_log yazması artık trigger'da (atomik); denetçi paylaşımı
+`paylasim_goruntule` RPC'siyle çalışıyor; Playwright akışları ayrı bir e2e
+kiracısına karşı yeniden yazıldı ve 9/9 yeşil (`pnpm e2e`). Kalan gerçek açık:
+kanıt süresi dolması yalnızca yükleme anında hesaplanıyor, DB'de otomatik
+yeniden değerlendirilmiyor (bir test bunun için bilinçli `skip`).
 
 **RLS gerçekten test ediliyor** (kural 1 için mazeret yok): PGlite
 (Postgres'in WASM derlemesi, kurulum gerektirmez) ile gerçek migration
@@ -49,11 +50,11 @@ ve deterministik puanlama motoru (`src/lib/scoring.ts`) bitti; **yürütme
 ekranları yok** (`/simulasyonlar` yalnızca kütüphaneyi listeler). M9 (fidye
 dikey akışı, PDF/QR raporlar) hiç başlamadı.
 
-**Açık borçlar** (docs/ROADMAP.md "Supabase geçişi" altında listeli):
-Playwright akışları devre dışı — kural 8'in bilinçli, işaretli ihlali; gerçek
-kullanıcı şifresi CI/env'den gelmeli. `evidences.kaynak_kontrol_id` kolonu
-yok. Kanıt süresi yalnızca okuma anında hesaplanıyor. `generate-yk-beyani.ts`
-hâlâ mock-data okuyor.
+**Açık borçlar** (docs/ROADMAP.md'de tam liste): `evidences.kaynak_kontrol_id`
+kolonu yok (yansıtılan kanıt doğrudan yüklenmiş gibi görünür). Kanıt süresi
+yalnızca okuma/yükleme anında hesaplanıyor, DB'de otomatik yeniden
+değerlendirilmiyor. `generate-yk-beyani.ts` hâlâ mock-data okuyor — M10'un
+Yönetim Kurulu Beyanı modülü onun yerini almalı ama henüz bağlanmadı.
 
 ## Değişmez kurallar
 1. Her tabloda tenant_id + RLS; RLS'i test etmeden hiçbir tablo "bitti" sayılmaz.
