@@ -11,7 +11,9 @@
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { LocalAppendOnlyAnchorProvider } from "@/lib/anchor";
+import type { CanonicalDeger } from "@/lib/canonical";
 import { envelopeHash, zarfOlustur, type EvidenceRow } from "@/lib/evidence-envelope";
+import { LocalDevSigner, detachedJwsImzala } from "@/lib/manifest-signature";
 import { bulguOnerileriUret, puanla, type PuanlamaKurali } from "@/lib/scoring";
 import { coreManifestOlustur, type ManifestKanit } from "@/lib/simulation-manifest";
 import type { Database, Json } from "@/lib/supabase/database.types";
@@ -281,6 +283,16 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     oneriSayisi: oneriler.length,
   });
 
+  // --- Çekirdek manifesti İMZALA (ADR-M11-01) ---
+  //
+  // İmza mühürle AYNI INSERT'te yazılır ve manifest immutable olduğu için
+  // donar. İmzalayıcı bugün LocalDevSigner: private key bu süreçte, bellekte,
+  // GEÇİCİ. Production'da yerine KMS/HSM imzalayıcı gelir (aynı arayüz, private
+  // key dışarı çıkmaz). Bu imza "geliştirme anahtarı imzaladı" der — production
+  // authenticity'si değil; doğrulama yüzeyi bunu açıkça söyler.
+  const signer = await LocalDevSigner.olustur();
+  const imza = await detachedJwsImzala(muhur.coreManifest as unknown as CanonicalDeger, signer);
+
   const { data: manifestRow, error: manifestErr } = await admin
     .from("simulation_result_manifests")
     .insert({
@@ -293,6 +305,11 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       // yeniden üretmeye yetmez (bkz. 20260717181000).
       report_data: muhur.reportData as unknown as Json,
       merkle_root: muhur.merkleRoot,
+      // İmza (ADR-M11-01). Yalnız public JWK saklanır; private key HSM/KMS'te.
+      signature_jws: imza.jws,
+      signature_kid: imza.kid,
+      signature_public_jwk: imza.publicJwk as unknown as Json,
+      signer_ad: signer.ad,
     })
     .select("id")
     .single();
@@ -300,6 +317,18 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
   if (manifestErr) {
     return NextResponse.json({ hata: manifestErr.message }, { status: 500 });
   }
+
+  // Her imzalama audit log'a yazılır (ADR-M11-01). Trigger'lar tenant_controls
+  // gibi tabloları otomatik yakalıyor ama manifest imzalama uygulama-seviyesi
+  // bir olay; audit izinin bunu da görmesi gerekiyor.
+  await admin.from("audit_log").insert({
+    tenant_id: run.tenant_id,
+    actor_id: user.id,
+    eylem: "kanit_imzalandi",
+    hedef_tablo: "simulation_result_manifests",
+    hedef_id: manifestRow.id,
+    detay: { kid: imza.kid, signer: signer.ad, core_manifest_hash: muhur.coreManifestHash },
+  });
 
   // Sabitleme (anchor). Sağlayıcı bugün local — bağımsız bir zaman damgası
   // DEĞİL (M9 kararı: RFC 3161 ertelendi, ROADMAP'te kayıtlı). Bu yüzden

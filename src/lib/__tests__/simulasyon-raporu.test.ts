@@ -33,6 +33,8 @@ function data(ustu: Partial<SimulasyonRaporuData> = {}): SimulasyonRaporuData {
     dogrulamaUrl: "https://ornek.test/dogrula/" + "a".repeat(64),
     muhurDurumu: "sabitlendi",
     anchorSaglayici: "local-append-only",
+    imzaKid: "local-dev-abc123",
+    imzalayici: "local-dev-es256",
     ...ustu,
   };
 }
@@ -112,5 +114,27 @@ describe("renderSimulasyonRaporuHtml", () => {
     );
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).toContain("&lt;script&gt;");
+  });
+});
+
+// Bu describe dosyanın sonuna eklendi (M11 imza görünürlüğü).
+describe("imza görünürlüğü (ADR-M11-01)", () => {
+  it("imza anahtarı (kid) raporda görünür", () => {
+    const html = renderSimulasyonRaporuHtml(data());
+    expect(html).toContain("local-dev-abc123");
+    expect(html).toContain("JWS ES256");
+  });
+
+  it("GELİŞTİRME anahtarı olduğunu ve authenticity taşımadığını açıkça söyler", () => {
+    // local-dev imza production değil; rapor bunu gizlerse okuyan sahte güven duyar.
+    const html = renderSimulasyonRaporuHtml(data());
+    expect(html).toContain("GELİŞTİRME");
+    expect(html).toMatch(/nitelikli elektronik imza|e-mühür/i);
+  });
+
+  it("imzasız (eski) manifestte 'imza yok' der, uydurma imza göstermez", () => {
+    const html = renderSimulasyonRaporuHtml(data({ imzaKid: null, imzalayici: null }));
+    expect(html).toContain("imza öncesi mühürlendi");
+    expect(html).not.toContain("JWS ES256");
   });
 });

@@ -598,10 +598,64 @@ hash zinciri, dört-göz onayı (`evidence_reviews`), RFC 6962 Merkle + bağıms
 doğrulama kütüphanesi, YK Beyanı çapraz denetim motoru (M10), PGlite RLS test
 düzeni, canlı Supabase'e karşı e2e doğrulama disiplini.
 
-### M11 — Kanıt çekirdeği v2 (belge M01 / Faz 1) ⏳ Storage ✅, imza/redaction/CLI/ZIP ✗
+### M11 — Kanıt çekirdeği v2 (belge M01 / Faz 1) ⏳ Storage ✅ + JWS imza ✅, redaction/CLI/ZIP/TSA ✗
 
 Kanıt "yüklenen dosya adı" olmaktan çıkar: dosya gerçekten Storage'da, zarf
 imzalı, paket bağımsız doğrulanabilir.
+
+**Kurucu kararları (17 Temmuz 2026) — bağlayıcı ADR'ler:**
+
+> **ADR-M11-01 (İmza):** Kanıt/paket manifestleri tenant bazlı, dışarı
+> aktarılamayan **ES256** (NIST P-256) anahtarlarıyla **detached JWS** olarak
+> imzalanır. SaaS'ta anahtar HSM destekli KMS'te, on-premise'de müşteri
+> HSM/KMS'sinde; **private key veritabanında/env'de ASLA saklanmaz** —
+> KALKAN_OS yalnız KMS imzalama API'sini çağırır. `kid` ile anahtar kimliği,
+> yılda bir/olay halinde rotasyon, eski public key'ler süresiz doğrulama için
+> saklanır, her imzalama audit log'a yazılır. **Hukuki sınır:** bu imza sistem
+> bütünlüğü + paket kaynağı ispatıdır; nitelikli e-imza / kurumsal e-mühür
+> YERİNE GEÇMEZ.
+>
+> **ADR-M11-02 (Zaman damgası):** İmzalı manifest özetleri RFC 3161 uyumlu
+> bağımsız TSA ile damgalanır. TR üretim varsayılanı (ticari uygunluk
+> doğrulandıktan sonra) **TÜBİTAK Kamu SM**; diğer BTK-bildirimli ESHS'ler
+> takılabilir sağlayıcı. AB müşterilerinde seçim, işlem anında EU Trusted
+> List'te "qualified timestamp" statüsü doğrulanan QTSP'lerle sınırlı.
+>
+> **ADR-M11-03 (Dayanıklılık):** TSA entegrasyonu sağlayıcıdan bağımsız. TSA
+> kesintisi paket üretimini DURDURMAZ; paket `timestamp_pending`'te tutulur,
+> kuyrukla tekrar denenir ve zaman damgası alınmadan `externally_verified`
+> statüsüne GEÇEMEZ. (anchor_receipts'teki beklemede→sabitlendi deseninin aynısı.)
+
+**Tamamlanan 1 — gerçek dosya yükleme (`20260717200000`):** private `evidence`
+bucket'ı, içerik-adresli yol `{tenant_id}/{sha256}`, `storage.objects` üzerinde
+tenant-izolasyonlu RLS (SELECT + INSERT own-tenant; UPDATE/DELETE YOK, kural 2
+append-only). Yükleme store'da (`addEvidence(evidence, file)`), 409'u idempotent
+sayar — "bir kanıt, dört çerçeve" yansımasında dosya bir kez yüklenir, N satır
+aynı nesneyi paylaşır. İndirme imzalı, 60 sn ömürlü URL ile. `storage_object_key`
+artık gerçek nesneye işaret ediyor. **Canlıda doğrulandı** (script + e2e):
+round-trip baytları aynı, başka tenant klasörüne yükleme RLS ile reddedildi,
+bucket private; tarayıcıdan gerçek dosya yüklenip imzalı URL ile geri indirildi.
+CLAUDE.md'deki "Storage doğrulanamadı" kalemi KAPANDI.
+- `storage_version_id` null: içerik-adreslemede sürüm yolun kendisinde (dosya
+  değişirse hash değişir → yeni nesne). Kolon ileride bucket sürümleme açılırsa.
+- PGlite storage şemasını taklit edemez: pg.ts'e stub eklendi ama YALNIZCA
+  migration APPLY olsun diye; storage RLS'i gerçekten canlıda kanıtlandı.
+
+**Tamamlanan 2 — JWS imza (ADR-M11-01, `20260717210000`):** çekirdek manifest,
+mühürle aynı INSERT'te ES256 detached JWS ile imzalanıyor (`manifest-signature.ts`);
+`signature_jws` + `signature_kid` + `signature_public_jwk` + `signer_ad`
+manifestle birlikte donuyor (immutable). Doğrulama saklanan public JWK'yla
+BİZE ULAŞMADAN yapılabiliyor. `alg:none` atlatma reddediliyor. Her imzalama
+audit_log'a (`kanit_imzalandi`) yazılıyor. `manifest_dogrulama_durumu`:
+imzasiz/imzali. **Canlıda doğrulandı** (script): manifest imzalı, saklanan JWK
+ile bağımsız doğrulama geçti, manifest kurcalanınca doğrulama başarısız oldu,
+audit kaydı düştü.
+- **Soyutlama ADR-M11-01'i koruyor:** `ManifestSigner` yalnız `sign()` +
+  `publicKeyJwk()` sunar, private key'e erişim yoktur. Bugünkü `LocalDevSigner`
+  GEÇİCİ bellek anahtarı kullanır — production'da yerine KMS/HSM imzalayıcı
+  gelir (aynı arayüz). `signer_ad` = `local-dev-*` olduğu için rapor ve
+  doğrulama yüzeyi "geliştirme anahtarı, production authenticity'si değil, +
+  nitelikli e-imza yerine geçmez" uyarısını taşıyor.
 
 **Tamamlanan — gerçek dosya yükleme (`20260717200000`):** private `evidence`
 bucket'ı, içerik-adresli yol `{tenant_id}/{sha256}`, `storage.objects` üzerinde
@@ -619,23 +673,31 @@ CLAUDE.md'deki "Storage doğrulanamadı" kalemi KAPANDI.
   migration APPLY olsun diye; storage RLS'i gerçekten canlıda kanıtlandı.
 
 **KALAN (M11'in kapanması için):**
-- İmza: JWS + `signer_identity`; ilk sürümde sunucu anahtarı, alan yapısı
-  tenant-managed key'e açık. **Anahtar yönetimi kurucu kararı** — hangi anahtar,
-  nerede saklanıyor; sormadan ilerleme.
+- **KMS/HSM imzalayıcı:** `ManifestSigner` arayüzünü uygulayan gerçek KMS
+  bağlayıcısı (AWS KMS / Azure Managed HSM / GCP KMS / PKCS#11). Soyutlama
+  hazır; bu, kod değil ALTYAPI provizyonu — deployment modeline göre anahtar
+  yeri (ADR-M11-01 tablosu). Kurucu KMS'i sağlayınca takılır.
+- **RFC 3161 zaman damgası (ADR-M11-02/03):** `TimestampProvider` soyutlaması +
+  gerçek ASN.1 codec + Kamu SM endpoint. **Bilinçli ertelendi:** Kamu SM test
+  endpoint'i olmadan ASN.1 kodeki KÖR yazılır ve doğrulanamaz — "inşa ettiğini
+  doğrula" ilkesini çiğner. `manifest_dogrulama_durumu` bugün en üst 'imzali'
+  döndürüyor; TSA bağlanınca 'dis_dogrulanabilir' kolu ve token tablosu
+  (anchor_receipts deseni) eklenecek. Kurucu notu: bu "yalnız Kamu SM ile
+  ticari sözleşme + test endpoint satın alma aşamasında netleşir".
 - Zarf v2 alanları: population/sample/dönem; güven bileşenleri (kaynak
   otoritesi, bağımsızlık, güncellik, tamlık, yeniden üretilebilirlik);
   redaction — raw/redacted ayrı hash, soy bağı korunur; `kaynak_kontrol_id`
   (yansıtılan kanıt soyu — eski borç).
 - Bağımsız verify CLI (`scripts/verify-evidence.ts`): kendi RFC 8785
-  uygulamamız bunu mümkün kıldı (dış paket tsx'ten çözülemiyordu, §1.5).
+  uygulamamız bunu mümkün kıldı (dış paket tsx'ten çözülemiyordu, §1.5). Artık
+  imza doğrulaması da (`detachedJwsDogrula`) saf JS ve tsx'ten çözülüyor —
+  canlı imza script'iyle fiilen kanıtlandı.
 - ZIP denetim paketi: dosyalar + `pdfFileHash` + `packageManifestHash` →
   anchor/audit zinciri (M9 adım 12).
-- RFC 3161: bu taşta opsiyonel, production kapısında zorunlu (belgeyle uyumlu).
-  **TSA seçimi kurucu kararı** (uyum kararı, uydurulmaz).
-- **Kabul (kalan):** tek bayt değişikliği doğrulamada yakalanır; paket repo
-  DIŞINDA temiz bir Node ortamında CLI ile doğrulanır; redacted sürüm farklı
-  hash taşır ama soyu korur; legal hold altındaki kanıt silinemez ve deneme
-  audit event üretir.
+- **Kabul (kalan):** tek bayt değişikliği doğrulamada yakalanır (imza için
+  ZATEN kanıtlandı, dosya+zarf için CLI ile kalıyor); paket repo DIŞINDA temiz
+  bir Node ortamında CLI ile doğrulanır; redacted sürüm farklı hash taşır ama
+  soyu korur; legal hold altındaki kanıt silinemez ve deneme audit event üretir.
 
 ### M12 — Kontrol test motoru ve durum makinesi (belge M02)
 

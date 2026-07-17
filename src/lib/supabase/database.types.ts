@@ -1629,6 +1629,10 @@ export type Database = {
           report_data_hash: string
           run_id: string
           seq: number
+          signature_jws: string | null
+          signature_kid: string | null
+          signature_public_jwk: Json | null
+          signer_ad: string | null
           tenant_id: string
         }
         Insert: {
@@ -1641,6 +1645,10 @@ export type Database = {
           report_data_hash: string
           run_id: string
           seq?: never
+          signature_jws?: string | null
+          signature_kid?: string | null
+          signature_public_jwk?: Json | null
+          signer_ad?: string | null
           tenant_id: string
         }
         Update: {
@@ -1653,6 +1661,10 @@ export type Database = {
           report_data_hash?: string
           run_id?: string
           seq?: never
+          signature_jws?: string | null
+          signature_kid?: string | null
+          signature_public_jwk?: Json | null
+          signer_ad?: string | null
           tenant_id?: string
         }
         Relationships: [
@@ -1906,6 +1918,10 @@ export type Database = {
           report_data_hash: string
           saglayici: string
         }[]
+      }
+      manifest_dogrulama_durumu: {
+        Args: { target_manifest_id: string }
+        Returns: string
       }
       paylasim_goruntule: { Args: { p_token: string }; Returns: Json }
       simulation_manifest_durumu: {

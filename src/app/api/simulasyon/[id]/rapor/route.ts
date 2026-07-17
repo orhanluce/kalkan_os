@@ -35,7 +35,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   // Rapor, kiracının kendi verisidir — yetki sınırı RLS'in kendisi.
   const { data: m } = await db
     .from("simulation_result_manifests")
-    .select("id, core_manifest_hash, report_data_hash, report_data")
+    .select("id, core_manifest_hash, report_data_hash, report_data, signature_kid, signer_ad")
     .eq("run_id", runId)
     .maybeSingle();
 
@@ -94,6 +94,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     dogrulamaUrl,
     muhurDurumu: makbuz ? "sabitlendi" : "beklemede",
     anchorSaglayici: makbuz?.saglayici ?? null,
+    imzaKid: m.signature_kid,
+    imzalayici: m.signer_ad,
   });
 
   const { chromium } = await import("playwright");

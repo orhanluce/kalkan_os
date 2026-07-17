@@ -31,6 +31,10 @@ export interface SimulasyonRaporuData {
   /** Mühür sabitlendi mi ('sabitlendi' | 'beklemede'). */
   muhurDurumu: string;
   anchorSaglayici: string | null;
+  /** JWS imza anahtarı kimliği (kid). İmzasız (eski) manifestte null. */
+  imzaKid: string | null;
+  /** İmzalayıcı kimliği ('local-dev-es256' / 'kms-...'). local-dev-* production değildir. */
+  imzalayici: string | null;
 }
 
 const DURUM_ETIKET: Record<string, string> = {
@@ -205,6 +209,11 @@ export function renderSimulasyonRaporuHtml(data: SimulasyonRaporuData): string {
           data.anchorSaglayici ? ` · Sağlayıcı: ${esc(data.anchorSaglayici)}` : ""
         }
       </div>
+      ${
+        data.imzaKid
+          ? `<div class="hash-label">İmza (JWS ES256) · anahtar: ${esc(data.imzaKid)}</div>`
+          : `<div class="hash-label">İmza: yok (bu manifest imza öncesi mühürlendi)</div>`
+      }
     </div>
   </div>
 
@@ -216,6 +225,16 @@ export function renderSimulasyonRaporuHtml(data: SimulasyonRaporuData): string {
     <br />
     Sabitleme sağlayıcısı yerel append-only kayıttır: mühür bu sistemin kendi kaydına
     dayanır, bağımsız bir üçüncü taraf zaman damgası (RFC 3161) DEĞİLDİR.
+    ${
+      data.imzalayici && data.imzalayici.startsWith("local-dev")
+        ? `<br />İmza bir GELİŞTİRME anahtarıyla atılmıştır (${esc(data.imzalayici)}): imza
+           hattının bütünlüğünü gösterir, production authenticity''si taşımaz. Ayrıca
+           nitelikli elektronik imza veya kurumsal e-mühür yerine geçmez.`
+        : data.imzalayici
+          ? `<br />İmza nitelikli elektronik imza/e-mühür yerine geçmez; sistem bütünlüğü
+             ve paket kaynağı ispatı içindir.`
+          : ""
+    }
     <br />
     Senaryo içeriği UNVERIFIED_SAMPLE'dır: örnek amaçlıdır, doğrulanmış bir mevzuat
     eşlemesi değildir.

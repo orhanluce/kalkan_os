@@ -140,6 +140,38 @@ describe("değişmezlik (belge §11.3)", () => {
   });
 });
 
+describe("manifest_dogrulama_durumu (ADR-M11-01)", () => {
+  it("imzasız manifest 'imzasiz' döner — eski kayıt dürüstçe işaretlenir", async () => {
+    const { rows } = await db.sql(`select public.manifest_dogrulama_durumu($1) as durum`, [
+      manifestId,
+    ]);
+    expect(rows[0].durum).toBe("imzasiz");
+  });
+
+  it("imzalı manifest 'imzali' döner", async () => {
+    // Manifest immutable (UPDATE reddedilir); imza INSERT'te verilir. Aynı
+    // tatbikatın iki manifesti olamayacağı için yeni bir run kuruyoruz.
+    const { rows: r2 } = await db.sql(
+      `insert into public.simulation_runs (tenant_id, version_id, ad, mod, durum)
+       select tenant_id, version_id, 'Imzali', 'canli', 'tamamlandi'
+       from public.simulation_runs where id = $1 returning id`,
+      [runId],
+    );
+    const { rows: m2 } = await db.sql(
+      `insert into public.simulation_result_manifests
+         (run_id, tenant_id, core_manifest, core_manifest_hash, report_data_hash, merkle_root,
+          signature_jws, signature_kid, signature_public_jwk, signer_ad)
+       values ($1, $2, '{}', $3, $4, $5, 'hdr..sig', 'local-dev-x', '{"kty":"EC"}', 'local-dev-es256')
+       returning id`,
+      [r2[0].id, seed.A.tenantId, "1".repeat(64), "2".repeat(64), "3".repeat(64)],
+    );
+    const { rows } = await db.sql(`select public.manifest_dogrulama_durumu($1) as durum`, [
+      m2[0].id,
+    ]);
+    expect(rows[0].durum).toBe("imzali");
+  });
+});
+
 describe("manifest_dogrula — herkese açık QR yüzeyi (M9 kabul kriteri)", () => {
   it("oturumsuz ziyaretçi geçerli hash'i doğrulayabilir", async () => {
     const { rows } = await db.asAnon(`select * from public.manifest_dogrula($1)`, [HASH_A]);

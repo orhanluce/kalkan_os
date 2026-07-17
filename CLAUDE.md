@@ -3,7 +3,7 @@ TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supab
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler
-üzerinden bağlanıyoruz — direct connection IPv6-only. 27 migration uygulandı
+üzerinden bağlanıyoruz — direct connection IPv6-only. 28 migration uygulandı
 (`pnpm db:push`); `pnpm db:verify` çekirdek tabloları fiilen doğrular. Kontrol
 kütüphanesi seed edildi (2 çerçeve, 17 kontrol) ve ilk kuruma atandı.
 
@@ -40,13 +40,31 @@ zinciri hiç çalışmıyordu — 193 test yeşilken. Bu yüzden: **şemaya doku
 migration'dan sonra canlıya karşı gerçek bir yazma dene.** `pnpm db:verify`
 tabloların var olduğunu gösterir, çalıştıklarını değil.
 
-**Storage artık DOĞRULANDI** (M11, 17 Temmuz 2026): kanıt dosyaları private
-`evidence` bucket'ına içerik-adresli (`{tenant_id}/{sha256}`) yükleniyor,
-imzalı URL ile geri indiriliyor. Canlıya karşı script + tarayıcı e2e ile
-kanıtlandı: round-trip baytları aynı, başka tenant klasörüne yükleme RLS ile
-reddedildi, bucket private. PGlite storage şemasını taklit edemez —
-`storage.objects` RLS'i bu yüzden canlıda doğrulanır (pg.ts'e storage stub'ı
-yalnızca migration'ın APPLY olması için eklendi, RLS'i test etmek için değil).
+**M11 ilerliyor — Storage + JWS imza DOĞRULANDI** (17 Temmuz 2026). Kurucunun
+üç ADR'si (ADR-M11-01 imza, -02 TSA, -03 dayanıklılık) ROADMAP M11'de kayıtlı.
+
+**Storage:** kanıt dosyaları private `evidence` bucket'ına içerik-adresli
+(`{tenant_id}/{sha256}`) yükleniyor, imzalı URL ile geri indiriliyor. Canlı
+script + tarayıcı e2e: round-trip baytları aynı, başka tenant klasörüne yükleme
+RLS ile reddedildi, bucket private. PGlite storage şemasını taklit edemez —
+`storage.objects` RLS'i canlıda doğrulanır (pg.ts stub'ı yalnız migration APPLY
+için).
+
+**JWS imza (ADR-M11-01):** çekirdek manifest, mühürle aynı INSERT'te ES256
+detached JWS ile imzalanıyor (`manifest-signature.ts`); `signature_jws/kid/
+public_jwk/signer_ad` immutable donuyor. Canlı script: saklanan public JWK ile
+BAĞIMSIZ doğrulama geçti, manifest kurcalanınca reddedildi, `kanit_imzalandi`
+audit kaydı düştü. `ManifestSigner` soyutlaması private key'i dışarıda tutuyor
+(kural: DB'ye/env'e private key yazılmaz) — bugünkü `LocalDevSigner` GEÇİCİ
+bellek anahtarı; production'da KMS/HSM imzalayıcı takılacak (kod değil altyapı).
+`signer_ad=local-dev-*` olduğu için rapor "geliştirme anahtarı, nitelikli
+e-imza değil" uyarısını taşıyor.
+
+**Doğrulanmayan tek şey deploy.** Onun için "çalışıyor" deme.
+
+M11'de KALAN (ROADMAP M11): gerçek KMS bağlayıcı (altyapı), RFC 3161/Kamu SM
+(Kamu SM test endpoint'i olmadan ASN.1 kör yazılamaz — bilinçli ertelendi),
+zarf v2/redaction, verify CLI, ZIP paketi.
 
 Hâlâ **doğrulanamayan** tek şey **deploy**. Bunun için "çalışıyor" deme.
 (Supabase Auth çok önce doğrulandı: gerçek kullanıcı canlıda giriş yaptı.)
