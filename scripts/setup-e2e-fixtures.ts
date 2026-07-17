@@ -128,7 +128,12 @@ async function main() {
   // 4) Önceki e2e koşularının bıraktığı verileri temizle — YALNIZCA bu
   //    kiracının verisi (tenant_id filtresi). Gerçek kiracı verisine
   //    dokunulmaz.
-  for (const tablo of ["evidences", "findings", "share_links", "audit_log"]) {
+  //
+  //    simulation_runs silinince participants/inject_deliveries/decisions/
+  //    observations/finding_proposals/action_results/scores CASCADE ile
+  //    kendiliğinden temizlenir (bkz. 20260717120000/130000/140000
+  //    migration'larındaki "on delete cascade") — ayrı ayrı silmiyoruz.
+  for (const tablo of ["evidences", "findings", "share_links", "audit_log", "simulation_runs"]) {
     await db.from(tablo).delete().eq("tenant_id", tenant.id);
   }
 

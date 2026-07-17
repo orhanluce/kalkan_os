@@ -39,12 +39,39 @@ export const KAYNAK_LABEL: Record<Finding["kaynak"], string> = {
   sizma_testi: "Sızma Testi",
   denetim: "Denetim",
   ic_tespit: "İç Tespit",
+  simulasyon: "Simülasyon",
 };
 
 export const ROLE_LABEL: Record<Role, string> = {
   admin: "Admin",
   uyum: "Uyum",
   denetci_misafir: "Denetçi (Misafir)",
+};
+
+export const SIMULASYON_DURUM_LABEL: Record<string, string> = {
+  taslak: "Taslak",
+  planlandi: "Planlandı",
+  hazir: "Hazır",
+  calisiyor: "Çalışıyor",
+  duraklatildi: "Duraklatıldı",
+  tamamlandi: "Tamamlandı",
+  puanlaniyor: "Puanlanıyor",
+  incelendi: "İncelendi",
+  kapandi: "Kapandı",
+  iptal: "İptal",
+};
+
+export const KATILIM_TIPI_LABEL: Record<string, string> = {
+  yonetici: "Tatbikat Yöneticisi",
+  katilimci: "Katılımcı",
+  gozlemci: "Gözlemci",
+};
+
+export const PUANLAMA_DURUM_LABEL: Record<string, string> = {
+  BASARILI: "Başarılı",
+  KISMI: "Kısmi",
+  BASARISIZ: "Başarısız",
+  CRITICAL_FAILURE: "Kritik Başarısızlık",
 };
 
 export const AUDIT_EYLEM_LABEL: Record<AuditEylem, string> = {

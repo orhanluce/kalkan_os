@@ -313,3 +313,44 @@ describe("simülasyon puanı", () => {
     expect(rows).toHaveLength(0);
   });
 });
+
+describe("simülasyon: aksiyon sonucu olan bir tatbikat silinebilir (regresyon)", () => {
+  // BULUNAN HATA (20260717170000): simulation_action_result_guard
+  // (before insert/update/DELETE) DELETE için erken çıkışı, ebeveyn
+  // tatbikatı arayan sorgudan SONRA yapıyordu. simulation_runs silinince
+  // cascade ile simulation_action_results de silinir; bu cascade sırasında
+  // ebeveyn satır ZATEN silinmiş olduğundan sorgu hiçbir şey bulamıyor,
+  // trigger "Tatbikat bulunamadi" fırlatıp TÜM SİLME İŞLEMİNİ engelliyordu.
+  // Yani aksiyon sonucu olan bir tatbikat ASLA silinemiyordu — cascade
+  // kendi kendini bloke ediyordu. scripts/setup-e2e-fixtures.ts'in e2e
+  // kiracısını sıfırlaması sırasında bulundu (silinmeyen run'lar birikti).
+  it("aksiyon sonucu işaretlenmiş bir tatbikat DELETE ile (cascade dahil) temizlenebilir", async () => {
+    const { rows: aksiyon } = await db.sql(
+      `insert into public.scenario_expected_actions (version_id, kod, aciklama)
+       values ($1, 'A1', 'Test aksiyonu') returning id`,
+      [versionId],
+    );
+
+    await db.sql(`update public.simulation_runs set durum = 'hazir' where id = $1`, [runId]);
+    await db.sql(`update public.simulation_runs set durum = 'calisiyor' where id = $1`, [runId]);
+
+    await db.sql(
+      `insert into public.simulation_action_results (run_id, tenant_id, expected_action_id, tamamlandi, senaryo_dakika, isaretleyen)
+       values ($1, $2, $3, true, 5, $4)`,
+      [runId, seed.A.tenantId, aksiyon[0].id, seed.A.userId],
+    );
+
+    // Bu satır düzeltmeden önce "Tatbikat bulunamadi" ile reddediliyordu.
+    await expect(db.sql(`delete from public.simulation_runs where id = $1`, [runId])).resolves.not.toThrow();
+
+    const { rows: kalanRun } = await db.sql(`select id from public.simulation_runs where id = $1`, [runId]);
+    expect(kalanRun).toHaveLength(0);
+
+    // Cascade fiilen çalıştı mı: yetim aksiyon sonucu kalmamalı.
+    const { rows: kalanSonuc } = await db.sql(
+      `select id from public.simulation_action_results where run_id = $1`,
+      [runId],
+    );
+    expect(kalanSonuc).toHaveLength(0);
+  });
+});

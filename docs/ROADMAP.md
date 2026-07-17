@@ -254,7 +254,7 @@ sonuç kanıt üretir. Bu taş yalnızca şablonu kurar, yürütmeyi değil.
 - Seed: beş şablon (S01 fidye, S02 ayrıcalıklı hesap, S03 veri sızıntısı, S04 yedekten dönüş, S05 tedarikçi kesintisi) — `UNVERIFIED_SAMPLE` etiketli, `data/scenarios/*.yaml`'dan; kural 3'ün aynısı burada da geçerli.
 - **Kabul:** yayınlanmış şablon değiştirilemez (RLS/trigger testi); her beklenen aksiyon en az bir kontrole bağlanabiliyor; beş şablon YAML'dan seed ediliyor; şablon sürümü geçmiş simülasyonları etkilemiyor.
 
-### M8 — Simülasyon yürütme + deterministik puanlama (Faz 7-8) — şema + motor ✅, UI ✗
+### M8 — Simülasyon yürütme + deterministik puanlama (Faz 7-8) ✅
 
 **Tamamlanan:** şema (`20260717120000_simulation_runs.sql`) ve deterministik puanlama motoru
 (`src/lib/scoring.ts`). 42 test. Canlıda doğrulandı: run oluşuyor, bağlı şablon sürümü silinemiyor,
@@ -290,8 +290,30 @@ gelişme, 4 karar, 6 aksiyon. Sonuç belgenin §8.5 örneğiyle birebir örtüş
 toplanmadı). 4 öneri üretildi, hepsi gerçek kontrollere bağlı, hepsi `PROPOSED`, hiçbiri onaysız
 bulguya dönüşmedi. Audit zinciri sağlam kaldı.
 
-**Kalan (M8'in tamamlanması için):** control room / katılımcı / gözlemci EKRANLARI, zamanlı inject
-otomatik yayını, öneri kabul akışı → gerçek bulgu (UI + RPC), gözlemci puanı toplama.
+**UI tamamlandı** (`/simulasyonlar/[id]`, `POST /api/simulasyon/[id]/oneri/[oneriId]`): tek sayfa,
+rol-bazlı bölümler — üç ayrı control-room/katılımcı/gözlemci sayfası yerine `katilim_tipi`ye göre
+koşullu render (pilot ölçeğinde üç sayfa aynı veriyi üç kere çekip senkronize tutmak olurdu).
+Yönetici paneli: durum geçişleri, sıradaki gelişmeyi yayınlama, aksiyon sonucu işaretleme,
+katılımcı ekleme. Herkese: rol-filtreli zaman çizelgesi (yalnızca `simulation_inject_deliveries`
+okunur, `scenario_injects` doğrudan sorgulanmaz — UI disiplini, RLS zaten asıl sınır). Öneri
+kabul/ret: kabul, kullanıcının KENDİ oturumuyla gerçek bir `findings` satırı yazar (audit_log
+trigger'ı onaylayanı doğru yakalasın diye, service_role değil) — kural 11'in "PROPOSED doğar,
+insan onaylamadan gerçek bulgu olmaz" şartı UI'da da geçerli.
+
+**Uçtan uca canlı tarayıcıda doğrulandı** (`e2e/simulasyon.spec.ts`, gerçek Chromium + gerçek
+Supabase): S05 tatbikatı baştan sona oynandı — başlat, tüm gelişmeleri yayınla, aksiyonları
+işaretle, tamamla, puanla, üretilen öneriyi kabul et → `/findings`'te gerçek bulgu olarak
+görüldü. İki kez art arda çalıştırılıp kararlılığı doğrulandı.
+
+**Bu doğrulama sırasında bulunan gerçek bug — kendi cascade'ini bloke eden trigger**
+(`20260717170000_fix_action_result_delete_cascade.sql`): `simulation_action_result_guard`
+(`before insert/update/DELETE`) DELETE için erken çıkışı, ebeveyn tatbikatı arayan sorgudan
+SONRA yapıyordu. `simulation_runs` silinince cascade ile `simulation_action_results` de silinir;
+bu cascade sırasında ebeveyn satır ZATEN silinmiş olduğundan sorgu hiçbir şey bulamıyor, trigger
+kendi "Tatbikat bulunamadi" hatasını fırlatıp TÜM SİLME İŞLEMİNİ engelliyordu — aksiyon sonucu
+olan bir tatbikat asla silinemiyordu. `scripts/setup-e2e-fixtures.ts`'in e2e kiracısını
+sıfırlaması sırasında bulundu (3 test run'ı hiç silinmeden birikmişti). PGlite regresyon testi
+eklendi (`rls-simulasyon-durum.test.ts`).
 
 - `simulation_runs` durum makinesi: `DRAFT → SCHEDULED → READY → RUNNING → PAUSED → COMPLETED → SCORING → REVIEWED → CLOSED`, `RUNNING → ABORTED`.
 - **Başlatılan run, şablonun immutable snapshot'ını kullanır** — şablon sonradan değişse bile geçmiş simülasyon değişmez (belge §10.7).

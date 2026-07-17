@@ -44,11 +44,12 @@ gerekenler: Storage'a gerçek dosya yükleme ve deploy. Bunlar için "çalışı
 deme. (Supabase Auth artık doğrulandı: gerçek kullanıcı canlıda giriş yaptı,
 profil RLS altında okundu.)
 
-**Simülasyon** (docs/ROADMAP.md §1.2, M7-M9): M7 bitti — 5 senaryo canlıda
-yayınlı, 18 aksiyon→kontrol bağı, yayınlanmış şablon immutable. M8'in şeması
-ve deterministik puanlama motoru (`src/lib/scoring.ts`) bitti; **yürütme
-ekranları yok** (`/simulasyonlar` yalnızca kütüphaneyi listeler). M9 (fidye
-dikey akışı, PDF/QR raporlar) hiç başlamadı.
+**Simülasyon** (docs/ROADMAP.md §1.2, M7-M9): M7 ve M8 bitti. 5 senaryo canlıda
+yayınlı, 18 aksiyon→kontrol bağı, yayınlanmış şablon immutable. Yürütme ekranı
+(`/simulasyonlar/[id]`) canlıda: tatbikat başlat/yürüt/puanla/öneri kabul et
+akışı `e2e/simulasyon.spec.ts` ile gerçek Chromium + gerçek Supabase'e karşı
+doğrulandı. M9 (fidye dikey akışı, PDF/QR raporlar) hiç başlamadı. M10 (YK
+Beyanı + çapraz denetim, docs/ROADMAP.md M10) şema+motor bitti, UI yok.
 
 **Açık borçlar** (docs/ROADMAP.md'de tam liste): `evidences.kaynak_kontrol_id`
 kolonu yok (yansıtılan kanıt doğrudan yüklenmiş gibi görünür). Kanıt süresi

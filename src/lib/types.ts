@@ -66,7 +66,7 @@ export interface TenantControl {
 export interface Finding {
   id: string;
   tenantId: string;
-  kaynak: "sizma_testi" | "denetim" | "ic_tespit";
+  kaynak: "sizma_testi" | "denetim" | "ic_tespit" | "simulasyon";
   onem: Onem;
   baslik: string;
   aksiyonPlani: string | null;
