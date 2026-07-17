@@ -546,6 +546,72 @@ export type Database = {
           },
         ]
       }
+      control_test_definitions: {
+        Row: {
+          aciklama: string | null
+          ad: string
+          basarisizlik_onem: string
+          beklenen: Json | null
+          control_id: string
+          created_at: string
+          grace_gun: number | null
+          id: string
+          otomatik_bulgu: boolean
+          retest_gerekli: boolean
+          tanim_surumu: number
+          tazelik_gun: number | null
+          tenant_id: string
+          tur: string
+        }
+        Insert: {
+          aciklama?: string | null
+          ad: string
+          basarisizlik_onem?: string
+          beklenen?: Json | null
+          control_id: string
+          created_at?: string
+          grace_gun?: number | null
+          id?: string
+          otomatik_bulgu?: boolean
+          retest_gerekli?: boolean
+          tanim_surumu?: number
+          tazelik_gun?: number | null
+          tenant_id: string
+          tur: string
+        }
+        Update: {
+          aciklama?: string | null
+          ad?: string
+          basarisizlik_onem?: string
+          beklenen?: Json | null
+          control_id?: string
+          created_at?: string
+          grace_gun?: number | null
+          id?: string
+          otomatik_bulgu?: boolean
+          retest_gerekli?: boolean
+          tanim_surumu?: number
+          tazelik_gun?: number | null
+          tenant_id?: string
+          tur?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "control_test_definitions_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "control_test_definitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       controls: {
         Row: {
           aciklama: string | null
@@ -1890,6 +1956,80 @@ export type Database = {
         }
         Relationships: []
       }
+      test_runs: {
+        Row: {
+          calisti_at: string
+          control_id: string
+          created_at: string
+          evidence_id: string | null
+          gerekce: string
+          gozlem: Json | null
+          id: string
+          seq: number
+          sonuc: string
+          tanim_surumu: number
+          tenant_id: string
+          test_definition_id: string
+        }
+        Insert: {
+          calisti_at?: string
+          control_id: string
+          created_at?: string
+          evidence_id?: string | null
+          gerekce: string
+          gozlem?: Json | null
+          id?: string
+          seq?: never
+          sonuc: string
+          tanim_surumu: number
+          tenant_id: string
+          test_definition_id: string
+        }
+        Update: {
+          calisti_at?: string
+          control_id?: string
+          created_at?: string
+          evidence_id?: string | null
+          gerekce?: string
+          gozlem?: Json | null
+          id?: string
+          seq?: never
+          sonuc?: string
+          tanim_surumu?: number
+          tenant_id?: string
+          test_definition_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_runs_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_runs_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "evidences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_runs_test_definition_id_fkey"
+            columns: ["test_definition_id"]
+            isOneToOne: false
+            referencedRelation: "control_test_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1935,6 +2075,15 @@ export type Database = {
           kaynak_id: string
           not_metni: string
           redaksiyon_mi: boolean
+        }[]
+      }
+      kontrol_son_test_sonuclari: {
+        Args: { target_control_id: string }
+        Returns: {
+          calisti_at: string
+          gerekce: string
+          sonuc: string
+          test_definition_id: string
         }[]
       }
       manifest_dogrula: {

@@ -729,22 +729,45 @@ reddedildi, soy sorgulanabiliyor (`evidence_redaksiyon_soyu`).
 **Kabul (KALAN):** legal hold altındaki kanıt silinemez ve deneme audit event
 üretir; redaction UI (yükleme formu).
 
-### M12 — Kontrol test motoru ve durum makinesi (belge M02)
+### M12 — Kontrol test motoru ve durum makinesi (belge M02) ⏳ motor+durum sözlüğü ✅, bulgu/retest/freshness/pano ✗
 
-- `control_test_definitions` + `test_runs`; ilk türler: `manual-procedure`,
-  `configuration-assertion`, `sample-review`, `attack-simulation` (mevcut
-  tatbikat motoru bu türün sağlayıcısıdır), `restore-test` (S04).
-- Yeni kontrol durum makinesi; `Failed ≠ Unknown ≠ Stale ≠ Exception accepted`
-  (kural 13). Toplama/connector arızası asla `Failed` üretmez.
-- Freshness: `pg_cron` ile kanıt süresi dolunca `Stale` — bilinen borç ve
-  bilinçli skip'li e2e testi burada kapanır.
-- Verified closure: bulgu kapanışı başarılı retest kanıtı + yetkili onay
-  ister (kural 14); ticket/aksiyon kapanışı kontrol kapanışı sayılmaz.
-- S01 dikey akışı: 10 inject, kanıt yükleme, ≥3 bulgu önerisi, aksiyon,
-  retest, S01'e özel e2e (M9 adım 4, 7, 8, 13).
-- **Kabul:** aynı test aynı fixture ile deterministik sonuç verir; başarısız
-  test → bulgu → aksiyon → retest → verified closure zinciri uçtan uca canlıda;
-  S01 e2e yeşil; stale kanıt panoda görünür.
+**Tamamlanan — deterministik motor + kural 13 durum sözlüğü (`control-test.ts`,
+`20260717230000/230001`):** kontrolün "tasarlandı" değil "çalışıyor" durumunu
+ölçen çekirdek. `control_test_definitions` (5 tür: MANUAL_PROCEDURE,
+CONFIG_ASSERTION, SAMPLE_REVIEW, ATTACK_SIMULATION, RESTORE_TEST) +
+`test_runs` (append-only + immutable trigger). Değerlendirme saf ve deterministik
+(20 test); sonuç BEŞ AYRI durumdan biri, birleştirilemez (check constraint):
+`PASSED / FAILED / UNKNOWN / STALE / EXCEPTION`.
+
+- **Kural 13'ün kalbi KANITLANDI:** toplama/connector arızası ASLA `FAILED`
+  üretmez — `UNKNOWN` üretir. İddia "karşılanmadı" dese bile toplama başarısızsa
+  sonuç UNKNOWN; sinyal yoksa UNKNOWN. `FAILED` yalnız iddia GERÇEKTEN
+  değerlendirilip karşılanmadığında. Karar ağacı sırası bilinçli:
+  UNKNOWN(toplama) > EXCEPTION > STALE(tazelik) > PASSED/FAILED.
+- Durum türetimi (`kontrolGuvenceDurumu`) birleştirmez, en kötüyü seçer
+  (FAILED>STALE>UNKNOWN>EXCEPTION>PASSED); öncelik mantığı TEK yerde (TS),
+  SQL (`kontrol_son_test_sonuclari`) yalnız ham malzemeyi verir — ayrışma yok.
+- **Canlı doğrulama bir açık yakaladı ve kapattı:** append-only önce yalnız
+  `revoke ... from authenticated, anon` ile kuruluydu; PGlite testi (authenticated)
+  UPDATE'i reddederken service_role ile UPDATE GEÇİYORDU. test_runs kural 13'ü
+  besleyen bütünlük olgusu olduğundan manifest deseni uygulandı: immutability
+  trigger UPDATE'i her zaman reddeder (service_role dahil, canlıda doğrulandı),
+  DELETE'e yalnız cascade için izin verir.
+- **Kabul (karşılanan):** "aynı test aynı fixture ile deterministik sonuç verir"
+  (determinizm testi + canlı).
+
+**KALAN:**
+- Başarısız test → otomatik bulgu önerisi (PROPOSED, M8 deseni); `otomatik_bulgu`
+  + `grace_gun` + `basarisizlik_onem` kolonları hazır, üretim bağlanmadı.
+- Verified closure (kural 14): bulgu kapanışı başarılı retest kanıtı + yetkili
+  onay ister; ticket/aksiyon kapanışı kontrol kapanışı sayılmaz. `retest_gerekli`
+  kolonu hazır.
+- Freshness otomasyonu: `pg_cron` ile kanıt süresi dolunca STALE — motor STALE'i
+  hesaplıyor ama DB'de zamanlı yeniden değerlendirme yok (eski borç, skip'li e2e
+  burada kapanır).
+- Kontrolün gerçek `tenant_controls.durum`'una bağlama + panoda gösterim.
+- S01 dikey akışı: 10 inject, kanıt yükleme, ≥3 bulgu, aksiyon, retest, S01 e2e
+  (M9 adım 4, 7, 8, 13).
 
 ### M13 — Kurum profili, kritik hizmet ve YK çıktıları (belge M04)
 

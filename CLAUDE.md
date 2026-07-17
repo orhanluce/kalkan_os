@@ -3,7 +3,7 @@ TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supab
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler
-üzerinden bağlanıyoruz — direct connection IPv6-only. 29 migration uygulandı
+üzerinden bağlanıyoruz — direct connection IPv6-only. 31 migration uygulandı
 (`pnpm db:push`); `pnpm db:verify` çekirdek tabloları fiilen doğrular. Kontrol
 kütüphanesi seed edildi (2 çerçeve, 17 kontrol) ve ilk kuruma atandı.
 
@@ -82,6 +82,18 @@ henüz yok — yetenek şemada/mantıkta hazır, ekran bağlanmadı.
 M11'de KALAN (ROADMAP M11): gerçek KMS bağlayıcı (altyapı), RFC 3161/Kamu SM
 (Kamu SM test endpoint'i olmadan ASN.1 kör yazılamaz — bilinçli ertelendi),
 redaction UI, legal-hold ihlal kaydı.
+
+**M12 başladı — kontrol test motoru + kural 13 durum sözlüğü** (`control-test.ts`,
+`20260717230000/230001`). `control_test_definitions` + `test_runs` (append-only +
+immutable trigger). Sonuç beş AYRI durum: `PASSED/FAILED/UNKNOWN/STALE/EXCEPTION`,
+birleştirilemez. **Kural 13'ün kalbi kanıtlandı:** toplama/connector arızası ASLA
+FAILED üretmez, UNKNOWN üretir. Motor deterministik (kural 11). Durum türetimi
+(`kontrolGuvenceDurumu`) birleştirmez, en kötüyü seçer; öncelik mantığı tek yerde
+(TS), SQL yalnız ham malzeme. Canlı doğrulama bir açık yakaladı: append-only önce
+yalnız revoke'la kuruluydu, service_role UPDATE geçiyordu — manifest deseniyle
+immutability trigger eklendi, canlıda service_role UPDATE reddi doğrulandı.
+M12'de KALAN (ROADMAP M12): başarısız test→bulgu, verified closure (kural 14),
+freshness otomasyonu, tenant_controls'a bağlama + pano, S01 dikey akışı.
 
 Hâlâ **doğrulanamayan** tek şey **deploy**. Bunun için "çalışıyor" deme.
 (Supabase Auth çok önce doğrulandı: gerçek kullanıcı canlıda giriş yaptı.)
