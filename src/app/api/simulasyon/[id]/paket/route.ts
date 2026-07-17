@@ -79,16 +79,32 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     .limit(1)
     .maybeSingle();
 
-  const pdf = await raporPdfUret({
-    veri,
-    coreManifestHash: m.core_manifest_hash,
-    reportDataHash: m.report_data_hash,
-    dogrulamaUrl,
-    muhurDurumu: makbuz ? "sabitlendi" : "beklemede",
-    anchorSaglayici: makbuz?.saglayici ?? null,
-    imzaKid: m.signature_kid,
-    imzalayici: m.signer_ad,
-  });
+  // PDF Chromium (Playwright) ister; olmayan ortamda net 503 (bkz. rapor route).
+  // ZIP paketi PDF'i içerdiği için PDF üretilemezse paket de üretilemez —
+  // ama sebebi dürüstçe söylenir, opak bir 500 değil.
+  let pdf: Uint8Array;
+  try {
+    pdf = await raporPdfUret({
+      veri,
+      coreManifestHash: m.core_manifest_hash,
+      reportDataHash: m.report_data_hash,
+      dogrulamaUrl,
+      muhurDurumu: makbuz ? "sabitlendi" : "beklemede",
+      anchorSaglayici: makbuz?.saglayici ?? null,
+      imzaKid: m.signature_kid,
+      imzalayici: m.signer_ad,
+    });
+  } catch (e) {
+    return NextResponse.json(
+      {
+        hata:
+          "Denetim paketi bu sunucuda üretilemiyor: PDF için Chromium başlatılamadı. " +
+          "Mühür ve JWS imza geçerli; paket için Chromium destekli bir ortam gerekiyor.",
+        ayrinti: e instanceof Error ? e.message : String(e),
+      },
+      { status: 503 },
+    );
+  }
 
   const imza = m.signature_jws
     ? {

@@ -84,16 +84,35 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   // PDF yalnızca reportDataHash + coreManifestHash taşır. pdfFileHash ve
   // packageManifestHash BASILMAZ: ikisi de PDF üretildikten SONRA doğar
   // (bkz. simulation-manifest.ts'teki üretim sırası).
-  const pdf = await raporPdfUret({
-    veri,
-    coreManifestHash: m.core_manifest_hash,
-    reportDataHash: m.report_data_hash,
-    dogrulamaUrl,
-    muhurDurumu: makbuz ? "sabitlendi" : "beklemede",
-    anchorSaglayici: makbuz?.saglayici ?? null,
-    imzaKid: m.signature_kid,
-    imzalayici: m.signer_ad,
-  });
+  // PDF üretimi Chromium (Playwright) başlatır. Chromium'un kurulu/başlatılabilir
+  // OLMADIĞI ortamlarda (ör. sistem kütüphaneleri olmayan paylaşımlı barındırma)
+  // launch başarısız olur. Bunu opak bir 500 yerine NET bir 503'e çeviriyoruz:
+  // mühür ve doğrulama zaten çalışıyor, eksik olan yalnızca PDF render'ıdır ve
+  // bunu dürüstçe söylemek gerekir. Manifest verisi kaybolmaz.
+  let pdf: Uint8Array;
+  try {
+    pdf = await raporPdfUret({
+      veri,
+      coreManifestHash: m.core_manifest_hash,
+      reportDataHash: m.report_data_hash,
+      dogrulamaUrl,
+      muhurDurumu: makbuz ? "sabitlendi" : "beklemede",
+      anchorSaglayici: makbuz?.saglayici ?? null,
+      imzaKid: m.signature_kid,
+      imzalayici: m.signer_ad,
+    });
+  } catch (e) {
+    return NextResponse.json(
+      {
+        hata:
+          "PDF üretimi bu sunucuda kullanılamıyor (Chromium başlatılamadı). " +
+          "Sonuç mühürlendi ve /dogrula üzerinden doğrulanabilir; PDF için Chromium " +
+          "destekli bir ortam gerekiyor.",
+        ayrinti: e instanceof Error ? e.message : String(e),
+      },
+      { status: 503 },
+    );
+  }
 
   return new NextResponse(pdf as unknown as BodyInit, {
     headers: {
