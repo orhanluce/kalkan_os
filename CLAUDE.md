@@ -125,9 +125,16 @@ YOK (kural 13 uçtan uca), kabul→bulgu, retestsiz kapatma reddi, retest→kapa
 Sonucu MOTOR belirler (rota değil); test_run/öneri INSERT kullanıcı oturumuyla
 (RLS), service_role yalnız öneri kararında.
 
-M12'de KALAN (ROADMAP M12): test tanımı yönetimi + çalıştırma/öneri EKRANLARI
-(rotalar hazır, UI yok), freshness otomasyonu, tenant_controls'a bağlama + pano,
-S01 dikey akışı.
+**Test tanımı + çalıştırma/öneri UI'ı (M12):** kontrol detay sayfasına "Kontrol
+Testleri" kartı eklendi (`kontrol-test-bolumu.tsx`) — yeni tanım formu, Gözlem
+seçici (4 seçenek → motorun 5 durumuna eşlenir), Çalıştır, sonuç rozeti, öneri
+kartı + Kabul/Reddet. `e2e/kontrol-test.spec.ts`'e gerçek Chromium ile UI'ı
+tıklayan ikinci bir test eklendi (form→tanım→gözlem→çalıştır→"Kaldı" rozeti→
+kabul→findings'te bulgu). MCP Browser aracı bu dropdown'ın koordinatını
+hesaplayamadı; Playwright e2e ile doğrulandı — daha güvenilir, kalıcı regresyon.
+
+M12'de KALAN (ROADMAP M12): freshness otomasyonu, tenant_controls'a bağlama +
+pano, S01 dikey akışı.
 
 Deploy artık doğrulandı (yukarıda, "Deploy artık DOĞRULANDI" altında).
 (Supabase Auth çok önce doğrulandı: gerçek kullanıcı canlıda giriş yaptı.)

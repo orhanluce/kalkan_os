@@ -729,7 +729,7 @@ reddedildi, soy sorgulanabiliyor (`evidence_redaksiyon_soyu`).
 **Kabul (KALAN):** legal hold altındaki kanıt silinemez ve deneme audit event
 üretir; redaction UI (yükleme formu).
 
-### M12 — Kontrol test motoru ve durum makinesi (belge M02) ⏳ motor+durum ✅ + bulgu/verified-closure ✅ + test-rota+öneri ✅, UI/freshness/pano ✗
+### M12 — Kontrol test motoru ve durum makinesi (belge M02) ⏳ motor+durum ✅ + bulgu/verified-closure ✅ + test-rota+öneri ✅ + UI ✅, freshness/pano/S01 ✗
 
 **Tamamlanan — deterministik motor + kural 13 durum sözlüğü (`control-test.ts`,
 `20260717230000/230001`):** kontrolün "tasarlandı" değil "çalışıyor" durumunu
@@ -793,8 +793,21 @@ kural 11+14):**
   başarılı retest → kapanış. Test tanımı UI'ı yok, fixture bir MANUAL_PROCEDURE
   tanımı seed ediyor.
 
+**Tamamlanan 4 — test tanımı + çalıştırma/öneri EKRANLARI (`kontrol-test-bolumu.tsx`,
+canlıda e2e ile UI üzerinden doğrulandı):** Kontrol detay sayfasına "Kontrol
+Testleri" kartı eklendi. Yeni test tanımı formu (tür/tazelik/önem/otomatik-bulgu/
+retest-gerekli), her tanım için Gözlem seçici (İddia karşılandı/karşılanmadı/
+Ölçülemedi/İstisna — dördü de motorun beş durumuna doğru eşleniyor) + Çalıştır
+butonu, son sonucun rozeti (`TEST_SONUC_BADGE_VARIANT` — beş durum görsel
+olarak da ayrı, kural 13 UI'da da korunuyor), açık öneri kartı + Kabul/Reddet.
+`e2e/kontrol-test.spec.ts`'e gerçek Chromium ile UI'ı TIKLAYARAK süren ikinci
+bir test eklendi: form doldur → tanım oluştur → dropdown'dan gözlem seç →
+çalıştır → "Kaldı" rozetini gör → öneriyi kabul et → `/findings`'te bulguyu
+gör. (MCP Browser aracı bu base-ui dropdown'ının koordinatını hesaplayamadı —
+gerçek bir Playwright/Chromium e2e testiyle doğrulandı, daha güvenilir ve
+kalıcı bir regresyon testi oldu.)
+
 **KALAN:**
-- Test tanımı yönetimi + test çalıştırma/öneri EKRANLARI (rotalar hazır, UI yok).
 - Freshness otomasyonu: `pg_cron` ile kanıt süresi dolunca STALE — motor STALE'i
   hesaplıyor ama DB'de zamanlı yeniden değerlendirme yok (eski borç, skip'li e2e
   burada kapanır).

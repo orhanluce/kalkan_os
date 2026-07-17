@@ -40,6 +40,37 @@ export const KAYNAK_LABEL: Record<Finding["kaynak"], string> = {
   denetim: "Denetim",
   ic_tespit: "İç Tespit",
   simulasyon: "Simülasyon",
+  kontrol_testi: "Kontrol Testi",
+};
+
+/** Kontrol test motoru (M12): test türleri ve beş ayrı sonuç durumu. */
+export const TEST_TUR_LABEL: Record<string, string> = {
+  MANUAL_PROCEDURE: "Manuel prosedür",
+  CONFIG_ASSERTION: "Konfigürasyon iddiası",
+  SAMPLE_REVIEW: "Örneklem incelemesi",
+  ATTACK_SIMULATION: "Saldırı simülasyonu",
+  RESTORE_TEST: "Kurtarma testi",
+};
+
+/**
+ * Beş AYRI durum, birleştirilemez (kural 13). Etiketler bu ayrımı da
+ * taşımalı: "Bilinmiyor" ile "Kaldı" aynı renk/kelimeyle gösterilirse UI,
+ * motorun özenle koruduğu ayrımı kullanıcıya geri iade etmemiş olur.
+ */
+export const TEST_SONUC_LABEL: Record<string, string> = {
+  PASSED: "Geçti",
+  FAILED: "Kaldı",
+  UNKNOWN: "Bilinmiyor (ölçülemedi)",
+  STALE: "Bayat",
+  EXCEPTION: "İstisna",
+};
+
+export const TEST_SONUC_BADGE_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  PASSED: "default",
+  FAILED: "destructive",
+  UNKNOWN: "outline",
+  STALE: "secondary",
+  EXCEPTION: "secondary",
 };
 
 export const ROLE_LABEL: Record<Role, string> = {

@@ -18,6 +18,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { AuditLogList } from "@/components/audit-log-list";
 import { EmptyState } from "@/components/empty-state";
+import { KontrolTestBolumu } from "@/components/kontrol-test-bolumu";
 import { findEquivalentControlIds } from "@/lib/control-mappings";
 import { sha256Hex, validateEvidenceFile } from "@/lib/evidence";
 import {
@@ -299,6 +300,8 @@ export default function ControlDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      <KontrolTestBolumu controlId={control.id} />
 
       <Card>
         <CardHeader>

@@ -104,3 +104,46 @@ test("başarısız test → öneri → kabul → bulgu; retest olmadan kapanamaz
   expect(kapatmaHata).toBeNull();
   expect(kapali!.durum).toBe("kapali");
 });
+
+// M12 UI kabul: "Kontrol Testleri" bölümü gerçekten tıklanabilir mi? Yukarıdaki
+// test motor+rotaları API üzerinden kanıtlıyor; bu test UI'ın kendisini —
+// yeni tanım formu, Gözlem select'i, Çalıştır ve Kabul Et butonlarını —
+// gerçek Chromium'da sürüyor. Kendi test tanımını kurup kullanıyor, mevcut
+// fixture tanımının durumunu bozmuyor.
+test("UI: yeni test tanımı oluştur, çalıştır, öneriyi kabul et", async ({ page }) => {
+  test.setTimeout(60_000);
+  await girisYap(page);
+
+  await page.goto("/controls");
+  await page.getByRole("link", { name: "TODO-DOGRULA-01" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+  // 1) Yeni test tanımı — UI üzerinden.
+  await page.getByRole("button", { name: "+ Yeni test tanımı" }).click();
+  const testAdi = `UI-e2e: erişim incelemesi ${Date.now()}`;
+  await page.getByLabel("Test adı").fill(testAdi);
+  await page.getByRole("button", { name: "Ekle", exact: true }).click();
+
+  const testSatiri = page.locator("li").filter({ hasText: testAdi });
+  await expect(testSatiri).toBeVisible({ timeout: 10_000 });
+
+  // 2) Gözlemi "İddia karşılanmadı" yap ve çalıştır.
+  await testSatiri.getByRole("combobox", { name: "Gözlem" }).click();
+  await page.getByRole("option", { name: "İddia karşılanmadı" }).click();
+  await testSatiri.getByRole("button", { name: "Çalıştır" }).click();
+
+  // Motor FAILED döndürmeli ve rozet bunu göstermeli.
+  await expect(testSatiri.getByText("Kaldı", { exact: true })).toBeVisible({ timeout: 10_000 });
+
+  // 3) Bulgu önerisi kartı görünmeli ve kabul edilebilmeli.
+  const oneriKarti = testSatiri.locator("div").filter({ hasText: "Bulgu önerisi:" }).first();
+  await expect(oneriKarti).toBeVisible();
+  await oneriKarti.getByRole("button", { name: "Kabul Et (bulgu oluştur)" }).click();
+
+  // Kabul sonrası öneri kartı kaybolmalı (artık PROPOSED değil).
+  await expect(page.getByText("Bulgu önerisi:")).not.toBeVisible({ timeout: 10_000 });
+
+  // 4) Gerçek bulgu /findings'te görünür.
+  await page.goto("/findings");
+  await expect(page.getByText(testAdi).first()).toBeVisible({ timeout: 10_000 });
+});
