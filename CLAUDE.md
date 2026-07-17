@@ -60,11 +60,21 @@ bellek anahtarı; production'da KMS/HSM imzalayıcı takılacak (kod değil alty
 `signer_ad=local-dev-*` olduğu için rapor "geliştirme anahtarı, nitelikli
 e-imza değil" uyarısını taşıyor.
 
+**ZIP denetim paketi + BAĞIMSIZ verify CLI (M11):** `/api/simulasyon/[id]/paket`
+çekirdek manifest + rapor verisi + imza + PDF + paket manifesti içeren ZIP
+üretiyor; `scripts/verify-paket.ts` bir klasörü okuyup hash zincirini ve JWS'i
+DB'siz doğruluyor (`audit-package.ts`). CLI runtime'da dış bağımlılık taşımıyor
+— denetçi repo dışında `npx tsx scripts/verify-paket.ts <klasor>` koşabilir.
+Canlıda kanıtlandı (e2e): gerçek Chromium ZIP indirdi, açtı, CLI AYRI PROCESS
+olarak VERIFIED verdi (çıkış 0), core-manifest kurcalanınca FAILED (çıkış 1).
+`canonicalize`'ı runtime'dan çıkarmanın asıl ödülü buydu — tsx CLI her şeyi
+çözebiliyor.
+
 **Doğrulanmayan tek şey deploy.** Onun için "çalışıyor" deme.
 
 M11'de KALAN (ROADMAP M11): gerçek KMS bağlayıcı (altyapı), RFC 3161/Kamu SM
 (Kamu SM test endpoint'i olmadan ASN.1 kör yazılamaz — bilinçli ertelendi),
-zarf v2/redaction, verify CLI, ZIP paketi.
+zarf v2/redaction, legal-hold ihlal kaydı.
 
 Hâlâ **doğrulanamayan** tek şey **deploy**. Bunun için "çalışıyor" deme.
 (Supabase Auth çok önce doğrulandı: gerçek kullanıcı canlıda giriş yaptı.)

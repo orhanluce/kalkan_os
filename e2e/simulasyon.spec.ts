@@ -197,4 +197,57 @@ test("puanlanan tatbikat mühürlenir, PDF raporu üretilir ve QR doğrulaması 
   expect(metin).not.toMatch(/Puan|BASARILI|KISMI|CRITICAL/);
 
   await misafir!.close();
+
+  // --- Denetim paketi ZIP + BAĞIMSIZ verify CLI (M11 kabul kriteri) ---
+  // Belge M01: "audit package temiz bir ortamda, repo DIŞINDA CLI ile
+  // doğrulanır." Burada ZIP'i indiriyor, açıyor, verify-paket.ts'i AYRI bir
+  // process olarak koşuyoruz — uygulamanın kendisi doğrulamaya karışmıyor.
+  const paket = await page.request.get(`/api/simulasyon/${runId}/paket`);
+  expect(paket.status()).toBe(200);
+  expect(paket.headers()["content-type"]).toContain("application/zip");
+  const zipBytes = await paket.body();
+  expect(zipBytes.subarray(0, 2).toString()).toBe("PK"); // ZIP imzası
+
+  // ZIP'i geçici bir klasöre aç (denetçinin yapacağı gibi).
+  const JSZip = (await import("jszip")).default;
+  const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { execFileSync } = await import("node:child_process");
+
+  const klasor = mkdtempSync(join(tmpdir(), "kalkan-paket-"));
+  try {
+    const zip = await JSZip.loadAsync(zipBytes);
+    for (const ad of Object.keys(zip.files)) {
+      const icerik = await zip.files[ad].async("nodebuffer");
+      writeFileSync(join(klasor, ad), icerik);
+    }
+
+    // 1) Sağlam paket: verify CLI VERIFIED demeli, çıkış kodu 0.
+    const cikti = execFileSync("npx", ["tsx", "scripts/verify-paket.ts", klasor], {
+      encoding: "utf8",
+      shell: process.platform === "win32",
+    });
+    expect(cikti).toContain("VERIFIED");
+    expect(cikti).toContain("[OK]");
+
+    // 2) core-manifest kurcalanırsa CLI FAILED demeli, çıkış kodu 1.
+    writeFileSync(join(klasor, "core-manifest.json"), '{"puan":100,"sahte":true}');
+    let kurcaCikti = "";
+    let cikisKodu = 0;
+    try {
+      execFileSync("npx", ["tsx", "scripts/verify-paket.ts", klasor], {
+        encoding: "utf8",
+        shell: process.platform === "win32",
+      });
+    } catch (e) {
+      const err = e as { status: number; stdout: string };
+      cikisKodu = err.status;
+      kurcaCikti = err.stdout;
+    }
+    expect(cikisKodu).toBe(1);
+    expect(kurcaCikti).toContain("FAILED");
+  } finally {
+    rmSync(klasor, { recursive: true, force: true });
+  }
 });

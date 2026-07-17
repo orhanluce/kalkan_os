@@ -738,6 +738,12 @@ export default function TatbikatDetayPage() {
                   </a>
                   <a
                     className="underline underline-offset-4"
+                    href={`/api/simulasyon/${params.id}/paket`}
+                  >
+                    Denetim paketi (ZIP)
+                  </a>
+                  <a
+                    className="underline underline-offset-4"
                     href={`/dogrula/${muhur.core_manifest_hash}`}
                     target="_blank"
                     rel="noreferrer"

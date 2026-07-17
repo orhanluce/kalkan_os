@@ -11,8 +11,7 @@
 // PDF ÜRETİLMEZ. Uyuşmayan bir veriden rapor basmak, üstünde "doğrulanabilir"
 // yazan sahte bir belge üretmek olurdu — hiç basmamak daha dürüst.
 import { NextResponse } from "next/server";
-import QRCode from "qrcode";
-import { renderSimulasyonRaporuHtml } from "@/lib/simulasyon-raporu";
+import { raporPdfUret } from "@/lib/rapor-pdf";
 import { reportDataHash, type ReportData } from "@/lib/simulation-manifest";
 import { createClient } from "@/lib/supabase/server";
 
@@ -81,16 +80,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   // Doğrulama adresi isteğin kendi origin'inden türetilir: ortam değiştiğinde
   // (yerel, staging, canlı) QR yanlış yeri göstermesin.
   const dogrulamaUrl = new URL(`/dogrula/${m.core_manifest_hash}`, req.url).toString();
-  const qrDataUrl = await QRCode.toDataURL(dogrulamaUrl, { margin: 1, width: 232 });
 
   // PDF yalnızca reportDataHash + coreManifestHash taşır. pdfFileHash ve
   // packageManifestHash BASILMAZ: ikisi de PDF üretildikten SONRA doğar
   // (bkz. simulation-manifest.ts'teki üretim sırası).
-  const html = renderSimulasyonRaporuHtml({
+  const pdf = await raporPdfUret({
     veri,
     coreManifestHash: m.core_manifest_hash,
     reportDataHash: m.report_data_hash,
-    qrDataUrl,
     dogrulamaUrl,
     muhurDurumu: makbuz ? "sabitlendi" : "beklemede",
     anchorSaglayici: makbuz?.saglayici ?? null,
@@ -98,22 +95,12 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     imzalayici: m.signer_ad,
   });
 
-  const { chromium } = await import("playwright");
-  const browser = await chromium.launch();
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "load" });
-    const pdf = await page.pdf({ format: "A4", printBackground: true });
-
-    return new NextResponse(new Uint8Array(pdf), {
-      headers: {
-        "content-type": "application/pdf",
-        "content-disposition": `inline; filename="tatbikat-${veri.senaryoKodu}-${m.core_manifest_hash.slice(0, 12)}.pdf"`,
-        // Rapor kiracıya özel: ara katmanlar önbelleğe almasın.
-        "cache-control": "private, no-store",
-      },
-    });
-  } finally {
-    await browser.close();
-  }
+  return new NextResponse(pdf as unknown as BodyInit, {
+    headers: {
+      "content-type": "application/pdf",
+      "content-disposition": `inline; filename="tatbikat-${veri.senaryoKodu}-${m.core_manifest_hash.slice(0, 12)}.pdf"`,
+      // Rapor kiracıya özel: ara katmanlar önbelleğe almasın.
+      "cache-control": "private, no-store",
+    },
+  });
 }

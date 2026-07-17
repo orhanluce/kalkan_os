@@ -598,7 +598,7 @@ hash zinciri, dört-göz onayı (`evidence_reviews`), RFC 6962 Merkle + bağıms
 doğrulama kütüphanesi, YK Beyanı çapraz denetim motoru (M10), PGlite RLS test
 düzeni, canlı Supabase'e karşı e2e doğrulama disiplini.
 
-### M11 — Kanıt çekirdeği v2 (belge M01 / Faz 1) ⏳ Storage ✅ + JWS imza ✅, redaction/CLI/ZIP/TSA ✗
+### M11 — Kanıt çekirdeği v2 (belge M01 / Faz 1) ⏳ Storage ✅ + JWS imza ✅ + verify CLI/ZIP ✅, redaction/legal-hold/KMS/TSA ✗
 
 Kanıt "yüklenen dosya adı" olmaktan çıkar: dosya gerçekten Storage'da, zarf
 imzalı, paket bağımsız doğrulanabilir.
@@ -688,16 +688,32 @@ CLAUDE.md'deki "Storage doğrulanamadı" kalemi KAPANDI.
   otoritesi, bağımsızlık, güncellik, tamlık, yeniden üretilebilirlik);
   redaction — raw/redacted ayrı hash, soy bağı korunur; `kaynak_kontrol_id`
   (yansıtılan kanıt soyu — eski borç).
-- Bağımsız verify CLI (`scripts/verify-evidence.ts`): kendi RFC 8785
-  uygulamamız bunu mümkün kıldı (dış paket tsx'ten çözülemiyordu, §1.5). Artık
-  imza doğrulaması da (`detachedJwsDogrula`) saf JS ve tsx'ten çözülüyor —
-  canlı imza script'iyle fiilen kanıtlandı.
-- ZIP denetim paketi: dosyalar + `pdfFileHash` + `packageManifestHash` →
-  anchor/audit zinciri (M9 adım 12).
-- **Kabul (kalan):** tek bayt değişikliği doğrulamada yakalanır (imza için
-  ZATEN kanıtlandı, dosya+zarf için CLI ile kalıyor); paket repo DIŞINDA temiz
-  bir Node ortamında CLI ile doğrulanır; redacted sürüm farklı hash taşır ama
-  soyu korur; legal hold altındaki kanıt silinemez ve deneme audit event üretir.
+- Legal hold zorunlaması: `legal_hold` kolonu VAR ama silme denemesini engelleyen
+  + audit event üreten yol henüz bağlı değil (kanıt zaten append-only, ama legal
+  hold'un kendi ihlal kaydı yok).
+
+**Tamamlanan 3 — ZIP denetim paketi + BAĞIMSIZ verify CLI (`audit-package.ts`,
+`scripts/verify-paket.ts`, `/api/simulasyon/[id]/paket`):** ürünün merkez iddiası
+artık uçtan uca kanıtlı. Paket ZIP'i çekirdek manifest + rapor verisi + imza +
+PDF + paket manifesti + BENIOKU içeriyor (`packageManifestHash` ayrı dosyada,
+kendi hash'ini içermez). `paketiDogrula` saf fonksiyon: rapor hash'i ↔
+reportDataHash, çekirdek hash'i ↔ package-manifest, her dosyanın bayt hash'i
+(PDF dahil), ve JWS imzası — hepsi pakete bakarak, DB'siz. Paket rotası
+ZIP'lemeden önce iki hash'i de self-check ediyor (jsonb round-trip'i yakalar).
+- **CLI dış bağımlılıksız:** `verify-paket.ts` → `audit-package.ts` →
+  `canonical.ts` + `manifest-signature.ts`, hiçbiri runtime'da dış paket
+  kullanmıyor. Denetçi repoyu klonlayıp `npx tsx scripts/verify-paket.ts
+  <klasor>` koşabilir; DB/env/ağ yok. `canonicalize`'ı runtime'dan çıkarmanın
+  (§1.5) asıl ödülü bu.
+- **Canlıda + repo dışında doğrulandı** (`e2e/simulasyon.spec.ts`): gerçek
+  Chromium ZIP indirdi, açtı, verify CLI'yi AYRI PROCESS olarak koşturdu →
+  VERIFIED (çıkış 0); core-manifest.json kurcalanınca → FAILED (çıkış 1).
+- **Kabul KARŞILANDI:** "tek bayt değişikliği doğrulamada yakalanır" +
+  "paket repo DIŞINDA temiz bir Node ortamında CLI ile doğrulanır" — ikisi de
+  e2e ile kanıtlı.
+
+**Kabul (KALAN):** redacted sürüm farklı hash taşır ama soyu korur; legal hold
+altındaki kanıt silinemez ve deneme audit event üretir.
 
 ### M12 — Kontrol test motoru ve durum makinesi (belge M02)
 
