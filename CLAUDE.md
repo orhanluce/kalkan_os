@@ -10,7 +10,7 @@ kütüphanesi seed edildi (2 çerçeve, 17 kontrol) ve ilk kuruma atandı.
 **Uygulama artık gerçek Supabase'e bağlı**: kimlik Supabase Auth'tan, yetki
 bağlamı `profiles`'tan, veri gerçek tablolardan. `src/lib/mock-data.ts`
 uygulama kodunda kullanılmıyor (yalnızca `scripts/generate-yk-beyani.ts`
-hâlâ okuyor). Deploy yok.
+hâlâ okuyor). Deploy VAR (Hostinger, aşağıda ayrıntılı).
 
 M1-M5 mock store üzerinde tamamlanmıştı. M5.5'in **mantık ve şema katmanı
 bitti**: audit_log hash zinciri, dört-göz onayı (`evidence_reviews`), RFC 6962
@@ -70,7 +70,22 @@ olarak VERIFIED verdi (çıkış 0), core-manifest kurcalanınca FAILED (çıkı
 `canonicalize`'ı runtime'dan çıkarmanın asıl ödülü buydu — tsx CLI her şeyi
 çözebiliyor.
 
-**Doğrulanmayan tek şey deploy.** Onun için "çalışıyor" deme.
+**Deploy artık DOĞRULANDI (17 Temmuz 2026 akşamı) — Hostinger Business, Node.js
+otomatik dağıtım.** GitHub'dan otomatik çekiyor (`orhanluce/kalkan_os`, `main`),
+build komutu `pnpm run build`, Node 22.x, geçici alan adı
+`blue-yak-865668.hostingersite.com`. **Kanıt, tahmin değil:** kurucunun ekran
+görüntüsü giriş yapılmış panoyu, gerçek kiracı verisini (17 kontrol, durum
+dağılımı) gösterdi; ayrıca curl ile middleware yönlendirmesi (`/` → 307 →
+`/giris`) ve `/dogrula/[hash]` rotasının 200 döndüğü doğrulandı.
+Bu doğrulama sırasında canlıda gerçek bir bug bulundu ve düzeltildi: header'da
+Supabase geçişi bitmeden bırakılmış eski bir "Veriler yerel" rozeti canlı
+panoda görünüyordu — geçiş aylar önce bitmişti (`store.tsx` gerçek tabloları
+okuyor/yazıyor), rozet silinmeyi unutulmuştu. Kaldırıldı, yerelde giriş
+yapılarak doğrulandı, push edildi (`112a6b2`).
+**Bilinen sınır:** PDF/ZIP rotaları (Playwright/Chromium ister) bu paylaşımlı
+Node.js hostta muhtemelen çalışmaz; Chromium başlatılamazsa artık opak 500
+yerine net 503 dönüyorlar ("Chromium destekli ortam gerekiyor") — mühür/imza/
+doğrulama etkilenmez, yalnızca PDF render'ı.
 
 **Redaction soy bağı (M11, `20260717220000`):** redakte kanıt ayrı bir kanıttır
 (append-only yeni satır, orijinal durur), farklı hash + orijinalle soy bağı.
@@ -114,7 +129,7 @@ M12'de KALAN (ROADMAP M12): test tanımı yönetimi + çalıştırma/öneri EKRA
 (rotalar hazır, UI yok), freshness otomasyonu, tenant_controls'a bağlama + pano,
 S01 dikey akışı.
 
-Hâlâ **doğrulanamayan** tek şey **deploy**. Bunun için "çalışıyor" deme.
+Deploy artık doğrulandı (yukarıda, "Deploy artık DOĞRULANDI" altında).
 (Supabase Auth çok önce doğrulandı: gerçek kullanıcı canlıda giriş yaptı.)
 
 **Simülasyon** (docs/ROADMAP.md §1.2, M7-M9): M7 ve M8 bitti. 5 senaryo canlıda
