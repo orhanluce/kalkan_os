@@ -729,7 +729,7 @@ reddedildi, soy sorgulanabiliyor (`evidence_redaksiyon_soyu`).
 **Kabul (KALAN):** legal hold altındaki kanıt silinemez ve deneme audit event
 üretir; redaction UI (yükleme formu).
 
-### M12 — Kontrol test motoru ve durum makinesi (belge M02) ⏳ motor+durum sözlüğü ✅, bulgu/retest/freshness/pano ✗
+### M12 — Kontrol test motoru ve durum makinesi (belge M02) ⏳ motor+durum sözlüğü ✅ + bulgu/verified-closure ✅, test-rota/freshness/pano ✗
 
 **Tamamlanan — deterministik motor + kural 13 durum sözlüğü (`control-test.ts`,
 `20260717230000/230001`):** kontrolün "tasarlandı" değil "çalışıyor" durumunu
@@ -756,12 +756,32 @@ CONFIG_ASSERTION, SAMPLE_REVIEW, ATTACK_SIMULATION, RESTORE_TEST) +
 - **Kabul (karşılanan):** "aynı test aynı fixture ile deterministik sonuç verir"
   (determinizm testi + canlı).
 
+**Tamamlanan 2 — bulgu üretimi + verified closure (`20260717240000/240001`,
+kural 11+14):**
+- Başarısız test → bulgu ÖNERİSİ (`bulguOnerisiUret`, PROPOSED, insan kabul
+  etmeden gerçek bulgu olmaz). **Kritik ayrım kanıtlı:** yalnız FAILED öneri
+  üretir; UNKNOWN/STALE ÜRETMEZ — "ölçemedik" bir ihlal değildir, iş listesine
+  sahte bulgu sokmaz. `control_test_finding_proposals` (M8 deseni, `unique
+  (test_run_id)` ile idempotent).
+- **Verified closure guard (kural 14) — DB invariant, canlıda doğrulandı:** bir
+  bulgu `acik → kapali` geçerken retest_gerekli ise (1) başarılı retest koşusu
+  bağlı, (2) o koşu GERÇEKTEN PASSED, (3) aynı test tanımına ait, (4) bulgudan
+  SONRA koşmuş, (5) onaylayan yetkili dolu olmalı. Aksi halde reddedilir.
+  **Ticket/aksiyon düzenlemek (aksiyon_plani) durumu değiştirmediği için guard'ı
+  tetiklemez — "ticket kapatmak kontrol kapatmaz".** Trigger'da, çünkü
+  "başarılı retest olmadan kapanan kritik bulgu sıfır" bir KPI değil GARANTİ
+  olmalı — service_role bile atlayamaz. Canlı: retestsiz red, FAILED retest red,
+  başarılı retest+onay kapatır.
+- **Yol boyunca bir PGlite≠Postgres farkı düzeltildi:** `audit_findings`
+  değişen alanları `text[] || 'literal'` ile topluyordu; canlıda çalışıyor ama
+  PGlite `||`'i array-array sanıp "malformed array literal" veriyordu.
+  `array_append`'e çevrildi (canlıda birebir aynı) — findings güncellemeleri
+  artık PGlite'ta da test edilebilir, closure guard testleri bu sayede koşuyor.
+
 **KALAN:**
-- Başarısız test → otomatik bulgu önerisi (PROPOSED, M8 deseni); `otomatik_bulgu`
-  + `grace_gun` + `basarisizlik_onem` kolonları hazır, üretim bağlanmadı.
-- Verified closure (kural 14): bulgu kapanışı başarılı retest kanıtı + yetkili
-  onay ister; ticket/aksiyon kapanışı kontrol kapanışı sayılmaz. `retest_gerekli`
-  kolonu hazır.
+- Test çalıştırma rotası/UI: motor + öneri üretimi hazır ama uygulamadan test
+  koşup test_run yazan + öneriyi doğuran ekran/route yok (bugün yalnız script).
+- Öneri → kabul rotası (M8'deki `oneri` route deseni kontrol testi için).
 - Freshness otomasyonu: `pg_cron` ile kanıt süresi dolunca STALE — motor STALE'i
   hesaplıyor ama DB'de zamanlı yeniden değerlendirme yok (eski borç, skip'li e2e
   burada kapanır).

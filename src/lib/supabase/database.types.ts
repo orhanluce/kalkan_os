@@ -612,6 +612,97 @@ export type Database = {
           },
         ]
       }
+      control_test_finding_proposals: {
+        Row: {
+          baslik: string
+          control_id: string
+          created_at: string
+          durum: string
+          finding_id: string | null
+          gerekce: string
+          id: string
+          karar_at: string | null
+          karar_veren: string | null
+          onem: string
+          tenant_id: string
+          test_definition_id: string
+          test_run_id: string
+        }
+        Insert: {
+          baslik: string
+          control_id: string
+          created_at?: string
+          durum?: string
+          finding_id?: string | null
+          gerekce: string
+          id?: string
+          karar_at?: string | null
+          karar_veren?: string | null
+          onem: string
+          tenant_id: string
+          test_definition_id: string
+          test_run_id: string
+        }
+        Update: {
+          baslik?: string
+          control_id?: string
+          created_at?: string
+          durum?: string
+          finding_id?: string | null
+          gerekce?: string
+          id?: string
+          karar_at?: string | null
+          karar_veren?: string | null
+          onem?: string
+          tenant_id?: string
+          test_definition_id?: string
+          test_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "control_test_finding_proposals_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "control_test_finding_proposals_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "findings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "control_test_finding_proposals_karar_veren_fkey"
+            columns: ["karar_veren"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "control_test_finding_proposals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "control_test_finding_proposals_test_definition_id_fkey"
+            columns: ["test_definition_id"]
+            isOneToOne: false
+            referencedRelation: "control_test_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "control_test_finding_proposals_test_run_id_fkey"
+            columns: ["test_run_id"]
+            isOneToOne: true
+            referencedRelation: "test_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       controls: {
         Row: {
           aciklama: string | null
@@ -845,8 +936,13 @@ export type Database = {
           durum: string
           hedef_kapama: string | null
           id: string
+          kapatan: string | null
+          kapatma_onay_at: string | null
+          kapatma_retest_run_id: string | null
           kaynak: string
+          kaynak_test_definition_id: string | null
           onem: string
+          retest_gerekli: boolean
           tenant_id: string
           updated_at: string
           yk_onay_tarihi: string | null
@@ -858,8 +954,13 @@ export type Database = {
           durum?: string
           hedef_kapama?: string | null
           id?: string
+          kapatan?: string | null
+          kapatma_onay_at?: string | null
+          kapatma_retest_run_id?: string | null
           kaynak: string
+          kaynak_test_definition_id?: string | null
           onem: string
+          retest_gerekli?: boolean
           tenant_id: string
           updated_at?: string
           yk_onay_tarihi?: string | null
@@ -871,13 +972,39 @@ export type Database = {
           durum?: string
           hedef_kapama?: string | null
           id?: string
+          kapatan?: string | null
+          kapatma_onay_at?: string | null
+          kapatma_retest_run_id?: string | null
           kaynak?: string
+          kaynak_test_definition_id?: string | null
           onem?: string
+          retest_gerekli?: boolean
           tenant_id?: string
           updated_at?: string
           yk_onay_tarihi?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "findings_kapatan_fkey"
+            columns: ["kapatan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "findings_kapatma_retest_run_id_fkey"
+            columns: ["kapatma_retest_run_id"]
+            isOneToOne: false
+            referencedRelation: "test_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "findings_kaynak_test_definition_id_fkey"
+            columns: ["kaynak_test_definition_id"]
+            isOneToOne: false
+            referencedRelation: "control_test_definitions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "findings_tenant_id_fkey"
             columns: ["tenant_id"]

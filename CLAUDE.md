@@ -3,7 +3,7 @@ TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supab
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler
-üzerinden bağlanıyoruz — direct connection IPv6-only. 31 migration uygulandı
+üzerinden bağlanıyoruz — direct connection IPv6-only. 33 migration uygulandı
 (`pnpm db:push`); `pnpm db:verify` çekirdek tabloları fiilen doğrular. Kontrol
 kütüphanesi seed edildi (2 çerçeve, 17 kontrol) ve ilk kuruma atandı.
 
@@ -92,8 +92,19 @@ FAILED üretmez, UNKNOWN üretir. Motor deterministik (kural 11). Durum türetim
 (TS), SQL yalnız ham malzeme. Canlı doğrulama bir açık yakaladı: append-only önce
 yalnız revoke'la kuruluydu, service_role UPDATE geçiyordu — manifest deseniyle
 immutability trigger eklendi, canlıda service_role UPDATE reddi doğrulandı.
-M12'de KALAN (ROADMAP M12): başarısız test→bulgu, verified closure (kural 14),
-freshness otomasyonu, tenant_controls'a bağlama + pano, S01 dikey akışı.
+**Bulgu üretimi + verified closure (M12, `20260717240000/240001`, kural 11+14):**
+başarısız test → bulgu ÖNERİSİ (`bulguOnerisiUret`, PROPOSED); yalnız FAILED
+üretir, UNKNOWN/STALE ÜRETMEZ ("ölçemedik" ihlal değil). Verified closure guard
+DB invariant'ı: retest_gerekli bulgu, başarılı+aynı-tanım+bulgudan-sonra retest
+koşusu + onaylayan olmadan `kapali`'ya GEÇEMEZ; ticket/aksiyon düzenlemek durumu
+değiştirmediğinden kapatmaz. Trigger'da (service_role bile atlayamaz), canlıda
+doğrulandı (retestsiz red, FAILED retest red, başarılı retest+onay kapatır).
+Yol boyunca bir PGlite≠Postgres farkı düzeltildi: `audit_findings` `text[] ||
+'literal'` (canlıda OK, PGlite'ta "malformed array literal") → `array_append`.
+
+M12'de KALAN (ROADMAP M12): test çalıştırma rotası/UI (motor+öneri hazır, ekran
+yok), öneri→kabul rotası, freshness otomasyonu, tenant_controls'a bağlama + pano,
+S01 dikey akışı.
 
 Hâlâ **doğrulanamayan** tek şey **deploy**. Bunun için "çalışıyor" deme.
 (Supabase Auth çok önce doğrulandı: gerçek kullanıcı canlıda giriş yaptı.)

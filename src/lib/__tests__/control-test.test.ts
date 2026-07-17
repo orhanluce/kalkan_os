@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  bulguOnerisiUret,
   kontrolGuvenceDurumu,
   testDegerlendir,
   type Gozlem,
+  type TestSonucu,
   type TestTanimi,
 } from "../control-test";
 
@@ -139,6 +141,36 @@ describe("determinizm (kural 11)", () => {
     const a = testDegerlendir(tanim(), gozlem(), ASOF);
     const b = testDegerlendir(tanim(), gozlem(), ASOF);
     expect(a).toEqual(b);
+  });
+});
+
+describe("bulguOnerisiUret — yalnız FAILED, kural 11", () => {
+  const tanim = { ad: "MFA zorunlu", otomatikBulgu: true, basarisizlikOnem: "kritik" as const };
+  const sonuc = (s: TestSonucu["sonuc"]): TestSonucu => ({ sonuc: s, gerekce: "gerekçe" });
+
+  it("FAILED bulgu önerisi üretir, önemi tanımdan alır", () => {
+    const o = bulguOnerisiUret(tanim, sonuc("FAILED"));
+    expect(o).not.toBeNull();
+    expect(o!.onem).toBe("kritik");
+    expect(o!.baslik).toContain("MFA zorunlu");
+  });
+
+  it("UNKNOWN bulgu ÜRETMEZ — 'ölçemedik' bir ihlal değildir", () => {
+    // Kritik ayrım: connector arızası iş listesine sahte bulgu sokmamalı.
+    expect(bulguOnerisiUret(tanim, sonuc("UNKNOWN"))).toBeNull();
+  });
+
+  it("STALE bulgu ÜRETMEZ — tazeleme ihtiyacı, başarısızlık değil", () => {
+    expect(bulguOnerisiUret(tanim, sonuc("STALE"))).toBeNull();
+  });
+
+  it("PASSED/EXCEPTION bulgu üretmez", () => {
+    expect(bulguOnerisiUret(tanim, sonuc("PASSED"))).toBeNull();
+    expect(bulguOnerisiUret(tanim, sonuc("EXCEPTION"))).toBeNull();
+  });
+
+  it("otomatik_bulgu kapalıysa FAILED bile üretmez", () => {
+    expect(bulguOnerisiUret({ ...tanim, otomatikBulgu: false }, sonuc("FAILED"))).toBeNull();
   });
 });
 

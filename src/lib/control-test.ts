@@ -176,3 +176,33 @@ export function kontrolGuvenceDurumu(sonuclar: TestSonuc[]): KontrolGuvenceDurum
   if (sonuclar.length === 0) return "NOT_TESTED";
   return sonuclar.reduce((enKotu, s) => (ONCELIK[s] > ONCELIK[enKotu] ? s : enKotu));
 }
+
+export interface BulguOnerisi {
+  baslik: string;
+  gerekce: string;
+  onem: "acil" | "kritik" | "yuksek" | "orta" | "dusuk";
+}
+
+/**
+ * Başarısız testten bulgu ÖNERİSİ üretir (kural 11).
+ *
+ * YALNIZCA FAILED için ve yalnızca `otomatik_bulgu` açıksa. UNKNOWN/STALE
+ * bulgu ÜRETMEZ — kritik ayrım: UNKNOWN "ölçemedik"tir, bir bulgu (ölçülmüş
+ * eksik) değildir; ona bulgu açmak, olmayan bir ihlali iş listesine sokardı.
+ * STALE de bir başarısızlık değil, tazeleme ihtiyacıdır. Bunlar panoda
+ * görünür ama otomatik bulgu doğurmaz.
+ *
+ * Öneri; insan kabul etmeden gerçek bulgu OLMAZ (bu yalnız öneri üretir).
+ */
+export function bulguOnerisiUret(
+  tanim: { ad: string; otomatikBulgu: boolean; basarisizlikOnem: BulguOnerisi["onem"] },
+  sonuc: TestSonucu,
+): BulguOnerisi | null {
+  if (sonuc.sonuc !== "FAILED" || !tanim.otomatikBulgu) return null;
+  return {
+    baslik: `Kontrol testi başarısız: ${tanim.ad}`,
+    // Gerekçe motorun kararından gelir — "sistem böyle dedi" değil, ölçülen olgu.
+    gerekce: sonuc.gerekce,
+    onem: tanim.basarisizlikOnem,
+  };
+}
