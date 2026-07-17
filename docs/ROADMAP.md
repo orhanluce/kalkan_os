@@ -255,7 +255,18 @@ otomatik yayını, öneri kabul akışı → gerçek bulgu (UI + RPC), gözlemci
 - PDF: yönetim raporu, simülasyon raporu; rapor hash'i + QR doğrulama → mevcut `verification.ts`.
 - **Kabul:** simülasyon tamamlanmadan puanlama başlamıyor; başarısız kontrol otomatik öneri üretiyor; sonuç ana panoya yansıyor; QR doğrulama hassas veri sızdırmıyor.
 
-### M10 — Yönetim Kurulu Beyanı ve çapraz denetim (kaynak: kurucu spesifikasyonu, 17 Temmuz 2026)
+### M10 — Yönetim Kurulu Beyanı ve çapraz denetim ✅ şema+motor, UI ✗ (kaynak: kurucu spesifikasyonu, 17 Temmuz 2026)
+
+**Tamamlanan:** şema (`20260717150000_board_declarations.sql`), çapraz denetim motoru
+(`src/lib/board-declaration-audit.ts`, 33 test), 20 soru + 8 kural seed edildi (`pnpm seed:beyan`).
+**Uçtan uca canlıda doğrulandı** (`pnpm demo:beyan`): gerçek bir dönem açıldı, YKB-05 kanıtsız
+"evet" cevaplandı → **CR-001 gerçekten tetiklendi** ("Kanıtlanmamış yönetim beyanı", risk
+orta_yüksek); YKB-04 gerçek bir tatbikat sonucuna bağlandı → CR-002/CR-003 gerçek veriye göre
+tetiklenmedi; beyan sunuldu ve **canlıda gerçekten değiştirilemedi**.
+
+**Kalan (M10'un tamamlanması için):** beyan doldurma/sunma EKRANLARI, kanıt bağlama UI'ı, çapraz
+denetim sonuçlarının panoda gösterimi, tetiklenen kuraldan gerçek bulgu önerisine geçiş (M8'deki
+`simulation_finding_proposals` deseninin aynısı burada da uygulanmalı — PROPOSED doğmalı).
 
 `scripts/generate-yk-beyani.ts`'teki M4-dönemi statik özet PDF'i (skor + bulgu sayısı, elle
 girilen RTO/RPO) yerini bu daha zengin modele bırakıyor: 20 yapılandırılmış beyan sorusu +

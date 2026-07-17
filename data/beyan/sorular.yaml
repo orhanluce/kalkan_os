@@ -1,0 +1,177 @@
+# Yönetim Kurulu Beyanı soruları — docs/ROADMAP.md M10.
+#
+# KAYNAK: kurucunun verdiği "Yönetim Kurulu Beyan Soruları" spesifikasyonu
+# (17 Temmuz 2026), birebir aktarılmıştır — soru metinleri uydurulmamıştır.
+#
+# mevzuat_notu: TTK m.369/375/392 atıfları BİLGİLENDİRME AMAÇLIDIR, doğrulanmış
+# hukuki eşleme DEĞİLDİR (kurucunun kendi notu). TTK m.369 tedbirli yönetici
+# özenini, m.375 üst gözetim ve finansal düzen kurma yükümlülüğünü, m.392
+# bilgi alma ve inceleme hakkını düzenler — ama bu sorularla maddeler
+# arasındaki eşleme bir hukuk/GRC uzmanınca doğrulanmadan resmi bir beyan
+# aracı olarak kullanılmamalıdır.
+#
+# icerik_durumu: hepsi UNVERIFIED_SAMPLE (kural 3/12 ile aynı disiplin).
+
+sorular:
+  - kod: YKB-01
+    sira: 1
+    soru: >-
+      Yönetim Kurulu son 12 ay içinde siber güvenlik, iş sürekliliği ve bilgi
+      sistemleri risklerini gündemine alarak değerlendirdi mi?
+    beklenen_kanit: Toplantı gündemi, karar tutanağı, sunum, risk raporu
+    mevzuat_notu: "TTK m.369, 375"
+
+  - kod: YKB-02
+    sira: 2
+    soru: >-
+      Yönetim Kurulu, siber güvenlik risklerini değerlendirirken yeterli ve
+      güncel bilgiye dayandı mı?
+    beklenen_kanit: Yönetim kuruluna sunulan rapor, veri tarihi, kaynak listesi
+    mevzuat_notu: "TTK m.369, 392"
+
+  - kod: YKB-03
+    sira: 3
+    soru: >-
+      Şirketin kritik iş hizmetleri ve bu hizmetleri destekleyen kritik bilgi
+      varlıkları güncel olarak belirlenmiş midir?
+    beklenen_kanit: Kritik varlık envanteri, iş hizmeti haritası, bağımlılık matrisi
+    mevzuat_notu: "TTK m.375"
+
+  - kod: YKB-04
+    sira: 4
+    soru: >-
+      Kritik sistemlerin hedeflenen toparlanma süresi (RTO) ve kabul edilebilir
+      veri kaybı (RPO) yönetim tarafından onaylanmış mıdır?
+    beklenen_kanit: RTO/RPO tablosu, Yönetim Kurulu veya komite kararı
+    mevzuat_notu: "TTK m.375"
+
+  - kod: YKB-05
+    sira: 5
+    soru: >-
+      Son iş sürekliliği veya felaket kurtarma tatbikatı ne zaman yapılmıştır
+      ve hedeflenen RTO/RPO değerleri karşılanmış mıdır?
+    beklenen_kanit: Tatbikat raporu, zaman çizelgesi, geri dönüş logları
+    mevzuat_notu: "TTK m.369, 375"
+
+  - kod: YKB-06
+    sira: 6
+    soru: >-
+      Son siber olay müdahale tatbikatında Yönetim Kurulu veya yetkilendirdiği
+      üst yönetim temsilcisi aktif olarak yer almış mıdır?
+    beklenen_kanit: Katılımcı listesi, tatbikat zaman çizelgesi, karar kayıtları
+    mevzuat_notu: "TTK m.375"
+
+  - kod: YKB-07
+    sira: 7
+    soru: >-
+      Şirketin siber olay müdahale planı son 12 ay içinde gözden geçirilmiş ve
+      onaylanmış mıdır?
+    beklenen_kanit: Plan versiyonu, değişiklik geçmişi, onay kaydı
+    mevzuat_notu: "TTK m.375"
+
+  - kod: YKB-08
+    sira: 8
+    soru: >-
+      Şirket, kritik sistemlerin çalışmaması veya siber saldırıya uğraması
+      hâlinde uygulanacak karar ve eskalasyon zincirini tanımlamış mıdır?
+    beklenen_kanit: Olay müdahale prosedürü, çağrı ağacı, görev tanımları
+    mevzuat_notu: "TTK m.367, 375"
+
+  - kod: YKB-09
+    sira: 9
+    soru: >-
+      Şirketin kritik üçüncü taraf, bulut, dış hizmet ve tedarikçi
+      bağımlılıkları eksiksiz şekilde belirlenmiş midir?
+    beklenen_kanit: Tedarikçi envanteri, sözleşmeler, bağımlılık haritası
+    mevzuat_notu: "TTK m.375"
+
+  - kod: YKB-10
+    sira: 10
+    soru: >-
+      Kritik üçüncü tarafların siber güvenlik, iş sürekliliği ve olay bildirim
+      yeterliliği düzenli olarak değerlendirilmekte midir?
+    beklenen_kanit: Tedarikçi risk değerlendirmesi, SLA, denetim raporu
+    mevzuat_notu: "TTK m.369, 375"
+
+  - kod: YKB-11
+    sira: 11
+    soru: >-
+      Ayrıcalıklı kullanıcı hesapları ve kritik sistem erişimleri son 12 ay
+      içinde gözden geçirilmiş midir?
+    beklenen_kanit: IAM raporu, erişim inceleme tutanağı, kapatılan hesap listesi
+    mevzuat_notu: "TTK m.375, 392"
+
+  - kod: YKB-12
+    sira: 12
+    soru: >-
+      İşten ayrılan veya görevi değişen personelin erişimlerinin zamanında
+      kapatıldığına dair güvenilir bir kontrol bulunmakta mıdır?
+    beklenen_kanit: İnsan kaynakları–IAM karşılaştırması, erişim kapatma kayıtları
+    mevzuat_notu: "TTK m.375"
+
+  - kod: YKB-13
+    sira: 13
+    soru: >-
+      Kritik güvenlik açıkları, yamalar ve sızma testi bulguları Yönetim
+      Kurulu veya ilgili komiteye düzenli olarak raporlanmakta mıdır?
+    beklenen_kanit: Açık bulgu raporu, risk kabulü, toplantı sunumu
+    mevzuat_notu: "TTK m.369, 375"
+
+  - kod: YKB-14
+    sira: 14
+    soru: >-
+      Kritik güvenlik açıklarının belirlenen sürelerde kapatılmasını sağlayan
+      sorumlu, termin ve eskalasyon mekanizması mevcut mudur?
+    beklenen_kanit: Bulgu takip sistemi, SLA raporu, gecikme kayıtları
+    mevzuat_notu: "TTK m.375"
+
+  - kod: YKB-15
+    sira: 15
+    soru: >-
+      Kritik sistemlerin loglama, izleme, alarm üretme ve olay sonrası
+      incelemeye imkân sağlayacak şekilde çalıştığı doğrulanmış mıdır?
+    beklenen_kanit: SIEM kapsam raporu, log saklama raporu, alarm testleri
+    mevzuat_notu: "TTK m.375"
+
+  - kod: YKB-16
+    sira: 16
+    soru: >-
+      Siber olay, veri ihlali veya kritik hizmet kesintisi hâlinde gerekli
+      düzenleyici, hukuki ve sözleşmesel bildirimlerin yapılmasını sağlayan
+      bir süreç mevcut mudur?
+    beklenen_kanit: Bildirim prosedürü, süre matrisi, örnek bildirim taslağı
+    mevzuat_notu: "TTK m.369, 375"
+
+  - kod: YKB-17
+    sira: 17
+    soru: >-
+      Yönetim Kurulu, siber güvenlik ve iş sürekliliği için tahsis edilen
+      bütçe ve insan kaynağının şirketin risk profiline yeterli olduğunu
+      değerlendirmiş midir?
+    beklenen_kanit: Bütçe raporu, personel planı, risk–kaynak karşılaştırması
+    mevzuat_notu: "TTK m.369, 375"
+
+  - kod: YKB-18
+    sira: 18
+    soru: >-
+      Yönetim Kurulu'na sunulan siber güvenlik ve süreklilik raporlarında açık
+      riskler, kalan riskler ve alınmayan önlemler açıkça belirtilmiş midir?
+    beklenen_kanit: Yönetim raporu, karar tutanağı, risk kabul kayıtları
+    mevzuat_notu: "TTK m.369, 375"
+
+  - kod: YKB-19
+    sira: 19
+    soru: >-
+      Yönetim görevleri veya bilgi güvenliğiyle ilgili sorumluluklar
+      devredilmişse, devredilen görevler, raporlama ilişkileri ve üst gözetim
+      mekanizması yazılı olarak belirlenmiş midir?
+    beklenen_kanit: İç yönerge, görev matrisi, raporlama şeması
+    mevzuat_notu: "TTK m.367, 375"
+
+  - kod: YKB-20
+    sira: 20
+    soru: >-
+      Yönetim Kurulu üyeleri, gerekli gördükleri bilgi, belge, sözleşme,
+      rapor veya çalışan görüşlerine erişebildiklerini beyan ediyor mu?
+    beklenen_kanit: Bilgi talepleri, cevap kayıtları, inceleme tutanakları
+    mevzuat_notu: "TTK m.392"

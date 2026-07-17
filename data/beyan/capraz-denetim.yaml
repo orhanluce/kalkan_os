@@ -1,0 +1,120 @@
+# Çapraz denetim kuralları (CR-001..CR-008) — docs/ROADMAP.md M10.
+#
+# KAYNAK: kurucunun "Çapraz Denetim Kuralları" tablosu, 17 Temmuz 2026.
+# icerik_durumu: UNVERIFIED_SAMPLE (kural 3/12 disiplini).
+#
+# veri_kaynagi_durumu — DÜRÜST OLMAK ÖNEMLİ: CR-004/005/006, kurucunun
+# tasarımında var ama KALKAN-OS'ta henüz karşılık gelen veri modeli yok
+# (tedarikçi envanteri, IAM erişim incelemesi, sızma testi SLA takibi). Bu
+# üç kural yine de seed edilir — tasarım kaybolmasın — ama MODEL_YOK olarak
+# işaretlenir. Değerlendirici (board-declaration-audit.ts) bunlar için asla
+# sahte bir "tetiklendi/tetiklenmedi" üretmez, İNCELEME GEREKLİ döner.
+
+kurallar:
+  - kod: CR-001
+    question_kod: YKB-05
+    aciklama: >-
+      Şirket "son 12 ay içinde siber tatbikat yapıldı" beyanında bulunuyor;
+      ancak tatbikat raporu, katılımcı listesi veya işlem kaydı bulunmuyor.
+    tetikleyici: "Beyan = Evet, kanıt sayısı = 0"
+    degerlendirme_tipi: KANIT_YOK_ISE_TUTARSIZ
+    parametreler: {}
+    onerilen_bulgu: Kanıtlanmamış yönetim beyanı
+    risk_seviyesi: orta_yuksek
+    veri_kaynagi_durumu: MEVCUT
+
+  - kod: CR-002
+    question_kod: YKB-04
+    aciklama: >-
+      Şirket kritik sistemler için RTO/RPO hedefleri belirlediğini beyan
+      ediyor; ancak onaylı RTO/RPO tablosu veya Yönetim Kurulu kararı
+      bulunmuyor.
+    tetikleyici: "Beyan = Evet, onaylı doküman yok"
+    degerlendirme_tipi: KANIT_YOK_ISE_TUTARSIZ
+    parametreler: {}
+    onerilen_bulgu: Kritik toparlanma hedefleri belgelenmemiş
+    risk_seviyesi: orta_yuksek
+    veri_kaynagi_durumu: MEVCUT
+
+  - kod: CR-003
+    question_kod: YKB-04
+    aciklama: >-
+      Beyan edilen RTO/RPO değerleri, son geri dönüş tatbikatındaki fiilî
+      sürelerle karşılaştırılıyor.
+    tetikleyici: "Fiilî toparlanma süresi > beyan edilen RTO"
+    degerlendirme_tipi: HEDEF_ASILDIYSA
+    parametreler: {}
+    onerilen_bulgu: Beyan edilen dayanıklılık hedefi karşılanmadı
+    risk_seviyesi: yuksek
+    veri_kaynagi_durumu: MEVCUT
+
+  - kod: CR-004
+    question_kod: YKB-09
+    aciklama: >-
+      Şirket kritik üçüncü taraf bağımlılıklarını tanımladığını beyan
+      ediyor; ancak sözleşme, tedarikçi envanteri veya bağımlılık
+      haritasında ilgili sağlayıcı yer almıyor.
+    tetikleyici: "Beyan listesi ile sözleşme/varlık envanteri uyuşmuyor"
+    degerlendirme_tipi: TEDARIKCI_ENVANTERINDE_YOK
+    parametreler: {}
+    onerilen_bulgu: Eksik üçüncü taraf bağımlılık envanteri
+    risk_seviyesi: yuksek
+    # Tedarikçi/sözleşme envanteri KALKAN-OS'ta henüz ayrı bir tablo değil.
+    veri_kaynagi_durumu: MODEL_YOK
+
+  - kod: CR-005
+    question_kod: YKB-11
+    aciklama: >-
+      Şirket ayrıcalıklı erişimlerin düzenli gözden geçirildiğini beyan
+      ediyor; IAM dışa aktarımında gözden geçirme tarihi, onaylayan kişi
+      veya açık ayrıcalıklı hesaplar bulunuyor.
+    tetikleyici: "İnceleme tarihi geçmiş veya açık onaysız hesap mevcut"
+    degerlendirme_tipi: ERISIM_INCELEME_GECMIS
+    parametreler: { tolerans_gun: 365 }
+    onerilen_bulgu: Ayrıcalıklı erişim kontrolü kanıtlanamadı
+    risk_seviyesi: orta_yuksek
+    # IAM erişim inceleme kaydı (tarih/onaylayan/açık hesap listesi) için
+    # yapılandırılmış bir tablo yok — yalnızca genel kanıt yükleme var.
+    veri_kaynagi_durumu: MODEL_YOK
+
+  - kod: CR-006
+    question_kod: YKB-14
+    aciklama: >-
+      Şirket kritik güvenlik açıklarının zamanında kapatıldığını beyan
+      ediyor; sızma testi veya güvenlik açığı taramasında süresi geçmiş
+      kritik bulgular bulunuyor.
+    tetikleyici: "Kritik bulgu SLA'sı aşılmış"
+    degerlendirme_tipi: SLA_ASILMIS
+    parametreler: {}
+    onerilen_bulgu: Beyan ile teknik güvenlik verisi tutarsız
+    risk_seviyesi: kritik
+    # Güvenlik açığı/sızma testi bulgu takibi ve SLA süresi ayrı bir tablo
+    # gerektirir; mevcut findings tablosu bunun için yeterince yapılandırılmış
+    # değil (SLA/termin alanı yok).
+    veri_kaynagi_durumu: MODEL_YOK
+
+  - kod: CR-007
+    question_kod: YKB-01
+    aciklama: >-
+      Şirket Yönetim Kurulu'na düzenli siber güvenlik raporu sunulduğunu
+      beyan ediyor; ancak toplantı gündemlerinde, karar tutanaklarında veya
+      rapor teslim kayıtlarında iz bulunmuyor.
+    tetikleyici: "Rapor referansı mevcut değil"
+    degerlendirme_tipi: RAPORLAMA_IZI_YOK
+    parametreler: {}
+    onerilen_bulgu: Yönetim kuruluna raporlama izi yok
+    risk_seviyesi: yuksek
+    veri_kaynagi_durumu: MEVCUT
+
+  - kod: CR-008
+    question_kod: YKB-07
+    aciklama: >-
+      Şirket olay müdahale planının test edildiğini beyan ediyor; simülasyon
+      kayıtlarında kritik kararların alınmadığı veya bildirim sürelerinin
+      aşıldığı görülüyor.
+    tetikleyici: "Simülasyon puanı kritik eşik altında"
+    degerlendirme_tipi: SIMULASYON_KRITIK_ESIK_ALTI
+    parametreler: {}
+    onerilen_bulgu: Olay müdahale kontrolü etkin değil
+    risk_seviyesi: yuksek
+    veri_kaynagi_durumu: MEVCUT

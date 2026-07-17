@@ -21,7 +21,9 @@
     "bootstrap:tenant": "tsx scripts/bootstrap-tenant.ts",
     "assign:controls": "tsx scripts/assign-controls.ts",
     "seed:scenarios": "tsx scripts/seed-scenarios.ts",
-    "demo:simulation": "tsx scripts/demo-simulation.ts"
+    "demo:simulation": "tsx scripts/demo-simulation.ts",
+    "seed:beyan": "tsx scripts/seed-beyan.ts",
+    "demo:beyan": "tsx scripts/demo-beyan.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
