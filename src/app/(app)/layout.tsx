@@ -44,12 +44,6 @@ export default function AppLayout({ children }: Readonly<{ children: React.React
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-3">
-            {/* Kimlik doğrulama artık gerçek Supabase Auth; veri katmanı
-                henüz localStorage'da. Rozet, geçiş bitene kadar bu ayrımı
-                söylüyor — "canlı" demek, veriyi de canlı sanmaya yol açardı. */}
-            <span className="rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-400">
-              Veriler yerel — Supabase geçişi sürüyor
-            </span>
             <span className="text-sm text-muted-foreground">
               {currentUser.fullName} · {ROLE_LABEL[currentUser.role]}
             </span>
