@@ -222,6 +222,294 @@ export type Database = {
           },
         ]
       }
+      board_cross_audit_rules: {
+        Row: {
+          aciklama: string
+          created_at: string
+          degerlendirme_tipi: string
+          icerik_durumu: string
+          id: string
+          kod: string
+          onerilen_bulgu: string
+          parametreler: Json
+          question_id: string | null
+          risk_seviyesi: string
+          tetikleyici: string
+          veri_kaynagi_durumu: string
+        }
+        Insert: {
+          aciklama: string
+          created_at?: string
+          degerlendirme_tipi: string
+          icerik_durumu?: string
+          id?: string
+          kod: string
+          onerilen_bulgu: string
+          parametreler?: Json
+          question_id?: string | null
+          risk_seviyesi: string
+          tetikleyici: string
+          veri_kaynagi_durumu?: string
+        }
+        Update: {
+          aciklama?: string
+          created_at?: string
+          degerlendirme_tipi?: string
+          icerik_durumu?: string
+          id?: string
+          kod?: string
+          onerilen_bulgu?: string
+          parametreler?: Json
+          question_id?: string | null
+          risk_seviyesi?: string
+          tetikleyici?: string
+          veri_kaynagi_durumu?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_cross_audit_rules_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "board_declaration_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      board_declaration_answers: {
+        Row: {
+          aciklama: string | null
+          beyan: string
+          created_at: string
+          declaration_id: string
+          id: string
+          question_id: string
+          son_dogrulama_tarihi: string | null
+          sorumlu_yonetici: string | null
+          tarih: string | null
+          tenant_id: string
+          yk_karar_referansi: string | null
+        }
+        Insert: {
+          aciklama?: string | null
+          beyan: string
+          created_at?: string
+          declaration_id: string
+          id?: string
+          question_id: string
+          son_dogrulama_tarihi?: string | null
+          sorumlu_yonetici?: string | null
+          tarih?: string | null
+          tenant_id: string
+          yk_karar_referansi?: string | null
+        }
+        Update: {
+          aciklama?: string | null
+          beyan?: string
+          created_at?: string
+          declaration_id?: string
+          id?: string
+          question_id?: string
+          son_dogrulama_tarihi?: string | null
+          sorumlu_yonetici?: string | null
+          tarih?: string | null
+          tenant_id?: string
+          yk_karar_referansi?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_declaration_answers_declaration_id_fkey"
+            columns: ["declaration_id"]
+            isOneToOne: false
+            referencedRelation: "board_declarations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_declaration_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "board_declaration_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_declaration_answers_sorumlu_yonetici_fkey"
+            columns: ["sorumlu_yonetici"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_declaration_answers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      board_declaration_evidence_links: {
+        Row: {
+          answer_id: string
+          evidence_id: string
+          tenant_id: string
+        }
+        Insert: {
+          answer_id: string
+          evidence_id: string
+          tenant_id: string
+        }
+        Update: {
+          answer_id?: string
+          evidence_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_declaration_evidence_links_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "board_declaration_answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_declaration_evidence_links_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "evidences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_declaration_evidence_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      board_declaration_questions: {
+        Row: {
+          beklenen_kanit: string
+          created_at: string
+          icerik_durumu: string
+          id: string
+          kod: string
+          mevzuat_notu: string | null
+          sira: number
+          soru: string
+        }
+        Insert: {
+          beklenen_kanit: string
+          created_at?: string
+          icerik_durumu?: string
+          id?: string
+          kod: string
+          mevzuat_notu?: string | null
+          sira: number
+          soru: string
+        }
+        Update: {
+          beklenen_kanit?: string
+          created_at?: string
+          icerik_durumu?: string
+          id?: string
+          kod?: string
+          mevzuat_notu?: string | null
+          sira?: number
+          soru?: string
+        }
+        Relationships: []
+      }
+      board_declaration_simulation_links: {
+        Row: {
+          answer_id: string
+          run_id: string
+          tenant_id: string
+        }
+        Insert: {
+          answer_id: string
+          run_id: string
+          tenant_id: string
+        }
+        Update: {
+          answer_id?: string
+          run_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_declaration_simulation_links_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "board_declaration_answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_declaration_simulation_links_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "simulation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_declaration_simulation_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      board_declarations: {
+        Row: {
+          created_at: string
+          donem_baslangic: string | null
+          donem_bitis: string | null
+          donem_etiketi: string
+          durum: string
+          id: string
+          sunan: string | null
+          sunuldu_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          donem_baslangic?: string | null
+          donem_bitis?: string | null
+          donem_etiketi: string
+          durum?: string
+          id?: string
+          sunan?: string | null
+          sunuldu_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          donem_baslangic?: string | null
+          donem_bitis?: string | null
+          donem_etiketi?: string
+          durum?: string
+          id?: string
+          sunan?: string | null
+          sunuldu_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_declarations_sunan_fkey"
+            columns: ["sunan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_declarations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       control_mappings: {
         Row: {
           control_id_a: string

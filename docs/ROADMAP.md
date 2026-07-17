@@ -255,6 +255,39 @@ otomatik yayını, öneri kabul akışı → gerçek bulgu (UI + RPC), gözlemci
 - PDF: yönetim raporu, simülasyon raporu; rapor hash'i + QR doğrulama → mevcut `verification.ts`.
 - **Kabul:** simülasyon tamamlanmadan puanlama başlamıyor; başarısız kontrol otomatik öneri üretiyor; sonuç ana panoya yansıyor; QR doğrulama hassas veri sızdırmıyor.
 
+### M10 — Yönetim Kurulu Beyanı ve çapraz denetim (kaynak: kurucu spesifikasyonu, 17 Temmuz 2026)
+
+`scripts/generate-yk-beyani.ts`'teki M4-dönemi statik özet PDF'i (skor + bulgu sayısı, elle
+girilen RTO/RPO) yerini bu daha zengin modele bırakıyor: 20 yapılandırılmış beyan sorusu +
+her beyanı gerçek kanıt/simülasyon verisiyle karşılaştıran çapraz denetim motoru.
+
+**Amaç teknik uzmanlık beyanı almak değil**: YK'nın kritik riskler hakkında zamanında, yeterli
+ve güvenilir bilgiye dayanarak karar verip vermediğini belgelemek. TTK m.369/375/392 atıfları
+**bilgilendirme amaçlıdır, doğrulanmış hukuki eşleme değildir** — kurucunun kendi notu bunu
+açıkça söylüyor ve bu uyarı hem seed veride hem UI'da korunmalı.
+
+- `board_declaration_questions`: 20 soru, ortak referans kütüphanesi (controls/scenario_templates
+  ile aynı desen — `tenant_id` yok, yalnızca seed ile yazılır, `icerik_durumu` `UNVERIFIED_SAMPLE`).
+- `board_declarations` (dönem) + `board_declaration_answers` (soru bazlı cevap: beyan/açıklama/
+  tarih/sorumlu/YK karar referansı/son doğrulama tarihi) — kiracıya ait, **sunulduktan sonra
+  immutable** (scenario_template_versions'daki trigger deseni: donmuş bir kayıt üzerine yazmak,
+  "YK böyle karar verdi" iddiasını geçmişe dönük değiştirmek olurdu).
+- `board_declaration_evidence_links` / `..._simulation_links`: bir cevabın hangi kanıta/tatbikat
+  sonucuna dayandığını kaydeder — çapraz denetimin girdisi.
+- `board_cross_audit_rules`: CR-001..CR-008, seed edilen referans veri.
+- **Çapraz denetim SAF TS'TİR, DB'de saklanmaz** (`verifyEvidence`'daki desenin aynısı): durum
+  (`BEYAN VAR – KANIT YOK` vb.) her okumada canlı veriye karşı hesaplanır. Sonucu saklamak, yeni
+  kanıt geldiğinde "tutarlı" etiketinin bayatlamasına ve gerçek bir sorunu gizlemesine yol açardı.
+- **Dürüst sınır**: CR-004 (tedarikçi envanteri), CR-005 (IAM erişim incelemesi), CR-006 (sızma
+  testi SLA takibi) için gereken veri modelleri (tedarikçi, erişim incelemesi, güvenlik açığı
+  takibi) henüz KALKAN-OS'ta yok. Bu üç kural referans veri olarak seed edilir ama değerlendirici
+  bunlar için sahte bir karşılaştırma UYDURMAZ — `İNCELEME GEREKLİ` döner ve `veri_kaynagi_durumu`
+  alanıyla nedenini söyler. Bu tabloları şimdiden icat etmek, bu milestone'un kapsamını kendi
+  başlarına birer özellik olması gereken tedarikçi/IAM/güvenlik açığı yönetimine genişletirdi.
+- **Kabul:** sunulmuş beyan ve cevapları değiştirilemez; beyan "Evet" ama kanıt sayısı 0 ise
+  `BEYAN VAR – KANIT YOK` döner (CR-001); RTO beyanı fiili tatbikat süresinden düşükse
+  `BEYAN VE KANIT TUTARSIZ` döner (CR-003); aynı girdi aynı sonucu verir (deterministiklik testi).
+
 ### M6 — MVP kapısına hazırlık (Faz 2 başlangıcı)
 - Üretim barındırma kararının uygulanması (yurt içi / self-hosted Postgres taşıma provası: dump→restore→smoke test).
 - İlk konektör iskeleti (yalnızca arayüz + 1 örnek: dosya-tabanlı log içe aktarımı) — 5 konektör hedefi Faz 2 gövdesidir, MVP kapısı değildir.
