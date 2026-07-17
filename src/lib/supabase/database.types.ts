@@ -659,6 +659,10 @@ export type Database = {
           previous_envelope_hash: string | null
           previous_evidence_id: string | null
           previous_file_hash: string | null
+          redaksiyon_kaynak_envelope_hash: string | null
+          redaksiyon_kaynak_file_hash: string | null
+          redaksiyon_kaynak_id: string | null
+          redaksiyon_notu: string | null
           retention_class: string | null
           source_system: string | null
           storage_object_key: string | null
@@ -685,6 +689,10 @@ export type Database = {
           previous_envelope_hash?: string | null
           previous_evidence_id?: string | null
           previous_file_hash?: string | null
+          redaksiyon_kaynak_envelope_hash?: string | null
+          redaksiyon_kaynak_file_hash?: string | null
+          redaksiyon_kaynak_id?: string | null
+          redaksiyon_notu?: string | null
           retention_class?: string | null
           source_system?: string | null
           storage_object_key?: string | null
@@ -711,6 +719,10 @@ export type Database = {
           previous_envelope_hash?: string | null
           previous_evidence_id?: string | null
           previous_file_hash?: string | null
+          redaksiyon_kaynak_envelope_hash?: string | null
+          redaksiyon_kaynak_file_hash?: string | null
+          redaksiyon_kaynak_id?: string | null
+          redaksiyon_notu?: string | null
           retention_class?: string | null
           source_system?: string | null
           storage_object_key?: string | null
@@ -732,6 +744,13 @@ export type Database = {
           {
             foreignKeyName: "evidences_previous_evidence_id_fkey"
             columns: ["previous_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "evidences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidences_redaksiyon_kaynak_id_fkey"
+            columns: ["redaksiyon_kaynak_id"]
             isOneToOne: false
             referencedRelation: "evidences"
             referencedColumns: ["id"]
@@ -1909,6 +1928,15 @@ export type Database = {
         Returns: string
       }
       evidence_durumu: { Args: { target_evidence_id: string }; Returns: string }
+      evidence_redaksiyon_soyu: {
+        Args: { target_evidence_id: string }
+        Returns: {
+          evidence_id: string
+          kaynak_id: string
+          not_metni: string
+          redaksiyon_mi: boolean
+        }[]
+      }
       manifest_dogrula: {
         Args: { target_hash: string }
         Returns: {

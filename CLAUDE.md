@@ -3,7 +3,7 @@ TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supab
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler
-üzerinden bağlanıyoruz — direct connection IPv6-only. 28 migration uygulandı
+üzerinden bağlanıyoruz — direct connection IPv6-only. 29 migration uygulandı
 (`pnpm db:push`); `pnpm db:verify` çekirdek tabloları fiilen doğrular. Kontrol
 kütüphanesi seed edildi (2 çerçeve, 17 kontrol) ve ilk kuruma atandı.
 
@@ -72,9 +72,16 @@ olarak VERIFIED verdi (çıkış 0), core-manifest kurcalanınca FAILED (çıkı
 
 **Doğrulanmayan tek şey deploy.** Onun için "çalışıyor" deme.
 
+**Redaction soy bağı (M11, `20260717220000`):** redakte kanıt ayrı bir kanıttır
+(append-only yeni satır, orijinal durur), farklı hash + orijinalle soy bağı.
+Zarf guard'ı zorluyor (kaynak aynı kiracı, not zorunlu, aynı hash reddi, soy
+uydurulamaz, on-delete-restrict). Zarf `redactionOf`+`redactionNote` taşıyor →
+soy iddiası hash'in parçası. Canlıda + PGlite'ta doğrulandı. UI (yükleme formu)
+henüz yok — yetenek şemada/mantıkta hazır, ekran bağlanmadı.
+
 M11'de KALAN (ROADMAP M11): gerçek KMS bağlayıcı (altyapı), RFC 3161/Kamu SM
 (Kamu SM test endpoint'i olmadan ASN.1 kör yazılamaz — bilinçli ertelendi),
-zarf v2/redaction, legal-hold ihlal kaydı.
+redaction UI, legal-hold ihlal kaydı.
 
 Hâlâ **doğrulanamayan** tek şey **deploy**. Bunun için "çalışıyor" deme.
 (Supabase Auth çok önce doğrulandı: gerçek kullanıcı canlıda giriş yaptı.)

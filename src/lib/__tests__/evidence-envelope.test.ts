@@ -29,6 +29,8 @@ function zarf(patch: Partial<EvidenceEnvelope> = {}): EvidenceEnvelope {
     retentionClass: "AUDIT_10Y",
     classification: "CONFIDENTIAL",
     previousEnvelopeHash: null,
+    redactionOf: null,
+    redactionNote: null,
     controlRefs: ["CTRL-IAM-001"],
     legalHold: false,
     ...patch,
@@ -143,6 +145,8 @@ describe("zarfOlustur — DB satırından zarf", () => {
       classification: "gizli",
       previous_file_hash: null,
       previous_envelope_hash: null,
+      redaksiyon_kaynak_id: null,
+      redaksiyon_notu: null,
       legal_hold: false,
       envelope_schema_version: "KALKAN_EVIDENCE_ENVELOPE_V1",
       ...patch,
@@ -203,5 +207,80 @@ describe("zarfOlustur — DB satırından zarf", () => {
     ] as Partial<EvidenceRow>[]) {
       expect(await envelopeHash(zarfOlustur(satir(patch), [])!)).not.toBe(temel);
     }
+  });
+});
+
+describe("redaksiyon — soy bağı + farklı hash (belge M01)", () => {
+  function satir(patch: Partial<EvidenceRow> = {}): EvidenceRow {
+    return {
+      id: "e0000000-0000-0000-0000-000000000009",
+      tenant_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      tip: "dosya",
+      hash_sha256: "cd".repeat(32),
+      hash_algorithm: "sha256",
+      version_no: 1,
+      file_size: 5000,
+      mime_type: "application/pdf",
+      storage_object_key: null,
+      storage_version_id: null,
+      source_system: null,
+      captured_at: null,
+      created_at: "2026-07-16T10:00:00+00:00",
+      yukleyen: "a0000000-0000-0000-0000-000000000001",
+      retention_class: "10y",
+      classification: "gizli",
+      previous_file_hash: null,
+      previous_envelope_hash: null,
+      redaksiyon_kaynak_id: null,
+      redaksiyon_notu: null,
+      legal_hold: false,
+      envelope_schema_version: "KALKAN_EVIDENCE_ENVELOPE_V1",
+      ...patch,
+    };
+  }
+
+  const orijinalId = "e0000000-0000-0000-0000-000000000001";
+
+  it("zarfOlustur redaksiyon alanlarını taşır", () => {
+    const z = zarfOlustur(
+      satir({ redaksiyon_kaynak_id: orijinalId, redaksiyon_notu: "Müşteri IP'leri karartıldı" }),
+      [],
+    );
+    expect(z?.redactionOf).toBe(orijinalId);
+    expect(z?.redactionNote).toBe("Müşteri IP'leri karartıldı");
+  });
+
+  it("redakte zarfın hash'i orijinalinkinden FARKLI — kabul kriteri", async () => {
+    // Orijinal ile redakte, biri redaksiyon işaretli diğeri değil ve dosya
+    // hash'leri de farklı: iki iddia iki hash.
+    const orijinal = zarfOlustur(satir({ hash_sha256: "cd".repeat(32) }), [])!;
+    const redakte = zarfOlustur(
+      satir({
+        id: "e0000000-0000-0000-0000-000000000002",
+        hash_sha256: "ef".repeat(32),
+        redaksiyon_kaynak_id: orijinalId,
+        redaksiyon_notu: "Kişisel veri karartıldı",
+      }),
+      [],
+    )!;
+    expect(await envelopeHash(redakte)).not.toBe(await envelopeHash(orijinal));
+  });
+
+  it("redactionOf zarf hash'inin parçası — soy iddiası mühürlü", async () => {
+    // Aynı redakte dosya, farklı kaynağa işaret ederse hash değişmeli: "X'in
+    // redaksiyonuyum" iddiası mühürlenmezse dosya başka orijinalin redaksiyonu
+    // gibi gösterilebilirdi.
+    const a = zarfOlustur(satir({ redaksiyon_kaynak_id: orijinalId, redaksiyon_notu: "not" }), [])!;
+    const b = zarfOlustur(
+      satir({ redaksiyon_kaynak_id: "e0000000-0000-0000-0000-000000000042", redaksiyon_notu: "not" }),
+      [],
+    )!;
+    expect(await envelopeHash(a)).not.toBe(await envelopeHash(b));
+  });
+
+  it("redaksiyon notu hash'in parçası — ne karartıldığı mühürlü", async () => {
+    const a = zarfOlustur(satir({ redaksiyon_kaynak_id: orijinalId, redaksiyon_notu: "IP karartıldı" }), [])!;
+    const b = zarfOlustur(satir({ redaksiyon_kaynak_id: orijinalId, redaksiyon_notu: "İsim karartıldı" }), [])!;
+    expect(await envelopeHash(a)).not.toBe(await envelopeHash(b));
   });
 });

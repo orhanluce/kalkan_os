@@ -100,6 +100,86 @@ describe("evidence_envelope_guard", () => {
   });
 });
 
+describe("redaksiyon guard (belge M01)", () => {
+  const KAYNAK_HASH = "ab".repeat(32);
+  const REDAKTE_HASH = "ef".repeat(32);
+
+  /** Redakte bir türev ekler. */
+  function redaksiyon(kaynakId: string, patch: Record<string, unknown> = {}) {
+    return tamKanit({
+      hash_sha256: REDAKTE_HASH,
+      redaksiyon_kaynak_id: kaynakId,
+      redaksiyon_notu: "Müşteri IP'leri ve isimler karartıldı",
+      redaksiyon_kaynak_file_hash: KAYNAK_HASH,
+      ...patch,
+    });
+  }
+
+  it("geçerli redaksiyon yazılabilir — orijinal durur, türev yeni satır (append-only)", async () => {
+    const { rows: orijinal } = await tamKanit();
+    const { rows: redakte } = await redaksiyon(orijinal[0].id as string);
+    expect(redakte).toHaveLength(1);
+    // Orijinal hâlâ orada.
+    const { rows: hala } = await db.sql(`select id from public.evidences where id = $1`, [
+      orijinal[0].id,
+    ]);
+    expect(hala).toHaveLength(1);
+  });
+
+  it("redakte dosya kaynakla AYNI hash'e sahipse reddedilir — karartma yapılmamış", async () => {
+    const { rows: orijinal } = await tamKanit();
+    await expect(
+      redaksiyon(orijinal[0].id as string, { hash_sha256: KAYNAK_HASH }),
+    ).rejects.toThrow(/ayni hash/i);
+  });
+
+  it("redaksiyon notu boşsa reddedilir — ne/neden karartıldığı kayıtlı olmalı", async () => {
+    const { rows: orijinal } = await tamKanit();
+    await expect(
+      redaksiyon(orijinal[0].id as string, { redaksiyon_notu: "   " }),
+    ).rejects.toThrow(/redaksiyon_notu/i);
+  });
+
+  it("kaynak hash'i kaynağın gerçek hash'iyle uyuşmazsa reddedilir — soy bağı uydurulamaz", async () => {
+    const { rows: orijinal } = await tamKanit();
+    await expect(
+      redaksiyon(orijinal[0].id as string, { redaksiyon_kaynak_file_hash: "99".repeat(32) }),
+    ).rejects.toThrow(/uyusmuyor/i);
+  });
+
+  it("başka kiracının kanıtı redakte edilemez (kural 1)", async () => {
+    // B'nin kanıtını A redakte etmeye çalışıyor.
+    const { rows: bKanit } = await tamKanit({ tenant_id: seed.B.tenantId, control_id: seed.controlId });
+    await expect(
+      redaksiyon(bKanit[0].id as string, { tenant_id: seed.A.tenantId }),
+    ).rejects.toThrow(/baska bir kiraciya ait/i);
+  });
+
+  it("redaksiyon alanları redaksiyon_kaynak_id olmadan doldurulamaz — yarım soy iddiası olmaz", async () => {
+    await expect(
+      tamKanit({ redaksiyon_notu: "karartıldı", redaksiyon_kaynak_file_hash: KAYNAK_HASH }),
+    ).rejects.toThrow(/yalnizca redaksiyon_kaynak_id/i);
+  });
+
+  it("redaksiyon soyu sorgulanabilir", async () => {
+    const { rows: orijinal } = await tamKanit();
+    const { rows: redakte } = await redaksiyon(orijinal[0].id as string);
+    const { rows: soy } = await db.sql(`select * from public.evidence_redaksiyon_soyu($1)`, [
+      redakte[0].id,
+    ]);
+    expect(soy[0].redaksiyon_mi).toBe(true);
+    expect(soy[0].kaynak_id).toBe(orijinal[0].id);
+  });
+
+  it("orijinal, redaksiyonu dururken silinemez — soy bağı kopmasın (on delete restrict)", async () => {
+    const { rows: orijinal } = await tamKanit();
+    await redaksiyon(orijinal[0].id as string);
+    await expect(
+      db.sql(`delete from public.evidences where id = $1`, [orijinal[0].id]),
+    ).rejects.toThrow();
+  });
+});
+
 describe("evidence_butunluk_durumu", () => {
   it("zarflı kanıt FULL_ENVELOPE", async () => {
     const { rows } = await tamKanit();

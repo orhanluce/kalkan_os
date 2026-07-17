@@ -59,6 +59,16 @@ export interface EvidenceEnvelope {
   classification: string;
   previousFileHash: string | null;
   previousEnvelopeHash: string | null;
+  /**
+   * Bu zarf bir REDAKSİYON ise, türetildiği orijinal kanıtın sürüm kimliği.
+   *
+   * Zarfın İÇİNDE çünkü redaksiyonun soy bağı, redakte zarfın hash'inin bir
+   * parçası olmalı: "ben X'in redaksiyonuyum" iddiası mühürlenmezse, redakte
+   * bir dosya başka bir orijinalin redaksiyonu gibi gösterilebilirdi. Ayrıca
+   * bu alan doğal olarak redakte zarfın hash'ini orijinalinkinden ayırır.
+   */
+  redactionOf: string | null;
+  redactionNote: string | null;
   controlRefs: string[];
   legalHold: boolean;
 }
@@ -90,6 +100,8 @@ export interface EvidenceRow {
   classification: string | null;
   previous_file_hash: string | null;
   previous_envelope_hash: string | null;
+  redaksiyon_kaynak_id: string | null;
+  redaksiyon_notu: string | null;
   legal_hold: boolean;
   envelope_schema_version: string | null;
 }
@@ -127,6 +139,8 @@ export function zarfOlustur(row: EvidenceRow, controlRefs: string[]): EvidenceEn
     classification: row.classification,
     previousFileHash: row.previous_file_hash,
     previousEnvelopeHash: row.previous_envelope_hash,
+    redactionOf: row.redaksiyon_kaynak_id,
+    redactionNote: row.redaksiyon_notu,
     // Sıra mührün parçası olmamalı: aynı kontrol kümesi aynı hash'i vermeli.
     controlRefs: [...controlRefs].sort(),
     legalHold: row.legal_hold,

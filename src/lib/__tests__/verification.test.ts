@@ -27,6 +27,8 @@ function zarf(patch: Partial<EvidenceEnvelope> = {}): EvidenceEnvelope {
     retentionClass: "AUDIT_10Y",
     classification: "CONFIDENTIAL",
     previousEnvelopeHash: null,
+    redactionOf: null,
+    redactionNote: null,
     controlRefs: ["CTRL-IAM-001"],
     legalHold: false,
     ...patch,

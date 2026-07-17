@@ -216,7 +216,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     ? await admin
         .from("evidences")
         .select(
-          "id, tenant_id, tip, hash_sha256, hash_algorithm, version_no, file_size, mime_type, storage_object_key, storage_version_id, source_system, captured_at, created_at, yukleyen, retention_class, classification, previous_file_hash, previous_envelope_hash, legal_hold, envelope_schema_version, controls(madde_ref)",
+          "id, tenant_id, tip, hash_sha256, hash_algorithm, version_no, file_size, mime_type, storage_object_key, storage_version_id, source_system, captured_at, created_at, yukleyen, retention_class, classification, previous_file_hash, previous_envelope_hash, redaksiyon_kaynak_id, redaksiyon_notu, legal_hold, envelope_schema_version, controls(madde_ref)",
         )
         .in("id", kanitIdleri)
     : { data: [] };

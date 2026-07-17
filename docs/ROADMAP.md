@@ -598,7 +598,7 @@ hash zinciri, dört-göz onayı (`evidence_reviews`), RFC 6962 Merkle + bağıms
 doğrulama kütüphanesi, YK Beyanı çapraz denetim motoru (M10), PGlite RLS test
 düzeni, canlı Supabase'e karşı e2e doğrulama disiplini.
 
-### M11 — Kanıt çekirdeği v2 (belge M01 / Faz 1) ⏳ Storage ✅ + JWS imza ✅ + verify CLI/ZIP ✅, redaction/legal-hold/KMS/TSA ✗
+### M11 — Kanıt çekirdeği v2 (belge M01 / Faz 1) ⏳ Storage ✅ + JWS imza ✅ + verify CLI/ZIP ✅ + redaction soy ✅, redaction-UI/legal-hold/KMS/TSA ✗
 
 Kanıt "yüklenen dosya adı" olmaktan çıkar: dosya gerçekten Storage'da, zarf
 imzalı, paket bağımsız doğrulanabilir.
@@ -686,8 +686,10 @@ CLAUDE.md'deki "Storage doğrulanamadı" kalemi KAPANDI.
   ticari sözleşme + test endpoint satın alma aşamasında netleşir".
 - Zarf v2 alanları: population/sample/dönem; güven bileşenleri (kaynak
   otoritesi, bağımsızlık, güncellik, tamlık, yeniden üretilebilirlik);
-  redaction — raw/redacted ayrı hash, soy bağı korunur; `kaynak_kontrol_id`
-  (yansıtılan kanıt soyu — eski borç).
+  `kaynak_kontrol_id` (yansıtılan kanıt soyu — eski borç).
+- Redaction UI: guard + zarf + soy bağı BİTTİ (aşağıda), ama redakte dosyayı
+  yükleyip kaynağı seçtiren EKRAN yok — yetenek şemada ve mantıkta hazır,
+  uygulama formu bağlanmadı.
 - Legal hold zorunlaması: `legal_hold` kolonu VAR ama silme denemesini engelleyen
   + audit event üreten yol henüz bağlı değil (kanıt zaten append-only, ama legal
   hold'un kendi ihlal kaydı yok).
@@ -712,8 +714,20 @@ ZIP'lemeden önce iki hash'i de self-check ediyor (jsonb round-trip'i yakalar).
   "paket repo DIŞINDA temiz bir Node ortamında CLI ile doğrulanır" — ikisi de
   e2e ile kanıtlı.
 
-**Kabul (KALAN):** redacted sürüm farklı hash taşır ama soyu korur; legal hold
-altındaki kanıt silinemez ve deneme audit event üretir.
+**Tamamlanan 4 — redaction soy bağı (`20260717220000`):** redakte kanıt AYRI bir
+kanıttır (append-only yeni satır, orijinal durur), farklı hash taşır ve orijinalle
+soy bağını korur. Zarf guard'ı zorluyor: kaynak gerçek + aynı kiracı, redaksiyon
+notu zorunlu (ne/neden karartıldı), redakte dosya kaynakla AYNI hash'e sahip
+olamaz ("karartma yapılmamış"), kaydedilen kaynak hash'i kaynağın gerçeğiyle
+tutmalı (soy uydurulamaz), `on delete restrict` orijinali korur. Zarf
+`redactionOf` + `redactionNote` taşıyor — soy iddiası zarf hash'inin parçası,
+yani "X'in redaksiyonuyum" mühürlü. **Canlıda + PGlite'ta doğrulandı:** geçerli
+redaksiyon kabul, aynı hash reddedildi, notsuz reddedildi, çapraz kiracı
+reddedildi, soy sorgulanabiliyor (`evidence_redaksiyon_soyu`).
+- **Kabul KARŞILANDI:** "redacted sürüm farklı hash taşır ama soyu korur."
+
+**Kabul (KALAN):** legal hold altındaki kanıt silinemez ve deneme audit event
+üretir; redaction UI (yükleme formu).
 
 ### M12 — Kontrol test motoru ve durum makinesi (belge M02)
 
