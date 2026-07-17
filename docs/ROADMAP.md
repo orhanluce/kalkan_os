@@ -72,6 +72,49 @@ import-export, PDF/ZIP raporlar (M9), OpenTelemetry, SBOM.
 Bu bir eksik değil bilinçli sınır: kontrol içeriği YAML'dan seed ediliyor ve kural 3 gereği
 uydurulamaz. Kontrol sayısı ancak doğrulanmış mevzuat maddesi eklendikçe artar.
 
+### 1.3 Mimari karar kaydı — 17 Temmuz 2026 (OKTAGON-R ile ilişki)
+
+Kurucu, `C:\Users\orhan\OKTAGON_R`'da paralel bir oturumda geliştirilen ayrı bir projeyi
+("BIST şirketleri için siber/operasyonel dayanıklılık karnesi + Yönetim Kurulu Beyan Platformu")
+KALKAN-OS ile birleştirmeyi önerdi ("technical-engine modülü" olarak). Kod tabanı okunmadan önce
+bu makul bir varsayımdı; okunduktan sonra resim değişti.
+
+**OKTAGON-R gerçekte ne yapıyor:** canlı sistem taraması YAPMIYOR. KAP bildirimlerini ve
+faaliyet raporlarını (kamuya açık belgeler) indirip LLM ile kanıt çıkarımı yapıyor (alıntı
+doğrulamalı — kaynak metinde birebir/yakın eşleşme yoksa `quote_verified=0`, skora girmiyor),
+sonra T98 çerçevesinin 8 fonksiyon × 29 kategorisine göre deterministik bir olgunluk skoru
+üretiyor. Yani FinanSkor'a yakın bir **çok-şirketli kamusal veri/skorlama ürünü** — KALKAN-OS'un
+**tek-kiracılı, özel iç uyum verisi yöneten** modeliyle temelden farklı bir veri alanı. Python +
+SQLite (Supabase'e taşınacak, M5+), ayrı repo, ayrı git geçmişi.
+
+**Çakışan tek parça — ve neden taşınacak bir şey yok:** kurucu aynı beyan sorusu/çapraz denetim
+spesifikasyonunu (17 Temmuz 2026) her iki oturuma da vermiş; OKTAGON-R kendi `declaration/`
+modülünü bağımsız olarak inşa etmiş (`S1..S20`, `CR-001..CR-008`, aynı 5 durum sözlüğü:
+`BEYAN_VAR_KANIT_YOK` vb.). Soru metinleri KALKAN-OS'takiyle **birebir aynı** — iki paralel
+oturum aynı kaynaktan çalışmış. Ama OKTAGON-R'ın sürümü:
+- SQLite üzerinde, RLS **hiç test edilememiş** ("Row Level Security bir Postgres/Supabase
+  özelliğidir, SQLite'ta yok... test EDİLEMEDİ" — kendi SPEC.md'sinin itirafı);
+- immutability trigger'ı yok;
+- canlı veriye karşı uçtan uca doğrulanmamış (yalnızca birim testi + demo script).
+
+KALKAN-OS'taki M10 sürümü ise canlı Postgres'te RLS testli, immutability trigger'lı ve gerçek
+Supabase verisine karşı uçtan uca doğrulanmış (`pnpm demo:beyan`) durumda — **aynı özelliğin daha
+olgun hâli zaten burada var.** Bu yüzden OKTAGON-R'dan KALKAN-OS'a kod taşınmadı: taşınacak,
+buradakinden daha iyi olan bir şey yok. (İki oturumun soru→kural eşlemesinde küçük bir ayrışma
+var — örn. CR-007'yi OKTAGON-R S18'e, KALKAN-OS YKB-01'e bağlamış; KALKAN-OS'unki CR-007'nin
+kendi tetikleyici tanımıyla — "toplantı gündemi/karar tutanağı izi" — daha iyi örtüşüyor.)
+
+**Karar:** iki proje **ayrı kalır**, birleştirilmez. OKTAGON-R'ın kendi `declaration/` modülüne
+daha fazla oturum yatırılmaması önerildi (KALKAN-OS'unki kanonik sürüm); OKTAGON-R'ın asıl
+değeri olan skorlama/karne işlevine (611 gerçek şirket, gerçek LLM extraction maliyeti zaten
+harcanmış, golden-set kalibrasyonu yapılmış) **dokunulmadı** — bu gerçek, ayrı bir ürün ve
+kurucunun kendi kararı olmadan silinecek/kapatılacak bir şey değil.
+
+**Gelecekte anlamlı olabilecek gerçek entegrasyon noktası** (şimdi kapsam dışı, kural 5): bir
+KALKAN-OS kiracısının kendi ticker'ı için OKTAGON-R'ın `scores` tablosundan sektör yüzdelik
+karşılaştırması okuması — "kurumunuzun kanıtlı uyum skoru X, sektör ortalaması Y" gibi. Bu, iki
+Supabase projesi arasında salt-okunur bir referans olur, kod birleşimi değil.
+
 ---
 
 ## 2. Veri modeli çekirdeği (M1'de şema olarak yazılacak)
