@@ -1,6 +1,14 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**SABAH İLK OKUNACAK:** Kurucu 18 Temmuz 2026 gecesi beşinci bir vizyon belgesi
+verdi (SPK/SPL çalışma notları). **Kod/şema YAZILMADI** — yalnızca değerlendirilip
+`docs/arastirma/KALKAN_OS_SPK_Notlari_Urunlestirme_Eki_2026.md` olarak kopyalandı
+ve ROADMAP.md §1.6'ya işlendi. Üç gerçekten yeni alan tespit edildi (SoD motoru,
+denetim örnekleme/çalışma kâğıdı motoru, eğitim/yetkinlik modülü); geri kalanı
+mevcut M13/M14/M09/M15'i zenginleştiriyor. Önceliklendirme kurucu onayı bekliyor
+— ayrıntı ROADMAP §1.6'da.
+
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler
 üzerinden bağlanıyoruz — direct connection IPv6-only. 33 migration uygulandı

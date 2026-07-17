@@ -128,6 +128,58 @@ diye anılır; repo taş numaraları çıplak kalır.
 vulnerability scanner, PAM, genel GRC, tam dijital ikiz vb. YENİDEN İNŞA
 EDİLMEZ; bunlar connector/test sağlayıcısıdır) ürün sınırını doğru çiziyor.
 
+### 1.6 Mimari karar kaydı — 18 Temmuz 2026 (SPK/SPL çalışma notları — DEĞERLENDİRME, KOD YOK)
+
+Kurucu beşinci bir belge verdi: `docs/arastirma/KALKAN_OS_SPK_Notlari_Urunlestirme_Eki_2026.md`
+(SPL 1020/1023 çalışma notlarının ürünleştirme önerisi). **Bu bölüm yalnızca
+değerlendirmedir — bu oturumda hiçbir kod/şema yazılmadı.** Sebep: belge M13/
+M14/M09/M15'i genişleten dört ayrı yeni alt-sistem öneriyor (kurum profili
+şeması, SoD motoru, denetim örnekleme motoru, üçüncü taraf/kripto yaşam
+döngüsü); bunları gece boyu tek taraflı tasarlamak yerine kapsamı burada
+netleştirip kurucuyla birlikte önceliklendirmek daha doğru.
+
+**Belgenin kendi sınırı, kural 3'ü DOĞRULUYOR:** belge açıkça "çalışma notları
+tek başına bağlayıcı mevzuat kaynağı olarak kullanılmamalı" diyor (SPL 1020/
+1023 birer sınav hazırlık notu, Resmi Gazete/SPK metni değil). Yani belgenin
+§7'sindeki "ilk 20 SPK kontrolü" (SPK-GOV-01 vb.) veri/controls'a girecekse
+DOĞRUDAN değil, mevcut disipline uyarak: `TODO-DOGRULA` etiketiyle, madde
+referansı doğrulanana kadar. Belgenin kendisi de bunu istiyor (§15: "yürürlükteki
+resmi düzenleme doğrulanmadan sabitlenmiş süre/kapsam hükümleri" ürüne ALINMAZ).
+
+**Örtüşen kısımlar — YENİ TAŞ DEĞİL, mevcut taşları zenginleştiriyor:**
+
+| Belge bölümü | Zaten planlı yer | Not |
+|---|---|---|
+| §2 `RegulatoryEntityProfile` + kapsam motoru | **M14** (Kapsam motoru, belge M03) | M14 zaten `regulation_sources`+`applicability_rules` planlıyor; SPK notları kurum profili alan listesini (11 özellik) somutlaştırıyor — M14'ün "eklenecekler" notuna girmeli |
+| §3 Varlık-hizmet-süreç-tedarikçi grafiği | **M13** (Kurum profili, kritik hizmet) | M13 zaten bağımlılık node/edge planlıyor (Postgres, Neo4j yok); SPK notları asgari varlık alanlarını (owner, custodian, kritiklik sınıfı vb.) zenginleştiriyor |
+| §9 Üçüncü taraf yaşam döngüsü (başlat/sürdür/sonlandır) | 2026 planı "M09 Third/Nth-Party" (ertelenmiş) | `closed_verified` kapısı fikri M12'nin verified-closure guard desenine (kural 14) doğrudan uyarlanabilir |
+| §10 Kripto anahtar yaşam döngüsü | 2026 planı "M15 Crypto/PQC" (ertelenmiş) | Belgenin kendi notu doğru: bu gereksinimler bugünkü JWS imza anahtarı (ADR-M11-01) ve gelecekteki RFC 3161 zinciri için ŞİMDİDEN uygulanabilir bir kontrol listesi |
+
+**Gerçekten YENİ — repo'da hiçbir taşta karşılığı yok:**
+
+1. **Görevler Ayrılığı (SoD) motoru** (§5) — `ConflictRule`/`SoDViolation`/
+   `CompensatingControl`/`ExceptionApproval`. Telafi edici kontrol + süre sonu +
+   otomatik yeniden açma fikri, M12'nin verified-closure guard'ının (kural 14)
+   doğal bir genişlemesi: "istisna süresiz kabul edilemez" aynı DB-invariant
+   disipliniyle kurulabilir.
+2. **Denetim örnekleme + çalışma kâğıdı motoru** (§6) — mevcut `paylasim`
+   (M4) yalnızca kapsam-filtreli GÖRÜNTÜLEME; bu öneri çok daha geniş
+   (`AuditEngagement`/`Population`/`SamplingPlan`/`Workpaper`/bağımsız kapanış
+   incelemesi). Kabul kriteri "tekrar üretilebilir örnek seçimi" M9'un
+   deterministik puanlama disipliniyle (kural 11) aynı aileden.
+3. **Rol bazlı eğitim/yetkinlik modülü** (§11) — hiçbir yerde planlı değil,
+   düşük öncelik (belgenin kendi P1/Ay4-6 sıralamasıyla uyumlu).
+
+**Ad çakışması notu (Karar 5'in devamı):** belge "M19 SPK Assurance Pack"
+öneriyor. 2026 planında repo taşları hâlâ M13-M15'te; "belge M19" ifadesi
+yalnızca SPK notlarının kendi numaralandırmasına aittir, repo taş sırasına
+otomatik dahil edilmedi — SoD ve denetim örnekleme motorlarının nereye
+oturacağı (M13-M15'in bir alt maddesi mi, ayrı yeni taş mı) sabah kararı.
+
+**Sıradaki adım kurucuda:** yukarıdaki üç "gerçekten yeni" alandan hangisinin
+önceliklendirileceği ve M13-M15'in "eklenecekler" notlarının ne zaman devreye
+alınacağı konuşulmadan şema/kod yazılmayacak.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket
