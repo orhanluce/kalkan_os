@@ -93,6 +93,13 @@ abonelik yazamaz), downgrade veri silmez (RLS testli). Billing K3 OPEN-DECISION
 MVP → Regulated dikey dilim. **BORÇ:** PGlite test kurulumu 50+ migration'ı her dosyada
 uyguluyor (global timeout 90sn; snapshot-klon çözümü ayrı iş olarak spawn'landı).
 
+**⏩ OTURUMLAR ARASI DEVİR: `docs/DEVAM.md` OKU.** Kurucu kalıcı onay: V2 PR
+sırasının sonuna kadar duraksamadan devam. Bugün canlıda: M16 kapısı geçti +
+V2 PR-0/2a/2b/2c/3a/3b/4a + PGlite hızlandırma + AA. Sıradaki: **V2 PR-4b**
+(Regulated dikey dilim: provision→obligation→applicability→legal-guard→citation,
+M20-M24 TEK yeşil dilim). Son commit `bca975b`. İlk iş: `pnpm check`+`pnpm e2e`+
+`pnpm build` ile yeşil tabanı teyit et (PR-4a sonrası kombine koşu yapılmadı).
+
 **V2 MVP Stratejisi (18 Temmuz gecesi, yedinci belge) işlendi — PR-0, kod yok:**
 `docs/arastirma/KALKAN_OS_V2_MVP_Strateji_Ek_Talimat_2026.md` + PR-0 dökümü
 `docs/adr/PR0-v2-mvp-strateji-2026-07-18.md` + ROADMAP §1.8. İki ürün hattı
