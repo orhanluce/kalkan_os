@@ -46,75 +46,119 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  /* Semantik durum tokenları (master talimat §5.3, ADR-T1): renk TEK sinyal
+     değildir — bu tokenları kullanan bileşen ikon + metin de taşımalı
+     (bkz. src/components/durum/). Utility olarak açılır: text-success,
+     bg-warning/10, border-danger... */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-neutral-status: var(--neutral-status);
+  --color-unknown: var(--unknown);
+  --color-legal-review: var(--legal-review);
+  /* Marka vurguları: --accent shadcn'de "hover zemini" rolündedir, marka
+     rengi DEĞİLDİR — turkuaz marka vurgusu ayrı token (ADR-T1). */
+  --color-brand-accent: var(--brand-accent);
+  --color-art-copper: var(--art-copper);
 }
 
+/* "Regulatory Observatory" paleti (master talimat §5, ADR-T1).
+   Shadcn değişken ADLARI korunur (14 sayfa + 9 primitive bunları kullanıyor;
+   toplu rename yasak) — belge renkleri DEĞER olarak girer. Kaynak tablo:
+   docs/arastirma/KALKAN_OS_Master_Talimat_UI_Regulasyon_2026.md §5.1-5.3.
+   Durum renk değerleri belgede yok; buradaki değerler AA kontrast hedefli
+   önerilen başlangıçtır (belge diliyle) ve token'ı tüketen bileşen renkle
+   birlikte ikon+metin taşır. */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --background: #f4f2ec; /* bg-canvas: sıcak kırık beyaz */
+  --foreground: #111923;
+  --card: #fcfbf7; /* surface */
+  --card-foreground: #111923;
+  --popover: #ffffff; /* surface-raised */
+  --popover-foreground: #111923;
+  --primary: #1447a6; /* accent-strong: kobalt eylem */
+  --primary-foreground: #ffffff;
+  --secondary: #eceae3; /* bg-subtle */
+  --secondary-foreground: #111923;
+  --muted: #eceae3;
+  --muted-foreground: #52606d;
+  --accent: #eceae3; /* shadcn hover zemini (marka turkuazı DEĞİL) */
+  --accent-foreground: #111923;
+  --destructive: #b42318;
+  --border: #d8d5cc;
+  --input: #d8d5cc;
+  --ring: #0d7180; /* turkuaz odak halkası */
+  --chart-1: #0d7180;
+  --chart-2: #1447a6;
+  --chart-3: #a8663b;
+  --chart-4: #52606d;
+  --chart-5: #8a94a6;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #fcfbf7;
+  --sidebar-foreground: #111923;
+  --sidebar-primary: #1447a6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eceae3;
+  --sidebar-accent-foreground: #111923;
+  --sidebar-border: #d8d5cc;
+  --sidebar-ring: #0d7180;
+  /* Durum tokenları (§5.3) */
+  --success: #1e7f4f;
+  --warning: #b25e09;
+  --danger: #b42318;
+  --info: #175cd3;
+  --neutral-status: #52606d;
+  --unknown: #5d6b98; /* nötr griyle karışmasın: arduvaz-mavi */
+  --legal-review: #5925dc; /* ölçülü mor/indigo */
+  /* Marka */
+  --brand-accent: #0d7180; /* turkuaz ana vurgu */
+  --art-copper: #a8663b; /* sınırlı sanatsal işaret */
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #091018; /* bg-canvas: obsidyen/lacivert */
+  --foreground: #eef4f7;
+  --card: #121d29; /* surface */
+  --card-foreground: #eef4f7;
+  --popover: #182635; /* surface-raised */
+  --popover-foreground: #eef4f7;
+  --primary: #7ea6ff; /* accent-strong (dark) */
+  --primary-foreground: #091018;
+  --secondary: #0e1722; /* bg-subtle */
+  --secondary-foreground: #eef4f7;
+  --muted: #16222e;
+  --muted-foreground: #9db0be;
+  --accent: #1c2b3a; /* hover zemini: karttan bir tık açık */
+  --accent-foreground: #eef4f7;
+  --destructive: #f97066;
+  --border: #293b49;
+  --input: #293b49;
+  --ring: #4fc3c8; /* turkuaz (dark) */
+  --chart-1: #4fc3c8;
+  --chart-2: #7ea6ff;
+  --chart-3: #d49a6a;
+  --chart-4: #9db0be;
+  --chart-5: #5d6b98;
+  --sidebar: #0e1722;
+  --sidebar-foreground: #eef4f7;
+  --sidebar-primary: #7ea6ff;
+  --sidebar-primary-foreground: #091018;
+  --sidebar-accent: #1c2b3a;
+  --sidebar-accent-foreground: #eef4f7;
+  --sidebar-border: #293b49;
+  --sidebar-ring: #4fc3c8;
+  /* Durum tokenları (§5.3, dark) */
+  --success: #4cc38a;
+  --warning: #e5a155;
+  --danger: #f97066;
+  --info: #5c9dff;
+  --neutral-status: #9db0be;
+  --unknown: #8e9bc7;
+  --legal-review: #a48afb;
+  /* Marka (dark) */
+  --brand-accent: #4fc3c8;
+  --art-copper: #d49a6a;
 }
 
 @layer base {

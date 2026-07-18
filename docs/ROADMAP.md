@@ -217,6 +217,42 @@ ADR taslakları + plan → **`docs/adr/PR0-master-talimat-kesif-2026-07-18.md`**
   UI + e2e + **M16 üretim kapısı** → ancak ondan sonra M19+ (PR-4 kaynak sicili).
   M17/M18 kodu M16 kapısından önce YOK (belge de aynı şeyi söylüyor).
 
+**✅ PR-1 UI Foundation BİTTİ (18 Temmuz, kurucu ADR onayı sonrası):**
+- **Tokenlar (ADR-T1):** "Regulatory Observatory" paleti `globals.css`'e DEĞER
+  olarak girdi (shadcn adları korundu); + 7 semantik durum tokenı (`success/
+  warning/danger/info/neutral-status/unknown/legal-review`) ve marka tokenları
+  (`--brand-accent` turkuaz, `--art-copper`) — hepsi light+dark çiftli, Tailwind
+  utility olarak açık.
+- **Tema (ADR-T2, paketsiz):** `src/lib/tema.ts` + body-başı inline no-flash
+  script (App Router manuel `<head>`'i yok sayar — script body'nin İLK çocuğu;
+  ilk deneme head'e koymuştu, tema e2e'si yakaladı) + `ThemeSwitcher`
+  (light→dark→system döngüsü) + `profiles.tema_tercihi` (migration
+  `20260718050000`, canlıda; RLS testi 5/5: kendi satırı ✓, başkası ✗, check ✗,
+  privilege trigger'a takılmaz). Oturumda profil tercihi cookie'ye üstün gelir.
+- **AppShell (§7):** NavRail (272/72px daraltılabilir, md–xl ikon modu, gruplu
+  IA, aria-current + turkuaz aktif çizgi), ContextHeader (kurum + kullanıcı +
+  tema + çıkış), MobileNav (5 hedef + Menü sheet, ≥44px dokunma). Ölü link yok —
+  yalnız mevcut route'lar; Simülasyonlar "Tatbikatlar" olarak Güvence'de.
+- **Durum bileşenleri (§8):** `StatusBadge` (renk+ikon+metin — renk tek sinyal
+  değil), `LegalStatusBadge` (INTERNAL/TODO_DOGRULA/VERIFIED), `Evidence
+  FreshnessBadge` (deterministik eşik, enjekte edilebilir `simdi`),
+  `EvidenceTraceRail` iskeleti (imza öğesi §4.3 — veri bağlanmadı; M20/M21
+  gelmeden Hüküm/Yükümlülük düğümleri dürüstçe "bağlı değil" gösterilir).
+- **Operasyon (§26):** `/health/live` + `/health/ready` (Supabase dokunuşlu,
+  iç hata sızdırmaz); güvenlik başlıkları (nosniff, DENY, referrer, permissions,
+  **CSP report-only** — enforce PR-2 kapısında; HSTS bilinçli ertelendi).
+- **Görsel baseline:** `docs/gorsel-baseline/2026-07-18-{oncesi,sonrasi}/` —
+  5 ekran × 2 viewport (+sonrası light+dark). Piksel assertion'ı PR-2 sonunda.
+- **İki gerçek bug tema e2e ile yakalandı:** (1) App Router head script'i hiç
+  render etmiyordu; (2) supabase-js builder LAZY — `void builder` isteği HİÇ
+  göndermiyordu (profil yazımı sessizce yoktu). İkisi de düzeltildi.
+- **Doğrulama:** **642 birim** (631 + 5 tema-RLS + 6 durum-bileşeni; 1 yük
+  flake'i — simulation-manifest 100-sıralama testi tam takımda 5033ms —
+  30sn timeout ile sertleştirildi ve raporlandı) + **19 e2e** (17 + tema +
+  görsel-baseline), 0 skip; production build yeşil; typecheck+lint temiz.
+- **Kalan (PR-1 kapsamından bilinçli dışarıda):** komut paleti, bildirim,
+  inspector drawer (PR-2+); CSP enforce; HSTS.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket

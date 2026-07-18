@@ -1044,6 +1044,7 @@ export type Database = {
           full_name: string | null
           id: string
           role: string
+          tema_tercihi: string
           tenant_id: string
         }
         Insert: {
@@ -1051,6 +1052,7 @@ export type Database = {
           full_name?: string | null
           id: string
           role: string
+          tema_tercihi?: string
           tenant_id: string
         }
         Update: {
@@ -1058,6 +1060,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           role?: string
+          tema_tercihi?: string
           tenant_id?: string
         }
         Relationships: [

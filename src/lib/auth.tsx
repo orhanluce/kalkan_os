@@ -15,6 +15,7 @@
 // (CLAUDE.md kural 1).
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { createClient } from "./supabase/client";
+import { temaCookieYaz, temayiUygula, type TemaTercihi } from "./tema";
 import type { Profile } from "./types";
 
 interface AuthApi {
@@ -35,11 +36,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, tenant_id, role, full_name")
+      .select("id, tenant_id, role, full_name, tema_tercihi")
       .eq("id", userId)
       .maybeSingle();
 
     if (error || !data) return null;
+
+    // Oturum açıkken profildeki tema tercihi cookie'ye ÜSTÜN gelir
+    // (master talimat §6, ADR-T2) — uygula ve cookie'yi senkronla ki
+    // oturumsuz sayfalar/ilk paint da aynı temayı görsün.
+    const temaTercihi = (data.tema_tercihi ?? "system") as TemaTercihi;
+    temayiUygula(temaTercihi);
+    temaCookieYaz(temaTercihi);
 
     return {
       id: data.id,
@@ -49,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // göstermek, arayüzde boş bir isim alanından iyidir.
       fullName: data.full_name ?? email,
       email,
+      temaTercihi,
     };
   }, []);
 

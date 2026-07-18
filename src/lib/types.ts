@@ -23,6 +23,12 @@ export interface Profile {
   role: Role;
   fullName: string;
   email: string;
+  /**
+   * Tema tercihi (ADR-T2): oturum açıkken cookie'ye üstün gelir. Opsiyonel:
+   * yalnız OTURUM SAHİBİNİN profili için yüklenir (auth.tsx) — kiracı üye
+   * listelerinde (fetchKurum) başkasının tercihi çekilmez (veri minimizasyonu).
+   */
+  temaTercihi?: "light" | "dark" | "system";
 }
 
 export interface Framework {

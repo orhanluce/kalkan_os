@@ -113,7 +113,10 @@ describe("dört hash ayrı şeyleri doğrular", () => {
 });
 
 describe("DB satır sırası hiçbir hash'i etkilemez (zorunlu test)", () => {
-  it("100 farklı rastgele sıralamada aynı reportDataHash ve coreManifestHash", async () => {
+  // timeout: izole 48ms'lik saf hash testi; ama tam takımda PGlite'lı 38
+  // dosyayla paralel koşarken worker çekişmesi 5sn sınırını bir kez aşırdı
+  // (18 Temmuz, 5033ms). Gevşek sınır testin iddiasını değiştirmez.
+  it("100 farklı rastgele sıralamada aynı reportDataHash ve coreManifestHash", { timeout: 30_000 }, async () => {
     const temel = await coreManifestOlustur(ornekGirdi());
 
     for (let tohum = 1; tohum <= 100; tohum++) {

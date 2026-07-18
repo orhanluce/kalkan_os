@@ -1,24 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { ContextHeader } from "@/components/app-shell/context-header";
+import { MobileNav } from "@/components/app-shell/mobile-nav";
+import { NavRail } from "@/components/app-shell/nav-rail";
 import { useAuth } from "@/lib/auth";
-import { ROLE_LABEL } from "@/lib/ui-labels";
 
-const NAV_ITEMS = [
-  { href: "/", label: "Pano" },
-  { href: "/controls", label: "Kontrol Kütüphanesi" },
-  { href: "/findings", label: "Bulgular" },
-  { href: "/sod", label: "Görevler Ayrılığı" },
-  { href: "/simulasyonlar", label: "Simülasyonlar" },
-  { href: "/paylasim", label: "Paylaşım" },
-  { href: "/denetim-izi", label: "Denetim İzi" },
-];
-
+// Uygulama kabuğu (master talimat §7, PR-1): sol rail (md+) + üst bağlam
+// çubuğu + mobil alt nav. Route DAVRANIŞI değişmedi — yalnız kabuk.
 export default function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const { currentUser, yukleniyor, logout } = useAuth();
+  const { currentUser, yukleniyor } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -33,28 +25,16 @@ export default function AppLayout({ children }: Readonly<{ children: React.React
   if (yukleniyor || !currentUser) return null;
 
   return (
-    <>
-      <header className="border-b">
-        <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-4">
-          <span className="text-lg font-semibold tracking-tight">KALKAN-OS</span>
-          <nav className="flex gap-4 text-sm text-muted-foreground">
-            {NAV_ITEMS.map((item) => (
-              <Link key={item.href} href={item.href} className="hover:text-foreground">
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="ml-auto flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
-              {currentUser.fullName} · {ROLE_LABEL[currentUser.role]}
-            </span>
-            <Button variant="outline" size="sm" onClick={logout}>
-              Çıkış
-            </Button>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
-    </>
+    <div className="flex min-h-screen">
+      <NavRail />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <ContextHeader />
+        {/* pb-20: mobil alt nav içeriğin üstüne binmesin (md+'da sıfırlanır). */}
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-20 md:px-6 md:py-8 md:pb-8">
+          {children}
+        </main>
+      </div>
+      <MobileNav />
+    </div>
   );
 }
