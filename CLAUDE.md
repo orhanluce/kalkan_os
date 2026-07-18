@@ -119,10 +119,18 @@ rollback talep/karar + outbox drenaj butonu), MIME kapı kontrolü
 (`sod-import.spec.ts`): import+DB doğrulaması / idempotency / stale 409 /
 maker-checker iki-kullanıcı rollback / outbox→değerlendirme gerçek çatışma
 (kurucu #10 kapandı). Testler kirli DB'ye dayanıklı (RESOLVED kalıntılar
-projeksiyonda yeniden sayılabilir — sabit sayı assert edilmez). **654 birim +
-23 e2e, 0 skip; production build yeşil.** M16 üretim kapısı için kalanlar
-ROADMAP'te (özet: #3 uzatma, #5 tetik cron'u, #6 atama UI, #8 dashboard,
-#9 güvenlik testleri). Deploy: `main` push'u Hostinger'a otomatik gider.
+projeksiyonda yeniden sayılabilir — sabit sayı assert edilmez).
+
+**#5 + #9 BİTTİ (18 Temmuz, `20260718070000/070001`).** #5: atama/kural/taraf
+değişimi outbox'a `SOD_YENIDEN_DEGERLENDIR` kuyruklar (kiracı başına debounce);
+`/sod` açılışında oto-drenaj; motor TS'te tek kaynak. #9: güvenlik testleri
+migration'suz KIRMIZI koşularak **üç gerçek açık kanıtlandı ve kapatıldı** —
+istisna başkası adına talep, onay atfı sahteleme ("dolaylı özdeşlikle kendi
+istisnasını onaylama"), resolved_by sahteleme; kimlik atfı alanları oturum
+sahibine sabitlendi (service/cron muaf, süre-dolumu regresyon testli).
+**664 birim + 23 e2e, 0 skip; production build yeşil.** M16 kapısı için kalan:
+#3 istisna uzatma, #6 atama UI, #8 dashboard + dış cron ADR'si. Deploy: `main`
+push'u Hostinger'a otomatik gider.
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler

@@ -1374,14 +1374,29 @@ event kısmen kapalı (outbox `SOD_*` olayları var; e-posta/Slack bilinçli yok
 - **#4 CSV atama içe aktarma** — sağlayıcıdan bağımsız import contract, dry-run
   önizleme, SHA-256 + import manifesti, evidence storage, rollback, idempotency
   (`source+sourceRecordId`), formula-injection/boyut/MIME güvenliği. (Hiç yok.)
-- **#5 SoD değerlendirme tetikleri** — atama/kural değişiminde `sod.evaluate`
-  kuyruğa alma (bugün yalnız manuel "Değerlendir" butonu).
+- ✅ **#5 SoD değerlendirme tetikleri BİTTİ** (18 Temmuz, `20260718070000`):
+  `sod_atamalari`/`sod_kurallari`/`sod_kural_taraflari` I/U/D → outbox'a
+  `SOD_YENIDEN_DEGERLENDIR` olayı, kiracı başına DEBOUNCE (tek PENDING —
+  CSV apply'ın yüzlerce satırı tek olaya düşer; drenaj zaten tüm resmi tek
+  koşuda değerlendirir). `/sod` açılışında OTO-DRENAJ (bekleyen varsa bir kez
+  işler — idempotent). Motor TS'te tek kaynak kaldı; SQL'de ikinci motor YOK.
+  4 PGlite testi (debounce, DONE sonrası yeni olay, taraf→kural tenant
+  çözümü, kiracı izolasyonu). AÇIK KALAN ALTYAPI PARÇASI: dış zamanlayıcı
+  (route'u çağıran gerçek cron — servis-token'lı uç ister, ayrı ADR).
 - **#6 Atama yönetim UI'ı** (dar sürüm — liste/filtre/CSV/dry-run/import geçmişi).
 - **#7 Domain event'ler** (`SOD_*` — sağlayıcıdan bağımsız; e-posta/Slack yok).
 - **#8 Üretim dashboard'u** (bugün `/sod` özet var ama kurucunun istediği tüm
   metrikler — kapsama oranı, importtan sonra yeni çatışmalar vb. — eksik).
-- **#9 Güvenlik testleri** (CSV injection, IDOR, yetki yükseltme, worker'da RLS
-  yanlış tenant, dolaylı özdeşlikle kendi istisnasını onaylama).
+- ✅ **#9 Güvenlik testleri BİTTİ (VE ÜÇ GERÇEK AÇIK YAKALADI)** (18 Temmuz,
+  `20260718070001`): `rls-guvenlik-sod.test.ts` önce migration'suz KIRMIZI
+  koşularak açıklar KANITLANDI — (1) istisna başkası adına talep edilebiliyordu
+  (maker-checker'ı tersinden atlatma), (2) onay atfı sahtelenebiliyordu
+  ("B onayladı" diyerek kendi istisnasını onaylatma — kurucunun "dolaylı
+  özdeşlik" öngörüsünün ta kendisi), (3) bağımsız kapanış atfı (resolved_by)
+  sahtelenebiliyordu. Düzeltme: kimlik atfı alanları OTURUM SAHİBİNE sabitlendi
+  (auth.uid() null olan service/cron bağlamı muaf — süre dolumu etkilenmez,
+  regresyon testli). + cross-tenant IDOR denemeleri (0 satır etkisi). CSV
+  injection parser katmanında zaten testli (sod-import.test).
 - **#10 e2e Senaryo B/C** (CSV import + idempotency) — #4 gelince.
 - **#12 M17 ADR incelemesi** — M16 üretim kapısı geçmeden M17 kodu yazılmaz
   (kurucu kararı; M17 hâlâ yalnız tasarım).

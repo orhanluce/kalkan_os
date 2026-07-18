@@ -243,9 +243,12 @@ describe("sod_import_geri_al — maker-checker + atomik ters uygulama", () => {
     );
     expect(end[0].gecerlilik_bitis).toBeNull();
 
-    // Outbox: apply + rollback = 2 olay; rollback olayı PENDING.
+    // Outbox: apply + rollback olayları (türle filtrelenir — #5 tetikleri
+    // ayrıca SOD_YENIDEN_DEGERLENDIR düşürür); rollback olayı PENDING.
     const { rows: out } = await db.sql(
-      `select event_type, durum from public.sod_outbox where tenant_id=$1 order by created_at`,
+      `select event_type, durum from public.sod_outbox
+       where tenant_id=$1 and event_type in ('SOD_ATAMALARI_IMPORT_EDILDI','SOD_ATAMALARI_ROLLBACK_EDILDI')
+       order by created_at`,
       [seed.A.tenantId],
     );
     expect(out).toHaveLength(2);

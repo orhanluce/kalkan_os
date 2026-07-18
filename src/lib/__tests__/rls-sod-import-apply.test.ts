@@ -162,13 +162,14 @@ describe("sod_import_uygula — atomik apply", () => {
     expect(man[0].eklenen_sayisi).toBe(1);
     expect(man[0].manifest_hash).toBe(MANIFEST);
 
-    // Outbox olayı PENDING yazıldı.
+    // Outbox olayı PENDING yazıldı. (#5 tetikleri de SOD_YENIDEN_DEGERLENDIR
+    // olayı düşürür — burada yalnız import olayı sınanır, türle filtrelenir.)
     const { rows: out } = await db.sql(
-      `select event_type, durum from public.sod_outbox where tenant_id = $1`,
+      `select event_type, durum from public.sod_outbox
+       where tenant_id = $1 and event_type = 'SOD_ATAMALARI_IMPORT_EDILDI'`,
       [seed.A.tenantId],
     );
     expect(out).toHaveLength(1);
-    expect(out[0].event_type).toBe("SOD_ATAMALARI_IMPORT_EDILDI");
     expect(out[0].durum).toBe("PENDING");
 
     // Önizleme APPLIED.
@@ -285,7 +286,10 @@ describe("sod_import_manifestleri + sod_outbox RLS", () => {
     const onizlemeId = await onizlemeKur(seed.A.tenantId, seed.A.userId);
     await uygula(onizlemeId, seed.A.userId);
 
-    const { rows: kendi } = await db.asUser(seed.A.userId, `select id from public.sod_outbox`);
+    const { rows: kendi } = await db.asUser(
+      seed.A.userId,
+      `select id from public.sod_outbox where event_type = 'SOD_ATAMALARI_IMPORT_EDILDI'`,
+    );
     expect(kendi).toHaveLength(1);
     const { rows: baska } = await db.asUser(seed.B.userId, `select id from public.sod_outbox`);
     expect(baska).toHaveLength(0);

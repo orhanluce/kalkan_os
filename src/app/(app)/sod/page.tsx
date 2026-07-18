@@ -106,6 +106,26 @@ export default function SodPage() {
     void calistir();
   }, [yukle]);
 
+  // OTO-DRENAJ (M16 #5): sayfa açılışında bekleyen değerlendirme borcu varsa
+  // (atama/kural değişimi outbox'a kuyruklandı) bir kez işle ve tazele.
+  // pg_cron TS koşamadığı için "zamanlayıcı" bu ekrandır — idempotent:
+  // bekleyen olay yoksa rota 0 döner, hiçbir şey koşmaz. Dış zamanlayıcı
+  // (route'u çağıran gerçek cron) ayrı bir altyapı ADR'si olarak açık.
+  useEffect(() => {
+    const drenaj = async () => {
+      const db = createClient();
+      const { count } = await db
+        .from("sod_outbox")
+        .select("id", { count: "exact", head: true })
+        .eq("durum", "PENDING");
+      if ((count ?? 0) > 0) {
+        const res = await fetch("/api/sod/outbox/isle", { method: "POST" });
+        if (res.ok) await yukle();
+      }
+    };
+    void drenaj();
+  }, [yukle]);
+
   async function degerlendirmeCalistir() {
     setIslemSuruyor(true);
     setHata(null);
