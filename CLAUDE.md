@@ -52,8 +52,25 @@ assignmentSnapshot/ruleSetVersion) + `onizlemeBayatMi` stale mantığı. Şema:
 onizlemeleri` (append-only, RLS, audit). Rota `POST /api/sod/import/onizle`
 (admin/uyum) — İNŞA YOLUYLA atama yazmaz (sod_atamalari yalnız okunuyor, tek
 insert önizlemeye). 621 birim + 17 e2e, 0 skip. Bilinçli borç: kimlik çözümleme
-minimal (harici=`kaynak:externalSubjectId`); route e2e'si 3D'de. Sıradaki: PR-3B
-(atomik apply + outbox).
+minimal (harici=`kaynak:externalSubjectId`); route e2e'si 3D'de.
+
+**PR-3B BİTTİ (18 Temmuz, `20260718040000`) — atomik apply + idempotency +
+transactional-outbox + import manifesti; canlı smoke ile doğrulandı.** Apply tek
+plpgsql fonksiyonunda (`sod_import_uygula`): stale yeniden-kontrol → ekle/güncelle/
+sona-erdir → manifest → outbox → önizleme APPLIED, hepsi tek transaction (yarı
+uygulanmış import olamaz — STALE reddinde hiçbir şey yazılmıyor). Stale 409
+`IMPORT_PREVIEW_STALE` (apply-öncesi hash yeniden hesap + kilit-altı ikinci
+kontrol). Sona-erdirme FİZİKSEL SİLME DEĞİL (`gecerlilik_bitis`). İdempotency üç
+katman: önizleme durum kilidi (`for update`), manifest `unique(onizleme_id)`,
+atama partial unique + `ON CONFLICT` upsert. Outbox (`sod_outbox`, kural 4 — BullMQ
+YOK) apply ile aynı transaction'da yazılır; drenaj rotası (`POST /api/sod/outbox/
+isle`) bir değerlendirme koşar (ortak `sod-kosu.ts` — `degerlendir` rotası da buna
+indirildi, davranış birebir aynı). Manifest `sod_import_manifestleri` append-only,
+`manifestHash` (kural 15) apply kararını mühürler. Rota `POST /api/sod/import/
+[onizlemeId]/uygula` RLS altında önizleme okur (IDOR yok), sonra service_role RPC;
+fonksiyon execute'u authenticated/anon'dan revoke (tenant atlama yok), service_role
+Supabase default-privilege ile çağırabiliyor (canlı smoke kanıtı, PGlite≠Supabase).
+**631 birim (+10) + 17 e2e, 0 skip.** Sıradaki: PR-3C (rollback + bağımsız onay).
 - **Kapsam dışı (bilinçli):** atama yönetim UI'ı yok (fixture/script ile
   giriliyor), IAM/PAM connector yok.
 - Yol boyunca iki bug: (1) `SodTaraf.sistem_kapsami` kuralın kendisine sabit

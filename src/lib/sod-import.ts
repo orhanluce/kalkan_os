@@ -407,6 +407,33 @@ function atamaAyni(r: SodAssignmentImportRecord, a: MevcutAtama): boolean {
   );
 }
 
+// --- Import manifesti (PR-3B) ---
+
+/**
+ * Uygulanmış bir içe aktarmanın mühürlenen çekirdeği. `manifestHash` bunun
+ * kanonik hash'idir — kural 15: hash'in NEYİ doğruladığı adında yazar (bu
+ * import KARARININ kendisi: hangi dosya, hangi snapshot/kural sürümü, kaç
+ * kayıt eklendi/güncellendi/sona erdi). Rota bunu hesaplayıp apply
+ * fonksiyonuna geçirir; manifest satırında saklanır ve bağımsız doğrulanabilir.
+ */
+export interface ImportManifestCekirdek {
+  onizlemeId: string;
+  kaynak: string;
+  mode: ImportMode;
+  fileHash: string;
+  normalizedRecordsHash: string;
+  assignmentSnapshotHash: string;
+  ruleSetVersion: string;
+  eklenen: number;
+  guncellenen: number;
+  sonaErdirilen: number;
+}
+
+/** Import manifest çekirdeğinin kanonik hash'i (manifestHash). */
+export function importManifestHash(cekirdek: ImportManifestCekirdek): Promise<string> {
+  return canonicalHash(cekirdek as unknown as CanonicalDeger);
+}
+
 /**
  * Önizleme BAYAT mı: apply anındaki atama snapshot hash'i, önizleme
  * anındakinden farklıysa eski önizleme uygulanamaz (kurucu §7, 409

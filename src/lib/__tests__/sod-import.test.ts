@@ -3,9 +3,11 @@ import {
   csvAyristir,
   diffHesapla,
   dosyaHash,
+  importManifestHash,
   kayitlarHash,
   normalize,
   onizlemeBayatMi,
+  type ImportManifestCekirdek,
   type MevcutAtama,
   type SodAssignmentImportRecord,
 } from "../sod-import";
@@ -234,5 +236,34 @@ describe("onizlemeBayatMi — stale preview (409 zemini)", () => {
   });
   it("ikisi de aynıysa TAZE", () => {
     expect(onizlemeBayatMi("hashA", "hashA", "rv1", "rv1")).toBe(false);
+  });
+});
+
+describe("importManifestHash — apply kararının mührü (PR-3B)", () => {
+  const cekirdek: ImportManifestCekirdek = {
+    onizlemeId: "11111111-1111-1111-1111-111111111111",
+    kaynak: "hr",
+    mode: "AUTHORITATIVE_SNAPSHOT",
+    fileHash: "a".repeat(64),
+    normalizedRecordsHash: "b".repeat(64),
+    assignmentSnapshotHash: "c".repeat(64),
+    ruleSetVersion: "d".repeat(64),
+    eklenen: 3,
+    guncellenen: 1,
+    sonaErdirilen: 2,
+  };
+
+  it("deterministik: aynı çekirdek aynı hash (kural 11/15)", async () => {
+    expect(await importManifestHash(cekirdek)).toBe(await importManifestHash({ ...cekirdek }));
+  });
+
+  it("sayı değişince hash değişir (import kararı mühre giriyor)", async () => {
+    const a = await importManifestHash(cekirdek);
+    const b = await importManifestHash({ ...cekirdek, eklenen: 4 });
+    expect(a).not.toBe(b);
+  });
+
+  it("64-hex sha256 döndürür", async () => {
+    expect(await importManifestHash(cekirdek)).toMatch(/^[0-9a-f]{64}$/);
   });
 });

@@ -2229,6 +2229,82 @@ export type Database = {
           },
         ]
       }
+      sod_import_manifestleri: {
+        Row: {
+          assignment_snapshot_hash: string
+          created_at: string
+          eklenen_sayisi: number
+          file_hash: string
+          guncellenen_sayisi: number
+          id: string
+          kaynak: string
+          manifest_hash: string
+          mode: string
+          normalized_records_hash: string
+          onizleme_id: string
+          rule_set_version: string
+          sona_erdirilen_sayisi: number
+          tenant_id: string
+          uygulayan: string | null
+        }
+        Insert: {
+          assignment_snapshot_hash: string
+          created_at?: string
+          eklenen_sayisi: number
+          file_hash: string
+          guncellenen_sayisi: number
+          id?: string
+          kaynak: string
+          manifest_hash: string
+          mode: string
+          normalized_records_hash: string
+          onizleme_id: string
+          rule_set_version: string
+          sona_erdirilen_sayisi: number
+          tenant_id: string
+          uygulayan?: string | null
+        }
+        Update: {
+          assignment_snapshot_hash?: string
+          created_at?: string
+          eklenen_sayisi?: number
+          file_hash?: string
+          guncellenen_sayisi?: number
+          id?: string
+          kaynak?: string
+          manifest_hash?: string
+          mode?: string
+          normalized_records_hash?: string
+          onizleme_id?: string
+          rule_set_version?: string
+          sona_erdirilen_sayisi?: number
+          tenant_id?: string
+          uygulayan?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sod_import_manifestleri_onizleme_id_fkey"
+            columns: ["onizleme_id"]
+            isOneToOne: true
+            referencedRelation: "sod_import_onizlemeleri"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_import_manifestleri_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_import_manifestleri_uygulayan_fkey"
+            columns: ["uygulayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sod_import_onizlemeleri: {
         Row: {
           assignment_snapshot_hash: string
@@ -2511,6 +2587,60 @@ export type Database = {
           },
           {
             foreignKeyName: "sod_kurallari_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sod_outbox: {
+        Row: {
+          created_at: string
+          degerlendirme_calistirma_id: string | null
+          deneme_sayisi: number
+          durum: string
+          event_type: string
+          hata: string | null
+          id: string
+          islenme_at: string | null
+          payload: Json
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          degerlendirme_calistirma_id?: string | null
+          deneme_sayisi?: number
+          durum?: string
+          event_type: string
+          hata?: string | null
+          id?: string
+          islenme_at?: string | null
+          payload: Json
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          degerlendirme_calistirma_id?: string | null
+          deneme_sayisi?: number
+          durum?: string
+          event_type?: string
+          hata?: string | null
+          id?: string
+          islenme_at?: string | null
+          payload?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sod_outbox_degerlendirme_calistirma_id_fkey"
+            columns: ["degerlendirme_calistirma_id"]
+            isOneToOne: false
+            referencedRelation: "sod_degerlendirme_calistirmalari"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_outbox_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2829,6 +2959,16 @@ export type Database = {
           jobname: string
           schedule: string
         }[]
+      }
+      sod_import_uygula: {
+        Args: {
+          p_actor: string
+          p_guncel_atama_snapshot_hash: string
+          p_guncel_rule_set_version: string
+          p_manifest_hash: string
+          p_onizleme_id: string
+        }
+        Returns: Json
       }
       sod_istisna_suresi_dolanlari_isle: { Args: never; Returns: number }
       tenant_has_profiles: {
