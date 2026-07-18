@@ -65,10 +65,12 @@ QRegu Q1-Q4 çekirdeği PR-4a/4b ile ZATEN kodda; sıradaki gerçek işler:
    küratör ingest scripti + `source_fetch_runs` + tazelik (kural 8) + UI
    nüsha listesi; canlı smoke 8/8. Sapma: staleness cron'u connector'a
    ertelendi (türetim okuma-anı saf fonksiyon).
-2. **PR-Q2'**: dört-göz doğrulama iş akışı (hazırlayan≠dogrulayan DB guard'ı +
-   rotalar + inceleme kuyruğu UI) + applicability wizard (`eksikProfilAlanlari`
-   motoru hazır) + EvidenceTraceRail Hüküm/Yükümlülük gerçek verisi (PR-4b'den
-   devreden dar UI işi buraya katıldı — Control Lineage ekranının parçası).
+2. ~~**PR-Q2a'** dört-göz iş akışı~~ **BİTTİ** (ROADMAP §1.18): guard + rota +
+   `/regulasyon/dogrulama` kuyruğu + iki-kullanıcılı e2e. **KALAN → PR-Q2b'**:
+   applicability wizard (`eksikProfilAlanlari` motoru hazır; eksik olguda yalnız
+   UNKNOWN önerilir + /kurulum'a yönlendirme; tam olguda insan kararı gerekçe+
+   onayla) + EvidenceTraceRail Hüküm/Yükümlülük düğümlerine gerçek veri
+   (Control Lineage'ın parçası).
 3. **PR-Q3'**: 20-40 SPK/7545 kontrolü — **KURUCU İÇERİK BLOCKER'ı** (kural 3:
    `data/*.yaml` + hukuk doğrulayıcı onayı; kod hazır, içerik uydurulmaz).
 4. **PR-Q4'**: SCITT-tarzı transparency ledger (M5.5 Merkle kodu yeniden

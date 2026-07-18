@@ -103,22 +103,49 @@ describe("obligations + mappings — global referans + kural 3 guard'ları (M21)
     ).rejects.toThrow(/LEGAL_REVIEW/);
   });
 
+  it("LEGAL_REVIEW geçişi inceleme atfı olmadan REDDEDİLİR (dört-göz halka 1)", async () => {
+    const oid = await yukumlulukEkle(await hukumEkle());
+    await expect(
+      db.sql(`update public.obligations set dogrulama_durumu = 'LEGAL_REVIEW' where id = $1`, [oid]),
+    ).rejects.toThrow(/incelemeye_alan/);
+  });
+
   it("VERIFIED geçişi dogrulayan/dogrulama_zamani olmadan REDDEDİLİR", async () => {
     const oid = await yukumlulukEkle(await hukumEkle());
-    await db.sql(`update public.obligations set dogrulama_durumu = 'LEGAL_REVIEW' where id = $1`, [oid]);
+    await db.sql(
+      `update public.obligations set dogrulama_durumu = 'LEGAL_REVIEW', incelemeye_alan = $2, incelemeye_alinma_zamani = now() where id = $1`,
+      [oid, seed.B.userId],
+    );
     await expect(
       db.sql(`update public.obligations set dogrulama_durumu = 'VERIFIED' where id = $1`, [oid]),
     ).rejects.toThrow(/dogrulayan/);
   });
 
-  it("LEGAL_REVIEW → VERIFIED, dogrulayan + zaman ile GEÇER (yükümlülük ve eşleme)", async () => {
+  it("DÖRT GÖZ: incelemeye alan kendi sunumunu DOĞRULAYAMAZ (service bile)", async () => {
+    const oid = await yukumlulukEkle(await hukumEkle());
+    await db.sql(
+      `update public.obligations set dogrulama_durumu = 'LEGAL_REVIEW', incelemeye_alan = $2, incelemeye_alinma_zamani = now() where id = $1`,
+      [oid, seed.A.userId],
+    );
+    await expect(
+      db.sql(
+        `update public.obligations set dogrulama_durumu = 'VERIFIED', dogrulayan = $2, dogrulama_zamani = now() where id = $1`,
+        [oid, seed.A.userId],
+      ),
+    ).rejects.toThrow(/dort goz/);
+  });
+
+  it("LEGAL_REVIEW → VERIFIED, FARKLI dogrulayan + zaman ile GEÇER (yükümlülük ve eşleme)", async () => {
     const oid = await yukumlulukEkle(await hukumEkle());
     const mid = await eslemeEkle(oid);
     for (const [tablo, id] of [
       ["obligations", oid],
       ["obligation_control_mappings", mid],
     ] as const) {
-      await db.sql(`update public.${tablo} set dogrulama_durumu = 'LEGAL_REVIEW' where id = $1`, [id]);
+      await db.sql(
+        `update public.${tablo} set dogrulama_durumu = 'LEGAL_REVIEW', incelemeye_alan = $2, incelemeye_alinma_zamani = now() where id = $1`,
+        [id, seed.B.userId],
+      );
       await db.sql(
         `update public.${tablo} set dogrulama_durumu = 'VERIFIED', dogrulayan = $2, dogrulama_zamani = now() where id = $1`,
         [id, seed.A.userId],
@@ -128,9 +155,32 @@ describe("obligations + mappings — global referans + kural 3 guard'ları (M21)
     }
   });
 
+  it("REJECTED yalnız LEGAL_REVIEW'den ve karar atfıyla verilebilir", async () => {
+    const oid = await yukumlulukEkle(await hukumEkle());
+    // TODO_DOGRULA'dan doğrudan RED olmaz.
+    await expect(
+      db.sql(`update public.obligations set dogrulama_durumu = 'REJECTED', dogrulayan = $2 where id = $1`, [oid, seed.A.userId]),
+    ).rejects.toThrow(/LEGAL_REVIEW/);
+    await db.sql(
+      `update public.obligations set dogrulama_durumu = 'LEGAL_REVIEW', incelemeye_alan = $2, incelemeye_alinma_zamani = now() where id = $1`,
+      [oid, seed.B.userId],
+    );
+    // Atıfsız red olmaz.
+    await expect(
+      db.sql(`update public.obligations set dogrulama_durumu = 'REJECTED' where id = $1`, [oid]),
+    ).rejects.toThrow(/karar sahibi/);
+    await db.sql(
+      `update public.obligations set dogrulama_durumu = 'REJECTED', dogrulayan = $2 where id = $1`,
+      [oid, seed.A.userId],
+    );
+  });
+
   it("VERIFIED yükümlülüğün içeriği DONUK; doğrulama geri alınınca düzenlenebilir", async () => {
     const oid = await yukumlulukEkle(await hukumEkle());
-    await db.sql(`update public.obligations set dogrulama_durumu = 'LEGAL_REVIEW' where id = $1`, [oid]);
+    await db.sql(
+      `update public.obligations set dogrulama_durumu = 'LEGAL_REVIEW', incelemeye_alan = $2, incelemeye_alinma_zamani = now() where id = $1`,
+      [oid, seed.B.userId],
+    );
     await db.sql(
       `update public.obligations set dogrulama_durumu = 'VERIFIED', dogrulayan = $2, dogrulama_zamani = now() where id = $1`,
       [oid, seed.A.userId],
@@ -149,7 +199,10 @@ describe("obligations + mappings — global referans + kural 3 guard'ları (M21)
   it("VERIFIED eşlemenin kapsam'ı değiştirilemez (tam→kismi sessiz kayma yok)", async () => {
     const oid = await yukumlulukEkle(await hukumEkle());
     const mid = await eslemeEkle(oid);
-    await db.sql(`update public.obligation_control_mappings set dogrulama_durumu = 'LEGAL_REVIEW' where id = $1`, [mid]);
+    await db.sql(
+      `update public.obligation_control_mappings set dogrulama_durumu = 'LEGAL_REVIEW', incelemeye_alan = $2, incelemeye_alinma_zamani = now() where id = $1`,
+      [mid, seed.B.userId],
+    );
     await db.sql(
       `update public.obligation_control_mappings set dogrulama_durumu = 'VERIFIED', dogrulayan = $2, dogrulama_zamani = now() where id = $1`,
       [mid, seed.A.userId],

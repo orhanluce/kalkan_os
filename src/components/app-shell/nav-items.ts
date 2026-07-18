@@ -52,7 +52,10 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
   };
   const regulasyonGrubu: NavGrubu = {
     baslik: "Regülasyon",
-    ogeler: [{ href: "/regulasyon/kaynaklar", etiket: "Kaynaklar", Ikon: Library }],
+    ogeler: [
+      { href: "/regulasyon/kaynaklar", etiket: "Kaynaklar", Ikon: Library },
+      { href: "/regulasyon/dogrulama", etiket: "Doğrulama Kuyruğu", Ikon: ShieldCheck },
+    ],
   };
   return [
     { baslik: null, ogeler: [{ href: "/", etiket: "Pano", Ikon: LayoutDashboard }] },

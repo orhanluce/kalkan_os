@@ -1274,6 +1274,8 @@ export type Database = {
           eklenme_kaynagi: string
           gerekce: string | null
           id: string
+          incelemeye_alan: string | null
+          incelemeye_alinma_zamani: string | null
           kapsam: string
           obligation_id: string
           updated_at: string
@@ -1287,6 +1289,8 @@ export type Database = {
           eklenme_kaynagi?: string
           gerekce?: string | null
           id?: string
+          incelemeye_alan?: string | null
+          incelemeye_alinma_zamani?: string | null
           kapsam?: string
           obligation_id: string
           updated_at?: string
@@ -1300,6 +1304,8 @@ export type Database = {
           eklenme_kaynagi?: string
           gerekce?: string | null
           id?: string
+          incelemeye_alan?: string | null
+          incelemeye_alinma_zamani?: string | null
           kapsam?: string
           obligation_id?: string
           updated_at?: string
@@ -1315,6 +1321,13 @@ export type Database = {
           {
             foreignKeyName: "obligation_control_mappings_dogrulayan_fkey"
             columns: ["dogrulayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "obligation_control_mappings_incelemeye_alan_fkey"
+            columns: ["incelemeye_alan"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1338,6 +1351,8 @@ export type Database = {
           dogrulayan: string | null
           eklenme_kaynagi: string
           id: string
+          incelemeye_alan: string | null
+          incelemeye_alinma_zamani: string | null
           kanit_gereksinimi: string | null
           kod: string
           nitelik: string
@@ -1355,6 +1370,8 @@ export type Database = {
           dogrulayan?: string | null
           eklenme_kaynagi?: string
           id?: string
+          incelemeye_alan?: string | null
+          incelemeye_alinma_zamani?: string | null
           kanit_gereksinimi?: string | null
           kod: string
           nitelik?: string
@@ -1372,6 +1389,8 @@ export type Database = {
           dogrulayan?: string | null
           eklenme_kaynagi?: string
           id?: string
+          incelemeye_alan?: string | null
+          incelemeye_alinma_zamani?: string | null
           kanit_gereksinimi?: string | null
           kod?: string
           nitelik?: string
@@ -1384,6 +1403,13 @@ export type Database = {
           {
             foreignKeyName: "obligations_dogrulayan_fkey"
             columns: ["dogrulayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "obligations_incelemeye_alan_fkey"
+            columns: ["incelemeye_alan"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

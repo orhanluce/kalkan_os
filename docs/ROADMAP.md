@@ -499,6 +499,25 @@ türetim okuma-anı saf fonksiyonda; cron'lu ALARM connector'la birlikte
 gelecek (ölçülmemiş cron eklenmez). **797 birim (63 dosya) + 35 e2e, 0
 skip; build yeşil.**
 
+### 1.18 QRegu PR-Q2a' — Dört-göz hukuk doğrulama iş akışı (M21) ✅ (18 Temmuz gece)
+
+Migration `20260718210000` (canlıda): obligations + mappings'e inceleme atfı
+kolonları (`incelemeye_alan/incelemeye_alinma_zamani`) ve guard genişletmesi —
+**M21 "tek kişi mapping hazırlayıp onaylayamaz" artık DB invariant'ı**:
+LEGAL_REVIEW geçişi inceleme atfı ister; VERIFIED'de `dogrulayan ≠
+incelemeye_alan` (service_role bile atlayamaz); REJECTED yalnız LEGAL_REVIEW'den
++ karar atfıyla. Rota `POST /api/regulasyon/dogrulama` (incelemeye_al admin/
+uyum; onayla/reddet YALNIZ admin — K8 "bugün admin" kaydı, rol gelince tek
+satır değişir; atıf oturum sahibine sabit, yazma service ile — global tabloya
+istemci yazma yolu AÇILMADI). UI `/regulasyon/dogrulama` kuyruk ekranı
+(legal-review semantiği dahil durum rozetleri; hata banner'ı guard mesajını
+dürüstçe gösterir) + nav "Doğrulama Kuyruğu". E2e (iki gerçek kullanıcı,
+`regulasyon-dogrulama.spec.ts`): uyum sunar → uyum onaylayamaz (403 rol
+kapısı) → admin onaylar (VERIFIED) → admin kendi sunumunu onaylayamaz (409
+"dort goz", kayıt incelemede kalır). legal-basis.spec de dört-göz desenine
+taşındı (sunan≠doğrulayan + service'te dört-göz reddi assert'i). **800 birim
++ 36 e2e, 0 skip; build yeşil.**
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket
