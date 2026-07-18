@@ -3511,6 +3511,54 @@ export type Database = {
           },
         ]
       }
+      source_fetch_runs: {
+        Row: {
+          artifact_id: string | null
+          created_at: string
+          durum: string
+          fetched_at: string
+          hata_ozeti: string | null
+          id: string
+          source_id: string
+          yontem: string
+        }
+        Insert: {
+          artifact_id?: string | null
+          created_at?: string
+          durum: string
+          fetched_at?: string
+          hata_ozeti?: string | null
+          id?: string
+          source_id: string
+          yontem?: string
+        }
+        Update: {
+          artifact_id?: string | null
+          created_at?: string
+          durum?: string
+          fetched_at?: string
+          hata_ozeti?: string | null
+          id?: string
+          source_id?: string
+          yontem?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_fetch_runs_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "source_artifacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_fetch_runs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_events: {
         Row: {
           actor: string | null

@@ -478,6 +478,27 @@ karşılanır), guard çıktısı üçlü + sebep kodları KORUNDU. İlk 90 gün
 PR-Q1' (kaynak ingest dilimi) → Q2' (dört-göz+wizard) → Q3' (içerik gelince
 pilot kapsam) → Q4' (transparency ledger + Proof Room) → Q5-Q7.
 
+### 1.17 QRegu PR-Q1' — Kaynak ingest dilimi (M19 devamı) ✅ (18 Temmuz gece)
+
+Migration `20260718200000` (canlıda): (1) **`regulatory-source-artifacts`
+private bucket** — ham resmî nüsha içerik-adresli (`raw/{sha256}`) ve
+DEĞİŞMEZ (INSERT/UPDATE/DELETE politikası yok; yazma yalnız küratör script,
+okuma authenticated — global hukuk verisi). (2) **`source_fetch_runs`** çekim
+sicili: BASARILI koşu artifact'sız OLAMAZ (check), hata ÖZETİ (secret/dump
+yok), istemci yazamaz/değiştiremez. **Küratör aracı**
+`scripts/ingest-source-artifact.ts`: boyut/tür sınırı → sha256 → Storage →
+artifact satırı (TODO_DOGRULA doğar, kural 3) → koşu kaydı; idempotent
+(içerik-adresleme + unique). **Tazelik** saf fonksiyonla türetilir
+(`kaynak-tazelik.ts`, kural 11): hiç çekim yoksa **"güncellik iddia
+edilemez"** (QRegu kural 8; UI'da `unknown` semantiği — nötrle karışmaz),
+eşik aşımı SOURCE_STALE. `/regulasyon/kaynaklar` genişledi: tazelik rozeti +
+kaynak başına nüsha listesi (hash + doğrulama rozeti). Canlı smoke 8/8
+(yükleme + idempotency + round-trip hash eşitliği + temizlik; geçici script
+silindi). PRQ0 §10'dan bilinçli sapma: staleness pg_cron'u EKLENMEDİ —
+türetim okuma-anı saf fonksiyonda; cron'lu ALARM connector'la birlikte
+gelecek (ölçülmemiş cron eklenmez). **797 birim (63 dosya) + 35 e2e, 0
+skip; build yeşil.**
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket

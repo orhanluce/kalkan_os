@@ -61,10 +61,10 @@ Migration sırası son: `20260718190000_els_delete_alignment` (CANLIDA).
 yetkili kaynak: baseline + boşluk analizi + 3 ADR taslağı + lisans matrisi +
 pilot kapsam çerçevesi + ölçüm sözleşmesi + açık kararlar). Boşluk özeti:
 QRegu Q1-Q4 çekirdeği PR-4a/4b ile ZATEN kodda; sıradaki gerçek işler:
-1. **PR-Q1'** (kaynak ingest dilimi): `regulatory-source-artifacts` bucket +
-   manuel güvenli ingest rotası (hash=Storage doğrulaması, MIME/boyut) +
-   `source_fetch_runs` + staleness pg_cron + `/regulasyon/kaynaklar` artifact
-   listesi/ingest formu + RLS/e2e. (PRQ0 belgesi §10'da tam kapsam.)
+1. ~~**PR-Q1'** (kaynak ingest dilimi)~~ **BİTTİ** (ROADMAP §1.17): bucket +
+   küratör ingest scripti + `source_fetch_runs` + tazelik (kural 8) + UI
+   nüsha listesi; canlı smoke 8/8. Sapma: staleness cron'u connector'a
+   ertelendi (türetim okuma-anı saf fonksiyon).
 2. **PR-Q2'**: dört-göz doğrulama iş akışı (hazırlayan≠dogrulayan DB guard'ı +
    rotalar + inceleme kuyruğu UI) + applicability wizard (`eksikProfilAlanlari`
    motoru hazır) + EvidenceTraceRail Hüküm/Yükümlülük gerçek verisi (PR-4b'den
