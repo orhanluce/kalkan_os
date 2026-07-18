@@ -137,11 +137,16 @@ doğrulayıcı rolü). QRegu döneminde teslim edilenler (ROADMAP §1.16-1.19):
    samples/workpapers/review_notes; tekrarlanabilir seed'li örnekleme +
    bağımsızlık sign-off + onaylı-kağıt donukluğu; `/denetim`; rls 3/3 + saf 5/5 +
    e2e + smoke 3/3.
-9. **G8 kalan + sıradaki (nihai §8):** M18 training/competency (M12 test motoru +
-   attestation + phishing/tabletop), M40 risk appetite/KRI/loss-distribution
-   (CRQ — sahte kesinlik yok, dağılım+varsayım). G3 (connector + RFC 3161 TSA
-   adapter interface + SCITT-tarzı ledger M5.5 Merkle) — connector'lar kurucu #7
-   pilot stack'i bekliyor; TSA interface + ledger dış-karar bağımsız.
+9. **G8 parça 3 — M18 Training & Competency BİTTİ** (ROADMAP §1.30):
+   training_requirements/assignments/completions; geçme eşikten hesaplanır +
+   attestation + yetkinlik boşluğu; `/egitim`; rls 5/5 + saf 3/3 + e2e + smoke
+   3/3.
+10. **G8 kalan + sıradaki (nihai §8):** M40 risk appetite/KRI/loss-distribution
+    (CRQ — sahte kesinlik YOK: dağılım+varsayım, tek risk puanı değil). G3
+    (connector + RFC 3161 TSA adapter interface + SCITT-tarzı transparency ledger,
+    M5.5 Merkle yeniden kullanılır) — connector'lar kurucu #7 pilot stack'i
+    bekliyor; TSA interface + SCITT-tarzı ledger dış-karar bağımsız. Ayrıca
+    M13/M17/M18/M35/M36/M37/M38 "sonraki dilim" borçları (ROADMAP §1.24-1.30).
 Her adım: migration (PGlite RLS testi) → canlı db:push+db:types → gerçek
 Chromium e2e → commit; rapor nihai §15 formatında. Kural 3'ü her adımda koru.
 

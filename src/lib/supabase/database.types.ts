@@ -5846,6 +5846,153 @@ export type Database = {
           },
         ]
       }
+      training_assignments: {
+        Row: {
+          created_at: string
+          durum: string
+          id: string
+          kullanici: string
+          requirement_id: string
+          son_tarih: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          durum?: string
+          id?: string
+          kullanici: string
+          requirement_id: string
+          son_tarih?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          durum?: string
+          id?: string
+          kullanici?: string
+          requirement_id?: string
+          son_tarih?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_assignments_kullanici_fkey"
+            columns: ["kullanici"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_assignments_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "training_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_completions: {
+        Row: {
+          assignment_id: string
+          attestation: boolean
+          created_at: string
+          gecti: boolean
+          id: string
+          skor: number
+          tamamlandi_at: string
+          tenant_id: string
+        }
+        Insert: {
+          assignment_id: string
+          attestation?: boolean
+          created_at?: string
+          gecti?: boolean
+          id?: string
+          skor: number
+          tamamlandi_at?: string
+          tenant_id: string
+        }
+        Update: {
+          assignment_id?: string
+          attestation?: boolean
+          created_at?: string
+          gecti?: boolean
+          id?: string
+          skor?: number
+          tamamlandi_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_completions_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: true
+            referencedRelation: "training_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_completions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_requirements: {
+        Row: {
+          ad: string
+          created_at: string
+          gecme_esigi: number
+          hedef_rol: string | null
+          id: string
+          konu: string
+          periyot_gun: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ad: string
+          created_at?: string
+          gecme_esigi?: number
+          hedef_rol?: string | null
+          id?: string
+          konu?: string
+          periyot_gun?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ad?: string
+          created_at?: string
+          gecme_esigi?: number
+          hedef_rol?: string | null
+          id?: string
+          konu?: string
+          periyot_gun?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_requirements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

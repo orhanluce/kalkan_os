@@ -13,6 +13,7 @@ import {
   FileWarning,
   FlaskConical,
   Gavel,
+  GraduationCap,
   LandmarkIcon,
   LayoutDashboard,
   Library,
@@ -83,6 +84,7 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
       ogeler: [
         { href: "/sod", etiket: "Görevler Ayrılığı", Ikon: UsersRound },
         { href: "/politikalar", etiket: "Politikalar", Ikon: ScrollText },
+        { href: "/egitim", etiket: "Eğitim / Yetkinlik", Ikon: GraduationCap },
       ],
     },
     {

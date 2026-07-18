@@ -774,6 +774,27 @@ e2e (tekrarlanabilir örnekleme + bağımsızlık sign-off) + canlı smoke 3/3.
 **BİLİNÇLİ SONRAKİ DİLİM:** PBC/request (M38 deseni), formal independence
 bağı (G7 tablosu), workpaper→bulgu/kontrol bağı, WORM export.
 
+### 1.30 Gate G8 (parça 3) — M18 Training & Competency ✅ (19 Temmuz)
+
+Migration `20260719060000` — YENİ kod alanı, tenant'a özgü. 3 tablo:
+`training_requirements` (rol bazlı gereken eğitim + GEÇME EŞİĞİ + periyot; konu
+AI_LITERACY M37'ye ilişkilenir), `training_assignments` (kişiye atama + son
+tarih), `training_completions` (sınav skoru + geçme + attestation). **İnvariant'lar
+(DB guard — canlı smoke 3/3):** **geçme SKOR ile EŞİK'ten HESAPLANIR** — istemci
+`gecti=true` dese bile guard `skor >= esik`'ten yeniden hesaplar (uydurulamaz);
+tamamlama **attestation (okudum-anladım) olmadan** kaydedilemez; geçen tamamlama
+atamayı TAMAMLANDI yapar (yetkinlik boşluğu kapanır); bir atamaya tek tamamlama
+(unique). Saf yardımcı `src/lib/yetkinlik.ts` (kural 11): `sinavGecti`,
+`yetkinlikBoslugu` (tamamlanmamış/süresi-geçmiş/kalınmış atamalar → boşluk +
+tamamlanma oranı). UI `/egitim` hub (gereksinim + bana-ata + skor/attestation
+tamamlama + yetkinlik özeti); nav Yönetişim grubuna "Eğitim/Yetkinlik". Yol
+boyunca UI bug: `training_completions` embed'i (assignment_id unique →) PostgREST
+TEKİL OBJE döndürüyordu, `[0]` ile okununca kaybediliyordu — hem obje hem dizi
+normalize edildi. Testler: rls-training-competency 5/5 + yetkinlik 3/3 +
+`egitim.spec.ts` e2e (skor<eşik kalır / skor≥eşik geçer, attestation'lı) + canlı
+smoke 3/3. **BİLİNÇLİ SONRAKİ DİLİM:** phishing/tabletop = simülasyon (M7-M9)
+sonucuna gerçek bağ, retraining otomasyonu (periyot dolunca yeniden atama cron).
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket
