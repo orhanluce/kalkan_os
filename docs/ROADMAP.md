@@ -1304,9 +1304,42 @@ doğrulandı:**
   fonksiyon-içi hash kontrolü + önizleme kilidiyle daraltıldı ama tümüyle
   kapatılmadı; çift-apply yarışı `for update` ile TAM kapalı.
 
+**✅ PR-3C BİTTİ (18 Temmuz, migration `20260718060000`) — canlı smoke ile
+doğrulandı:**
+- **Ters değişiklik seti APPLY ANINDA yakalanır** (`sod_import_manifestleri.
+  ters_degisiklik`; sonradan hesaplanmaz — araya giren değişiklik yanlış
+  tersine çevrilirdi). Üç kalem türü: EKLENDI / GUNCELLENDI (eski satırın
+  TAMAMI, subject alanları dahil) / SONA_ERDIRILDI. **Upsert-revive düzeltmesi:**
+  "eklenecek" kalemi hedefte zaten varsa ters set bunu GUNCELLENDI olarak
+  kaydeder (PR-3B ayırt etmiyordu — sayaç için önemsiz, rollback için kritik).
+  Legacy manifest (önceki apply'lar) ters seti NULL — uydurulmaz, rollback
+  reddedilir (409 ROLLBACK_DESTEKLENMIYOR).
+- **Rollback FİZİKSEL SİLMEZ:** eklenen sona erdirilir, güncellenen eski
+  değerlere döner, sona-erdirilen yeniden açılır — `sod_import_geri_al` RPC
+  tek transaction (ters set + outbox `SOD_ATAMALARI_ROLLBACK_EDILDI` +
+  UYGULANDI). Execute authenticated/anon'dan revoke.
+- **Maker-checker DB guard'ı** (`sod_import_rollback_guard`, service_role bile
+  atlayamaz): karar onaylayan İSTER ve onaylayan ≠ talep_eden; karar verilmiş
+  kayıt DEĞİŞMEZ (çift-uygulama yolu kapalı); talep kimlik alanları donuk.
+  Talep RLS'i `talep_eden = auth.uid()` zorlar (maker kimliği sahtelenemez).
+  Partial unique: manifest başına tek aktif talep; REDDEDİLEN yeni talebe
+  engel değil.
+- Rotalar: `POST /api/sod/import/rollback` (talep, kullanıcı oturumu+RLS) ve
+  `POST /api/sod/import/rollback/[id]/karar` (ONAYLA→RPC / REDDET; self-karar
+  erken 403 + DB guard).
+- **Deploy doğrulaması gerçek bug yakaladı:** `/health` proxy'nin açık
+  yollarında değildi → oturumsuz izleme 307 alıyordu; `ACIK_YOLLAR`a eklendi +
+  smoke e2e regresyon kilidi.
+- **Testler:** `rls-sod-import-rollback.test.ts` (9 — ters set üç tür +
+  revive edge, maker-checker çift savunma, tam ters-uygulama döngüsü,
+  idempotency, reddedilen→yeni talep, legacy reddi, izolasyon, sahte-maker
+  reddi, append-only+execute-revoke). **651 birim + 21 e2e, 0 skip.** Canlı
+  smoke: apply→ters set→self-onay reddi→checker ile geri alma→outbox 2 olay,
+  geçici kiracıda, cascade temizlik.
+- **Bilinçli borç:** rollback UI + uçtan uca route e2e'si PR-3D'de. Rollback
+  SONRASI değerlendirme drenajı manuel rotada (#5 cron tetiği hâlâ açık).
+
 **KALAN PR-3 aşamaları:**
-- **PR-3C:** rollback (ters değişiklik seti, fiziksel silme yok) + bağımsız
-  onay (uygulayan kendi rollback'ini onaylayamaz).
 - **PR-3D:** dar UI (yükleme/kaynak/mod/dry-run/hata/önizleme/apply/geçmiş/
   rollback) + gerçek Chromium e2e (A import, B idempotency, C stale, D rollback).
 - **#3 İstisna uzatma** akışı (yeni gerekçe/risk/süre + bağımsız onay, geçmiş

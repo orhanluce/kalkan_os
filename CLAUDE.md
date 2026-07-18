@@ -99,9 +99,21 @@ builder lazy (`void builder` istek GÖNDERMEZ — `.then` şart). **642 birim +
 (`StatusBadge`, ui-labels `*_SEMANTIK` eşlemeleri) geçti — kural 13 görselde
 de ayrık (UNKNOWN≠FAILED≠STALE≠EXCEPTION). Kanıt izi rayı kontrol detayında
 canlı (dürüst kısmi zincir; Test düğümü `kontrolGuvenceDurumu`nu bileşen
-callback'iyle alır). Davranış birebir korundu (19 e2e yeşil). Sıradaki:
-PR-3C rollback → PR-3D import UI + e2e → **M16 üretim kapısı**; M19+ ancak
-ondan sonra.
+callback'iyle alır). Davranış birebir korundu.
+
+**PR-3C BİTTİ (18 Temmuz, `20260718060000`) — rollback + maker-checker, canlı
+smoke doğrulı.** Ters değişiklik seti APPLY ANINDA manifest'e yakalanır
+(EKLENDI/GUNCELLENDI-tam-eski-satır/SONA_ERDIRILDI; upsert-revive→GUNCELLENDI
+düzeltmesi; legacy manifest NULL → rollback 409, uydurulmaz). `sod_import_
+geri_al` RPC tek transaction: fiziksel silme YOK (ekleneni sona erdir,
+güncelleneni geri yükle, sona-erdirileni yeniden aç) + outbox + UYGULANDI.
+Maker-checker DB guard'ı (service_role dahil): onaylayan ≠ talep_eden, karar
+verilmiş kayıt donuk, talep RLS'i `talep_eden=auth.uid()`. İki rota (talep +
+karar). Deploy doğrulaması gerçek bug yakaladı: `/health` proxy açık yollarında
+değildi (307) → düzeltildi + smoke e2e kilidi. **651 birim + 21 e2e, 0 skip.**
+UI + route e2e PR-3D'de. Sıradaki: **PR-3D import UI + gerçek Chromium e2e →
+M16 üretim kapısı**; M19+ ancak ondan sonra. Deploy: `main` push'u Hostinger'a
+otomatik gider (PR-3B..PR-3C yayında).
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler

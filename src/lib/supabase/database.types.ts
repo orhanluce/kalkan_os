@@ -2248,6 +2248,7 @@ export type Database = {
           rule_set_version: string
           sona_erdirilen_sayisi: number
           tenant_id: string
+          ters_degisiklik: Json | null
           uygulayan: string | null
         }
         Insert: {
@@ -2265,6 +2266,7 @@ export type Database = {
           rule_set_version: string
           sona_erdirilen_sayisi: number
           tenant_id: string
+          ters_degisiklik?: Json | null
           uygulayan?: string | null
         }
         Update: {
@@ -2282,6 +2284,7 @@ export type Database = {
           rule_set_version?: string
           sona_erdirilen_sayisi?: number
           tenant_id?: string
+          ters_degisiklik?: Json | null
           uygulayan?: string | null
         }
         Relationships: [
@@ -2376,6 +2379,74 @@ export type Database = {
             columns: ["yukleyen"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sod_import_rollbacklari: {
+        Row: {
+          created_at: string
+          durum: string
+          gerekce: string
+          id: string
+          karar_notu: string | null
+          manifest_id: string
+          onaylayan: string | null
+          talep_eden: string
+          tenant_id: string
+          uygulandi_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          durum?: string
+          gerekce: string
+          id?: string
+          karar_notu?: string | null
+          manifest_id: string
+          onaylayan?: string | null
+          talep_eden: string
+          tenant_id: string
+          uygulandi_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          durum?: string
+          gerekce?: string
+          id?: string
+          karar_notu?: string | null
+          manifest_id?: string
+          onaylayan?: string | null
+          talep_eden?: string
+          tenant_id?: string
+          uygulandi_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sod_import_rollbacklari_manifest_id_fkey"
+            columns: ["manifest_id"]
+            isOneToOne: false
+            referencedRelation: "sod_import_manifestleri"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_import_rollbacklari_onaylayan_fkey"
+            columns: ["onaylayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_import_rollbacklari_talep_eden_fkey"
+            columns: ["talep_eden"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_import_rollbacklari_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -2962,6 +3033,10 @@ export type Database = {
           jobname: string
           schedule: string
         }[]
+      }
+      sod_import_geri_al: {
+        Args: { p_actor: string; p_karar_notu: string; p_rollback_id: string }
+        Returns: Json
       }
       sod_import_uygula: {
         Args: {

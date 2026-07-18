@@ -27,8 +27,14 @@ import { supabaseAyarlari } from "./lib/supabase/env";
  * kiracı verisi göstermez — yalnızca manifest_dogrula'nın döndürdüğü beş
  * minimize alan (hash, zaman, mühür durumu). Tabloların kendisine erişimi
  * hâlâ RLS engelliyor.
+ *
+ * /health açıktır (PR-1, master talimat §26): izleme/Hostinger oturum açamaz;
+ * oturum isteyen bir health endpoint'i işlevsizdir. Kiracı verisi sızdırmaz —
+ * live sabit yanıt, ready yalnız "DB erişilebilir mi" durumu döndürür.
+ * (Bu satır canlı deploy doğrulamasında yakalandı: /health/live 307 → /giris
+ * dönüyordu.)
  */
-const ACIK_YOLLAR = ["/giris", "/paylasim", "/auth", "/dogrula"];
+const ACIK_YOLLAR = ["/giris", "/paylasim", "/auth", "/dogrula", "/health"];
 
 function acikYolMu(pathname: string): boolean {
   return ACIK_YOLLAR.some((yol) => pathname === yol || pathname.startsWith(`${yol}/`));
