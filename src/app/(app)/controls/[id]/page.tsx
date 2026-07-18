@@ -309,7 +309,9 @@ export default function ControlDetailPage() {
               value={tenantControl.durum}
               onValueChange={(v) => setDurum(control!.id, v as Durum)}
             >
-              <SelectTrigger>
+              {/* Görsel etiket kart başlığı ("Durum") — tetik için erişilebilir
+                  ad ayrıca gerekir (axe button-name, M16 AA taraması buldu). */}
+              <SelectTrigger aria-label="Kontrol durumu">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -536,7 +538,7 @@ export default function ControlDetailPage() {
                     </p>
                   )}
                   {ev.kaynakKontrolId && (
-                    <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                    <p className="mt-1 text-xs text-warning">
                       Eşlenik kanıt —{" "}
                       <Link href={`/controls/${ev.kaynakKontrolId}`} className="underline">
                         kaynak kontrolden

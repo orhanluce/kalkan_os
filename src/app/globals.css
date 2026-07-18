@@ -103,9 +103,13 @@
   --sidebar-accent-foreground: #111923;
   --sidebar-border: #d8d5cc;
   --sidebar-ring: #0d7180;
-  /* Durum tokenları (§5.3) */
-  --success: #1e7f4f;
-  --warning: #b25e09;
+  /* Durum tokenları (§5.3). --success ilk değeri #1e7f4f idi; axe AA taraması
+     (M16 kapanışı) %10 tonlu rozet zemininde 4.5:1'in altında ölçtü —
+     koyulaştırıldı ve tarama ile ampirik doğrulandı. */
+  --success: #166b40;
+  /* --warning ilk değeri #b25e09 idi — aynı axe ölçümü rozet zemininde
+     4.5:1 altı buldu, koyulaştırıldı. */
+  --warning: #8f4d06;
   --danger: #b42318;
   --info: #175cd3;
   --neutral-status: #52606d;

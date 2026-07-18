@@ -44,7 +44,7 @@ export default function ControlsPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Kontrol Kütüphanesi</h1>
-        <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+        <p className="mt-1 text-xs text-warning">
           Bu kütüphane doğrulanmamış iskelet veridir (TODO-DOGRULA), bkz. data/controls/*.yaml
         </p>
       </div>

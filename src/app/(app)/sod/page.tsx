@@ -526,7 +526,7 @@ export default function SodPage() {
                     onChange={(e) => setYeniKaynakReferansi(e.target.value)}
                     placeholder="ör. SPL 1020 §5"
                   />
-                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                  <p className="text-xs text-warning">
                     SPK kaynaklı kural &ldquo;Doğrulanmadı&rdquo; durumunda doğar; hukuki bağlayıcılık
                     ayrı bir onay gerektirir.
                   </p>

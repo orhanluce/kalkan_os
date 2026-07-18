@@ -130,14 +130,14 @@ export default function SimulasyonlarPage() {
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold tracking-tight">Simülasyon Senaryoları</h1>
           {/* Kural 9: tatbikat yüzeyleri açıkça etiketlenir. */}
-          <Badge variant="outline" className="border-amber-500/50 text-amber-700 dark:text-amber-400">
+          <Badge variant="outline" className="border-warning/50 text-warning">
             TATBİKAT
           </Badge>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Bu senaryolar tatbikat içindir; gerçek bir sistemde hiçbir işlem başlatmaz.
         </p>
-        <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+        <p className="mt-1 text-xs text-warning">
           Şablonlar doğrulanmamış örneklerdir (UNVERIFIED_SAMPLE) — kurumunuzun kendi olay müdahale
           planına göre gözden geçirilmeden oynanmamalıdır. Bkz. data/scenarios/*.yaml
         </p>

@@ -1382,7 +1382,38 @@ doğrulandı:**
   görseller `docs/gorsel-baseline/2026-07-18-pr3d/`.
 - Base UI nativeButton uyarısı düzeltildi (Link + buttonVariants deseni).
 
-**M16 ÜRETİM KAPISI DURUMU — 18 Temmuz akşamı, İŞLEVSEL KAPSAM TAMAM:**
+**✅ M16 ÜRETİM KAPANIŞI PR'ı BİTTİ (18 Temmuz gecesi) — platform maddeleri
+kapatıldı, kurucu KAPI KARARI bekliyor:**
+- **WCAG AA otomatik taraması:** `e2e/erisilebilirlik.spec.ts` (@axe-core/
+  playwright) — 6 kritik ekran + kontrol detayı + giriş, light+dark. **İki
+  gerçek ihlal bulunup düzeltildi:** (1) kontrol detay durum Select tetiği
+  erişilebilir ad taşımıyordu (`button-name` critical) → `aria-label`;
+  (2) `--success`/`--warning` rozet zemininde 4.5:1 altındaydı (`color-contrast`
+  serious) → tokenlar koyulaştırıldı + tüm ham `amber-*` sınıfları semantik
+  `text-warning`e taşındı. 3 AA testi yeşil. **Sınır (dürüst):** axe otomatik
+  tarama AA'nın TAMAMINI kanıtlamaz (klavye/odak/bilişsel elle test ister) ve
+  bu tur SoD-detay/findings-detay/simülasyon ekranlarını taramadı — regresyon
+  kilidi + ana yüzeyler kapsandı, kalan ekranlar sonraki turda taranır.
+- **Operasyon dokümanları:** `docs/guvenlik/THREAT_MODEL.md` (STRIDE, yüzey
+  yüzey, 3 kapatılmış açık vaka çalışması), `docs/operasyon/YEDEKLEME_GERI_
+  YUKLEME.md` (şema restore PROVALI; veri snapshot restore PROVA EDİLMEDİ →
+  K1), `DEPLOY_ROLLBACK.md` (git-revert ileri-rollback + expand/contract
+  migration ilkesi), `LIMITLER.md` (canlı kullanım ölçüldü — pilot ölçekte
+  limitlerin çok altında; outbox DONE birikimi temizlik borcu).
+- **Dış cron ADR'si:** `docs/adr/ADR-dis-cron.md` — A/B/C seçenekleri, öneri C
+  (mevcut oto-drenaj) pilot için; **K2 kurucu kararı.**
+- **Doğrulama:** 677 birim + **28 e2e** (25 + 3 AA), 0 skip, production build
+  yeşil.
+
+**M16 ÜRETİM KAPISI — kurucu kararı (belge §32 karşısında):** İşlevsel kapsam
+(kurucunun 12 maddesi) + platform kapanış maddeleri teslim edildi. **Kapının
+tek taraflı "geçti" ilanı YAPILMADI** (belge §33). Kurucu onayı için kalan iki
+gerçek karar: **K1 staging ortamı** (veri restore provası + "aynı staging'de
+gerçek kullanıcı akışı" §14 buna bağlı) ve **K2 dış cron**. Bu ikisi hariç
+tüm §32 maddeleri karşılandı; kurucu "kapı geçti" derse M17 ADR + Segment/
+Entitlement başlar.
+
+**M16 ÜRETİM KAPISI DURUMU — 18 Temmuz akşamı, İŞLEVSEL KAPSAM TAMAM (önceki kayıt):**
 Kurucunun 12 maddesinin tamamı kapandı: #1 test tabanı ✅, #2 süre dolumu ✅,
 #3 uzatma ✅, #4 CSV import (PR-3A–3D) ✅, #5 tetikler ✅ (dış cron altyapısı
 hariç — aşağıda), #6 atama UI (dar, salt-okur) ✅, #7 domain event ✅ dar

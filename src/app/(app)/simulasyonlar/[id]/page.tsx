@@ -447,7 +447,7 @@ export default function TatbikatDetayPage() {
       <div>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold tracking-tight">{run.ad}</h1>
-          <Badge variant="outline" className="border-amber-500/50 text-amber-700 dark:text-amber-400">
+          <Badge variant="outline" className="border-warning/50 text-warning">
             TATBİKAT
           </Badge>
           <StatusBadge durum={SIMULASYON_DURUM_SEMANTIK[run.durum] ?? "unknown"}>

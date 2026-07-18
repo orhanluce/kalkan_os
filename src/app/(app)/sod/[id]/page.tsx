@@ -336,7 +336,7 @@ export default function SodCatismaDetayPage() {
             </div>
           </dl>
           {kural?.kaynak_turu === "spk_notu" && (
-            <p className="text-xs text-amber-700 dark:text-amber-400">
+            <p className="text-xs text-warning">
               Bu kuralın kaynağı SPK çalışma notudur ve mevzuat durumu &ldquo;
               {kural.mevzuat_durumu}&rdquo;dır — hukuki bağlayıcılığı ayrı bir onay gerektirir.
             </p>

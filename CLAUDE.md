@@ -153,6 +153,15 @@ görünür; eksik taraf = unknown "değerlendirilemiyor"), Kural Doğrulama
 Türetme saf `sod-metrikler.ts` (7 birim test, kural 11); master §9.1: tek
 birleşik skor YOK.
 
+**M16 ÜRETİM KAPANIŞI PR'ı BİTTİ (18 Temmuz gecesi):** WCAG AA otomatik
+taraması (`e2e/erisilebilirlik.spec.ts`, @axe-core; 2 gerçek ihlal bulundu+
+düzeltildi: Select tetiği aria-label + success/warning kontrast koyulaştırma,
+ham amber→semantik warning); operasyon dokümanları (THREAT_MODEL, YEDEKLEME_
+GERI_YUKLEME [veri restore provası K1'e bağlı], DEPLOY_ROLLBACK, LIMITLER
+[canlı ölçüm]); dış cron ADR (K2). **677 birim + 28 e2e, 0 skip.** M16 kapısı
+tek taraflı "geçti" İLAN EDİLMEDİ — kurucu kararı bekliyor (kalan: K1 staging +
+veri restore provası, K2 dış cron). Kapı geçince M17 ADR + Segment/Entitlement.
+
 **#6 Atama UI BİTTİ (18 Temmuz, dar): `/sod/atamalar`** — liste+filtre
 (kaynak/geçerlilik/metin), 500 kayıt sınırı görünür, BİLİNÇLİ SALT-OKUR
 (giriş yolu CSV import; elle düzenleme bütünlük zincirini baypas ederdi —
