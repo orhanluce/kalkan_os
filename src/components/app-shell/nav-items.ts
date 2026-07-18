@@ -10,6 +10,7 @@ import {
   Boxes,
   FileWarning,
   FlaskConical,
+  Gavel,
   LandmarkIcon,
   LayoutDashboard,
   Library,
@@ -93,6 +94,10 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
     {
       baslik: "Yapay Zeka",
       ogeler: [{ href: "/ai-guvence", etiket: "AI Güvence", Ikon: Bot }],
+    },
+    {
+      baslik: "Regülatör",
+      ogeler: [{ href: "/regulator", etiket: "Regülatör İşlemleri", Ikon: Gavel }],
     },
     { baslik: "Yönetim", ogeler: [{ href: "/paylasim", etiket: "Paylaşım", Ikon: Share2 }] },
   ];

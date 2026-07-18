@@ -38,7 +38,10 @@ import { supabaseAyarlari } from "./lib/supabase/env";
 // hesabı olmadan süreli token'la girer; kapsam/süre/iptal proof_room_goruntule
 // RPC'sinde. (/health dersi: açık yol listesinden eksik kalan oturumsuz sayfa
 // canlıda 307'ye düşer — smoke e2e bunu da kilitliyor.)
-const ACIK_YOLLAR = ["/giris", "/paylasim", "/auth", "/dogrula", "/health", "/proof"];
+// /matter da /proof gibi BİLİNÇLİ açıktır (G7 dış erişim): denetçi/regülatör
+// hesapsız, bağımsızlık beyanlı token'la girer; kapsam/süre/iptal/beyan
+// matter_goruntule RPC'sinde.
+const ACIK_YOLLAR = ["/giris", "/paylasim", "/auth", "/dogrula", "/health", "/proof", "/matter"];
 
 function acikYolMu(pathname: string): boolean {
   return ACIK_YOLLAR.some((yol) => pathname === yol || pathname.startsWith(`${yol}/`));

@@ -124,11 +124,16 @@ doğrulayıcı rolü). QRegu döneminde teslim edilenler (ROADMAP §1.16-1.19):
    yazma-yetkisi-insan-onay, AI karar sınırı (AI/service kabul edemez); receipt
    fingerprint; `/ai-guvence` hub; rls 7/7 + saf 3/3 + e2e + smoke 3/3. Sonraki
    dilim: eval/data-lineage/incident detayı, crosswalk içeriği, AI literacy.
-6. **Sıradaki gate'ler (nihai §8):** G7 M38+M41 Regulatory Engagement + Partner
-   (denetçi/regülatör alanı; paylasim/Proof Room temeli mevcut), G8 M13/M17/M18
-   genişleme + M40 (risk/board). G3 (connector + TSA adapter + SCITT ledger)
-   connector'lar pilot stack'i (kurucu #7) bekliyor — TSA adapter interface +
-   SCITT-tarzı ledger (M5.5 Merkle) dış-karar bağımsız yapılabilir.
+6. ~~**G7 — M38+M41 Regulatory Engagement + Partner**~~ **BİTTİ** (ROADMAP
+   §1.27): matters/requests/responses (dört-göz + makbuz) + independence +
+   matter_access_grants + oturumsuz `/matter/[token]`; rls 4/4 + saf 2/2 +
+   üç-context e2e + smoke 3/3. Sonraki dilim: meeting, external org/prof sicili,
+   external review/note, gerçek gönderim connector.
+7. **Sıradaki gate'ler (nihai §8):** G8 M13/M17/M18 genişleme + M40 (risk/board;
+   M17 audit workspace + M18 training + M13 impact tolerance + M40 risk appetite/
+   KRI). G3 (connector + TSA adapter interface + SCITT-tarzı ledger, M5.5 Merkle
+   yeniden kullanılır) — connector'lar pilot stack'i (kurucu #7) bekliyor ama
+   TSA interface + ledger dış-karar bağımsız.
 Her adım: migration (PGlite RLS testi) → canlı db:push+db:types → gerçek
 Chromium e2e → commit; rapor nihai §15 formatında. Kural 3'ü her adımda koru.
 

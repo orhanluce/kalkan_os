@@ -1632,6 +1632,122 @@ export type Database = {
         }
         Relationships: []
       }
+      independence_declarations: {
+        Row: {
+          beyan_at: string
+          beyan_eden_ad: string
+          cikar_catismasi_yok: boolean
+          created_at: string
+          external_email: string
+          id: string
+          matter_id: string
+          tenant_id: string
+        }
+        Insert: {
+          beyan_at?: string
+          beyan_eden_ad: string
+          cikar_catismasi_yok: boolean
+          created_at?: string
+          external_email: string
+          id?: string
+          matter_id: string
+          tenant_id: string
+        }
+        Update: {
+          beyan_at?: string
+          beyan_eden_ad?: string
+          cikar_catismasi_yok?: boolean
+          created_at?: string
+          external_email?: string
+          id?: string
+          matter_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "independence_declarations_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_matters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "independence_declarations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matter_access_grants: {
+        Row: {
+          bagimsizlik_beyani_id: string | null
+          created_at: string
+          external_email: string
+          id: string
+          iptal_edildi: boolean
+          matter_id: string
+          olusturan: string | null
+          son_gecerlilik: string
+          tenant_id: string
+          token: string
+        }
+        Insert: {
+          bagimsizlik_beyani_id?: string | null
+          created_at?: string
+          external_email: string
+          id?: string
+          iptal_edildi?: boolean
+          matter_id: string
+          olusturan?: string | null
+          son_gecerlilik: string
+          tenant_id: string
+          token?: string
+        }
+        Update: {
+          bagimsizlik_beyani_id?: string | null
+          created_at?: string
+          external_email?: string
+          id?: string
+          iptal_edildi?: boolean
+          matter_id?: string
+          olusturan?: string | null
+          son_gecerlilik?: string
+          tenant_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matter_access_grants_bagimsizlik_beyani_id_fkey"
+            columns: ["bagimsizlik_beyani_id"]
+            isOneToOne: false
+            referencedRelation: "independence_declarations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matter_access_grants_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_matters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matter_access_grants_olusturan_fkey"
+            columns: ["olusturan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matter_access_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       obligation_control_mappings: {
         Row: {
           control_id: string
@@ -2763,6 +2879,175 @@ export type Database = {
             columns: ["source_artifact_id"]
             isOneToOne: false
             referencedRelation: "source_artifacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regulatory_matters: {
+        Row: {
+          acilis_tarihi: string
+          created_at: string
+          durum: string
+          id: string
+          konu: string
+          otorite: string
+          tenant_id: string
+          tur: string
+          updated_at: string
+        }
+        Insert: {
+          acilis_tarihi?: string
+          created_at?: string
+          durum?: string
+          id?: string
+          konu: string
+          otorite: string
+          tenant_id: string
+          tur?: string
+          updated_at?: string
+        }
+        Update: {
+          acilis_tarihi?: string
+          created_at?: string
+          durum?: string
+          id?: string
+          konu?: string
+          otorite?: string
+          tenant_id?: string
+          tur?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_matters_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regulatory_requests: {
+        Row: {
+          created_at: string
+          durum: string
+          id: string
+          matter_id: string
+          son_tarih: string | null
+          talep_metni: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          durum?: string
+          id?: string
+          matter_id: string
+          son_tarih?: string | null
+          talep_metni: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          durum?: string
+          id?: string
+          matter_id?: string
+          son_tarih?: string | null
+          talep_metni?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_requests_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_matters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regulatory_responses: {
+        Row: {
+          created_at: string
+          durum: string
+          gonderildi_at: string | null
+          gonderim_receipt: string | null
+          hazirlayan: string | null
+          icerik: string
+          id: string
+          onay_zamani: string | null
+          onaylayan: string | null
+          request_id: string
+          surum: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          durum?: string
+          gonderildi_at?: string | null
+          gonderim_receipt?: string | null
+          hazirlayan?: string | null
+          icerik: string
+          id?: string
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          request_id: string
+          surum: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          durum?: string
+          gonderildi_at?: string | null
+          gonderim_receipt?: string | null
+          hazirlayan?: string | null
+          icerik?: string
+          id?: string
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          request_id?: string
+          surum?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_responses_hazirlayan_fkey"
+            columns: ["hazirlayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_responses_onaylayan_fkey"
+            columns: ["onaylayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_responses_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_responses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -5239,6 +5524,7 @@ export type Database = {
         Args: { target_manifest_id: string }
         Returns: string
       }
+      matter_goruntule: { Args: { p_token: string }; Returns: Json }
       paylasim_goruntule: { Args: { p_token: string }; Returns: Json }
       policy_istisna_suresi_dolanlari_isle: { Args: never; Returns: undefined }
       proof_room_goruntule: { Args: { p_token: string }; Returns: Json }

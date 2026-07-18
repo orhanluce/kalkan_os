@@ -708,6 +708,30 @@ e2e (sistem/PROHIBITED reddi/ajan kill/receipt insan kabul) + canlı smoke 3/3.
 **BİLİNÇLİ SONRAKİ DİLİM:** AIEvaluation/AIDataLineage/AIIncident detay tabloları,
 EU AI Act+ISO 42001+NIST AI RMF crosswalk içeriği, AI literacy (M18) bağı.
 
+### 1.27 Gate G7 — M38 Regulatory Engagement + M41 Partner (dış erişim) ilk dikey ✅ (19 Temmuz)
+
+Migration `20260719030000` — YENİ kod alanı, tenant'a özgü. 5 tablo:
+`regulatory_matters` (otorite yazışması), `regulatory_requests` (PBC/talep +
+son tarih), `regulatory_responses` (SÜRÜMLÜ yanıt + dört-göz onay + gönderim
+makbuzu), `independence_declarations` (dış uzman bağımsızlık/çıkar-çatışması),
+`matter_access_grants` (matter-kapsamlı süreli/iptal dış erişim). **İnvariant'lar
+(DB guard/RPC — canlı smoke 3/3):** yanıt ONAYLANDI dört-göz (onaylayan≠
+hazırlayan); GONDERILDI yalnız ONAYLANDI'dan + gönderim MAKBUZU (hash) ile;
+onaylanmış/gönderilmiş yanıt içeriği donuk (yeni sürüm gerekir). **Matter-
+kapsamlı dış erişim** (Proof Room disiplini) `matter_goruntule` security-definer
+RPC: geçersiz/dolmuş/iptal token AYNI null + **BAĞIMSIZLIK BEYANI YOKSA null**
+(çıkar-çatışması beyanı olmadan dış erişim yok); her görüntüleme audit'e (aktör
+yok); veri minimizasyonu (talep/yanıt ÖZETİ, tam içerik değil). Otomatik dış
+otorite gönderimi YOK (açık karar) — yalnız hazırlama/onay/makbuz/export. Saf
+yardımcı `src/lib/regulator.ts` (kural 11): `talepSonTarih` (son tarih saati),
+`gonderimMakbuzu` (RFC 8785 hash). UI `/regulator` indeks + `/regulator/[id]`
+detay (talep→yanıt→onay→gönder + dış erişim) + oturumsuz `/matter/[token]`
+(proxy açık yoluna eklendi). Testler: rls-regulatory-engagement 4/4 + regulator
+2/2 saf + `regulator.spec.ts` üç-context e2e (admin+uyum+misafir; dört-göz +
+beyanlı oturumsuz görünüm) + canlı smoke 3/3. **BİLİNÇLİ SONRAKİ DİLİM:**
+RegulatoryMeeting, ExternalOrganization/Professional tam sicili, ExternalReview/
+ReviewNote iş akışı, gerçek dış gönderim connector (AÇIK KARAR).
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket
