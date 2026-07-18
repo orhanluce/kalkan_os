@@ -6,7 +6,8 @@ import { NextResponse } from "next/server";
 import type { TablesUpdate } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
-type Eylem = "incelemeye_al" | "geri_gonder" | "onayla" | "yururluge_al" | "emekliye_ayir";
+// "onayla" ayrı rotada (/api/politika/onay): onay kaydı + eşik dolunca geçiş.
+type Eylem = "incelemeye_al" | "geri_gonder" | "yururluge_al" | "emekliye_ayir";
 
 export async function POST(req: Request) {
   const db = await createClient();
@@ -31,17 +32,12 @@ export async function POST(req: Request) {
   let beklenen: string;
   switch (govde.eylem) {
     case "incelemeye_al":
-      guncelleme = { durum: "REVIEW", hazirlayan: user.id, hazirlama_zamani: simdi };
+      guncelleme = { durum: "IN_REVIEW", hazirlayan: user.id, hazirlama_zamani: simdi };
       beklenen = "DRAFT";
       break;
     case "geri_gonder":
       guncelleme = { durum: "DRAFT" };
-      beklenen = "REVIEW";
-      break;
-    case "onayla":
-      // Dört göz: onaylayan oturum sahibi; hazirlayan==onaylayan reddini DB verir.
-      guncelleme = { durum: "APPROVED", onaylayan: user.id, onay_zamani: simdi };
-      beklenen = "REVIEW";
+      beklenen = "IN_REVIEW";
       break;
     case "yururluge_al":
       if (!govde.effectiveFrom) {

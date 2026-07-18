@@ -21,6 +21,21 @@ Gece oturumundaki izin blokajı kurucu onayıyla ("izin verdim") aşıldı:
 yazma smoke'u 21/21 geçti (geçici script silindi), tüm commit'ler push'landı,
 deploy health `hazir`. Devreden blokaj YOK.
 
+## 0c. GERÇEK DURUM (18 Temmuz gece, en son ölçüm)
+- **Remote (origin/main) HEAD:** `7f5f314` (G2 M34 Policy Lifecycle). `32cd808`
+  (Proof Room) remote'da mevcut ve zincirde. Push edilmemiş commit YOK.
+- **Deploy health (son push `7f5f314` sonrası, DOĞRULANDI):**
+  `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
+- **Test tabanı:** 815 birim (65 dosya) + 39 e2e, 0 skip; build exit 0.
+- Migration sırası son: `20260718230000_policy_lifecycle` (canlıda).
+- **G1 durumu:** *Proof Room engineering slice complete; K8 content validation
+  pending.* G1 source-to-proof dikeyinin KOD tarafı bitti (artifact ingest,
+  temporal provision, dört-göz obligations, applicability, legal-basis guard,
+  execution snapshot, citation bundle + offline verifier, Proof Room). **G1
+  TAM CLOSED DEĞİL:** ≥20 uzman doğrulamalı SPK/7545 kontrolü + ≥5 gerçek test
+  tanımı KURUCU/hukuk içerik teslimi bekliyor (kural 3 — uydurulmaz; K8 hukuk
+  doğrulayıcı rolü). İçerik gelince G1 CLOSED ilan edilir.
+
 ## 1. NEREDE KALINDI
 - **M16 üretim kapısı GEÇTİ** (kurucu onayı). Paralel borç: K1 staging, K2 dış cron.
 - **V2 PR-0 / PR-2 (a-b-c) / PR-3 (CFO çekirdeği) / PR-4a**: TAMAM (ayrıntı
@@ -76,10 +91,15 @@ doğrulayıcı rolü). QRegu döneminde teslim edilenler (ROADMAP §1.16-1.19):
    G1'in kalan kod borcu KÜÇÜK: koşu satırından link üretme UI butonu.
    G1 kapanışının gerçek blocker'ı hâlâ KURUCU İÇERİK teslimi (≥20 doğrulanmış
    SPK/7545 kontrolü + ≥5 gerçek test tanımı + hukuk doğrulayıcı rolü K8).
-2. ~~**G2 — M34 Policy Lifecycle**~~ **BİTTİ** (ROADMAP §1.22): 5 tablo +
-   durum makinesi + dört-göz guard + madde donukluğu + attestation + AI-taslak
-   sınırı; rota + `/politikalar` UI + iki-kullanıcılı e2e + canlı smoke.
-   Kapsam dışı (sonraki dilim): PolicyException/PolicyImpact + redline diff.
+2. ~~**G2 — M34 Policy Lifecycle**~~ **BİTTİ + ÜRETİM DİKEYİ GENİŞLETİLDİ**
+   (ROADMAP §1.22 ilk dilim, §1.23 kurucu tam kapsam v2): 8 tablo
+   (documents/versions/clauses/clause_links/attestations/**approvals**/
+   **exceptions**/**impacts**), IN_REVIEW yaşam döngüsü, çoklu bağımsız onay +
+   dört göz, geriye-tarih yasağı, APPROVED/EFFECTIVE donukluğu, istisna
+   süre-dolumu cron → YENIDEN_DEGERLENDIR, PolicyImpact PROPOSED/AI sınırı;
+   `/politikalar` + `/politikalar/[id]` detay (madde→bağ→onay→yürürlük→
+   salt-okur+audit); rls 14/14 + e2e 7-adım + canlı smoke 6/6. Redline diff
+   görünümü bilinçli sonraki dilim.
 3. **G3:** connector sözleşmesi + RFC 3161 TSA adapter interface (kurucu
    kararları beklerken interface+test double) + SCITT-tarzı ledger (M5.5
    Merkle kodu yeniden kullanılır). Ayrıca G4 M35 TPRM, G5 M37 AI Assurance,

@@ -1574,6 +1574,58 @@ export type Database = {
           },
         ]
       }
+      policy_approvals: {
+        Row: {
+          approver: string
+          created_at: string
+          gerekce: string | null
+          id: string
+          karar: string
+          policy_version_id: string
+          tenant_id: string
+        }
+        Insert: {
+          approver: string
+          created_at?: string
+          gerekce?: string | null
+          id?: string
+          karar: string
+          policy_version_id: string
+          tenant_id: string
+        }
+        Update: {
+          approver?: string
+          created_at?: string
+          gerekce?: string | null
+          id?: string
+          karar?: string
+          policy_version_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_approvals_approver_fkey"
+            columns: ["approver"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_approvals_policy_version_id_fkey"
+            columns: ["policy_version_id"]
+            isOneToOne: false
+            referencedRelation: "policy_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_approvals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       policy_attestations: {
         Row: {
           attested_at: string
@@ -1769,17 +1821,158 @@ export type Database = {
           },
         ]
       }
+      policy_exceptions: {
+        Row: {
+          baslangic: string
+          bitis: string
+          created_at: string
+          durum: string
+          gerekce: string
+          id: string
+          onay_zamani: string | null
+          onaylayan: string | null
+          policy_version_id: string
+          sahip: string
+          telafi_test_definition_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          baslangic?: string
+          bitis: string
+          created_at?: string
+          durum?: string
+          gerekce: string
+          id?: string
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          policy_version_id: string
+          sahip: string
+          telafi_test_definition_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          baslangic?: string
+          bitis?: string
+          created_at?: string
+          durum?: string
+          gerekce?: string
+          id?: string
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          policy_version_id?: string
+          sahip?: string
+          telafi_test_definition_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_exceptions_onaylayan_fkey"
+            columns: ["onaylayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_exceptions_policy_version_id_fkey"
+            columns: ["policy_version_id"]
+            isOneToOne: false
+            referencedRelation: "policy_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_exceptions_sahip_fkey"
+            columns: ["sahip"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_exceptions_telafi_test_definition_id_fkey"
+            columns: ["telafi_test_definition_id"]
+            isOneToOne: false
+            referencedRelation: "control_test_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_exceptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_impacts: {
+        Row: {
+          created_at: string
+          durum: string
+          etki_ozeti: string | null
+          id: string
+          oneren_kaynak: string
+          policy_clause_id: string
+          provision_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          durum?: string
+          etki_ozeti?: string | null
+          id?: string
+          oneren_kaynak?: string
+          policy_clause_id: string
+          provision_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          durum?: string
+          etki_ozeti?: string | null
+          id?: string
+          oneren_kaynak?: string
+          policy_clause_id?: string
+          provision_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_impacts_policy_clause_id_fkey"
+            columns: ["policy_clause_id"]
+            isOneToOne: false
+            referencedRelation: "policy_clauses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_impacts_provision_id_fkey"
+            columns: ["provision_id"]
+            isOneToOne: false
+            referencedRelation: "provisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_impacts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       policy_versions: {
         Row: {
           created_at: string
           durum: string
           effective_from: string | null
           eklenme_kaynagi: string
+          gerekli_onay_sayisi: number
           hazirlama_zamani: string | null
           hazirlayan: string | null
           id: string
-          onay_zamani: string | null
-          onaylayan: string | null
           policy_document_id: string
           redline_notu: string | null
           surum: number
@@ -1791,11 +1984,10 @@ export type Database = {
           durum?: string
           effective_from?: string | null
           eklenme_kaynagi?: string
+          gerekli_onay_sayisi?: number
           hazirlama_zamani?: string | null
           hazirlayan?: string | null
           id?: string
-          onay_zamani?: string | null
-          onaylayan?: string | null
           policy_document_id: string
           redline_notu?: string | null
           surum: number
@@ -1807,11 +1999,10 @@ export type Database = {
           durum?: string
           effective_from?: string | null
           eklenme_kaynagi?: string
+          gerekli_onay_sayisi?: number
           hazirlama_zamani?: string | null
           hazirlayan?: string | null
           id?: string
-          onay_zamani?: string | null
-          onaylayan?: string | null
           policy_document_id?: string
           redline_notu?: string | null
           surum?: number
@@ -1822,13 +2013,6 @@ export type Database = {
           {
             foreignKeyName: "policy_versions_hazirlayan_fkey"
             columns: ["hazirlayan"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "policy_versions_onaylayan_fkey"
-            columns: ["onaylayan"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -4321,6 +4505,7 @@ export type Database = {
         Returns: string
       }
       paylasim_goruntule: { Args: { p_token: string }; Returns: Json }
+      policy_istisna_suresi_dolanlari_isle: { Args: never; Returns: undefined }
       proof_room_goruntule: { Args: { p_token: string }; Returns: Json }
       simulation_manifest_durumu: {
         Args: { target_manifest_id: string }
