@@ -139,9 +139,25 @@ function revokeStatements(): string[] {
  * elle kopyalanmaz — gerçek dosyalar okunur, böylece test ettiğimiz şey
  * gerçekten sevk edeceğimiz şema olur.
  */
-export async function createTestDb(): Promise<TestDb> {
-  const db = new PGlite({ extensions: { pgcrypto } });
+/**
+ * Şema SNAPSHOT'ı: AUTH_STUB + tüm migration'lar + grant + revoke BİR KEZ
+ * uygulanır, PGlite'ın veri dizini dump'lanır. Her createTestDb bu binary
+ * snapshot'ı klonlar — dosya başına "50+ migration uygula" maliyeti "snapshot
+ * yükle"ye iner (migration seti büyüdükçe tam-takım süresi lineer artmıyor).
+ *
+ * NEDEN ROLLER/GRANT SNAPSHOT'TA: PGlite tek küme olduğu için dumpDataDir
+ * pg_authid dahil TÜM kümeyi taşır — authenticated/anon rolleri ve grant/
+ * revoke sonucu snapshot'a girer, klonda yeniden kurmaya gerek yok. Tenant
+ * seed'i (seedTwoTenants) snapshot'a GİRMEZ; her test kendi verisini kurar.
+ *
+ * Vitest her test DOSYASINI ayrı modül bağlamında koşar, yani bu promise
+ * dosya başına bir kez çözülür (dosyadaki onlarca createTestDb aynı snapshot'ı
+ * klonlar).
+ */
+let sablonDumpPromise: Promise<Blob> | null = null;
 
+async function sablonDumpAl(): Promise<Blob> {
+  const db = new PGlite({ extensions: { pgcrypto } });
   await db.exec(AUTH_STUB);
   for (const file of migrationFiles()) {
     const sql = readFileSync(join(MIGRATIONS_DIR, file), "utf8");
@@ -151,7 +167,6 @@ export async function createTestDb(): Promise<TestDb> {
       throw new Error(`Migration başarısız: ${file}\n${(err as Error).message}`);
     }
   }
-
   // İstemci rollerinin tablo düzeyinde erişimi olmalı; RLS bunun üzerine
   // satır düzeyinde filtre uygular. Gerçek Supabase bunu kendi kurulumunda
   // yapar (authenticated/anon rollerine şema geneli grant).
@@ -159,16 +174,26 @@ export async function createTestDb(): Promise<TestDb> {
     grant usage on schema public to authenticated, anon;
     grant select, insert, update, delete on all tables in schema public to authenticated, anon;
   `);
-  // Yukarıdaki toplu grant, migration'lardaki REVOKE'ları geri açar (onlar
-  // grant'tan ÖNCE koştu). Bu yüzden revoke'lar burada yeniden uygulanır.
-  //
-  // Liste elle tutulmaz, migration dosyalarından okunur: elle tutulduğunda
-  // yeni bir append-only tablo eklendiğinde unutulur ve test, append-only
-  // olmayan bir tabloyu append-only sanarak SESSİZCE yeşil kalırdı —
-  // evidence_reviews eklenirken tam olarak bu oldu.
+  // Toplu grant, migration'lardaki REVOKE'ları geri açar (onlar grant'tan ÖNCE
+  // koştu). Revoke'lar burada yeniden uygulanır. Liste elle tutulmaz, migration
+  // dosyalarından okunur (yeni append-only tablo unutulmasın — evidence_reviews
+  // eklenirken tam olarak bu hata olmuştu).
   for (const stmt of revokeStatements()) {
     await db.exec(stmt);
   }
+  const dump = (await db.dumpDataDir("gzip")) as Blob;
+  await db.close();
+  return dump;
+}
+
+export async function createTestDb(): Promise<TestDb> {
+  sablonDumpPromise ??= sablonDumpAl();
+  const dump = await sablonDumpPromise;
+  // Snapshot'ı klonla — migration'lar YENİDEN koşmaz. pgcrypto extension'ı
+  // klona da register edilmeli (WASM modülü runtime'da gelir; şema zaten
+  // snapshot'ta 'create extension' ile kurulu).
+  const db = new PGlite({ loadDataDir: dump, extensions: { pgcrypto } });
+  await db.waitReady;
 
   async function withRole<T>(
     role: string,
