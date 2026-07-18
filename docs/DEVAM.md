@@ -31,8 +31,8 @@ UYDURMA — adapter/OPEN_DECISION + interface ile ilerle, dış gönderim/gerçe
 para/credential yapma. Her gate sonunda §15 raporu.
 
 ## 0c. GERÇEK DURUM (19 Temmuz, en son ölçüm — G8 TAM)
-- **Remote (origin/main) HEAD:** `<M40 push sonrası güncellenecek>` (G8/M40 Risk
-  Quantification). Öncesi zincirde G3..G8 gate'leri. Push edilmemiş commit YOK.
+- **Remote (origin/main) HEAD:** `64d9a35` (G8/M40 Risk Quantification). Öncesi
+  zincirde G3..G8 gate'leri. Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
 - **Test tabanı:** 893 birim (81 dosya) + 47 e2e, 0 skip; build exit 0.
 - Migration sırası son: `20260719070000_risk_quantification` (canlıda).
