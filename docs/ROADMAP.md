@@ -180,6 +180,17 @@ oturacağı (M13-M15'in bir alt maddesi mi, ayrı yeni taş mı) sabah kararı.
 önceliklendirileceği ve M13-M15'in "eklenecekler" notlarının ne zaman devreye
 alınacağı konuşulmadan şema/kod yazılmayacak.
 
+**Karar geldi (18 Temmuz 2026, "M12 Sonrası Geliştirme Talimatı"):** üç alan
+ayrı taş oldu — **M16** (SoD, belge §5), **M17** (denetim örnekleme, belge §6),
+**M18** (eğitim/yetkinlik, belge §11). Repo'da M15 dolu olduğu için (Olay
+saati ve kurtarma kanıtı) kurucunun taslak numaraları (M15/M16/M17) bir
+kaydırıldı — var olan taş yeniden numaralandırılmadı (kural: "mevcut modülleri
+yeniden numaralandırma"). **Bu turda yalnız M16'nın ilk dikey dilimi
+kodlanıyor**; M17/M18 yalnız ADR/sınır dokümanı seviyesinde (§ aşağıda).
+Talimatın "Prisma kalıpları"/"BullMQ" varsayımı Karar 2'deki (§1.5) tabloyla
+aynı gerekçeyle sessizce Supabase migration + TS tipi + senkron/`pg_cron`'a
+çevrildi — ayrı bir onay istemedi çünkü zaten üç kez reddedilmiş bir karar.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket
@@ -887,6 +898,12 @@ kalıcı bir regresyon testi oldu.)
   gidilebilir; senaryo sonucu toleransla otomatik karşılaştırılır; beyan
   ekranları canlıda; pano gerçek veriyle dolu.
 
+**SPK notlarından eklenecek metadata (18 Temmuz 2026, §1.6 — yalnız not, ŞEMA
+YAZILMADI):** hizmet sahibi, kullanıcı grupları, SLA hedefi (RTO/RPO'nun
+yanına), bağımlılık türü ayrımı (uygulama/veri/altyapı/tesis/tedarikçi —
+bugün tek `dependency_nodes/edges`), tek hata noktası tespiti, son doğrulama
+tarihi. M13 uygulanırken eklenir; SoD'den (M16) ayrı bir migration.
+
 ### M14 — Kapsam motoru ve mevzuat sürümleme (belge M03)
 
 - `regulation_sources` + `requirements` + `applicability_rules`; resmî kaynak
@@ -900,6 +917,14 @@ kalıcı bir regresyon testi oldu.)
   için doğru sürümü döndürür; kontrol sonucu requirement paragrafına kadar
   izlenebilir.
 
+**SPK notlarından eklenecek metadata (18 Temmuz 2026, §1.6 — yalnız not, ŞEMA
+YAZILMADI):** kuruluş türü, faaliyet izinleri, birincil düzenleyici rejim,
+uygulanabilirlik ifadesi, muafiyet/geçiş hükmü, düzenleme sürümü + geçerlilik
+tarihleri, kapsam karar gerekçesi (hangi profil alanı + hangi kural sürümü
+sonucu üretti), manuel override onayı, `TODO_DOGRULA` durumu. Kapsam motoru
+her karar için "sonuç / kullanılan alanlar / kural sürümü / gerekçe / varsa
+muafiyet / varsa manuel override" izini üretmeli — bu M14 uygulanırken eklenir.
+
 ### M15 — Olay saati ve kurtarma kanıtı (belge M05 + M06)
 
 - Olay zaman çizelgesi, sınıflandırma, bildirim kuralları (SPK/7545/KVKK
@@ -909,6 +934,297 @@ kalıcı bir regresyon testi oldu.)
 - **Kabul:** olay sınıfı değişince saatler deterministik yeniden oluşur;
   teknik restore başarılı ama mutabakat başarısızsa `Recovered` sayılmaz;
   rapor düzenlemesi önceki gönderimi değiştirmez, yeni sürüm doğar.
+
+### M16 — Görevler Ayrılığı ve Telafi Edici Kontroller (SPK notları §5) ⏳ ilk dikey dilim ✅ kodlandı + canlıda e2e ile doğrulandı
+
+**Tamamlanan (18 Temmuz 2026):** şema (`sod_kurallari`/`sod_kural_taraflari`/
+`sod_atamalari`/`sod_catismalari`/`sod_istisnalari`/`sod_telafi_edici_kontroller`/
+`sod_degerlendirme_calistirmalari`, migration `20260718000000`), saf deterministik
+motor (`src/lib/sod.ts`, kural 11 — 100 rastgele sıralamada aynı fingerprint testi
+yok ama sıra-bağımsızlık testleri var), üç sunucu rotası (`/api/sod/degerlendir`,
+`/api/sod/istisna/[id]/karar`, `/api/sod/kural/[id]/mevzuat-durumu`), tam UI
+(`/sod` özet+kural+çatışma listesi, `/sod/[id]` detay+istisna+telafi edici kontrol),
+audit trigger'ları (kural oluşturma/güncelleme, çatışma tespiti/durum değişimi,
+istisna talep/karar, telafi kontrol atama — hepsi `audit_log`'a otomatik yazılır).
+`e2e/sod.spec.ts`: gerçek Chromium + gerçek Supabase, kural oluştur → fixture
+atama → değerlendir → çatışma gör → istisna talep et → **farklı kullanıcı
+(rol=uyum) onaylar** → M12 test tanımı bağla → başarısız çalıştır (durum
+DEĞİŞMEZ) → başarılı çalıştır (MITIGATED) → audit izini gör. 569 birim
+(mevcut 534 + 35 yeni SoD testi) + e2e (mevcut 14 + 1 yeni SoD testi) yeşil —
+mevcut davranış bozulmadı.
+
+**Yol boyunca bulunan bir tasarım kusuru:** `SodTaraf.sistem_kapsami` başta
+kuralın KENDİSİNE sabit bir kapsam atıyordu ("A ve B yalnız 'kalkan_os'
+kapsamında eşleşir") — birim testi bunu yakaladı: farklı kapsamlardaki gerçek
+atamalar hiç eşleşmiyordu. Düzeltme: `rol_kodu` ile tutarlı olacak şekilde
+`sistem_kapsami` de opsiyonel yapıldı (null = "hangi sistemde olursa olsun”);
+asıl çatışma kararı her zaman atamaların GERÇEK ORTAK kapsamına göre verilir.
+
+**Kapsam dışı (bilinçli, aşağıda da tekrar var):** atama (`sod_atamalari`)
+YÖNETİM UI'ı yazılmadı — ilk dilim yalnız fixture/script ile atama kabul
+ediyor; gerçek kullanım ya elle SQL/CSV içe aktarma ya da ileride bir
+IAM/PAM connector ile gelir.
+
+**Kaynak statüsü ilkesi (tüm M16-M18 için geçerli, kural 3'ün genişletilmiş
+hali):** SPK/SPL çalışma notlarından türetilen hiçbir kural/kontrol doğrudan
+`VERIFIED` doğmaz. Araştırma kaynaklı her madde şu yaşam döngüsünü izler:
+`DRAFT_RESEARCH → TODO_DOGRULA → LEGAL_REVIEW → VERIFIED` (yan dallar:
+`SUPERSEDED`, `REJECTED`). Yalnız `VERIFIED` durumu kapsam motorunda
+zorunluluk üretebilir; `TODO_DOGRULA`/`LEGAL_REVIEW` UI'da görünür ama
+bağlayıcı değildir. Bu geçiş genel edit yetkisiyle yapılamaz — ayrı bir
+hukuk/uyum rolü gerekir (aşağıda "Güvenlik").
+
+#### Problem ve amaç
+
+Kritik bir işlemin talep, icra, onay ve doğrulama aşamalarının uygunsuz
+biçimde aynı kişi/rolde birleşmesini tespit etmek. Tam ayrım mümkün
+değilse (küçük aracı kurumlarda sıkça olduğu gibi) süreli, test edilebilir
+bir telafi edici kontrol uygulamak — "uygunsuz" deyip bırakmak yerine.
+
+**SoD motoru yeni bir IAM/PAM sistemi DEĞİLDİR.** Kullanıcı yetkilerini
+yönetmez; KALKAN_OS'un kendi rolleri/atamaları ve (ilerideki) içe aktarılan
+rol verisi üzerinde güvence ve çatışma DEĞERLENDİRMESİ yapar (belge §15'in
+"SIEM/PAM/IAM'i yeniden inşa etme" sınırıyla aynı ilke).
+
+#### Kullanıcı rolleri
+
+Mevcut üç rol (`admin`, `uyum`, `denetci_misafir`) üzerine SoD'a özgü
+YETENEK ayrımı gelir (aşağıda "Güvenlik ve tenant izolasyonu"). Pilot
+ölçekte (5-15 kullanıcı) yeni bir rol tablosu AÇILMAZ — mevcut `profiles.role`
++ ince taneli yetenek kontrolü (route seviyesinde, M12'nin `admin`/`uyum`
+kontrolü deseninin aynısı).
+
+#### Temel nesneler
+
+| Nesne | Repo adı | Not |
+|---|---|---|
+| `SodRule` | `sod_rules` | Çatışma kuralının kendisi |
+| `SodRuleSide` | `sod_rule_sides` | Kuralın A/B tarafı (activityCode/roleCode/systemScope/matchExpression) |
+| `SodAssignment` | `sod_assignments` | Kişi-rol-sistem ataması; PII minimize (harici kullanıcı id + asgari alan) |
+| `SodConflict` | `sod_conflicts` | Tespit edilen çatışma; dedup fingerprint taşır |
+| `SodException` | `sod_exceptions` | Süreli istisna; süresiz OLAMAZ |
+| `CompensatingControlLink` | `compensating_control_links` | Çatışma/istisna ↔ mevcut M12 kontrol testi bağı |
+
+`SodRule.regulatoryStatus` (spesifik, SodRule'a özgü — yukarıdaki genel
+5-durumlu ilkeden ayrı ve daha dar): `INTERNAL | TODO_DOGRULA | VERIFIED`.
+KALKAN_OS'un kendi tasarladığı bir kural (ör. "kanıt yükleyen kendi kontrol
+testini onaylayamaz") `INTERNAL`'dır — SPK kaynaklı değildir, doğrulama
+beklemez. SPK notlarından türetilen bir kural her zaman `TODO_DOGRULA` doğar.
+
+`SodConflict.status`: `OPEN | UNDER_REVIEW | EXCEPTION_REQUESTED |
+EXCEPTION_APPROVED | MITIGATED | RESOLVED | REOPENED | EXPIRED |
+FALSE_POSITIVE`. (Kurucunun iki taslağının birleşimi: `REOPENED` ile
+`EXPIRED` ayrı tutuldu ki "neden yeniden açıldı" — başarısız telafi edici
+kontrol mü, istisna süresi mi — audit izinde ayırt edilebilsin.)
+
+#### İş akışı
+
+1. Kural tanımlanır (`INTERNAL` veya `TODO_DOGRULA`, kaynak + kaynak referansı ile).
+2. Atamalar (bugün: KALKAN_OS içi roller/aktiviteler; connector'lar ertelendi)
+   değerlendirme motoruna girer.
+3. Motor deterministik çalışır (kural 11): aynı kural sürümü + aynı atama
+   snapshot'ı → aynı çatışma kümesi. Yeni çatışma `OPEN` doğar; devam eden
+   güncellenir; artık mevcut olmayan SESSİZCE silinmez (kanıt olmadan silme
+   yasak — kural 2'nin ruhu).
+4. Açık çatışmaya ya istisna talep edilir ya telafi edici kontrol bağlanır.
+5. İstisna: gerekçe + risk sahibi + bitiş tarihi ZORUNLU; talep eden kendi
+   istisnasını onaylayamaz (SoD'un SoD'u — kendi kendine emsal).
+6. Telafi edici kontrol: mevcut bir `control_test_definitions` (M12)
+   seçilir veya yeni tanımlanır; testin PASSED/FAILED sonucu çatışmanın
+   durumunu belirler — motor M12'den ayrı bir test altyapısı İCAT ETMEZ.
+7. Süresi dolan istisna otomatik `EXPIRED`; başarısız telafi edici kontrol
+   çatışmayı `REOPENED` yapar; her iki durumda da bağımsız biri kapatmadan
+   `RESOLVED` olamaz.
+
+#### M12/M13/M14 bağımlılıkları
+
+- **M12 (zorunlu, bugün var):** telafi edici kontrol testi `control_test_definitions`
+  + `test_runs` + `testDegerlendir` motorunu YENİDEN KULLANIR. Yeni bir test
+  altyapısı yazılmaz. `control_test_finding_proposals`'ın "yalnız FAILED bulgu
+  üretir" ilkesi burada da geçerli: SoD çatışmasının kendisi bir "bulgu" değil,
+  ayrı bir nesne (`sod_conflicts`) — ama bir çatışma+istisna kombinasyonu
+  ciddiyse M12 desenine paralel bir `finding` ilişkisi kurulabilir (kapsam
+  dışına alındı, aşağıda).
+- **M13 (gevşek):** `CriticalActivity`/`sod_rule_sides.systemScope` ileride
+  M13'ün kritik hizmet grafiğine bağlanabilir (bir SoD çatışması hangi kritik
+  hizmeti etkiliyor). Bu turda BAĞLANMAZ — kapsam dışı.
+- **M14 (gevşek):** yok bu turda; `regulatoryStatus` ilkesi M14'ün
+  `TODO_DOGRULA` disipliniyle aynı dil.
+
+#### Güvenlik ve tenant izolasyonu
+
+Tüm tablolarda `tenant_id` + RLS (kural 1, PGlite testli). Yetenek ayrımı
+(route seviyesinde, RLS'in üstünde bir kullanılabilirlik katmanı — RLS asıl
+sınır):
+
+| Yetenek | Kim |
+|---|---|
+| SoD görüntüleme | `admin`, `uyum` (RLS zaten `denetci_misafir`'i paylaşım dışında sınırlar) |
+| Kural oluşturma/düzenleme | `admin`, `uyum` |
+| Değerlendirme çalıştırma | `admin`, `uyum` |
+| İstisna talep etme | `admin`, `uyum` |
+| İstisna onaylama | `admin`, `uyum` — talep edenle AYNI kişi olamaz (route kontrolü) |
+| Telafi edici kontrol bağlama | `admin`, `uyum` |
+| Çatışma kapatma (`RESOLVED`) | `admin`, `uyum` |
+| `TODO_DOGRULA → VERIFIED` | **Ayrı hukuk/uyum onayı** — genel `uyum` edit yetkisiyle YAPILAMAZ (bu turda: `admin` rolüne sıkıştırılmış bir DB guard'ı; ince taneli "hukuk" rolü gerekirse sonraki tur) |
+
+#### Denetim izi gereksinimleri
+
+Kural oluşturma/değiştirme/yayımlama, çatışma tespiti, istisna talebi/onay/
+red, telafi edici kontrol atama, test sonucu, süre dolması, bağımsız kapanış
+— hepsi `audit_log`'a yazılır (mevcut trigger deseni, M8/M12 ile aynı). Kural
+ve çatışma tabloları APPEND-ONLY değil (durum makinesi UPDATE gerektiriyor,
+findings gibi) ama her durum geçişi audit_log'da satır bırakır.
+
+#### Kabul kriterleri
+
+- Aynı kullanıcının çatışan iki faaliyeti üstlenmesi otomatik tespit edilir.
+- Farklı kişilerin atamaları çatışma üretmez.
+- Tenant'lar birbirinin kural/çatışmasını SORGUYLA da göremez.
+- Aynı girdilerle tekrar değerlendirme duplicate çatışma üretmez (fingerprint).
+- Kaldırılan çatışma kanıtsız silinmez.
+- Talep eden kendi istisnasını onaylayamaz; süresiz istisna oluşturulamaz.
+- Süresi dolan istisna otomatik yeniden açılır; başarısız telafi edici kontrol
+  çatışmayı yeniden açar.
+- Bağımsız kapanış olmadan çatışma `RESOLVED` olamaz.
+- `TODO_DOGRULA` kural normal kullanıcı tarafından `VERIFIED` yapılamaz.
+- Gerçek Chromium'da en az bir uçtan uca akış (kural→çatışma→istisna→onay→
+  telafi edici kontrol→başarısız/başarılı→durum).
+
+#### Kapsam dışı (bu turda)
+
+Harici IAM/PAM connector'ları (Keycloak/AD/AWS vb. — repo'da zaten bağlı
+DEĞİL); BullMQ/ayrı iş kuyruğu (motor senkron çalışır, `pg_cron` gerekirse
+sonraki tur); `SodConflict` ↔ `findings` otomatik ilişkisi; çoklu kural
+sürümleme UI'ı (DB'de sürüm alanı var, karşılaştırma ekranı yok); ReviewCampaign
+(periyodik SoD gözden geçirme kampanyası — veri modelinde yer AÇILMAZ bu turda).
+
+#### Açık kurucu kararları
+
+1. `TODO_DOGRULA → VERIFIED` geçişini bugün `admin` rolüne veriyoruz (ayrı bir
+   "hukuk" rolü yok) — kurucu ayrı bir rol isterse sonraki tur.
+2. İlk 8 çatışma kuralı (§2.3, kurucunun listesi) `INTERNAL` mi `TODO_DOGRULA`
+   mı? Bu ROADMAP'te: KALKAN_OS'un KENDİ süreçlerine dair olanlar (kanıt
+   yükleyen/onaylayan, bulgu sahibi/kapanış, kural oluşturan/yayımlayan)
+   `INTERNAL` — SPK'dan değil, ürünün kendi tasarım kararından geliyor. Genel
+   SPK bağlamlı olanlar (finansal işlem başlatma/onay, tedarikçi değerlendirme/
+   risk kabulü) `TODO_DOGRULA`. Kurucu onayı bekliyor.
+3. `CriticalActivity`/M13 bağlantısı ne zaman kurulacak.
+
+### M17 — Denetim Örnekleme ve Çalışma Kâğıtları (SPK notları §6) — YALNIZ ADR, KOD YOK
+
+**Bu turda hiçbir migration/UI/route yazılmadı.** Kabul kriteri "tekrar
+üretilebilir örnek seçimi", M9'un deterministik puanlama disipliniyle (kural
+11) aynı aileden ama kapsamı (evren tamlığı kanıtı, örnekleme yöntemi,
+reviewer sign-off, bağımsız kapanış) M16'dan bağımsız, ayrı bir alt sistem —
+aynı oturumda ikisini birden tasarlayıp kodlamak "üç alanı aynı anda
+geliştirme" hatasının küçültülmüş hali olurdu.
+
+#### Problem ve amaç
+
+Mevcut `share_links`/`paylasim_goruntule` (M4) yalnızca kapsam-filtreli
+GÖRÜNTÜLEME sağlıyor. Bu modül çok daha geniş: denetim evreni tanımlama,
+önemlilik/risk değerlendirmesi, örnekleme planı + tekrar üretilebilir seçim,
+test prosedürü, çalışma kâğıdı, kanıt değerlendirmesi, bağımsız kapanış.
+
+#### Kullanıcı rolleri
+
+`uyum` (denetim hazırlığı), `denetci_misafir` (yalnızca kendi engagement'ına
+atanmış örneklem/çalışma kâğıdını görür — mevcut `paylasim` token deseninin
+genişlemesi), yeni bir "reviewer" kavramı (bağımsız kapanış — talep eden
+kendi işini kapatamaz, M16'daki istisna onay ayrımıyla aynı ilke).
+
+#### Temel nesneler (tasarım seviyesinde, ADR'de detaylandırılacak)
+
+`AuditUniverse`, `AuditEngagement`, `MaterialityRule`, `Population`,
+`SamplingPlan`, `SampleSelection`, `SampleItem`, `TestProcedure`, `Workpaper`,
+`EvidenceEvaluation`, `ReviewerSignoff`.
+
+#### İş akışı (taslak)
+
+Evren tanımlanır + tamlık kanıtı → önemlilik/risk kriteri → örnekleme planı
+(rastgele/yargısal ayrımı + tekrar üretilebilir seed) → örnek seçilir →
+test prosedürü çalışır → çalışma kâğıdı + kanıt değerlendirmesi → reviewer
+bağımsız imza → bulgu (varsa) M12/M16 desenine paralel PROPOSED doğar.
+
+#### M12/M13/M14 bağımlılıkları
+
+M12'nin kanıt/test durumu sözlüğü (`PASSED/FAILED/UNKNOWN/STALE/EXCEPTION`)
+`TestProcedure` sonuçlarına doğrudan uygulanabilir — yeni bir durum sözlüğü
+İCAT EDİLMEZ.
+
+#### Güvenlik ve tenant izolasyonu
+
+Aynı ilke: `tenant_id` + RLS; `denetci_misafir` yalnızca kendi engagement'ına
+atanmış veriyi görür (mevcut `paylasim` token/RPC desenine benzer, ama
+zaman-sınırlı token yerine engagement-bazlı atama).
+
+#### Denetim izi gereksinimleri
+
+Örneklem değişikliği, reviewer imzası, kapanış — hepsi audit_log.
+
+#### Kabul kriterleri (ADR onaylandığında hedeflenecek, bugün YOK)
+
+Tekrar üretilebilir örnek seçimi; evren tamlığı kanıtlanmadan test başlamaz;
+AI örneklem büyüklüğünü veya denetim görüşünü TEK BAŞINA belirleyemez
+(belgenin kendi sınırı); bağımsız kapanış olmadan workpaper kapanmaz.
+
+#### Kapsam dışı
+
+Bu turda HER ŞEY kapsam dışı — yalnız ADR onaylandıktan sonra migration/kod.
+
+#### Açık kurucu kararları
+
+Örnek büyüklüğü kuralı (istatistiksel mi, sabit yüzde mi) denetçi/kurucu
+sorumluluğunda kalmalı mı yoksa ürün bir varsayılan mı önerecek — belgenin
+kendi notu "denetim görüşü AI'ya bırakılmaz" diyor, ama örnek büyüklüğü
+formülünün kendisi ürün mü sağlayacak, yoksa her zaman kullanıcı girdisi mi
+olacak, bu net değil.
+
+### M18 — Eğitim ve Yetkinlik Güvencesi (SPK notları §11) — YALNIZ SINIR, KOD YOK
+
+**Bu turda hiçbir migration/UI/route yazılmadı.**
+
+#### Problem ve amaç
+
+Genel yıllık farkındalık kaydı yetersiz: rol-risk-eğitim matrisi, işe giriş/
+rol değişikliği eğitimi, olay/tehdit tetiklemeli hedefli eğitim, içerik
+sürümü, katılım/başarı ölçümü, kapsam dışı kalan kullanıcı tespiti.
+
+**SPL'nin telifli sınav soru/cevapları ürüne ALINMAZ.** Soru bankası
+geliştirilecekse özgün, KALKAN_OS'a ait senaryo/soru üretilir.
+
+#### Kullanıcı rolleri
+
+`uyum` (matris tanımı, kapsam takibi), tüm kullanıcılar (kendi eğitim
+kaydı) — ama bu turda kullanıcı arayüzü/rol ayrımı TASARLANMADI bile,
+yalnızca kapsam çizildi.
+
+#### Temel nesneler (tasarım seviyesinde)
+
+Rol-risk-eğitim matrisi, eğitim ataması, katılım/sonuç kaydı, içerik sürümü,
+HR/LMS connector sınırı (bağlanmaz, yalnızca içe aktarma noktası olarak
+tasarlanır), eğitim kanıtı + bütünlük kaydı (M01/Evidence Envelope ile
+uyumlu olmalı — yeni bir kanıt modeli İCAT EDİLMEZ).
+
+#### M12/M13/M14 bağımlılıkları
+
+Eğitim kanıtı da `evidences`/zarf modeline (M11) girmeli — ayrı bir kanıt
+sistemi açılmaz.
+
+#### Güvenlik ve tenant izolasyonu, Denetim izi
+
+Aynı ilke: `tenant_id` + RLS; eğitim kaydı değişikliği audit_log'a yazılır.
+
+#### Kabul kriterleri, Kapsam dışı
+
+Bu turda tanımlı değil — ADR/sınır dokümanı onaylanınca yazılacak.
+
+#### Açık kurucu kararları
+
+Soru bankası içeriğinin kaynağı (tamamen özgün mü, üçüncü bir lisanslı
+kaynaktan mı) ve LMS entegrasyonunun connector mı yoksa manuel içe aktarma
+mı olacağı kurucu kararı bekliyor.
 
 ### Ertelenenler ve giriş kapıları
 

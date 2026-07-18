@@ -114,6 +114,55 @@ export const AUDIT_EYLEM_LABEL: Record<AuditEylem, string> = {
   bulgu_eklendi: "Bulgu eklendi",
   bulgu_durumu_degisti: "Bulgu güncellendi",
   paylasim_linki_olusturuldu: "Paylaşım linki oluşturuldu",
+  sod_kural_olusturuldu: "SoD kuralı oluşturuldu",
+  sod_kural_guncellendi: "SoD kuralı güncellendi",
+  sod_catisma_tespit_edildi: "SoD çatışması tespit edildi",
+  sod_catisma_durumu_degisti: "SoD çatışması güncellendi",
+  sod_istisna_talep_edildi: "SoD istisnası talep edildi",
+  sod_istisna_karar_verildi: "SoD istisnası karara bağlandı",
+  sod_telafi_kontrol_atandi: "Telafi edici kontrol atandı",
+};
+
+/** SoD (M16): kural/çatışma/istisna durum etiketleri. */
+export const SOD_MEVZUAT_DURUMU_LABEL: Record<string, string> = {
+  INTERNAL: "İç kural",
+  TODO_DOGRULA: "Doğrulanmadı",
+  VERIFIED: "Doğrulandı",
+};
+
+export const SOD_CATISMA_DURUM_LABEL: Record<string, string> = {
+  OPEN: "Açık",
+  UNDER_REVIEW: "İnceleniyor",
+  EXCEPTION_REQUESTED: "İstisna talep edildi",
+  EXCEPTION_APPROVED: "İstisna onaylandı",
+  MITIGATED: "Telafi edildi",
+  RESOLVED: "Kapatıldı",
+  REOPENED: "Yeniden açıldı",
+  EXPIRED: "İstisna süresi doldu",
+  FALSE_POSITIVE: "Yanlış pozitif",
+};
+
+export const SOD_CATISMA_DURUM_BADGE_VARIANT: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
+  OPEN: "destructive",
+  UNDER_REVIEW: "secondary",
+  EXCEPTION_REQUESTED: "secondary",
+  EXCEPTION_APPROVED: "outline",
+  MITIGATED: "default",
+  RESOLVED: "default",
+  REOPENED: "destructive",
+  EXPIRED: "destructive",
+  FALSE_POSITIVE: "outline",
+};
+
+export const SOD_ISTISNA_DURUM_LABEL: Record<string, string> = {
+  talep_edildi: "Talep edildi",
+  onaylandi: "Onaylandı",
+  reddedildi: "Reddedildi",
+  iptal: "İptal edildi",
+  suresi_doldu: "Süresi doldu",
 };
 
 /** Kanıt zarfı (M9): gizlilik sınıfı ve saklama süresi etiketleri. */

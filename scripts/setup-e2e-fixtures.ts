@@ -135,12 +135,25 @@ async function main() {
   //    migration'larındaki "on delete cascade") — ayrı ayrı silmiyoruz.
   //    control_test_definitions silinince test_runs + finding_proposals
   //    CASCADE ile gider.
+  //
+  //    SIRA ÖNEMLİ (M16 borcu): sod_telafi_edici_kontroller.test_definition_id
+  //    control_test_definitions'a ON DELETE RESTRICT ile bağlı — SoD verisi
+  //    ONDAN ÖNCE silinmezse control_test_definitions silme İSTEĞİ SESSİZCE
+  //    BAŞARISIZ OLUR (bu script hata kontrolü yapmıyor) ve script YİNE DE
+  //    yeni bir tanım ekler; sonuçta aynı isimde İKİ tanım birikir ve e2e
+  //    testleri ".single()" sorgusunda "birden fazla satır" hatasıyla patlar.
+  //    sod_catismalari silinince istisnalar + telafi kontroller CASCADE ile
+  //    gider; sod_kurallari silinince taraflar CASCADE ile gider.
   for (const tablo of [
     "evidences",
     "findings",
     "share_links",
     "audit_log",
     "simulation_runs",
+    "sod_catismalari",
+    "sod_kurallari",
+    "sod_atamalari",
+    "sod_degerlendirme_calistirmalari",
     "control_test_definitions",
   ]) {
     await db.from(tablo).delete().eq("tenant_id", tenant.id);

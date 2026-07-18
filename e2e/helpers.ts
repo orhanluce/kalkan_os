@@ -31,6 +31,19 @@ export async function girisYap(page: Page): Promise<void> {
 }
 
 /**
+ * İkinci test kullanıcısıyla (aynı kiracı, farklı kişi) giriş yapar — "farklı
+ * bir yetkili onaylasın" senaryoları için (ör. M16 SoD istisna onayı: talep
+ * eden kendi istisnasını onaylayamaz).
+ */
+export async function ikinciKullaniciGirisYap(page: Page): Promise<void> {
+  await page.goto("/giris");
+  await page.getByLabel("E-posta").fill(ortamDegeri("E2E_USER2_EMAIL"));
+  await page.getByLabel("Şifre").fill(ortamDegeri("E2E_USER2_PASSWORD"));
+  await page.getByRole("button", { name: "Giriş Yap" }).click();
+  await expect(page.getByRole("heading", { name: E2E_KURUM_ADI })).toBeVisible({ timeout: 15_000 });
+}
+
+/**
  * Kontrol kütüphanesinden `maddeRef`'e sahip kontrolü bulup detay sayfasına
  * gider. Mock döneminde olduğu gibi sabit bir UUID hardcode ETMEYİZ — id'ler
  * artık gerçek, ortamdan ortama değişebilen UUID'ler; madde_ref ise seed

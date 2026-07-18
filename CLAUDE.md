@@ -1,17 +1,35 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
-**SABAH İLK OKUNACAK:** Kurucu 18 Temmuz 2026 gecesi beşinci bir vizyon belgesi
-verdi (SPK/SPL çalışma notları). **Kod/şema YAZILMADI** — yalnızca değerlendirilip
-`docs/arastirma/KALKAN_OS_SPK_Notlari_Urunlestirme_Eki_2026.md` olarak kopyalandı
-ve ROADMAP.md §1.6'ya işlendi. Üç gerçekten yeni alan tespit edildi (SoD motoru,
-denetim örnekleme/çalışma kâğıdı motoru, eğitim/yetkinlik modülü); geri kalanı
-mevcut M13/M14/M09/M15'i zenginleştiriyor. Önceliklendirme kurucu onayı bekliyor
-— ayrıntı ROADMAP §1.6'da.
+**SPK belgesi (18 Temmuz 2026) DEĞERLENDİRİLDİ ve önceliklendirildi.** Beşinci
+vizyon belgesi (`docs/arastirma/KALKAN_OS_SPK_Notlari_Urunlestirme_Eki_2026.md`)
+ROADMAP §1.6'ya işlendi; üç yeni alan ayrı taş oldu: **M16 SoD** (kodlandı,
+aşağıda), **M17 denetim örnekleme** (yalnız ADR/tasarım, kod yok), **M18 eğitim/
+yetkinlik** (yalnız sınır dokümanı). Kurucunun "M15/M16/M17" taslak numaraları
+repo'da M15 dolu olduğu için bir kaydırıldı.
+
+**M16 — Görevler Ayrılığı (SoD) motoru: ilk dikey dilim BİTTİ ve canlıda e2e ile
+doğrulandı** (migration `20260718000000`). Şema (7 tablo), saf deterministik
+motor (`src/lib/sod.ts`, kural 11), üç rota (`/api/sod/degerlendir` + istisna
+kararı + mevzuat_durumu geçişi), UI (`/sod` + `/sod/[id]`), audit trigger'ları.
+Kural 3'ün genişlemesi: SPK notundan türetilen kural ASLA doğrudan `VERIFIED`
+doğmaz (`INTERNAL/TODO_DOGRULA/VERIFIED`; geçiş ayrı yetki ister). DB guard'ları
+(kural 14 disiplini): talep eden kendi istisnasını onaylayamaz, `MITIGATED`
+ancak PASSED telafi edici test ile, `RESOLVED` ancak bağımsız kapanışla. Telafi
+edici kontrol M12'nin test motorunu YENİDEN KULLANIR (yeni test altyapısı yok).
+569 birim (534 + 35 yeni SoD) + 15 e2e yeşil; mevcut davranış bozulmadı.
+- **Kapsam dışı (bilinçli):** atama yönetim UI'ı yok (fixture/script ile
+  giriliyor), IAM/PAM connector yok, BullMQ yok (senkron motor).
+- Yol boyunca iki bug: (1) `SodTaraf.sistem_kapsami` kuralın kendisine sabit
+  kapsam atıyordu, farklı kapsamlı gerçek atamalar hiç eşleşmiyordu — opsiyonel
+  yapıldı (birim testi yakaladı); (2) `setup-e2e-fixtures.ts` `control_test_
+  definitions`'ı SoD verisinden ÖNCE silmeye çalışıyordu ama `on delete restrict`
+  yüzünden sessizce başarısız oluyor, aynı isimli tanım birikip e2e'yi
+  patlatıyordu — silme sırası düzeltildi.
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler
-üzerinden bağlanıyoruz — direct connection IPv6-only. 33 migration uygulandı
+üzerinden bağlanıyoruz — direct connection IPv6-only. 34 migration uygulandı
 (`pnpm db:push`); `pnpm db:verify` çekirdek tabloları fiilen doğrular. Kontrol
 kütüphanesi seed edildi (2 çerçeve, 17 kontrol) ve ilk kuruma atandı.
 

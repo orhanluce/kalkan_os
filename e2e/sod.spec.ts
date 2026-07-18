@@ -1,0 +1,113 @@
+import { createClient } from "@supabase/supabase-js";
+import { expect, test } from "@playwright/test";
+import { girisYap, ikinciKullaniciGirisYap } from "./helpers";
+
+// M16 kabul: SoD kuralı → çatışma tespiti → istisna talebi → farklı yetkili
+// onayı → telafi edici kontrol (M12) → başarısız/başarılı test → durum
+// (docs/ROADMAP.md M16, kural 1 + 3 + 11 + 14'ün SoD'a uyarlanmış hali).
+// Gerçek Chromium + gerçek Supabase.
+//
+// Atamalar UI'DAN DEĞİL fixture (service client) ile eklenir — atama
+// yönetimi UI'ı bu turun kapsamı dışında (ROADMAP M16 "kapsam dışı": harici
+// IAM/PAM connector'ları henüz yok, atamalar bu turda ya fixture ya da
+// ileride bir entegrasyonla girer). Kuralın kendisi ve akışın geri kalanı
+// gerçek UI üzerinden, koordinat değil erişilebilir rol/label ile sürülür.
+
+function admin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase env eksik (.env.local).");
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+test("kural→çatışma→istisna→onay→telafi edici kontrol→durum", async ({ page }) => {
+  test.setTimeout(90_000);
+  const db = admin();
+  const damga = Date.now();
+  const kod = `SOD-E2E-${damga}`;
+  const tarafA = `E2E_TARAF_A_${damga}`;
+  const tarafB = `E2E_TARAF_B_${damga}`;
+
+  await girisYap(page);
+
+  // 1) SoD kuralı oluştur — UI üzerinden.
+  await page.goto("/sod");
+  await page.getByRole("button", { name: "+ Yeni kural" }).click();
+  await page.getByLabel("Kod", { exact: true }).fill(kod);
+  await page.getByLabel("Ad", { exact: true }).fill(`E2E kuralı ${damga}`);
+  await page.getByLabel("Taraf A — aktivite kodu").fill(tarafA);
+  await page.getByLabel("Taraf B — aktivite kodu").fill(tarafB);
+  await page.getByRole("button", { name: "Ekle", exact: true }).click();
+  await expect(page.getByText(kod)).toBeVisible({ timeout: 10_000 });
+
+  // 2) Çatışan iki atama — fixture (aynı kişi, iki tarafa da eşleşen atama).
+  const { data: kurum } = await db.from("tenants").select("id").eq("name", "E2E Test Kurumu A.Ş.").single();
+  const { data: kullanici } = await db
+    .from("profiles")
+    .select("id")
+    .eq("tenant_id", kurum!.id)
+    .eq("full_name", "Ayşe Yılmaz")
+    .single();
+  await db.from("sod_atamalari").insert([
+    { tenant_id: kurum!.id, kullanici_id: kullanici!.id, aktivite_kodu: tarafA },
+    { tenant_id: kurum!.id, kullanici_id: kullanici!.id, aktivite_kodu: tarafB },
+  ]);
+
+  // 3) Değerlendirmeyi çalıştır.
+  await page.getByRole("button", { name: "Değerlendirmeyi Çalıştır" }).click();
+
+  // 4) Çatışmayı UI'da gör.
+  const catismaSatiri = page.locator("tr").filter({ hasText: `E2E kuralı ${damga}` });
+  await expect(catismaSatiri).toBeVisible({ timeout: 15_000 });
+  await catismaSatiri.getByRole("link", { name: "Detay" }).click();
+  await expect(page.getByRole("heading", { name: `E2E kuralı ${damga}` })).toBeVisible();
+
+  // 5) İstisna talep et.
+  await page.getByRole("button", { name: "İstisna Talep Et" }).click();
+  await page.getByLabel("Gerekçe").fill("E2E test istisnası");
+  const yarinTarih = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  await page.getByLabel(/Bitiş tarihi/).fill(yarinTarih);
+  await page.getByRole("button", { name: "Talep Et" }).click();
+  await expect(page.getByText("Talep edildi", { exact: true })).toBeVisible({ timeout: 10_000 });
+
+  // Talep eden kendi istisnasını onaylayamaz — UI bunu açıkça söylemeli.
+  await expect(page.getByText(/kendi talebinizi onaylayamazsınız/i)).toBeVisible();
+
+  const catismaUrl = page.url();
+
+  // 6) Farklı bir yetkili (ikinci kullanıcı, rol=uyum) onaylar — AYRI bir
+  // browser context, iki oturum birbirini etkilemesin diye.
+  const ikinciContext = await page.context().browser()!.newContext();
+  const ikinciPage = await ikinciContext.newPage();
+  await ikinciKullaniciGirisYap(ikinciPage);
+  await ikinciPage.goto(catismaUrl);
+  await ikinciPage.getByPlaceholder("Karar gerekçesi (zorunlu)").fill("Uygun, onaylandı");
+  await ikinciPage.getByRole("button", { name: "Onayla" }).click();
+  await expect(ikinciPage.getByText("Onaylandı").first()).toBeVisible({ timeout: 10_000 });
+  await expect(ikinciPage.getByText("İstisna onaylandı")).toBeVisible({ timeout: 10_000 });
+  await ikinciContext.close();
+
+  // 7) M12 kontrol testi bağla — birinci kullanıcının sayfasına dön.
+  await page.reload();
+  await expect(page.getByText("İstisna onaylandı")).toBeVisible({ timeout: 10_000 });
+  await page.getByRole("combobox", { name: "Kontrol testi seç" }).click();
+  await page.getByRole("option", { name: /MFA tüm ayrıcalıklı hesaplarda zorunlu/ }).click();
+  await page.getByRole("button", { name: "Bağla" }).click();
+  // Telafi edici kontrol kartı eklendi — "Başarısız/Başarılı çalıştır"
+  // butonlarının görünmesi kartın var olduğunun kanıtıdır.
+  await expect(page.getByRole("button", { name: "Başarısız çalıştır" })).toBeVisible({ timeout: 10_000 });
+
+  // 8) BAŞARISIZ çalıştır → çatışma MITIGATED OLMAZ (İstisna onaylandı kalır).
+  await page.getByRole("button", { name: "Başarısız çalıştır" }).click();
+  await expect(page.getByText("Kaldı", { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText("İstisna onaylandı")).toBeVisible();
+  await expect(page.getByText("Telafi edildi")).not.toBeVisible();
+
+  // 9) BAŞARILI çalıştır → çatışma MITIGATED olur.
+  await page.getByRole("button", { name: "Başarılı çalıştır" }).click();
+  await expect(page.getByText("Telafi edildi")).toBeVisible({ timeout: 10_000 });
+
+  // 10) Audit zaman çizelgesi: en az bir kayıt görünür (denetim izi boş değil).
+  await expect(page.getByText("SoD çatışması tespit edildi")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText("SoD istisnası karara bağlandı").first()).toBeVisible();
+});

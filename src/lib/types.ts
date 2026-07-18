@@ -86,7 +86,15 @@ export type AuditEylem =
   | "kanit_suresi_doldu"
   | "bulgu_eklendi"
   | "bulgu_durumu_degisti"
-  | "paylasim_linki_olusturuldu";
+  | "paylasim_linki_olusturuldu"
+  // M16 — Görevler Ayrılığı (SoD)
+  | "sod_kural_olusturuldu"
+  | "sod_kural_guncellendi"
+  | "sod_catisma_tespit_edildi"
+  | "sod_catisma_durumu_degisti"
+  | "sod_istisna_talep_edildi"
+  | "sod_istisna_karar_verildi"
+  | "sod_telafi_kontrol_atandi";
 
 export interface AuditLogEntry {
   id: string;

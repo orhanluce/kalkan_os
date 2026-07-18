@@ -2007,6 +2007,511 @@ export type Database = {
           },
         ]
       }
+      sod_atamalari: {
+        Row: {
+          aktivite_kodu: string
+          created_at: string
+          gecerlilik_baslangic: string
+          gecerlilik_bitis: string | null
+          harici_kullanici_id: string | null
+          id: string
+          kaynak_sistem: string
+          kullanici_id: string | null
+          rol_kodu: string | null
+          sistem_kapsami: string
+          son_senkron_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          aktivite_kodu: string
+          created_at?: string
+          gecerlilik_baslangic?: string
+          gecerlilik_bitis?: string | null
+          harici_kullanici_id?: string | null
+          id?: string
+          kaynak_sistem?: string
+          kullanici_id?: string | null
+          rol_kodu?: string | null
+          sistem_kapsami?: string
+          son_senkron_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          aktivite_kodu?: string
+          created_at?: string
+          gecerlilik_baslangic?: string
+          gecerlilik_bitis?: string | null
+          harici_kullanici_id?: string | null
+          id?: string
+          kaynak_sistem?: string
+          kullanici_id?: string | null
+          rol_kodu?: string | null
+          sistem_kapsami?: string
+          son_senkron_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sod_atamalari_kullanici_id_fkey"
+            columns: ["kullanici_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_atamalari_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sod_catismalari: {
+        Row: {
+          created_at: string
+          degerlendirme_calistirma_id: string | null
+          durum: string
+          fingerprint: string
+          harici_kullanici_id: string | null
+          id: string
+          ilk_gorulme_at: string
+          kullanici_id: string | null
+          onem: string
+          resolved_at: string | null
+          resolved_by: string | null
+          rule_id: string
+          seq: number
+          sistem_kapsami: string
+          son_gorulme_at: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          degerlendirme_calistirma_id?: string | null
+          durum?: string
+          fingerprint: string
+          harici_kullanici_id?: string | null
+          id?: string
+          ilk_gorulme_at?: string
+          kullanici_id?: string | null
+          onem: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_id: string
+          seq?: never
+          sistem_kapsami: string
+          son_gorulme_at?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          degerlendirme_calistirma_id?: string | null
+          durum?: string
+          fingerprint?: string
+          harici_kullanici_id?: string | null
+          id?: string
+          ilk_gorulme_at?: string
+          kullanici_id?: string | null
+          onem?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_id?: string
+          seq?: never
+          sistem_kapsami?: string
+          son_gorulme_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sod_catismalari_degerlendirme_calistirma_id_fkey"
+            columns: ["degerlendirme_calistirma_id"]
+            isOneToOne: false
+            referencedRelation: "sod_degerlendirme_calistirmalari"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_catismalari_kullanici_id_fkey"
+            columns: ["kullanici_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_catismalari_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_catismalari_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "sod_kurallari"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_catismalari_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sod_degerlendirme_calistirmalari: {
+        Row: {
+          atama_snapshot_hash: string | null
+          baslama_at: string
+          bitis_at: string | null
+          bulunan_sayisi: number | null
+          calistiran: string | null
+          cozulen_sayisi: number | null
+          hata: string | null
+          id: string
+          kural_seti_hash: string | null
+          tenant_id: string
+          yeni_sayisi: number | null
+        }
+        Insert: {
+          atama_snapshot_hash?: string | null
+          baslama_at?: string
+          bitis_at?: string | null
+          bulunan_sayisi?: number | null
+          calistiran?: string | null
+          cozulen_sayisi?: number | null
+          hata?: string | null
+          id?: string
+          kural_seti_hash?: string | null
+          tenant_id: string
+          yeni_sayisi?: number | null
+        }
+        Update: {
+          atama_snapshot_hash?: string | null
+          baslama_at?: string
+          bitis_at?: string | null
+          bulunan_sayisi?: number | null
+          calistiran?: string | null
+          cozulen_sayisi?: number | null
+          hata?: string | null
+          id?: string
+          kural_seti_hash?: string | null
+          tenant_id?: string
+          yeni_sayisi?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sod_degerlendirme_calistirmalari_calistiran_fkey"
+            columns: ["calistiran"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_degerlendirme_calistirmalari_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sod_istisnalari: {
+        Row: {
+          baslangic: string
+          bitis: string
+          conflict_id: string
+          created_at: string
+          durum: string
+          gerekce: string
+          id: string
+          iptal_at: string | null
+          iptal_eden: string | null
+          iptal_nedeni: string | null
+          karar_notu: string | null
+          onaylayan_id: string | null
+          risk_degerlendirmesi: string | null
+          risk_sahibi_id: string | null
+          talep_eden_id: string
+          tenant_id: string
+        }
+        Insert: {
+          baslangic?: string
+          bitis: string
+          conflict_id: string
+          created_at?: string
+          durum?: string
+          gerekce: string
+          id?: string
+          iptal_at?: string | null
+          iptal_eden?: string | null
+          iptal_nedeni?: string | null
+          karar_notu?: string | null
+          onaylayan_id?: string | null
+          risk_degerlendirmesi?: string | null
+          risk_sahibi_id?: string | null
+          talep_eden_id: string
+          tenant_id: string
+        }
+        Update: {
+          baslangic?: string
+          bitis?: string
+          conflict_id?: string
+          created_at?: string
+          durum?: string
+          gerekce?: string
+          id?: string
+          iptal_at?: string | null
+          iptal_eden?: string | null
+          iptal_nedeni?: string | null
+          karar_notu?: string | null
+          onaylayan_id?: string | null
+          risk_degerlendirmesi?: string | null
+          risk_sahibi_id?: string | null
+          talep_eden_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sod_istisnalari_conflict_id_fkey"
+            columns: ["conflict_id"]
+            isOneToOne: false
+            referencedRelation: "sod_catismalari"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_istisnalari_iptal_eden_fkey"
+            columns: ["iptal_eden"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_istisnalari_onaylayan_id_fkey"
+            columns: ["onaylayan_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_istisnalari_risk_sahibi_id_fkey"
+            columns: ["risk_sahibi_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_istisnalari_talep_eden_id_fkey"
+            columns: ["talep_eden_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_istisnalari_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sod_kural_taraflari: {
+        Row: {
+          aktivite_kodu: string
+          id: string
+          rol_kodu: string | null
+          rule_id: string
+          sistem_kapsami: string | null
+          taraf: string
+        }
+        Insert: {
+          aktivite_kodu: string
+          id?: string
+          rol_kodu?: string | null
+          rule_id: string
+          sistem_kapsami?: string | null
+          taraf: string
+        }
+        Update: {
+          aktivite_kodu?: string
+          id?: string
+          rol_kodu?: string | null
+          rule_id?: string
+          sistem_kapsami?: string | null
+          taraf?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sod_kural_taraflari_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "sod_kurallari"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sod_kurallari: {
+        Row: {
+          aciklama: string | null
+          ad: string
+          created_at: string
+          durum: string
+          gecerlilik_baslangic: string | null
+          gecerlilik_bitis: string | null
+          id: string
+          kapsam_turu: string
+          kaynak_referansi: string | null
+          kaynak_turu: string
+          kod: string
+          mevzuat_durumu: string
+          olusturan: string | null
+          onaylayan: string | null
+          onem: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          aciklama?: string | null
+          ad: string
+          created_at?: string
+          durum?: string
+          gecerlilik_baslangic?: string | null
+          gecerlilik_bitis?: string | null
+          id?: string
+          kapsam_turu?: string
+          kaynak_referansi?: string | null
+          kaynak_turu?: string
+          kod: string
+          mevzuat_durumu?: string
+          olusturan?: string | null
+          onaylayan?: string | null
+          onem?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          aciklama?: string | null
+          ad?: string
+          created_at?: string
+          durum?: string
+          gecerlilik_baslangic?: string | null
+          gecerlilik_bitis?: string | null
+          id?: string
+          kapsam_turu?: string
+          kaynak_referansi?: string | null
+          kaynak_turu?: string
+          kod?: string
+          mevzuat_durumu?: string
+          olusturan?: string | null
+          onaylayan?: string | null
+          onem?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sod_kurallari_olusturan_fkey"
+            columns: ["olusturan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_kurallari_onaylayan_fkey"
+            columns: ["onaylayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_kurallari_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sod_telafi_edici_kontroller: {
+        Row: {
+          aktif: boolean
+          conflict_id: string
+          control_id: string | null
+          created_at: string
+          exception_id: string | null
+          gereken_siklik_gun: number | null
+          id: string
+          son_basarili_calisma_at: string | null
+          sonraki_calisma_at: string | null
+          tenant_id: string
+          test_definition_id: string
+        }
+        Insert: {
+          aktif?: boolean
+          conflict_id: string
+          control_id?: string | null
+          created_at?: string
+          exception_id?: string | null
+          gereken_siklik_gun?: number | null
+          id?: string
+          son_basarili_calisma_at?: string | null
+          sonraki_calisma_at?: string | null
+          tenant_id: string
+          test_definition_id: string
+        }
+        Update: {
+          aktif?: boolean
+          conflict_id?: string
+          control_id?: string | null
+          created_at?: string
+          exception_id?: string | null
+          gereken_siklik_gun?: number | null
+          id?: string
+          son_basarili_calisma_at?: string | null
+          sonraki_calisma_at?: string | null
+          tenant_id?: string
+          test_definition_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sod_telafi_edici_kontroller_conflict_id_fkey"
+            columns: ["conflict_id"]
+            isOneToOne: false
+            referencedRelation: "sod_catismalari"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_telafi_edici_kontroller_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_telafi_edici_kontroller_exception_id_fkey"
+            columns: ["exception_id"]
+            isOneToOne: false
+            referencedRelation: "sod_istisnalari"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_telafi_edici_kontroller_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_telafi_edici_kontroller_test_definition_id_fkey"
+            columns: ["test_definition_id"]
+            isOneToOne: false
+            referencedRelation: "control_test_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_controls: {
         Row: {
           control_id: string
