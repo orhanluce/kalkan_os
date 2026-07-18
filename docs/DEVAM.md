@@ -30,13 +30,14 @@ build+canlı guard smoke+deploy health, commit+push. Kurucu kararı gerektiren
 UYDURMA — adapter/OPEN_DECISION + interface ile ilerle, dış gönderim/gerçek
 para/credential yapma. Her gate sonunda §15 raporu.
 
-## 0c. GERÇEK DURUM (18 Temmuz gece, en son ölçüm)
-- **Remote (origin/main) HEAD:** `7f5f314` (G2 M34 Policy Lifecycle). `32cd808`
-  (Proof Room) remote'da mevcut ve zincirde. Push edilmemiş commit YOK.
-- **Deploy health (son push `7f5f314` sonrası, DOĞRULANDI):**
-  `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı:** 815 birim (65 dosya) + 39 e2e, 0 skip; build exit 0.
-- Migration sırası son: `20260718230000_policy_lifecycle` (canlıda).
+## 0c. GERÇEK DURUM (19 Temmuz, en son ölçüm — G8 TAM)
+- **Remote (origin/main) HEAD:** `<M40 push sonrası güncellenecek>` (G8/M40 Risk
+  Quantification). Öncesi zincirde G3..G8 gate'leri. Push edilmemiş commit YOK.
+- **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
+- **Test tabanı:** 893 birim (81 dosya) + 47 e2e, 0 skip; build exit 0.
+- Migration sırası son: `20260719070000_risk_quantification` (canlıda).
+- **GATE G8 TAM** (M13 kurum profili + M17 denetim örnekleme + M18 eğitim/yetkinlik
+  + M40 risk quantification). Sonraki: nihai §8 kalan gate + sonraki-dilim borçları.
 - **G1 durumu:** *Proof Room engineering slice complete; K8 content validation
   pending.* G1 source-to-proof dikeyinin KOD tarafı bitti (artifact ingest,
   temporal provision, dört-göz obligations, applicability, legal-basis guard,

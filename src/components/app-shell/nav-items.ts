@@ -21,6 +21,7 @@ import {
   ScrollText,
   Share2,
   ShieldCheck,
+  TrendingUp,
   UsersRound,
   Wallet,
   type LucideIcon,
@@ -85,6 +86,7 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
         { href: "/sod", etiket: "Görevler Ayrılığı", Ikon: UsersRound },
         { href: "/politikalar", etiket: "Politikalar", Ikon: ScrollText },
         { href: "/egitim", etiket: "Eğitim / Yetkinlik", Ikon: GraduationCap },
+        { href: "/risk", etiket: "Risk & KRI", Ikon: TrendingUp },
       ],
     },
     {

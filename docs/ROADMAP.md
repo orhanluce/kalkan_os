@@ -795,6 +795,25 @@ normalize edildi. Testler: rls-training-competency 5/5 + yetkinlik 3/3 +
 smoke 3/3. **BİLİNÇLİ SONRAKİ DİLİM:** phishing/tabletop = simülasyon (M7-M9)
 sonucuna gerçek bağ, retraining otomasyonu (periyot dolunca yeniden atama cron).
 
+### 1.31 Gate G8 (parça 4, SON) — M40 Risk Appetite, KRI & Loss Distribution ✅ (19 Temmuz)
+
+Migration `20260719070000` — YENİ kod alanı, tenant'a özgü. 4 tablo:
+`risk_appetites` (yönetim onaylı risk iştahı + yön UST/ALT), `key_risk_
+indicators` (KRI + eşik + yön), `kri_readings` (trend), `risk_scenarios` (kayıp
+DAĞILIMI min/olası/max + ZORUNLU varsayım + kontrol maliyet/azaltma). **CRQ
+İLKESİ — SAHTE KESİNLİK YOK (DB check/guard — canlı smoke 3/3):** senaryo kaybı
+TEK PUAN DEĞİL, üçgensel dağılım (check: min≤olası≤max); **varsayımlar ZORUNLU**
+(NOT NULL — model varsayımı görünür); risk iştahı YÜRÜRLÜĞE ancak yönetim onayı
++ audit ile (impact_tolerance deseni). Saf yardımcı `src/lib/risk.ts` (kural 11):
+`kriIhlali` (yön duyarlı ihlal), `ucgenselOzet` (beklenen + ~P90 + aralık +
+BELİRSİZLİK UYARISI — tek sayı vermez), `kontrolFaydaOrani` (azaltım/maliyet;
+maliyet 0/eksik → null, uydurma bölme yok). UI `/risk` hub (iştah yönetim onayı,
+KRI trend+ihlal rozeti, senaryo dağılım özeti + uyarı + fayda oranı); nav
+Yönetişim'e "Risk & KRI". Testler: rls-risk-quantification 4/4 + risk 3/3 +
+`risk.spec.ts` e2e (iştah onayı + KRI ihlal + varsayım-zorunlu dağılım) + canlı
+smoke 3/3. **GATE G8 TAM (M13+M17+M18+M40).** Sonraki dilim: scenario Monte
+Carlo, board decision/attestation receipt bağı (board_declarations M10).
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket

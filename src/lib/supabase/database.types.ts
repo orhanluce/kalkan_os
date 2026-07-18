@@ -2019,6 +2019,89 @@ export type Database = {
           },
         ]
       }
+      key_risk_indicators: {
+        Row: {
+          ad: string
+          created_at: string
+          esik: number
+          id: string
+          kategori: string
+          tenant_id: string
+          updated_at: string
+          yon: string
+        }
+        Insert: {
+          ad: string
+          created_at?: string
+          esik: number
+          id?: string
+          kategori?: string
+          tenant_id: string
+          updated_at?: string
+          yon?: string
+        }
+        Update: {
+          ad?: string
+          created_at?: string
+          esik?: number
+          id?: string
+          kategori?: string
+          tenant_id?: string
+          updated_at?: string
+          yon?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "key_risk_indicators_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kri_readings: {
+        Row: {
+          created_at: string
+          deger: number
+          id: string
+          kri_id: string
+          olcum_tarihi: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          deger: number
+          id?: string
+          kri_id: string
+          olcum_tarihi?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          deger?: number
+          id?: string
+          kri_id?: string
+          olcum_tarihi?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kri_readings_kri_id_fkey"
+            columns: ["kri_id"]
+            isOneToOne: false
+            referencedRelation: "key_risk_indicators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kri_readings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matter_access_grants: {
         Row: {
           bagimsizlik_beyani_id: string | null
@@ -3426,6 +3509,125 @@ export type Database = {
           kaynak_seviyesi?: string
         }
         Relationships: []
+      }
+      risk_appetites: {
+        Row: {
+          aciklama: string | null
+          birim: string | null
+          created_at: string
+          durum: string
+          esik: number
+          id: string
+          kategori: string
+          onay_zamani: string | null
+          onaylayan: string | null
+          tenant_id: string
+          updated_at: string
+          yon: string
+          yonetim_onayi: boolean
+        }
+        Insert: {
+          aciklama?: string | null
+          birim?: string | null
+          created_at?: string
+          durum?: string
+          esik: number
+          id?: string
+          kategori: string
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          tenant_id: string
+          updated_at?: string
+          yon?: string
+          yonetim_onayi?: boolean
+        }
+        Update: {
+          aciklama?: string | null
+          birim?: string | null
+          created_at?: string
+          durum?: string
+          esik?: number
+          id?: string
+          kategori?: string
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          tenant_id?: string
+          updated_at?: string
+          yon?: string
+          yonetim_onayi?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_appetites_onaylayan_fkey"
+            columns: ["onaylayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "risk_appetites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      risk_scenarios: {
+        Row: {
+          ad: string
+          created_at: string
+          id: string
+          kategori: string
+          kayip_max: number
+          kayip_min: number
+          kayip_olasi: number
+          kontrol_maliyeti: number | null
+          risk_azaltma: number | null
+          tenant_id: string
+          updated_at: string
+          varsayimlar: string
+          yillik_siklik: number | null
+        }
+        Insert: {
+          ad: string
+          created_at?: string
+          id?: string
+          kategori?: string
+          kayip_max: number
+          kayip_min: number
+          kayip_olasi: number
+          kontrol_maliyeti?: number | null
+          risk_azaltma?: number | null
+          tenant_id: string
+          updated_at?: string
+          varsayimlar: string
+          yillik_siklik?: number | null
+        }
+        Update: {
+          ad?: string
+          created_at?: string
+          id?: string
+          kategori?: string
+          kayip_max?: number
+          kayip_min?: number
+          kayip_olasi?: number
+          kontrol_maliyeti?: number | null
+          risk_azaltma?: number | null
+          tenant_id?: string
+          updated_at?: string
+          varsayimlar?: string
+          yillik_siklik?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_scenarios_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scenario_control_mappings: {
         Row: {
