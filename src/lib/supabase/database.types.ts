@@ -1345,6 +1345,42 @@ export type Database = {
           },
         ]
       }
+      regulatory_sources: {
+        Row: {
+          ad: string
+          aktif: boolean
+          authority: string
+          canonical_url: string | null
+          created_at: string
+          erisim_politikasi_durumu: string
+          id: string
+          jurisdiction: string
+          kaynak_seviyesi: string
+        }
+        Insert: {
+          ad: string
+          aktif?: boolean
+          authority: string
+          canonical_url?: string | null
+          created_at?: string
+          erisim_politikasi_durumu?: string
+          id?: string
+          jurisdiction: string
+          kaynak_seviyesi: string
+        }
+        Update: {
+          ad?: string
+          aktif?: boolean
+          authority?: string
+          canonical_url?: string | null
+          created_at?: string
+          erisim_politikasi_durumu?: string
+          id?: string
+          jurisdiction?: string
+          kaynak_seviyesi?: string
+        }
+        Relationships: []
+      }
       scenario_control_mappings: {
         Row: {
           control_id: string
@@ -3078,6 +3114,81 @@ export type Database = {
             columns: ["test_definition_id"]
             isOneToOne: false
             referencedRelation: "control_test_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      source_artifacts: {
+        Row: {
+          baslik: string
+          created_at: string
+          dogrulama_durumu: string
+          effective_from: string | null
+          effective_to: string | null
+          eklenme_kaynagi: string
+          external_id: string | null
+          fetched_at: string | null
+          id: string
+          issued_at: string | null
+          language: string | null
+          media_type: string | null
+          parser_version: string | null
+          predecessor_id: string | null
+          raw_object_path: string | null
+          sha256: string
+          source_id: string
+        }
+        Insert: {
+          baslik: string
+          created_at?: string
+          dogrulama_durumu?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          eklenme_kaynagi?: string
+          external_id?: string | null
+          fetched_at?: string | null
+          id?: string
+          issued_at?: string | null
+          language?: string | null
+          media_type?: string | null
+          parser_version?: string | null
+          predecessor_id?: string | null
+          raw_object_path?: string | null
+          sha256: string
+          source_id: string
+        }
+        Update: {
+          baslik?: string
+          created_at?: string
+          dogrulama_durumu?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          eklenme_kaynagi?: string
+          external_id?: string | null
+          fetched_at?: string | null
+          id?: string
+          issued_at?: string | null
+          language?: string | null
+          media_type?: string | null
+          parser_version?: string | null
+          predecessor_id?: string | null
+          raw_object_path?: string | null
+          sha256?: string
+          source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_artifacts_predecessor_id_fkey"
+            columns: ["predecessor_id"]
+            isOneToOne: false
+            referencedRelation: "source_artifacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "source_artifacts_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_sources"
             referencedColumns: ["id"]
           },
         ]

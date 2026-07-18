@@ -10,6 +10,7 @@ import {
   FlaskConical,
   LandmarkIcon,
   LayoutDashboard,
+  Library,
   ScrollText,
   Share2,
   ShieldCheck,
@@ -17,7 +18,7 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
-import { cfoOdakliMi, type OrganizationType } from "@/lib/organizasyon";
+import { cfoOdakliMi, urunHatti, type OrganizationType } from "@/lib/organizasyon";
 
 export interface NavItem {
   href: string;
@@ -38,6 +39,10 @@ export interface NavGrubu {
  */
 export function navGruplari(organizationType: string | null | undefined): NavGrubu[] {
   const cfo = organizationType ? cfoOdakliMi(organizationType as OrganizationType) : false;
+  // Regülasyon grubu REGULATED ve KARMA'da görünür (CORPORATE_FINANCE'ta değil
+  // — regülasyon corpus'u CFO Starter navigasyonunu boğmamalı, V2 §6.2).
+  const hat = organizationType ? urunHatti(organizationType as OrganizationType) : null;
+  const regulasyonGorunur = hat === "REGULATED" || hat === "KARMA";
   const finansGrubu: NavGrubu = {
     baslik: "Finans",
     ogeler: [
@@ -45,10 +50,15 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
       { href: "/cfo/iban-degisiklik", etiket: "IBAN Değişikliği", Ikon: LandmarkIcon },
     ],
   };
+  const regulasyonGrubu: NavGrubu = {
+    baslik: "Regülasyon",
+    ogeler: [{ href: "/regulasyon/kaynaklar", etiket: "Kaynaklar", Ikon: Library }],
+  };
   return [
     { baslik: null, ogeler: [{ href: "/", etiket: "Pano", Ikon: LayoutDashboard }] },
     // CFO odaklıysa Finans grubu en üstte (ödeme/IBAN/SoD kurumun ana derdi).
     ...(cfo ? [finansGrubu] : []),
+    ...(regulasyonGorunur ? [regulasyonGrubu] : []),
     {
       baslik: "Güvence",
       ogeler: [

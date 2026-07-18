@@ -393,6 +393,24 @@ alanları); (c) BEC/deepfake tatbikatı M12 test motoruna bağlama (V2 §5.3, ye
 motor YOK); (d) yönetim raporu export. Bugünkü dilim CFO self-service çekirdeğini
 (onboarding→segment→CFO dashboard→IBAN kontrolü→TTV ölçümü) uçtan uca kanıtladı.
 
+### 1.14 V2 PR-4a — Resmî kaynak sicili iskeleti (M19, ADR-T3) ✅
+
+`regulatory_sources`/`source_artifacts` (migration `20260718140000`, canlıda).
+**GLOBAL ORTAK REFERANS, TENANT'SIZ (ADR-T3):** resmî hukuk kaynağı her kiracı
+için aynıdır (frameworks/controls deseni); authenticated okur, yazma yalnız
+seed/service — istemci global kataloğu YAZAMAZ (RLS testli, iki kiracı da AYNI
+kaynağı görür). Kaynak seviyesi A-D (V1 §13), artifact sha256 + sürüm zinciri
+(predecessor on-delete-restrict), `dogrulama_durumu` TODO_DOGRULA doğar
+(**kural 3: uydurma law VERIFIED olmaz**). **Yazma yolu KÜRATÖR SCRIPT'i**
+(`scripts/seed-regulatory-sources.ts`) — tenant-facing rota DEĞİL (bir kiracının
+ortak kataloğu kirletmesi engellenir; hukuk-küratör rolü açık karar **K8**).
+Seed YALNIZ kaynak KÜNYESİ (kamuya açık gerçekler: SPK/Resmî Gazete/Siber
+Güvenlik Bşk./EUR-Lex + URL); **artifact/hash SEED EDİLMEZ** (gerçek belge
+olmadan hash uydurmak kural 3 ihlali). UI `/regulasyon/kaynaklar` salt-okur;
+nav org-type duyarlı (REGULATED/KARMA'da Regülasyon grubu). 4 RLS + 1 e2e.
+Erişim politikası 'onay_bekliyor' — connector SourceAccessPolicy onaysız
+üretime çıkmaz.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket
