@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { LegalStatusBadge } from "@/components/durum/legal-status-badge";
 import { StatusBadge } from "@/components/durum/status-badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -192,9 +192,16 @@ export default function SodPage() {
             kontrol izler.
           </p>
         </div>
-        <Button disabled={islemSuruyor} onClick={degerlendirmeCalistir}>
-          Değerlendirmeyi Çalıştır
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          {/* Link, buton olarak stillenmiş — Base UI nativeButton uyarısını
+              önlemek için Button render'ı yerine düz Link + buttonVariants. */}
+          <Link href="/sod/import" className={buttonVariants({ variant: "outline" })}>
+            CSV İçe Aktar
+          </Link>
+          <Button disabled={islemSuruyor} onClick={degerlendirmeCalistir}>
+            Değerlendirmeyi Çalıştır
+          </Button>
+        </div>
       </div>
 
       {hata && <p className="text-sm text-destructive">{hata}</p>}

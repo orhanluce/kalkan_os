@@ -15,6 +15,7 @@ import {
 } from "@/lib/sod";
 import {
   csvAyristir,
+  csvDosyasiKabulEdilebilirMi,
   diffHesapla,
   dosyaHash,
   kayitlarHash,
@@ -50,6 +51,8 @@ export async function POST(req: Request) {
     csvBase64?: string;
     mode?: string;
     kaynak?: string;
+    dosyaAdi?: string;
+    mimeType?: string;
   };
   const mode: ImportMode = govde.mode === "AUTHORITATIVE_SNAPSHOT" ? "AUTHORITATIVE_SNAPSHOT" : "DELTA";
   const kaynak = (govde.kaynak ?? "").trim();
@@ -58,6 +61,17 @@ export async function POST(req: Request) {
   }
   if (!govde.csvBase64) {
     return NextResponse.json({ hata: "csvBase64 zorunlu." }, { status: 400 });
+  }
+
+  // Kapı kontrolü (PR-3D, MIME borcu): uzantı + beyan edilen tür. İçerik
+  // güvenliği (null-byte/boyut/formula) aşağıda csvAyristir'da ayrıca koşar —
+  // bu yalnız ilk katman, beyan spoof edilebilir.
+  const dosyaKabul = csvDosyasiKabulEdilebilirMi(govde.dosyaAdi ?? "import.csv", govde.mimeType ?? "");
+  if (!dosyaKabul.kabul) {
+    return NextResponse.json(
+      { durum: "INVALID", dosyaHatasi: { kod: "DOSYA_TURU", neden: dosyaKabul.neden } },
+      { status: 200 },
+    );
   }
 
   // Ham baytları koru: fileHash bunların üzerinedir.

@@ -110,10 +110,19 @@ güncelleneni geri yükle, sona-erdirileni yeniden aç) + outbox + UYGULANDI.
 Maker-checker DB guard'ı (service_role dahil): onaylayan ≠ talep_eden, karar
 verilmiş kayıt donuk, talep RLS'i `talep_eden=auth.uid()`. İki rota (talep +
 karar). Deploy doğrulaması gerçek bug yakaladı: `/health` proxy açık yollarında
-değildi (307) → düzeltildi + smoke e2e kilidi. **651 birim + 21 e2e, 0 skip.**
-UI + route e2e PR-3D'de. Sıradaki: **PR-3D import UI + gerçek Chromium e2e →
-M16 üretim kapısı**; M19+ ancak ondan sonra. Deploy: `main` push'u Hostinger'a
-otomatik gider (PR-3B..PR-3C yayında).
+değildi (307) → düzeltildi + smoke e2e kilidi.
+
+**PR-3D BİTTİ (18 Temmuz) — PR-3 SERİSİ TAMAM.** Dar UI `/sod/import`
+(dosya+kaynak+mod → dry-run rozetleri → Uygula/stale-409 → manifest geçmişi +
+rollback talep/karar + outbox drenaj butonu), MIME kapı kontrolü
+(`csvDosyasiKabulEdilebilirMi`, çift-uzantı reddi), gerçek Chromium e2e A–E
+(`sod-import.spec.ts`): import+DB doğrulaması / idempotency / stale 409 /
+maker-checker iki-kullanıcı rollback / outbox→değerlendirme gerçek çatışma
+(kurucu #10 kapandı). Testler kirli DB'ye dayanıklı (RESOLVED kalıntılar
+projeksiyonda yeniden sayılabilir — sabit sayı assert edilmez). **654 birim +
+23 e2e, 0 skip; production build yeşil.** M16 üretim kapısı için kalanlar
+ROADMAP'te (özet: #3 uzatma, #5 tetik cron'u, #6 atama UI, #8 dashboard,
+#9 güvenlik testleri). Deploy: `main` push'u Hostinger'a otomatik gider.
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler

@@ -48,6 +48,39 @@ export const IMPORT_LIMITLERI = {
   maxHucreUzunluk: 2_000,
 } as const;
 
+/**
+ * Dosya kabul kontrolü (master talimat §28 PR-3A "MIME güvenliği" — PR-3D'de
+ * kapatılan borç). İçerik güvenliği zaten csvAyristir'da (null-byte, boyut,
+ * formula injection); burası KAPIDAKİ kontrol: yalnız .csv uzantısı ve CSV'ye
+ * makul MIME türleri kabul edilir. İstemcinin beyan ettiği MIME güvenilmez
+ * bir sinyaldir (spoof edilebilir) — bu kontrol savunma katmanlarından
+ * yalnızca İLKİDİR, tek başına güvence değildir; asıl iş içerik taramasında.
+ */
+const KABUL_MIME = new Set([
+  "text/csv",
+  "application/csv",
+  "text/plain",
+  // Windows/Excel .csv'yi böyle beyan edebilir:
+  "application/vnd.ms-excel",
+  // Bazı tarayıcılar tür beyan etmez:
+  "",
+]);
+
+export function csvDosyasiKabulEdilebilirMi(
+  dosyaAdi: string,
+  mimeType: string,
+): { kabul: boolean; neden: string | null } {
+  if (!/\.csv$/i.test(dosyaAdi.trim())) {
+    return { kabul: false, neden: "Yalnızca .csv uzantılı dosya kabul edilir." };
+  }
+  // "text/csv; charset=utf-8" gibi parametreli beyanlar da kabul.
+  const temizMime = mimeType.split(";")[0].trim().toLowerCase();
+  if (!KABUL_MIME.has(temizMime)) {
+    return { kabul: false, neden: `Beklenmeyen dosya türü: ${temizMime || "(boş)"}` };
+  }
+  return { kabul: true, neden: null };
+}
+
 // CSV başlıkları (snake_case) indeksle çözülür — sıra önemsiz. Tam kolon
 // kümesi: external_subject_id, subject_type, display_name, email, role_code,
 // activity_code, system_code, valid_from, valid_to, source, source_record_id.

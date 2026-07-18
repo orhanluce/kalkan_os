@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   csvAyristir,
+  csvDosyasiKabulEdilebilirMi,
   diffHesapla,
   dosyaHash,
   importManifestHash,
@@ -265,5 +266,25 @@ describe("importManifestHash — apply kararının mührü (PR-3B)", () => {
 
   it("64-hex sha256 döndürür", async () => {
     expect(await importManifestHash(cekirdek)).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+describe("csvDosyasiKabulEdilebilirMi — kapı MIME/uzantı kontrolü (PR-3D)", () => {
+  it(".csv uzantısı + makul MIME kabul edilir (parametreli beyan dahil)", () => {
+    expect(csvDosyasiKabulEdilebilirMi("atamalar.csv", "text/csv").kabul).toBe(true);
+    expect(csvDosyasiKabulEdilebilirMi("ATAMALAR.CSV", "text/csv; charset=utf-8").kabul).toBe(true);
+    expect(csvDosyasiKabulEdilebilirMi("a.csv", "application/vnd.ms-excel").kabul).toBe(true);
+    expect(csvDosyasiKabulEdilebilirMi("a.csv", "").kabul).toBe(true); // beyan yok
+  });
+
+  it(".csv olmayan uzantı reddedilir (çift uzantı hilesi dahil)", () => {
+    expect(csvDosyasiKabulEdilebilirMi("zararli.exe", "text/csv").kabul).toBe(false);
+    expect(csvDosyasiKabulEdilebilirMi("rapor.csv.exe", "text/csv").kabul).toBe(false);
+    expect(csvDosyasiKabulEdilebilirMi("veri.xlsx", "application/vnd.ms-excel").kabul).toBe(false);
+  });
+
+  it("beklenmeyen MIME reddedilir", () => {
+    expect(csvDosyasiKabulEdilebilirMi("a.csv", "application/pdf").kabul).toBe(false);
+    expect(csvDosyasiKabulEdilebilirMi("a.csv", "text/html").kabul).toBe(false);
   });
 });

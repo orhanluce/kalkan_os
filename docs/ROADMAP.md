@@ -1339,9 +1339,36 @@ doğrulandı:**
 - **Bilinçli borç:** rollback UI + uçtan uca route e2e'si PR-3D'de. Rollback
   SONRASI değerlendirme drenajı manuel rotada (#5 cron tetiği hâlâ açık).
 
-**KALAN PR-3 aşamaları:**
-- **PR-3D:** dar UI (yükleme/kaynak/mod/dry-run/hata/önizleme/apply/geçmiş/
-  rollback) + gerçek Chromium e2e (A import, B idempotency, C stale, D rollback).
+**✅ PR-3D BİTTİ (18 Temmuz) — PR-3 SERİSİ TAMAM:**
+- **Dar UI `/sod/import`** (master §9.10): dosya+kaynak+mod → dry-run özeti
+  (eklenecek/güncellenecek/değişmeyecek/sona-erdirilecek/satır hatası/beklenen
+  çatışma rozetleri, hata listesi) → Uygula (stale 409 gösterimi + önizleme
+  düşürme) → geçmiş (manifest listesi, rollback talep/karar — kendi talebinde
+  karar butonu görünmez, asıl sınır DB'de) → outbox drenaj butonu. SoD
+  sayfasından giriş linki.
+- **MIME borcu kapandı** (§7 sapması): `csvDosyasiKabulEdilebilirMi`
+  (.csv uzantı + MIME allowlist, çift-uzantı reddi; kapı katmanı — içerik
+  taraması zaten csvAyristir'da) onizle rotasında; 3 birim test.
+- **Gerçek Chromium e2e (A–E)** `sod-import.spec.ts`: A import (UI + DB
+  doğrulaması), B idempotency (0 eklenecek/2 değişmeyecek), C stale 409
+  (dry-run sonrası fixture değişikliği → IMPORT_PREVIEW_STALE görünür),
+  D rollback maker-checker (talep eden karar veremez; İKİNCİ kullanıcı girişiyle
+  onay → atamalar sona erdirildi, silinmedi), E outbox→değerlendirme (drenaj
+  çatışmayı GERÇEKTEN üretir — kurucunun #10 borcu da kapandı). Testler kirli
+  DB durumuna dayanıklı (kalıntı RESOLVED çatışmalar projeksiyonda yeniden
+  sayılabilir — motorun doğru davranışı, sabit sayı assert edilmez).
+- **Doğrulama:** 654 birim (+3) + **23 e2e** (0 skip), production build yeşil,
+  görseller `docs/gorsel-baseline/2026-07-18-pr3d/`.
+- Base UI nativeButton uyarısı düzeltildi (Link + buttonVariants deseni).
+
+**M16 ÜRETİM KAPISI DURUMU (belge §32'ye karşı):** PR-3 serisi (import'un
+tamamı) kapandı; migration'lar staging yerine DOĞRUDAN canlıda denendi (tek
+ortam — bilinen sınır), RLS+guard+idempotency+concurrency testli, audit +
+immutable manifest var, dark/light/mobil doğrulı, deploy+health yeşil. Kapı
+için kurucunun listesinden HÂLÂ AÇIK: #3 istisna uzatma, #5 değerlendirme
+tetikleri (outbox drenajına cron), #6 atama yönetim UI, #8 dashboard
+metrikleri, #9 güvenlik testleri (IDOR/yetki yükseltme taraması). #7 domain
+event kısmen kapalı (outbox `SOD_*` olayları var; e-posta/Slack bilinçli yok).
 - **#3 İstisna uzatma** akışı (yeni gerekçe/risk/süre + bağımsız onay, geçmiş
   silinmez). Süre-kilidi yukarıda kondu; uzatma-kaydı modeli hâlâ yok.
 - **#4 CSV atama içe aktarma** — sağlayıcıdan bağımsız import contract, dry-run
