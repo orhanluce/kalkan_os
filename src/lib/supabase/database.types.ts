@@ -3102,6 +3102,89 @@ export type Database = {
           },
         ]
       }
+      supplier_bank_change_verifications: {
+        Row: {
+          created_at: string
+          dogrulama_notu: string | null
+          dogrulandi_at: string | null
+          dogrulayan: string | null
+          durum: string
+          eski_iban_hash: string | null
+          eski_iban_maskeli: string | null
+          id: string
+          kanit_id: string | null
+          out_of_band_kanal: string
+          talep_eden: string
+          tedarikci_ad: string
+          tenant_id: string
+          yeni_iban_hash: string
+          yeni_iban_maskeli: string
+        }
+        Insert: {
+          created_at?: string
+          dogrulama_notu?: string | null
+          dogrulandi_at?: string | null
+          dogrulayan?: string | null
+          durum?: string
+          eski_iban_hash?: string | null
+          eski_iban_maskeli?: string | null
+          id?: string
+          kanit_id?: string | null
+          out_of_band_kanal: string
+          talep_eden: string
+          tedarikci_ad: string
+          tenant_id: string
+          yeni_iban_hash: string
+          yeni_iban_maskeli: string
+        }
+        Update: {
+          created_at?: string
+          dogrulama_notu?: string | null
+          dogrulandi_at?: string | null
+          dogrulayan?: string | null
+          durum?: string
+          eski_iban_hash?: string | null
+          eski_iban_maskeli?: string | null
+          id?: string
+          kanit_id?: string | null
+          out_of_band_kanal?: string
+          talep_eden?: string
+          tedarikci_ad?: string
+          tenant_id?: string
+          yeni_iban_hash?: string
+          yeni_iban_maskeli?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_bank_change_verifications_dogrulayan_fkey"
+            columns: ["dogrulayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_bank_change_verifications_kanit_id_fkey"
+            columns: ["kanit_id"]
+            isOneToOne: false
+            referencedRelation: "evidences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_bank_change_verifications_talep_eden_fkey"
+            columns: ["talep_eden"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_bank_change_verifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_controls: {
         Row: {
           control_id: string

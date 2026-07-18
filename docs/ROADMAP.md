@@ -355,6 +355,22 @@ CFO Kalkanı MVP. Bilinçli sınır: UI plan-kapılı EKRAN (denetçi alanı vb.
 henüz yok — CFO MVP'de gerçek plan-farklı yüzeylerle gelecek; bugün zorlama
 mevcut SoD yazma yüzeyinde kanıtlandı.
 
+### 1.12 V2 PR-3a — Tedarikçi IBAN değişikliği doğrulama (CFO imza kontrolü, ADR-V2-4) ✅
+
+`supplier_bank_change_verifications` (migration `20260718120000`, canlıda).
+CFO Kalkanı'nın imza kontrolü: IBAN/ana veri değişikliği out-of-band doğrulanır.
+**KALKAN_OS IBAN'ı DEĞİŞTİRMEZ, ödeme başlatmaz (V2 §5.1).** **VERİ
+MİNİMİZASYONU (ADR-V2-4): TAM IBAN SAKLANMAZ** — şemada tam-IBAN kolonu YOK;
+yalnız maskeli gösterim (`TR33 **** 1326`) + sha256(normalize) referans hash'i;
+tam IBAN sunucuya bile gitmez (maske+hash tarayıcıda hesaplanır, `iban.ts`).
+Maker-checker + kimlik-atfı guard'ı (SoD rollback deseni: doğrulayan≠talep_eden,
+karar donuk, kimlik oturum sahibine sabit). Rotalar (`/api/cfo/iban-degisiklik`
++ karar), UI `/cfo/iban-degisiklik`. 5 birim (iban maske/hash) + 8 RLS
+(maker-checker/kimlik/izolasyon/maskesiz-red/tam-IBAN-kolonu-yok) + 1 e2e
+(talep→maker-checker→ikinci-kullanıcı doğrular; DB'de tam IBAN yok doğrulandı).
+**723 birim + 31 e2e, 0 skip.** M12 test motoru yeniden kullanılacak (BEC/
+deepfake tatbikatı, V2 §5.3) — ayrı motor kurulmaz; o dilim PR-3b/sonrası.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket
