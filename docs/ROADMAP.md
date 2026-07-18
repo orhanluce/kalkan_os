@@ -275,6 +275,27 @@ ADR taslakları + plan → **`docs/adr/PR0-master-talimat-kesif-2026-07-18.md`**
   `toHaveScreenshot`a geçilebilir), tablo→mobil kart dönüşümü (bugün yatay
   taşma yok, dar ekranlar kullanılabilir), komut paleti/inspector.
 
+### 1.8 Mimari karar kaydı — 18 Temmuz 2026 gecesi (V2 MVP Stratejisi — PR-0, KOD YOK)
+
+Kurucu yedinci belgeyi verdi: `docs/arastirma/KALKAN_OS_V2_MVP_Strateji_Ek_
+Talimat_2026.md` (V1 master talimatla birlikte okunur; segment/MVP/entitlement/
+PR-sırasında V2 üstün, güvenlik-hukuk-kapıda sıkı olan üstün). İki ürün hattı:
+**KALKAN_OS Regulated** + **CFO Kalkanı** — aynı kontrol/test/kanıt çekirdeği.
+
+**Bu tur yalnız PR-0 (V2 §13):** tam döküm →
+**`docs/adr/PR0-v2-mvp-strateji-2026-07-18.md`** (tek yetkili kaynak):
+- V1 "(1)" kopyası arşivle birebir aynı çıktı (diff); V2 arşivlendi (diff temiz).
+- **M16 kanıt tablosu:** V2 PR-1'in işlevsel maddelerinin TAMAMI repo'da bitmiş
+  (migration/test/commit kanıtlarıyla); kapının açık kalanı PLATFORM maddeleri
+  (staging K1, threat model, backup/rollback prosedürü, AA taraması, dış cron
+  K2) → **ilk implementasyon PR'ı = M16 kapanışı, bu maddeler.**
+- Fark analizi: OrganizationProfile/basis/entitlement/pack/IBAN-doğrulama/
+  partner/analytics/Coverage Ledger YOK; SoD+M12+kanıt kasası+kural 13/14
+  zinciri GÜÇLÜ zemin (yeniden yazılmaz, CFO Kalkanı bunların üstüne oturur).
+- 6 ADR taslağı (V2-1…V2-6) kurucu onayı bekliyor; açık kararlar K1–K7.
+- PR sırası bağlayıcı: M16 kapanışı → Segment+Entitlement → CFO MVP →
+  Regulated dikey dilim → M17 → M18. M16 kapanmadan M17/M18/M19+ kodu YOK.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket
