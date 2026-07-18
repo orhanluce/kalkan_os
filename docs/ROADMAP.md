@@ -191,6 +191,32 @@ Talimatın "Prisma kalıpları"/"BullMQ" varsayımı Karar 2'deki (§1.5) tabloy
 aynı gerekçeyle sessizce Supabase migration + TS tipi + senkron/`pg_cron`'a
 çevrildi — ayrı bir onay istemedi çünkü zaten üç kez reddedilmiş bir karar.
 
+### 1.7 Mimari karar kaydı — 18 Temmuz 2026 (Master Talimat: UI + regülasyon zekâsı — PR-0 KEŞİF, KOD YOK)
+
+Kurucu altıncı belgeyi verdi: `docs/arastirma/KALKAN_OS_Master_Talimat_UI_
+Regulasyon_2026.md` (birebir kopya, diff doğrulı). İki eksen: (A) "Regulatory
+Observatory" tasarım sistemi + responsive kabuk + dark/light tema; (B) M19–M33
+regülasyon zekâsı modülleri (kaynak sicili → temporal korpus → knowledge graph
+→ applicability → legal guard → citation → change radar → düzenleme paketleri).
+
+**Bu tur belgenin §35'i gereği YALNIZ PR-0:** keşif + baseline + envanterler +
+ADR taslakları + plan → **`docs/adr/PR0-master-talimat-kesif-2026-07-18.md`**
+(tek yetkili kaynak; burada özet):
+- Baseline ÖLÇÜLDÜ: 631 birim + 17 e2e, 0 skip (belgedeki 581 bayat).
+- Belgenin PR-3A/3B'si REPO'DA ZATEN BİTMİŞ (§28 kendi talimatıyla tekrar
+  yapılmayacak); MIME kontrolü + import UI PR-3D'ye eşlendi.
+- Hostinger tipi AÇIK KARAR DEĞİL: Seçenek A (managed Node.js) 17 Temmuz'da
+  kanıtla doğrulanmıştı; eksikler (health endpoint, CSP, rollback prosedürü)
+  PR-1 planına girdi.
+- 4 ADR taslağı kurucu onayı bekliyor: T1 token sistemi (shadcn adları korunur,
+  belge renkleri değer olarak girer), T2 tema (paketsiz inline script + cookie +
+  profil tercihi), T3 ortak hukuk verisi ↔ tenant ayrımı (kural 1'in kapsam
+  netleşmesi: ortak referans tablosuna tenant_id UYDURULMAZ), T4 kaynak erişim
+  politikası + "bugün worker yok" kararı.
+- Sıra: PR-1 UI foundation → PR-2 ekran taşıma → PR-3C rollback → PR-3D import
+  UI + e2e + **M16 üretim kapısı** → ancak ondan sonra M19+ (PR-4 kaynak sicili).
+  M17/M18 kodu M16 kapısından önce YOK (belge de aynı şeyi söylüyor).
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket
@@ -935,7 +961,7 @@ muafiyet / varsa manuel override" izini üretmeli — bu M14 uygulanırken eklen
   teknik restore başarılı ama mutabakat başarısızsa `Recovered` sayılmaz;
   rapor düzenlemesi önceki gönderimi değiştirmez, yeni sürüm doğar.
 
-### M16 — Görevler Ayrılığı ve Telafi Edici Kontroller (SPK notları §5) ⏳ dikey dilim + süre-dolumu + PR-3A (import dry-run) ✅; apply/rollback/UI/tetikler/dashboard ✗
+### M16 — Görevler Ayrılığı ve Telafi Edici Kontroller (SPK notları §5) ⏳ dikey dilim + süre-dolumu + PR-3A (dry-run) + PR-3B (atomik apply) ✅; rollback/UI/tetikler/dashboard ✗
 
 **Tamamlanan (18 Temmuz 2026):** şema (`sod_kurallari`/`sod_kural_taraflari`/
 `sod_atamalari`/`sod_catismalari`/`sod_istisnalari`/`sod_telafi_edici_kontroller`/
@@ -1178,11 +1204,49 @@ değiştirmez:**
   externalSubjectId`; e-posta ipucu, otomatik-link yok) — tam çözümleme 3B/
   sonrası. Route e2e'si (upload→dry-run) 3D'de (kurucu split'i).
 
+**✅ PR-3B BİTTİ (18 Temmuz, migration `20260718040000`) — canlı smoke ile
+doğrulandı:**
+- **Atomik apply** tek plpgsql fonksiyonunda (`sod_import_uygula`): stale
+  yeniden-kontrol → ekle/güncelle/sona-erdir → manifest → outbox → önizleme
+  APPLIED, hepsi tek transaction. Yarı-uygulanmış import olamaz (STALE testi:
+  reddedilince HİÇBİR şey yazılmadı — atomiklik kanıtlı).
+- **Stale 409:** apply-öncesi güncel atama snapshot + kural seti hash'i TS'te
+  yeniden hesaplanır (`onizlemeBayatMi`); farklıysa önizleme STALE'e taşınır,
+  409 `IMPORT_PREVIEW_STALE`. Fonksiyon kilit altında ikinci kez de kontrol eder.
+- **Sona-erdirme FİZİKSEL SİLME DEĞİL** (kural 2 ruhu): yalnız `gecerlilik_bitis`
+  atanır; SNAPSHOT modunda kaynakta olmayan atamalar sona erdirilir.
+- **İdempotency üç katman:** (a) önizleme durum kilidi (`for update` +
+  READY_FOR_REVIEW kontrolü — çift-apply reddi canlıda doğrulandı), (b) manifest
+  `unique(onizleme_id)`, (c) atama partial unique index + apply `ON CONFLICT`
+  upsert (aynı kaynak kaydı iki atama üretmez).
+- **Transactional-outbox** (kural 4, BullMQ YOK): apply "SoD yeniden
+  değerlendirilmeli" olayını `sod_outbox`'a AYNI transaction'da yazar; drenaj
+  rotası (`POST /api/sod/outbox/isle`) bekleyenleri çekip BİR değerlendirme
+  koşar (ortak `sod-kosu.ts` — elle "Değerlendir" ile aynı mantık) ve olayları
+  DONE'a taşır.
+- **Import manifesti:** `sod_import_manifestleri` (append-only, RLS) uygulanmış
+  içe aktarmanın değişmez kaydı; `manifestHash` (kanonik, kural 15) apply
+  kararını mühürler + PR-3A'nın dört bütünlük demiri.
+- Rota `POST /api/sod/import/[onizlemeId]/uygula` (admin/uyum): RLS altında
+  önizleme okur (IDOR yok), stale kontrol, sonra **service_role** ile atomik
+  RPC. Fonksiyonun execute'u authenticated/anon'dan revoke edildi (doğrudan
+  çağrı ile tenant atlama yok); service_role Supabase default-privilege ile
+  çağırabiliyor (canlı smoke ile kanıtlı — PGlite≠Supabase farkı).
+- **Testler:** `rls-sod-import-apply.test.ts` (7 — atomik apply/stale/çift-apply/
+  idempotent-upsert + manifest/outbox RLS + append-only + execute-revoke),
+  `sod-import.test.ts` +3 (manifestHash determinizm). **631 birim + 17 e2e,
+  sıfır skip.** Canlı smoke: geçici kiracıda round-trip + guard, sonra cascade
+  temizlik (audit zinciri kirletilmedi).
+- **Bilinçli borç:** kimlik çözümleme minimal (harici = `kaynak:externalSubjectId`,
+  profiles'a otomatik-link yok — PR-3A ile aynı). Değerlendirme `gecerlilik_bitis`
+  filtrelemiyor (sona-erdirilen atama motorda hâlâ görünür — mevcut davranış
+  korundu, #5/#8'e bırakıldı). Apply route + drenaj + apply→outbox→değerlendirme
+  uçtan-uca e2e'si PR-3D'de (kurucu split'i).
+- **Bilinçli borç (yarış):** TS stale-okuma ile RPC çağrısı arası dar pencere
+  fonksiyon-içi hash kontrolü + önizleme kilidiyle daraltıldı ama tümüyle
+  kapatılmadı; çift-apply yarışı `for update` ile TAM kapalı.
+
 **KALAN PR-3 aşamaları:**
-- **PR-3B:** dry-run üzerinden atomik apply, apply-öncesi hash yeniden
-  doğrulama (stale → 409), DELTA/SNAPSHOT uygulama, sona-erdirme (fiziksel
-  silme yok), idempotency, transactional-outbox SoD değerlendirmesi, import
-  manifesti.
 - **PR-3C:** rollback (ters değişiklik seti, fiziksel silme yok) + bağımsız
   onay (uygulayan kendi rollback'ini onaylayamaz).
 - **PR-3D:** dar UI (yükleme/kaynak/mod/dry-run/hata/önizleme/apply/geçmiş/
