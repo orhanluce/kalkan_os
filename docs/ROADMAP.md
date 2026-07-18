@@ -1393,8 +1393,18 @@ event kısmen kapalı (outbox `SOD_*` olayları var; e-posta/Slack bilinçli yok
   (route'u çağıran gerçek cron — servis-token'lı uç ister, ayrı ADR).
 - **#6 Atama yönetim UI'ı** (dar sürüm — liste/filtre/CSV/dry-run/import geçmişi).
 - **#7 Domain event'ler** (`SOD_*` — sağlayıcıdan bağımsız; e-posta/Slack yok).
-- **#8 Üretim dashboard'u** (bugün `/sod` özet var ama kurucunun istediği tüm
-  metrikler — kapsama oranı, importtan sonra yeni çatışmalar vb. — eksik).
+- ✅ **#8 Üretim dashboard'u BİTTİ** (18 Temmuz): `/sod`'a dört kartlık
+  Üretim Panosu — **Kapsama** (aktif kural/kişi/aktif atama; sona ermiş atama
+  paydası; taraf tanımı eksik = "değerlendirilemiyor" unknown rozeti),
+  **Kural Doğrulama** (VERIFIED/TODO_DOGRULA/INTERNAL — kural 3 görünürlüğü),
+  **Çatışma Yaşam Döngüsü** (açık/incelemede/kontrol-altında/kapalı — durumlar
+  birleştirilmez, gruplar yalnız sunum), **İzleme Sinyalleri** (14 gün içinde
+  dolacak istisna; SON IMPORT SONRASI yeni çatışma — import yoksa null, 0 ile
+  karıştırılmaz). Türetme SAF katmanda (`sod-metrikler.ts`, enjekte `simdi`,
+  7 birim test — kural 11); master §9.1 gereği TEK BİRLEŞİK SKOR YOK, payda
+  ve belirsizlik her kartta görünür. e2e: pano kartları gerçek Chromium'da
+  assert edilir. Bilinçli sınır: sona ermiş atamalar değerlendirmeden henüz
+  çıkarılmıyor (mevcut motor davranışı — panoda payda olarak DÜRÜSTÇE yazıyor).
 - ✅ **#9 Güvenlik testleri BİTTİ (VE ÜÇ GERÇEK AÇIK YAKALADI)** (18 Temmuz,
   `20260718070001`): `rls-guvenlik-sod.test.ts` önce migration'suz KIRMIZI
   koşularak açıklar KANITLANDI — (1) istisna başkası adına talep edilebiliyordu

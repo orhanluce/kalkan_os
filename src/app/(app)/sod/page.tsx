@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/lib/auth";
+import { sodMetrikleriHesapla, type SodMetrikleri } from "@/lib/sod-metrikler";
 import { createClient } from "@/lib/supabase/client";
 import {
   ONEM_LABEL,
@@ -58,6 +59,7 @@ export default function SodPage() {
 
   const [kurallar, setKurallar] = useState<SodKuralSatiri[]>([]);
   const [catismalar, setCatismalar] = useState<SodCatismaSatiri[]>([]);
+  const [metrikler, setMetrikler] = useState<SodMetrikleri | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState<string | null>(null);
   const [islemSuruyor, setIslemSuruyor] = useState(false);
@@ -77,25 +79,65 @@ export default function SodPage() {
 
   const yukle = useCallback(async () => {
     const db = createClient();
-    const [{ data: k }, { data: c }, { data: sonRun }] = await Promise.all([
-      db
-        .from("sod_kurallari")
-        .select("id, kod, ad, durum, onem, kaynak_turu, kaynak_referansi, mevzuat_durumu")
-        .order("created_at", { ascending: true }),
-      db
-        .from("sod_catismalari")
-        .select("id, rule_id, sistem_kapsami, onem, durum, ilk_gorulme_at, son_gorulme_at")
-        .order("son_gorulme_at", { ascending: false }),
-      db
-        .from("sod_degerlendirme_calistirmalari")
-        .select("bitis_at")
-        .order("baslama_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
+    const [{ data: k }, { data: c }, { data: sonRun }, { data: taraflar }, { data: atamalar }, { data: istisnalar }, { data: sonImport }] =
+      await Promise.all([
+        db
+          .from("sod_kurallari")
+          .select("id, kod, ad, durum, onem, kaynak_turu, kaynak_referansi, mevzuat_durumu")
+          .order("created_at", { ascending: true }),
+        db
+          .from("sod_catismalari")
+          .select("id, rule_id, sistem_kapsami, onem, durum, ilk_gorulme_at, son_gorulme_at")
+          .order("son_gorulme_at", { ascending: false }),
+        db
+          .from("sod_degerlendirme_calistirmalari")
+          .select("bitis_at")
+          .order("baslama_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        // Üretim panosu (M16 #8) ham malzemesi — türetme saf katmanda
+        // (src/lib/sod-metrikler.ts), burada yalnız okuma.
+        db.from("sod_kural_taraflari").select("rule_id, taraf"),
+        db.from("sod_atamalari").select("kullanici_id, harici_kullanici_id, gecerlilik_bitis"),
+        db.from("sod_istisnalari").select("durum, bitis"),
+        db
+          .from("sod_import_manifestleri")
+          .select("created_at, kaynak")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
     setKurallar(k ?? []);
     setCatismalar(c ?? []);
     setSonCalistirma(sonRun?.bitis_at ?? null);
+
+    // Tam tanımlı kural: hem A hem B tarafı var — motor ancak bunları
+    // değerlendirebilir; eksikler panoda 'unknown' olarak görünür.
+    const tarafSayaci = new Map<string, Set<string>>();
+    for (const t of taraflar ?? []) {
+      const s = tarafSayaci.get(t.rule_id) ?? new Set<string>();
+      s.add(t.taraf);
+      tarafSayaci.set(t.rule_id, s);
+    }
+    const tamTanimli = new Set(
+      [...tarafSayaci.entries()].filter(([, s]) => s.has("A") && s.has("B")).map(([id]) => id),
+    );
+    setMetrikler(
+      sodMetrikleriHesapla(
+        {
+          kurallar: (k ?? []).map((x) => ({ id: x.id, durum: x.durum, mevzuat_durumu: x.mevzuat_durumu })),
+          tamTanimliKuralIdleri: tamTanimli,
+          atamalar: (atamalar ?? []).map((a) => ({
+            kisiKimligi: a.kullanici_id ?? a.harici_kullanici_id ?? "BILINMEYEN",
+            gecerlilik_bitis: a.gecerlilik_bitis,
+          })),
+          catismalar: (c ?? []).map((x) => ({ durum: x.durum, ilk_gorulme_at: x.ilk_gorulme_at })),
+          istisnalar: istisnalar ?? [],
+          sonImport: sonImport ?? null,
+        },
+        new Date(),
+      ),
+    );
     setYukleniyor(false);
   }, []);
 
@@ -263,6 +305,87 @@ export default function SodPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* --- ÜRETİM PANOSU (M16 #8) --- Tek birleşik skor YOK (master §9.1):
+          her metrik paydası ve belirsizliğiyle ayrı; "değerlendirilemeyen"
+          gizlenmez. Türetme saf katmanda (sod-metrikler.ts, kural 11). */}
+      {metrikler && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Kapsama</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-1.5 text-sm">
+              <span>
+                <strong className="tabular-nums">{metrikler.kapsama.aktifKural}</strong> aktif kural ·{" "}
+                <strong className="tabular-nums">{metrikler.kapsama.kisiSayisi}</strong> kişi ·{" "}
+                <strong className="tabular-nums">{metrikler.kapsama.aktifAtama}</strong> aktif atama
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {metrikler.kapsama.sonaErmisAtama} sona ermiş atama (değerlendirme dışına M16 borcu
+                gereği henüz çıkarılmıyor)
+              </span>
+              {metrikler.kapsama.eksikTanimliKural > 0 && (
+                <StatusBadge durum="unknown">
+                  {metrikler.kapsama.eksikTanimliKural} kural değerlendirilemiyor (taraf tanımı eksik)
+                </StatusBadge>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Kural Doğrulama (kural 3)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              <StatusBadge durum="success">Doğrulanmış: {metrikler.mevzuat.verified}</StatusBadge>
+              <StatusBadge durum="legal-review">Doğrulanmadı: {metrikler.mevzuat.todoDogrula}</StatusBadge>
+              <StatusBadge durum="neutral">İç kural: {metrikler.mevzuat.internal}</StatusBadge>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Çatışma Yaşam Döngüsü
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              <StatusBadge durum="danger">Açık: {metrikler.catisma.acik}</StatusBadge>
+              <StatusBadge durum="info">İncelemede: {metrikler.catisma.incelemede}</StatusBadge>
+              <StatusBadge durum="legal-review">
+                Kontrol altında: {metrikler.catisma.kontrolAltinda}
+              </StatusBadge>
+              <StatusBadge durum="success">Kapalı: {metrikler.catisma.kapali}</StatusBadge>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                İzleme Sinyalleri
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2 text-sm">
+              <StatusBadge durum={metrikler.yaklasanIstisna > 0 ? "warning" : "success"}>
+                Süresi yaklaşan istisna: {metrikler.yaklasanIstisna}
+              </StatusBadge>
+              {metrikler.importSonrasiYeniCatisma === null ? (
+                <StatusBadge durum="unknown">Henüz içe aktarma yok</StatusBadge>
+              ) : (
+                <StatusBadge durum={metrikler.importSonrasiYeniCatisma > 0 ? "warning" : "success"}>
+                  Son import sonrası yeni çatışma: {metrikler.importSonrasiYeniCatisma}
+                </StatusBadge>
+              )}
+              {metrikler.sonImport && (
+                <span className="text-xs text-muted-foreground">
+                  Son import: {metrikler.sonImport.kaynak} ·{" "}
+                  {new Date(metrikler.sonImport.created_at).toLocaleString("tr-TR")}
+                </span>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* --- KURAL LİSTESİ --- */}
       <Card>

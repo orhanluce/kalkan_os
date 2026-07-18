@@ -134,9 +134,16 @@ guard'lı (aynı çatışma + karara bağlanmış önceki + ileri tarih); bağı
 zinciri uzatmaya otomatik işler. UI `sod/[id]`'de "Uzatma Talep Et" + "Uzatma"
 rozeti; sod.spec e2e'si dolmuş→REOPENED→uzatma→ikinci-kullanıcı-onayı akışını
 sürüyor. Vitest global timeout 60sn'ye çekildi (PGlite yük-flake sınıfı — üç
-koşuda üç farklı dosyada aynı desen; assert değişmedi). **670 birim + 23 e2e,
-0 skip; production build yeşil.** M16 kapısı için kalan: #6 atama UI, #8
-dashboard + dış cron ADR'si. Deploy: `main` push'u Hostinger'a otomatik gider.
+koşuda üç farklı dosyada aynı desen; assert değişmedi).
+
+**#8 Üretim panosu BİTTİ (18 Temmuz):** `/sod`'a dört kart — Kapsama (payda
+görünür; eksik taraf = unknown "değerlendirilemiyor"), Kural Doğrulama
+(kural 3), Çatışma Yaşam Döngüsü (durumlar birleşmez), İzleme Sinyalleri
+(yaklaşan istisna + SON IMPORT SONRASI yeni çatışma; import yoksa null ≠ 0).
+Türetme saf `sod-metrikler.ts` (7 birim test, kural 11); master §9.1: tek
+birleşik skor YOK. **677 birim + 24 e2e, 0 skip; production build yeşil.**
+M16 kapısı için kalan: #6 atama UI + dış cron ADR'si. Deploy: `main` push'u
+Hostinger'a otomatik gider.
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler

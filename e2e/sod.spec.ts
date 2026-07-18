@@ -117,6 +117,28 @@ test("kural→çatışma→istisna→onay→telafi edici kontrol→durum", async
 // kanıtı. Onaylı istisna + geçmiş bitiş service client ile kurulur (gerçekte
 // zamanla oluşur), süre-dolumu İŞİ çağrılır, ve çatışmanın UI'da yeniden AÇIK
 // göründüğü doğrulanır.
+test("üretim panosu (M16 #8): kapsama, doğrulama, yaşam döngüsü ve izleme sinyalleri görünür", async ({
+  page,
+}) => {
+  await girisYap(page);
+  await page.goto("/sod");
+  // Dört pano kartı da render olur; sayılar ortam durumuna bağlı olduğundan
+  // varlık + payda görünürlüğü assert edilir (tek birleşik skor YOK).
+  await expect(page.getByText("Kapsama", { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("aktif kural")).toBeVisible();
+  await expect(page.getByText("Kural Doğrulama (kural 3)")).toBeVisible();
+  await expect(page.getByText(/Doğrulanmış: \d+/)).toBeVisible();
+  await expect(page.getByText("Çatışma Yaşam Döngüsü")).toBeVisible();
+  await expect(page.getByText(/Açık: \d+/)).toBeVisible();
+  await expect(page.getByText("İzleme Sinyalleri")).toBeVisible();
+  await expect(page.getByText(/Süresi yaklaşan istisna: \d+/)).toBeVisible();
+  // Import geçmişi olan ortamda "son import sonrası" sinyali; olmayanda
+  // dürüst "Henüz içe aktarma yok" — ikisinden biri MUTLAKA görünür.
+  await expect(
+    page.getByText(/Son import sonrası yeni çatışma: \d+|Henüz içe aktarma yok/),
+  ).toBeVisible();
+});
+
 test("süresi dolan istisna çatışmayı yeniden açar (REOPENED)", async ({ page }) => {
   test.setTimeout(60_000);
   const db = admin();
