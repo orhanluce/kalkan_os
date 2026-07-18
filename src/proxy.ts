@@ -34,7 +34,11 @@ import { supabaseAyarlari } from "./lib/supabase/env";
  * (Bu satır canlı deploy doğrulamasında yakalandı: /health/live 307 → /giris
  * dönüyordu.)
  */
-const ACIK_YOLLAR = ["/giris", "/paylasim", "/auth", "/dogrula", "/health"];
+// /proof da /paylasim gibi BİLİNÇLİ açıktır (G1 Proof Room): denetçi/regülatör
+// hesabı olmadan süreli token'la girer; kapsam/süre/iptal proof_room_goruntule
+// RPC'sinde. (/health dersi: açık yol listesinden eksik kalan oturumsuz sayfa
+// canlıda 307'ye düşer — smoke e2e bunu da kilitliyor.)
+const ACIK_YOLLAR = ["/giris", "/paylasim", "/auth", "/dogrula", "/health", "/proof"];
 
 function acikYolMu(pathname: string): boolean {
   return ACIK_YOLLAR.some((yol) => pathname === yol || pathname.startsWith(`${yol}/`));

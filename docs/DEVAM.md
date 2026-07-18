@@ -71,9 +71,11 @@ doğrulayıcı rolü). QRegu döneminde teslim edilenler (ROADMAP §1.16-1.19):
    **BİTTİ** (ROADMAP §1.19).
 
 **GATE SIRASI (nihai §8; ayrıntı fark-analizi ADR'sinde):**
-1. **G1 kapanış dilimi:** Proof Room (paylasim genişletmesi: süreli salt-okur
-   alanda artifact/receipt/verifier sonucu) — kod tarafında kalan tek büyük
-   parça; ≥20 kontrol İÇERİĞİ ve ≥5 gerçek test tanımı KURUCU teslimi bekler.
+1. ~~**G1 kapanış dilimi: Proof Room**~~ **BİTTİ** (ROADMAP §1.21): süreli/
+   iptal edilebilir oturumsuz koşu görünümü + RPC + güvenlik testleri + e2e.
+   G1'in kalan kod borcu KÜÇÜK: koşu satırından link üretme UI butonu.
+   G1 kapanışının gerçek blocker'ı hâlâ KURUCU İÇERİK teslimi (≥20 doğrulanmış
+   SPK/7545 kontrolü + ≥5 gerçek test tanımı + hukuk doğrulayıcı rolü K8).
 2. **G2 — M34 Policy Lifecycle:** yeni kod alanı (PolicyDocument/Version/
    Clause/Approval/Attestation/Exception/Impact; draft→review→approved→
    effective→retired state machine; preparer≠approver — dört-göz deseni

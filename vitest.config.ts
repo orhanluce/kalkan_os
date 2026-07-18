@@ -22,10 +22,15 @@ export default defineConfig({
     // sayısı arttıkça tam-takım paralel koşuda dosya başına maliyet artıyor
     // (18 Temmuz: rls-simulasyon-manifest izole 18.8s, tam takımda 58s).
     // Snapshot-klon (pg.ts) ile dosya başı "50+ migration uygula" maliyeti
-    // "binary snapshot yükle"ye indi — tam takım ~66s'den ~34s'ye düştü ve
-    // geçici 90sn tavanı artık gereksiz. 20sn, yük altında gerçek takılmayı
-    // yakalarken snapshot klonuna bol pay bırakır.
+    // "binary snapshot yükle"ye indi — tam takım ~66s'den ~34s'ye düştü.
     testTimeout: 20_000,
-    hookTimeout: 20_000,
+    // hookTimeout AYRI ve daha yüksek: şablon dump'ı DOSYA BAŞINA bir kez
+    // üretilir (vitest her dosyayı ayrı modül bağlamında koşar) ve migration
+    // seti 47'ye çıkınca paralel tam takımda İLK beforeEach'ler 20sn'yi
+    // aşmaya başladı (18 Temmuz gece: bir koşuda 14 dosyanın ilk testi aynı
+    // hook-timeout deseniyle düştü; hepsi izole yeşil — assert hatası değil,
+    // ilk-klon maliyeti). 60sn ilk kurulum için pay bırakır; gerçek test
+    // takılmalarını 20sn'lik testTimeout yakalamaya devam eder.
+    hookTimeout: 60_000,
   },
 });

@@ -1636,6 +1636,61 @@ export type Database = {
           },
         ]
       }
+      proof_room_links: {
+        Row: {
+          created_at: string
+          id: string
+          iptal_edildi: boolean
+          olusturan: string | null
+          son_gecerlilik: string
+          tenant_id: string
+          test_run_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          iptal_edildi?: boolean
+          olusturan?: string | null
+          son_gecerlilik: string
+          tenant_id: string
+          test_run_id: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          iptal_edildi?: boolean
+          olusturan?: string | null
+          son_gecerlilik?: string
+          tenant_id?: string
+          test_run_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proof_room_links_olusturan_fkey"
+            columns: ["olusturan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proof_room_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proof_room_links_test_run_id_fkey"
+            columns: ["test_run_id"]
+            isOneToOne: false
+            referencedRelation: "test_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provisions: {
         Row: {
           baslik: string | null
@@ -3991,6 +4046,7 @@ export type Database = {
         Returns: string
       }
       paylasim_goruntule: { Args: { p_token: string }; Returns: Json }
+      proof_room_goruntule: { Args: { p_token: string }; Returns: Json }
       simulation_manifest_durumu: {
         Args: { target_manifest_id: string }
         Returns: string

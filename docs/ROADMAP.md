@@ -554,6 +554,31 @@ PrivacyOps (G6), M37 AI Assurance (G5), M38 Regulatory Engagement (G7),
 M39 Connector Hub (G3), M40 Risk/Board (G8), M41 Partner Network (G7).**
 Mevcut milestone numaraları değişmedi; rapor formatı artık nihai §15.
 
+### 1.21 G1 kapanış dilimi — Proof Room ✅ (18 Temmuz gece)
+
+Migration `20260718220000` (canlıda): `proof_room_links` (koşu-scope'lu,
+süreli, iptal edilebilir; DELETE yok — iptal iz bırakır; oluşturma admin/uyum
+RLS'i) + `proof_room_goruntule` security-definer RPC (paylasim_goruntule
+disiplini: geçersiz/dolmuş/iptal token AYNI null; her görüntüleme audit'e —
+aktör yok, token detaya yazılmaz; veri minimizasyonu: kanıt yalnız id+hash,
+hüküm yalnız 240 karakter snippet, kullanıcı kimliği dönmez; cross-tenant
+koruması: link başka kiracının koşusuna işaret ederse null). Rota
+`POST /api/proof-room` (oluştur/iptal — service_role YOK, RLS her şeyi
+sınırlar). Oturumsuz sayfa `/proof/[token]` (proxy açık yoluna eklendi —
+/health dersi): koşu sonucu + yasal dayanak kararı + kaynak zinciri +
+applicability + sitasyon paketi TARAYICIDA üretilir ve İNDİRİLİR (denetçi
+`verify-sitasyon.ts` ile DB'siz doğrular; paket İMZASIZ_HASH_BUTUNLUKLU).
+Dayanak eşlemesi olmayan kontrol dürüstçe "dayanak iddiası yok" der. Testler:
+rls-proof-room 4/4 (nihai §12 "token scope/expiry": misafir oluşturamaz,
+expiry/iptal/geçersiz aynı ret, cross-tenant null, audit) + `proof-room.
+spec.ts` e2e (koşu→link→OTURUMSUZ context görüntüleme→expiry→iptal).
+**Altyapı düzeltmesi:** migration 47'ye çıkınca tam-takım paralel koşuda
+14 dosyanın İLK beforeEach'i (PGlite şablon üretimi) 20sn hook-timeout'a
+takıldı (hepsi izole yeşil — assert değil ilk-klon maliyeti) →
+`vitest.config.ts` hookTimeout 60sn (testTimeout 20sn kaldı; gerekçe yorumda).
+Kalan G1 borcu: koşu satırından link üretme UI butonu (bugün API'den; dar UI
+sonraki dilim) + kurucu İÇERİK teslimi (≥20 kontrol).
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket
