@@ -197,6 +197,76 @@ export type Database = {
           },
         ]
       }
+      applicability_decisions: {
+        Row: {
+          created_at: string
+          durum: string
+          fact_snapshot: Json
+          fact_snapshot_fingerprint: string
+          gerekce: string | null
+          id: string
+          karar_kaynagi: string
+          kosul: string | null
+          obligation_id: string
+          onay_zamani: string | null
+          onaylayan: string | null
+          superseded_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          durum: string
+          fact_snapshot: Json
+          fact_snapshot_fingerprint: string
+          gerekce?: string | null
+          id?: string
+          karar_kaynagi?: string
+          kosul?: string | null
+          obligation_id: string
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          superseded_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          durum?: string
+          fact_snapshot?: Json
+          fact_snapshot_fingerprint?: string
+          gerekce?: string | null
+          id?: string
+          karar_kaynagi?: string
+          kosul?: string | null
+          obligation_id?: string
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          superseded_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicability_decisions_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicability_decisions_onaylayan_fkey"
+            columns: ["onaylayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicability_decisions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           actor_id: string | null
@@ -1022,6 +1092,68 @@ export type Database = {
           },
         ]
       }
+      execution_legal_snapshots: {
+        Row: {
+          control_id: string
+          created_at: string
+          id: string
+          karar: string
+          snapshot: Json
+          tenant_id: string
+          test_definition_id: string
+          test_run_id: string | null
+        }
+        Insert: {
+          control_id: string
+          created_at?: string
+          id?: string
+          karar: string
+          snapshot: Json
+          tenant_id: string
+          test_definition_id: string
+          test_run_id?: string | null
+        }
+        Update: {
+          control_id?: string
+          created_at?: string
+          id?: string
+          karar?: string
+          snapshot?: Json
+          tenant_id?: string
+          test_definition_id?: string
+          test_run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "execution_legal_snapshots_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "execution_legal_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "execution_legal_snapshots_test_definition_id_fkey"
+            columns: ["test_definition_id"]
+            isOneToOne: false
+            referencedRelation: "control_test_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "execution_legal_snapshots_test_run_id_fkey"
+            columns: ["test_run_id"]
+            isOneToOne: false
+            referencedRelation: "test_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       findings: {
         Row: {
           aksiyon_plani: string | null
@@ -1131,6 +1263,139 @@ export type Database = {
           yururluk_tarihi?: string | null
         }
         Relationships: []
+      }
+      obligation_control_mappings: {
+        Row: {
+          control_id: string
+          created_at: string
+          dogrulama_durumu: string
+          dogrulama_zamani: string | null
+          dogrulayan: string | null
+          eklenme_kaynagi: string
+          gerekce: string | null
+          id: string
+          kapsam: string
+          obligation_id: string
+          updated_at: string
+        }
+        Insert: {
+          control_id: string
+          created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          eklenme_kaynagi?: string
+          gerekce?: string | null
+          id?: string
+          kapsam?: string
+          obligation_id: string
+          updated_at?: string
+        }
+        Update: {
+          control_id?: string
+          created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          eklenme_kaynagi?: string
+          gerekce?: string | null
+          id?: string
+          kapsam?: string
+          obligation_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obligation_control_mappings_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "obligation_control_mappings_dogrulayan_fkey"
+            columns: ["dogrulayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "obligation_control_mappings_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "obligations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      obligations: {
+        Row: {
+          amac: string
+          baslik: string
+          created_at: string
+          dogrulama_durumu: string
+          dogrulama_zamani: string | null
+          dogrulayan: string | null
+          eklenme_kaynagi: string
+          id: string
+          kanit_gereksinimi: string | null
+          kod: string
+          nitelik: string
+          provision_id: string
+          siklik: string | null
+          son_tarih_kurali: string | null
+          updated_at: string
+        }
+        Insert: {
+          amac: string
+          baslik: string
+          created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          eklenme_kaynagi?: string
+          id?: string
+          kanit_gereksinimi?: string | null
+          kod: string
+          nitelik?: string
+          provision_id: string
+          siklik?: string | null
+          son_tarih_kurali?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amac?: string
+          baslik?: string
+          created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          eklenme_kaynagi?: string
+          id?: string
+          kanit_gereksinimi?: string | null
+          kod?: string
+          nitelik?: string
+          provision_id?: string
+          siklik?: string | null
+          son_tarih_kurali?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obligations_dogrulayan_fkey"
+            columns: ["dogrulayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "obligations_provision_id_fkey"
+            columns: ["provision_id"]
+            isOneToOne: false
+            referencedRelation: "provisions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organization_profiles: {
         Row: {
@@ -1341,6 +1606,59 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provisions: {
+        Row: {
+          baslik: string | null
+          created_at: string
+          dogrulama_durumu: string
+          effective_from: string
+          effective_to: string | null
+          eklenme_kaynagi: string
+          id: string
+          metin: string
+          provision_ref: string
+          source_artifact_id: string
+          system_from: string
+          system_to: string | null
+        }
+        Insert: {
+          baslik?: string | null
+          created_at?: string
+          dogrulama_durumu?: string
+          effective_from: string
+          effective_to?: string | null
+          eklenme_kaynagi?: string
+          id?: string
+          metin: string
+          provision_ref: string
+          source_artifact_id: string
+          system_from?: string
+          system_to?: string | null
+        }
+        Update: {
+          baslik?: string | null
+          created_at?: string
+          dogrulama_durumu?: string
+          effective_from?: string
+          effective_to?: string | null
+          eklenme_kaynagi?: string
+          id?: string
+          metin?: string
+          provision_ref?: string
+          source_artifact_id?: string
+          system_from?: string
+          system_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provisions_source_artifact_id_fkey"
+            columns: ["source_artifact_id"]
+            isOneToOne: false
+            referencedRelation: "source_artifacts"
             referencedColumns: ["id"]
           },
         ]
