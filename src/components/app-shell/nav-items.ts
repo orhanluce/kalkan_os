@@ -6,6 +6,7 @@
 // belge IA'sında yoktu; canlı modül silinmez, Güvence altında "Tatbikatlar"
 // olarak yaşar (PR-0 sapma kaydı).
 import {
+  Bot,
   Boxes,
   FileWarning,
   FlaskConical,
@@ -88,6 +89,10 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
     {
       baslik: "Gizlilik",
       ogeler: [{ href: "/gizlilik", etiket: "KVKK / Gizlilik", Ikon: Lock }],
+    },
+    {
+      baslik: "Yapay Zeka",
+      ogeler: [{ href: "/ai-guvence", etiket: "AI Güvence", Ikon: Bot }],
     },
     { baslik: "Yönetim", ogeler: [{ href: "/paylasim", etiket: "Paylaşım", Ikon: Share2 }] },
   ];

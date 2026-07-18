@@ -74,6 +74,222 @@ export type Database = {
           },
         ]
       }
+      ai_agents: {
+        Row: {
+          ad: string
+          ai_system_id: string
+          created_at: string
+          devre_disi_at: string | null
+          durum: string
+          id: string
+          insan_onay_gerekli: boolean
+          izinli_araclar: string[]
+          service_identity: string | null
+          tenant_id: string
+          updated_at: string
+          yazma_yetkisi: boolean
+        }
+        Insert: {
+          ad: string
+          ai_system_id: string
+          created_at?: string
+          devre_disi_at?: string | null
+          durum?: string
+          id?: string
+          insan_onay_gerekli?: boolean
+          izinli_araclar?: string[]
+          service_identity?: string | null
+          tenant_id: string
+          updated_at?: string
+          yazma_yetkisi?: boolean
+        }
+        Update: {
+          ad?: string
+          ai_system_id?: string
+          created_at?: string
+          devre_disi_at?: string | null
+          durum?: string
+          id?: string
+          insan_onay_gerekli?: boolean
+          izinli_araclar?: string[]
+          service_identity?: string | null
+          tenant_id?: string
+          updated_at?: string
+          yazma_yetkisi?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agents_ai_system_id_fkey"
+            columns: ["ai_system_id"]
+            isOneToOne: false
+            referencedRelation: "ai_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_execution_receipts: {
+        Row: {
+          ai_agent_id: string | null
+          ai_system_id: string
+          amac: string
+          confidence: number | null
+          created_at: string
+          fingerprint: string | null
+          id: string
+          karar: string
+          kaynak_hash: string[]
+          model_id: string | null
+          model_saglayici: string | null
+          model_surum: string | null
+          prompt_hash: string | null
+          reviewer: string | null
+          reviewer_karar_zamani: string | null
+          tenant_id: string
+        }
+        Insert: {
+          ai_agent_id?: string | null
+          ai_system_id: string
+          amac: string
+          confidence?: number | null
+          created_at?: string
+          fingerprint?: string | null
+          id?: string
+          karar?: string
+          kaynak_hash?: string[]
+          model_id?: string | null
+          model_saglayici?: string | null
+          model_surum?: string | null
+          prompt_hash?: string | null
+          reviewer?: string | null
+          reviewer_karar_zamani?: string | null
+          tenant_id: string
+        }
+        Update: {
+          ai_agent_id?: string | null
+          ai_system_id?: string
+          amac?: string
+          confidence?: number | null
+          created_at?: string
+          fingerprint?: string | null
+          id?: string
+          karar?: string
+          kaynak_hash?: string[]
+          model_id?: string | null
+          model_saglayici?: string | null
+          model_surum?: string | null
+          prompt_hash?: string | null
+          reviewer?: string | null
+          reviewer_karar_zamani?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_execution_receipts_ai_agent_id_fkey"
+            columns: ["ai_agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_execution_receipts_ai_system_id_fkey"
+            columns: ["ai_system_id"]
+            isOneToOne: false
+            referencedRelation: "ai_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_execution_receipts_reviewer_fkey"
+            columns: ["reviewer"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_execution_receipts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_systems: {
+        Row: {
+          ad: string
+          created_at: string
+          dpia_assessment_id: string | null
+          durum: string
+          id: string
+          kendi_ajanimiz: boolean
+          kullanim_amaci: string | null
+          owner: string | null
+          risk_sinifi: string
+          rol: string
+          saglayici: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ad: string
+          created_at?: string
+          dpia_assessment_id?: string | null
+          durum?: string
+          id?: string
+          kendi_ajanimiz?: boolean
+          kullanim_amaci?: string | null
+          owner?: string | null
+          risk_sinifi?: string
+          rol?: string
+          saglayici?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ad?: string
+          created_at?: string
+          dpia_assessment_id?: string | null
+          durum?: string
+          id?: string
+          kendi_ajanimiz?: boolean
+          kullanim_amaci?: string | null
+          owner?: string | null
+          risk_sinifi?: string
+          rol?: string
+          saglayici?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_systems_dpia_assessment_id_fkey"
+            columns: ["dpia_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "privacy_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_systems_owner_fkey"
+            columns: ["owner"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_systems_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       anchor_batch_leaves: {
         Row: {
           batch_id: string

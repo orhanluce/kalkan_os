@@ -684,6 +684,30 @@ kimlik-şartı reddi → doğrula → tamamla → ihlal saati; DB'de tam e-posta
 SAKLANMADI) + canlı smoke 4/4. **BİLİNÇLİ SONRAKİ DİLİM:** consent/data-discovery
 connector (read-only), DSAR kanıt paketi, sınır-ötesi TransferAssessment detayı.
 
+### 1.26 Gate G5 — M37 AI Assurance & Agent Governance ilk üretim dikeyi ✅ (19 Temmuz)
+
+Migration `20260719020000` — YENİ kod alanı, tenant'a özgü. M30 (AB AI Act
+İÇERİK paketi) ile karışmaz: M37 kurumun kullandığı AI'ın OPERASYONEL yönetimi.
+3 tablo: `ai_systems` (envanter + AB AI Act rolü PROVIDER/DEPLOYER/IMPORTER/
+DISTRIBUTOR + risk sınıfı PROHIBITED/HIGH/LIMITED/MINIMAL + owner + FRIA/DPIA
+bağı `dpia_assessment_id` → privacy_assessments + `kendi_ajanimiz`), `ai_agents`
+(service_identity + izinli_araclar tool allowlist + yazma_yetkisi + insan_onay +
+kill/disable), `ai_execution_receipts` (AI Decision Receipt — PRQ0 ADR-2 + AI
+raporu §4.4). **ÇEKİRDEK İNVARYANT'lar (DB guard — canlı smoke 3/3):**
+**PROHIBITED risk sınıflı sistem AKTIF EDİLEMEZ** (yasak uygulama); **yazma
+yetkili ajan İNSAN ONAYI gerektirir** (otonom yazan ajan yasak); **AI KARAR
+SINIRI** — receipt SUGGESTED doğar, ACCEPTED/REJECTED yalnız İNSAN reviewer +
+zaman ile (**AI/service kabul EDEMEZ** — auth.uid() null reviewer atayamaz;
+kimlik atfı sabit), karara bağlanınca içerik donuk. Saf yardımcı
+`src/lib/ai-receipt.ts` (kural 11+15): `KALKAN_AI_DECISION_RECEIPT_V1` fingerprint
+(RFC 8785, kaynak-hash sıra-bağımsız; ham prompt/PII YAZILMAZ — kural 7).
+Kill/disable damgası otomatik. UI `/ai-guvence` hub (sistem aktifleştir/PROHIBITED
+reddi + ajan yazma-yetkisi/kill + receipt SUGGESTED→insan kabul/red); nav "Yapay
+Zeka" grubu. Testler: rls-ai-assurance 7/7 + ai-receipt 3/3 + `ai-guvence.spec.ts`
+e2e (sistem/PROHIBITED reddi/ajan kill/receipt insan kabul) + canlı smoke 3/3.
+**BİLİNÇLİ SONRAKİ DİLİM:** AIEvaluation/AIDataLineage/AIIncident detay tabloları,
+EU AI Act+ISO 42001+NIST AI RMF crosswalk içeriği, AI literacy (M18) bağı.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket
