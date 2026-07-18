@@ -76,13 +76,14 @@ doğrulayıcı rolü). QRegu döneminde teslim edilenler (ROADMAP §1.16-1.19):
    G1'in kalan kod borcu KÜÇÜK: koşu satırından link üretme UI butonu.
    G1 kapanışının gerçek blocker'ı hâlâ KURUCU İÇERİK teslimi (≥20 doğrulanmış
    SPK/7545 kontrolü + ≥5 gerçek test tanımı + hukuk doğrulayıcı rolü K8).
-2. **G2 — M34 Policy Lifecycle:** yeni kod alanı (PolicyDocument/Version/
-   Clause/Approval/Attestation/Exception/Impact; draft→review→approved→
-   effective→retired state machine; preparer≠approver — dört-göz deseni
-   hazır; clause→hüküm/kontrol bağı).
+2. ~~**G2 — M34 Policy Lifecycle**~~ **BİTTİ** (ROADMAP §1.22): 5 tablo +
+   durum makinesi + dört-göz guard + madde donukluğu + attestation + AI-taslak
+   sınırı; rota + `/politikalar` UI + iki-kullanıcılı e2e + canlı smoke.
+   Kapsam dışı (sonraki dilim): PolicyException/PolicyImpact + redline diff.
 3. **G3:** connector sözleşmesi + RFC 3161 TSA adapter interface (kurucu
    kararları beklerken interface+test double) + SCITT-tarzı ledger (M5.5
-   Merkle kodu yeniden kullanılır).
+   Merkle kodu yeniden kullanılır). Ayrıca G4 M35 TPRM, G5 M37 AI Assurance,
+   G6 M36 PrivacyOps sırayla (nihai §8).
 Her adım: migration (PGlite RLS testi) → canlı db:push+db:types → gerçek
 Chromium e2e → commit; rapor nihai §15 formatında. Kural 3'ü her adımda koru.
 

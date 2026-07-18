@@ -579,6 +579,32 @@ takıldı (hepsi izole yeşil — assert değil ilk-klon maliyeti) →
 Kalan G1 borcu: koşu satırından link üretme UI butonu (bugün API'den; dar UI
 sonraki dilim) + kurucu İÇERİK teslimi (≥20 kontrol).
 
+### 1.22 Gate G2 — M34 Policy & Procedure Lifecycle ✅ (18 Temmuz gece)
+
+Migration `20260718230000` (canlıda) — **YENİ kod alanı, tenant'a özgü**
+(kurumun kendi yönetişim belgesi; global referans değil, her tabloda
+tenant_id + RLS). Beş tablo: `policy_documents`, `policy_versions` (sürümlü +
+durum makinesi), `policy_clauses` (madde), `policy_clause_links` (madde →
+hüküm/yükümlülük/kontrol; tam BİR hedef check'i), `policy_attestations`
+(çalışan okudu-anladı). **Durum makinesi + dört-göz DB guard'ında** (nihai
+invariant #3/#4): DRAFT→REVIEW→APPROVED→EFFECTIVE→RETIRED yalnız geçerli
+geçişler; REVIEW hazırlayan atfı ister; **APPROVED'da onaylayan ≠ hazırlayan**
+(service_role bile atlayamaz — canlı smoke kanıtı); EFFECTIVE effective_from
+ister; belge başına tek EFFECTIVE (partial unique). **Madde donukluğu:**
+EFFECTIVE/RETIRED sürümün maddesi eklenemez/değişemez/silinemez (yeni sürüm
+gerekir — VERIFIED obligations deseni). **AI taslağı** (`eklenme_kaynagi=
+ai_taslak`) doğrudan APPROVED/EFFECTIVE DOĞAMAZ (invariant #5: insan
+incelemesi; AI henüz yok ama sınır şimdiden DB'de). **Attestation guard'ı:**
+yalnız EFFECTIVE sürüm + kimlik atfı oturum sahibine sabit (M16 #9). Audit:
+sürüm oluşturma + durum değişimi. Rota `POST /api/politika/durum` (tenant
+tablosu — service_role YOK; RLS + guard zorlar, dört-göz reddi 409). UI
+`/politikalar` (oluştur → durum butonları → "okudum, anladım"); nav Yönetişim
+grubuna eklendi. Testler: rls-policy-lifecycle 11/11 + `politikalar.spec.ts`
+iki-kullanıcılı e2e (admin sunar → admin kendi sürümünü onaylayamaz 409 →
+uyum onaylar → yürürlük → attestation) + canlı guard smoke 5/5. **Bilinçli
+kapsam dışı (sonraki dilim):** PolicyException + PolicyImpact (mevzuat
+değişikliğinden clause impact — M25 radar'la kesişir), redline diff görünümü.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket

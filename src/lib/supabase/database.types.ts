@@ -1574,6 +1574,281 @@ export type Database = {
           },
         ]
       }
+      policy_attestations: {
+        Row: {
+          attested_at: string
+          attesting_user: string
+          id: string
+          policy_version_id: string
+          tenant_id: string
+        }
+        Insert: {
+          attested_at?: string
+          attesting_user: string
+          id?: string
+          policy_version_id: string
+          tenant_id: string
+        }
+        Update: {
+          attested_at?: string
+          attesting_user?: string
+          id?: string
+          policy_version_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_attestations_attesting_user_fkey"
+            columns: ["attesting_user"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_attestations_policy_version_id_fkey"
+            columns: ["policy_version_id"]
+            isOneToOne: false
+            referencedRelation: "policy_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_attestations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_clause_links: {
+        Row: {
+          control_id: string | null
+          created_at: string
+          id: string
+          obligation_id: string | null
+          policy_clause_id: string
+          provision_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          control_id?: string | null
+          created_at?: string
+          id?: string
+          obligation_id?: string | null
+          policy_clause_id: string
+          provision_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          control_id?: string | null
+          created_at?: string
+          id?: string
+          obligation_id?: string | null
+          policy_clause_id?: string
+          provision_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_clause_links_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_clause_links_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_clause_links_policy_clause_id_fkey"
+            columns: ["policy_clause_id"]
+            isOneToOne: false
+            referencedRelation: "policy_clauses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_clause_links_provision_id_fkey"
+            columns: ["provision_id"]
+            isOneToOne: false
+            referencedRelation: "provisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_clause_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_clauses: {
+        Row: {
+          created_at: string
+          id: string
+          madde_ref: string
+          metin: string
+          policy_version_id: string
+          sira: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          madde_ref: string
+          metin: string
+          policy_version_id: string
+          sira?: number
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          madde_ref?: string
+          metin?: string
+          policy_version_id?: string
+          sira?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_clauses_policy_version_id_fkey"
+            columns: ["policy_version_id"]
+            isOneToOne: false
+            referencedRelation: "policy_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_clauses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_documents: {
+        Row: {
+          baslik: string
+          created_at: string
+          id: string
+          kategori: string
+          kod: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          baslik: string
+          created_at?: string
+          id?: string
+          kategori?: string
+          kod: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          baslik?: string
+          created_at?: string
+          id?: string
+          kategori?: string
+          kod?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_versions: {
+        Row: {
+          created_at: string
+          durum: string
+          effective_from: string | null
+          eklenme_kaynagi: string
+          hazirlama_zamani: string | null
+          hazirlayan: string | null
+          id: string
+          onay_zamani: string | null
+          onaylayan: string | null
+          policy_document_id: string
+          redline_notu: string | null
+          surum: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          durum?: string
+          effective_from?: string | null
+          eklenme_kaynagi?: string
+          hazirlama_zamani?: string | null
+          hazirlayan?: string | null
+          id?: string
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          policy_document_id: string
+          redline_notu?: string | null
+          surum: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          durum?: string
+          effective_from?: string | null
+          eklenme_kaynagi?: string
+          hazirlama_zamani?: string | null
+          hazirlayan?: string | null
+          id?: string
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          policy_document_id?: string
+          redline_notu?: string | null
+          surum?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_versions_hazirlayan_fkey"
+            columns: ["hazirlayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_versions_onaylayan_fkey"
+            columns: ["onaylayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_versions_policy_document_id_fkey"
+            columns: ["policy_document_id"]
+            isOneToOne: false
+            referencedRelation: "policy_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_plans: {
         Row: {
           ad: string

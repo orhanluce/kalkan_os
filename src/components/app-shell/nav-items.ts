@@ -74,7 +74,10 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
     },
     {
       baslik: "Yönetişim",
-      ogeler: [{ href: "/sod", etiket: "Görevler Ayrılığı", Ikon: UsersRound }],
+      ogeler: [
+        { href: "/sod", etiket: "Görevler Ayrılığı", Ikon: UsersRound },
+        { href: "/politikalar", etiket: "Politikalar", Ikon: ScrollText },
+      ],
     },
     { baslik: "Yönetim", ogeler: [{ href: "/paylasim", etiket: "Paylaşım", Ikon: Share2 }] },
   ];
