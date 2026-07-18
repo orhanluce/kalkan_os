@@ -95,10 +95,30 @@ uyguluyor (global timeout 90sn; snapshot-klon çözümü ayrı iş olarak spawn'
 
 **⏩ OTURUMLAR ARASI DEVİR: `docs/DEVAM.md` OKU.** Kurucu kalıcı onay: V2 PR
 sırasının sonuna kadar duraksamadan devam. Bugün canlıda: M16 kapısı geçti +
-V2 PR-0/2a/2b/2c/3a/3b/4a + PGlite hızlandırma + AA. Sıradaki: **V2 PR-4b**
-(Regulated dikey dilim: provision→obligation→applicability→legal-guard→citation,
-M20-M24 TEK yeşil dilim). Son commit `bca975b`. İlk iş: `pnpm check`+`pnpm e2e`+
-`pnpm build` ile yeşil tabanı teyit et (PR-4a sonrası kombine koşu yapılmadı).
+V2 PR-0/2a/2b/2c/3a/3b/4a + PGlite hızlandırma + AA.
+
+**V2 PR-4b BİTTİ (18 Temmuz gece, M20-M24 tek yeşil dikey dilim, canlı e2e
+kanıtlı):** (1) `provisions` bitemporal global hüküm (valid+system time,
+düzeltme=yeni kayıt); (2) `obligations`+`obligation_control_mappings` 6 durumlu
+doğrulama, DB guard: VERIFIED doğamaz / yalnız LEGAL_REVIEW'den + dogrulayan
+atfı / VERIFIED içerik donuk; (3) `applicability_decisions` tenant'a özgü,
+UNKNOWN≠NOT_APPLICABLE DB invariant'ı (NA=gerekçe+onay+kimlik atfı), append-only
+karar zinciri, RFC8785 fact fingerprint (`applicability.ts` — kural motoru
+UYDURULMADI: eksik olgu→UNKNOWN, tam olguda karar insanda); (4) legal-basis
+guard (`legal-basis.ts` saf motor + `legal-basis-server.ts` RLS toplayıcı)
+`/api/kontrol-test/[id]/calistir`a bağlı: doğrulanmamış eşleme ZORUNLU kontrolü
+409+koşusuz-fotoğrafla BLOKlar, kapsam sorunları uyarıdır (kural 13 ruhu),
+dayanaksız kontrol bloklanmaz; her koşuda immutable `execution_legal_snapshots`
+(UPDATE herkese kapalı; DELETE test_runs disipliniyle hizalı — `20260718190000`,
+fixture cascade regresyonunu PGlite testi yakaladı); (5) M24 sitasyon paketi:
+`citation-bundle.ts` + `/api/kontrol-test/run/[runId]/sitasyon` + bağımsız
+`scripts/verify-sitasyon.ts` (DB'siz; e2e ayrı süreçte VERIFIED/kurcalı-FAILED),
+üç EK hash `legalSnapshotHash`/`sourceBundleHash`/`applicabilityDecisionHash`
+(kural 15, mevcut dörtlü bozulmadı; fotoğrafsız eski koşuda NULL — uydurulmaz),
+paket İMZASIZ_HASH_BUTUNLUKLU (sahte "signed" yok). Canlı smoke 21/21; 6 yeni
+migration canlıda. **789 birim (61 dosya) + 34 e2e, 0 skip; build yeşil.**
+Kalan dar iş: EvidenceTraceRail Hüküm/Yükümlülük düğümlerine gerçek veri +
+`/regulasyon/kaynaklar` hüküm listesi (DEVAM.md §2). Sıradaki: V2 PR-5 (M17).
 
 **V2 MVP Stratejisi (18 Temmuz gecesi, yedinci belge) işlendi — PR-0, kod yok:**
 `docs/arastirma/KALKAN_OS_V2_MVP_Strateji_Ek_Talimat_2026.md` + PR-0 dökümü
