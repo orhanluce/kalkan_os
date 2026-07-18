@@ -31,6 +31,16 @@ REOPENED, yalnız EXCEPTION_APPROVED'da; MITIGATED'e dokunmaz) ve
 #4 CSV atama import, #5 değerlendirme tetikleri, #6 atama UI, #7 domain event,
 #8 dashboard, #9 güvenlik testleri, #10 e2e B/C, #12 M17 ADR (M16 üretim kapısı
 geçmeden M17 kodu yok). Tam liste ROADMAP M16 "Üretim kapatma" altında.
+
+**PR-3 ön koruma (18 Temmuz, `20260718020000/020001`):** kurucu kararı, CSV
+import'tan ÖNCE iki korkuluk. (1) Onaylı/dolmuş istisnanın süre-kimlik alanları
+(`bitis/talep_eden/onaylayan/conflict/tenant`) UPDATE ile kilitlendi
+(`sod_istisna_kilit_guard`) — uzatma için düzenleme yolu kapalı; ama `durum`
+frozen değil, süre-dolumu işi çalışmaya devam ediyor (regresyon testli).
+(2) pg_cron `*/5`'e indirildi (dolan istisna ~5 dk'da açılır); canlıda tek iş
+doğrulandı (`sod_cron_durumu()` → 1 kayıt, `*/5`, active — duplicate yok).
+586 birim + 17 e2e. Sıradaki: PR-3 asıl işi = CSV atama içe aktarma (18 bölümlük
+spec, henüz başlanmadı).
 - **Kapsam dışı (bilinçli):** atama yönetim UI'ı yok (fixture/script ile
   giriliyor), IAM/PAM connector yok.
 - Yol boyunca iki bug: (1) `SodTaraf.sistem_kapsami` kuralın kendisine sabit
@@ -42,7 +52,7 @@ geçmeden M17 kodu yok). Tam liste ROADMAP M16 "Üretim kapatma" altında.
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler
-üzerinden bağlanıyoruz — direct connection IPv6-only. 35 migration uygulandı
+üzerinden bağlanıyoruz — direct connection IPv6-only. 37 migration uygulandı
 (`pnpm db:push`); `pnpm db:verify` çekirdek tabloları fiilen doğrular. Kontrol
 kütüphanesi seed edildi (2 çerçeve, 17 kontrol) ve ilk kuruma atandı.
 

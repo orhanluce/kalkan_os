@@ -1126,10 +1126,28 @@ Kurucu M16'yı "gösterim özelliği"nden "işletilebilir kontrol sistemi"ne
   bir teste dönüştü → **17/17 e2e, 0 skip**, 581 birim.
 - ✅ **#2 İstisna süre-dolumu** — yukarıda "Tamamlanan 2".
 
+**PR-3 ön koruma (18 Temmuz 2026, migration `20260718020000/020001`) — kurucu
+kararı: CSV import'tan ÖNCE iki korkuluk:**
+- ✅ **Onaylı/dolmuş istisna süre-kimlik kilidi** (`sod_istisna_kilit_guard`):
+  `durum ∈ (onaylandi, suresi_doldu)` istisnanın `bitis/talep_eden_id/
+  onaylayan_id/conflict_id/tenant_id` alanları UPDATE ile DEĞİŞTİRİLEMEZ.
+  Süre uzatmak için kaydı düzenleme yolu kapalı; uzatma #3'te ayrı talep+onayla
+  gelecek. **`durum` frozen değil** — süre-dolumu işi (onaylandi→suresi_doldu)
+  ve iptal hâlâ çalışır (regresyon testiyle kanıtlı).
+- ✅ **pg_cron sıklığı günlük → `*/5`** (5 dakika): dolan istisna ~24 saat değil
+  ~5 dakika içinde açılır. `cron.unschedule` + `cron.schedule` (aynı isim,
+  duplicate yok). **Canlıda doğrulandı:** `sod_cron_durumu()` tam **1** kayıt
+  döndürdü (`*/5 * * * *`, active). Zamanlama defansif DO bloğunda (PGlite no-op).
+
 **KALAN (kurucunun sırası, sonraki turlar — her biri ayrı PR):**
+- **PR-3 asıl işi: CSV atama içe aktarma** — sağlayıcıdan bağımsız import
+  contract (`SodAssignmentImportRecord`), dry-run/apply durum makinesi,
+  hash-bütünlük (stale preview → 409), CSV güvenliği (formula injection vb.),
+  kimlik çözümleme, idempotency, silme-yerine-sona-erdirme (DELTA/SNAPSHOT),
+  transactional-outbox SoD değerlendirmesi, import manifesti, rollback, yetki,
+  dar UI, testler. (Kurucunun 18 bölümlük PR-3 spec'i — bu turda BAŞLAMADI.)
 - **#3 İstisna uzatma** akışı (yeni gerekçe/risk/süre + bağımsız onay, geçmiş
-  silinmez; `expiresAt` sessizce değişmez). Bugün DB'de tek `bitis` var,
-  uzatma-kaydı modeli yok.
+  silinmez). Süre-kilidi yukarıda kondu; uzatma-kaydı modeli hâlâ yok.
 - **#4 CSV atama içe aktarma** — sağlayıcıdan bağımsız import contract, dry-run
   önizleme, SHA-256 + import manifesti, evidence storage, rollback, idempotency
   (`source+sourceRecordId`), formula-injection/boyut/MIME güvenliği. (Hiç yok.)

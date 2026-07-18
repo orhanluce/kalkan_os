@@ -138,6 +138,62 @@ describe("sod_istisna_suresi_dolanlari_isle", () => {
   });
 });
 
+describe("sod_cron_durumu — pg_cron görünürlüğü", () => {
+  it("PGlite'ta (pg_cron yok) hatasız BOŞ döner — dinamik EXECUTE + exception", async () => {
+    const { rows } = await db.sql(`select * from public.sod_cron_durumu()`);
+    expect(rows).toHaveLength(0);
+  });
+});
+
+describe("onaylı istisna süre-kimlik kilidi (PR-3 ön koruma)", () => {
+  it("onaylı istisnanın bitiş tarihi UPDATE ile UZATILAMAZ", async () => {
+    const { istisnaId } = await onayliIstisnaKur("current_date + 5");
+    await expect(
+      db.sql(`update public.sod_istisnalari set bitis = current_date + 365 where id = $1`, [istisnaId]),
+    ).rejects.toThrow(/degistirilemez/i);
+  });
+
+  it("onaylı istisnanın talep_eden/onaylayan/conflict/tenant alanları değiştirilemez", async () => {
+    const { istisnaId } = await onayliIstisnaKur("current_date + 5");
+    await expect(
+      db.sql(`update public.sod_istisnalari set talep_eden_id = $1 where id = $2`, [ikinciUserId, istisnaId]),
+    ).rejects.toThrow(/degistirilemez/i);
+    await expect(
+      db.sql(`update public.sod_istisnalari set onaylayan_id = $1 where id = $2`, [seed.A.userId, istisnaId]),
+    ).rejects.toThrow(/degistirilemez/i);
+  });
+
+  it("KİLİT SÜRE-DOLUMUNU ENGELLEMEZ: onaylandi -> suresi_doldu geçişi çalışır", async () => {
+    // Kritik regresyon: guard yalnız süre/kimlik alanlarını dondurur, durum
+    // geçişini değil. Süre-dolumu işi hâlâ istisnayı dolduruyor olmalı.
+    const { istisnaId } = await onayliIstisnaKur("current_date - 1");
+    expect(await calistir()).toBe(1);
+    const { rows } = await db.sql(`select durum from public.sod_istisnalari where id = $1`, [istisnaId]);
+    expect(rows[0].durum).toBe("suresi_doldu");
+  });
+
+  it("HENÜZ ONAYLANMAMIŞ (talep_edildi) istisna düzenlenebilir — kilit yalnız onaylıda", async () => {
+    const { rows: rule } = await db.sql(
+      `insert into public.sod_kurallari (tenant_id, kod, ad, onem) values ($1, 'SOD-P', 'p', 'orta') returning id`,
+      [seed.A.tenantId],
+    );
+    const { rows: c } = await db.sql(
+      `insert into public.sod_catismalari (tenant_id, rule_id, kullanici_id, sistem_kapsami, onem, fingerprint, durum)
+       values ($1, $2, $3, 'kalkan_os', 'orta', $4, 'OPEN') returning id`,
+      [seed.A.tenantId, rule[0].id, seed.A.userId, "fp-p-" + Math.random().toString(36).slice(2)],
+    );
+    const { rows: exc } = await db.sql(
+      `insert into public.sod_istisnalari (conflict_id, tenant_id, gerekce, talep_eden_id, bitis, durum)
+       values ($1, $2, 'g', $3, current_date + 5, 'talep_edildi') returning id`,
+      [c[0].id, seed.A.tenantId, seed.A.userId],
+    );
+    // Onaylanmadan bitiş düzeltmek serbest.
+    await db.sql(`update public.sod_istisnalari set bitis = current_date + 10 where id = $1`, [exc[0].id]);
+    const { rows } = await db.sql(`select bitis from public.sod_istisnalari where id = $1`, [exc[0].id]);
+    expect(rows[0].bitis).not.toBeNull();
+  });
+});
+
 // --- Kanıt süre dolumu (M2 borcu) ---
 
 async function karsilananKontrolKur(bitisSql: string | null) {
