@@ -483,6 +483,60 @@ export type Database = {
           },
         ]
       }
+      audit_engagements: {
+        Row: {
+          ad: string
+          created_at: string
+          donem: string | null
+          durum: string
+          id: string
+          kapsam: string | null
+          risk_seviyesi: string
+          sorumlu: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ad: string
+          created_at?: string
+          donem?: string | null
+          durum?: string
+          id?: string
+          kapsam?: string | null
+          risk_seviyesi?: string
+          sorumlu?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ad?: string
+          created_at?: string
+          donem?: string | null
+          durum?: string
+          id?: string
+          kapsam?: string | null
+          risk_seviyesi?: string
+          sorumlu?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_engagements_sorumlu_fkey"
+            columns: ["sorumlu"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_engagements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           actor_id: string | null
@@ -533,6 +587,173 @@ export type Database = {
           },
           {
             foreignKeyName: "audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_review_notes: {
+        Row: {
+          cozuldu: boolean
+          created_at: string
+          id: string
+          not_metni: string
+          tenant_id: string
+          workpaper_id: string
+        }
+        Insert: {
+          cozuldu?: boolean
+          created_at?: string
+          id?: string
+          not_metni: string
+          tenant_id: string
+          workpaper_id: string
+        }
+        Update: {
+          cozuldu?: boolean
+          created_at?: string
+          id?: string
+          not_metni?: string
+          tenant_id?: string
+          workpaper_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_review_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_review_notes_workpaper_id_fkey"
+            columns: ["workpaper_id"]
+            isOneToOne: false
+            referencedRelation: "audit_workpapers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_samples: {
+        Row: {
+          created_at: string
+          engagement_id: string
+          id: string
+          ornek_boyutu: number
+          populasyon_boyutu: number
+          secilen_indeksler: number[]
+          seed: string
+          tenant_id: string
+          yontem: string
+        }
+        Insert: {
+          created_at?: string
+          engagement_id: string
+          id?: string
+          ornek_boyutu: number
+          populasyon_boyutu: number
+          secilen_indeksler?: number[]
+          seed: string
+          tenant_id: string
+          yontem?: string
+        }
+        Update: {
+          created_at?: string
+          engagement_id?: string
+          id?: string
+          ornek_boyutu?: number
+          populasyon_boyutu?: number
+          secilen_indeksler?: number[]
+          seed?: string
+          tenant_id?: string
+          yontem?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_samples_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "audit_engagements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_samples_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_workpapers: {
+        Row: {
+          baslik: string
+          created_at: string
+          durum: string
+          engagement_id: string
+          hazirlama_zamani: string | null
+          hazirlayan: string | null
+          icerik: string
+          id: string
+          review_zamani: string | null
+          reviewer: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          baslik: string
+          created_at?: string
+          durum?: string
+          engagement_id: string
+          hazirlama_zamani?: string | null
+          hazirlayan?: string | null
+          icerik?: string
+          id?: string
+          review_zamani?: string | null
+          reviewer?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          baslik?: string
+          created_at?: string
+          durum?: string
+          engagement_id?: string
+          hazirlama_zamani?: string | null
+          hazirlayan?: string | null
+          icerik?: string
+          id?: string
+          review_zamani?: string | null
+          reviewer?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_workpapers_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "audit_engagements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_workpapers_hazirlayan_fkey"
+            columns: ["hazirlayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_workpapers_reviewer_fkey"
+            columns: ["reviewer"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_workpapers_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

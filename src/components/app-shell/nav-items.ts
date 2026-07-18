@@ -9,6 +9,7 @@ import {
   Activity,
   Bot,
   Boxes,
+  ClipboardCheck,
   FileWarning,
   FlaskConical,
   Gavel,
@@ -98,6 +99,10 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
     {
       baslik: "Yapay Zeka",
       ogeler: [{ href: "/ai-guvence", etiket: "AI Güvence", Ikon: Bot }],
+    },
+    {
+      baslik: "Denetim",
+      ogeler: [{ href: "/denetim", etiket: "Denetim Çalışma Alanı", Ikon: ClipboardCheck }],
     },
     {
       baslik: "Regülatör",

@@ -753,6 +753,27 @@ rls-critical-service 5/5 + dayaniklilik 2/2 + `kritik-hizmetler.spec.ts` e2e
 SONRAKİ DİLİM:** recursive graf görselleştirme, plausible scenario/exercise/
 actual-result/recovery-strategy (M15 kesişimi), RTO/RPO gerçek ölçüm.
 
+### 1.29 Gate G8 (parça 2) — M17 Audit Workspace ✅ (19 Temmuz)
+
+Migration `20260719050000` — YENİ kod alanı, tenant'a özgü. 4 tablo:
+`audit_engagements` (risk tabanlı denetim işi), `audit_samples` (TEKRARLANABİLİR
+örnekleme: yöntem + popülasyon + SEED + seçilen indeksler), `audit_workpapers`
+(çalışma kağıdı; hazırlayan/reviewer bağımsızlık sign-off), `audit_review_notes`.
+**İnvariant'lar (DB guard — canlı smoke 3/3):** çalışma kağıdı ONAYLANDI yalnız
+reviewer + zaman ile ve **reviewer ≠ hazırlayan** (denetçi bağımsızlığı —
+hazırlayan kendi kağıdını onaylayamaz); onaylanmış kağıt içeriği DONUK; örnek
+boyutu ≤ popülasyon (check). Saf motor `src/lib/denetim.ts` (kural 11):
+`ornekIndeksleriSec` — aynı (popülasyon, boyut, seed) HER ZAMAN aynı seçim
+(FNV-1a hash sıralaması, Math.random YOK); `ornekYenidenUretilebilir` denetçi
+yeniden-üretim doğrulaması. Seed SAKLANIR → denetçi seçimi bağımsız yeniden
+üretir (nihai kabul: "population, sample, methodology, seed" + "reproduce").
+UI `/denetim` indeks + `/denetim/[id]` detay (örnek seç + "Yeniden Üret"
+doğrula + çalışma kağıdı sign-off); nav "Denetim" grubu. Testler:
+rls-audit-workspace 3/3 + denetim 5/5 saf + `denetim.spec.ts` iki-kullanıcılı
+e2e (tekrarlanabilir örnekleme + bağımsızlık sign-off) + canlı smoke 3/3.
+**BİLİNÇLİ SONRAKİ DİLİM:** PBC/request (M38 deseni), formal independence
+bağı (G7 tablosu), workpaper→bulgu/kontrol bağı, WORM export.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket
