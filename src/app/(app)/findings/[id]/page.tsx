@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/durum/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
@@ -11,7 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useLocalStore } from "@/lib/store";
-import { FINDING_DURUM_LABEL, KAYNAK_LABEL, ONEM_BADGE_VARIANT, ONEM_LABEL } from "@/lib/ui-labels";
+import {
+  FINDING_DURUM_LABEL,
+  FINDING_DURUM_SEMANTIK,
+  KAYNAK_LABEL,
+  ONEM_LABEL,
+  ONEM_SEMANTIK,
+} from "@/lib/ui-labels";
 
 export default function FindingDetailPage() {
   const params = useParams<{ id: string }>();
@@ -40,7 +46,7 @@ export default function FindingDetailPage() {
         </Link>
         <div className="mt-1 flex items-center gap-3">
           <h1 className="text-2xl font-semibold tracking-tight">{finding.baslik}</h1>
-          <Badge variant={ONEM_BADGE_VARIANT[finding.onem]}>{ONEM_LABEL[finding.onem]}</Badge>
+          <StatusBadge durum={ONEM_SEMANTIK[finding.onem]}>{ONEM_LABEL[finding.onem]}</StatusBadge>
         </div>
         <p className="text-sm text-muted-foreground">
           Kaynak: {KAYNAK_LABEL[finding.kaynak]} · Durum: {FINDING_DURUM_LABEL[finding.durum]}
@@ -52,9 +58,9 @@ export default function FindingDetailPage() {
           <CardTitle>Durum</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center gap-3">
-          <Badge variant={finding.durum === "acik" ? "destructive" : "default"}>
+          <StatusBadge durum={FINDING_DURUM_SEMANTIK[finding.durum]}>
             {FINDING_DURUM_LABEL[finding.durum]}
-          </Badge>
+          </StatusBadge>
           <Button variant="outline" size="sm" onClick={() => toggleFindingDurum(finding.id)}>
             {finding.durum === "acik" ? "Kapat" : "Yeniden Aç"}
           </Button>

@@ -11,7 +11,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
-import { KATILIM_TIPI_LABEL, ONEM_BADGE_VARIANT, ONEM_LABEL, PUANLAMA_DURUM_LABEL, SIMULASYON_DURUM_LABEL } from "@/lib/ui-labels";
+import { StatusBadge } from "@/components/durum/status-badge";
+import {
+  KATILIM_TIPI_LABEL,
+  ONEM_LABEL,
+  ONEM_SEMANTIK,
+  PUANLAMA_DURUM_LABEL,
+  PUANLAMA_DURUM_SEMANTIK,
+  SIMULASYON_DURUM_LABEL,
+  SIMULASYON_DURUM_SEMANTIK,
+} from "@/lib/ui-labels";
 
 // Tatbikat çalışma ekranı (docs/ROADMAP.md M8, kalan iş).
 //
@@ -441,7 +450,9 @@ export default function TatbikatDetayPage() {
           <Badge variant="outline" className="border-amber-500/50 text-amber-700 dark:text-amber-400">
             TATBİKAT
           </Badge>
-          <Badge variant="secondary">{SIMULASYON_DURUM_LABEL[run.durum] ?? run.durum}</Badge>
+          <StatusBadge durum={SIMULASYON_DURUM_SEMANTIK[run.durum] ?? "unknown"}>
+            {SIMULASYON_DURUM_LABEL[run.durum] ?? run.durum}
+          </StatusBadge>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {sablon ? `${sablon.kod} v${sablon.surum} — ${sablon.ad}` : ""} · {run.mod}
@@ -710,9 +721,9 @@ export default function TatbikatDetayPage() {
             <div className="flex items-center gap-3">
               <span className="text-3xl font-semibold tabular-nums">{puan.puan}</span>
               <span className="text-muted-foreground">/100</span>
-              <Badge variant={puan.durum === "CRITICAL_FAILURE" ? "destructive" : "secondary"}>
+              <StatusBadge durum={PUANLAMA_DURUM_SEMANTIK[puan.durum] ?? "unknown"}>
                 {PUANLAMA_DURUM_LABEL[puan.durum] ?? puan.durum}
-              </Badge>
+              </StatusBadge>
             </div>
 
             {/* --- MÜHÜR (M9) --- */}
@@ -792,9 +803,9 @@ export default function TatbikatDetayPage() {
                     <li key={o.id} className="rounded-md border p-3">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-medium">{o.baslik}</span>
-                        <Badge variant={ONEM_BADGE_VARIANT[o.onem as keyof typeof ONEM_BADGE_VARIANT]}>
+                        <StatusBadge durum={ONEM_SEMANTIK[o.onem as keyof typeof ONEM_SEMANTIK] ?? "unknown"}>
                           {ONEM_LABEL[o.onem as keyof typeof ONEM_LABEL] ?? o.onem}
-                        </Badge>
+                        </StatusBadge>
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">{o.gerekce}</p>
                       {o.durum === "PROPOSED" && gozlemleyebilirMi ? (

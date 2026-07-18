@@ -253,6 +253,28 @@ ADR taslakları + plan → **`docs/adr/PR0-master-talimat-kesif-2026-07-18.md`**
 - **Kalan (PR-1 kapsamından bilinçli dışarıda):** komut paleti, bildirim,
   inspector drawer (PR-2+); CSP enforce; HSTS.
 
+**✅ PR-2 Ekran Taşıma BİTTİ (18 Temmuz):**
+- **Tek görsel durum dili:** tüm `*_BADGE_VARIANT` sabitleri kaldırıldı;
+  her iş durumu ui-labels'ta TEK semantik eşlemeye bağlandı (`DURUM/ONEM/
+  TEST_SONUC/FINDING/SOD_CATISMA/SOD_ISTISNA/SOD_MEVZUAT/SIMULASYON/PUANLAMA
+  _SEMANTIK`) ve 13 ekran `StatusBadge`e geçti (renk+ikon+metin). Kural 13
+  görselde de: UNKNOWN 'unknown' (ayrı renk+ikon), STALE 'warning', EXCEPTION
+  'legal-review' — beş durum görsel olarak da birleşmez. TATBİKAT rozeti
+  (kural 9) ve kategori etiketi durum OLMADIĞI için Badge kaldı (bilinçli).
+- **Kanıt izi rayı kontrol detayında CANLI** (dürüst kısmi veri): Hüküm
+  (TODO-DOGRULA → "Doğrulanmadı"/legal-review), Yükümlülük ("Bağlı değil"/
+  unknown — M21 gelmeden bağ İDDİA EDİLMEZ), Kontrol (gerçek durum), Test
+  (`kontrolGuvenceDurumu` — bileşen `onGuvenceDurumu` callback'iyle raporlar,
+  öncelik mantığı motorda tek yerde), Kanıt (yok/süresi-dolan-var/N kanıt).
+- LegalStatusBadge ui-labels'a bağlandı (etiket tek kaynak: "Doğrulanmadı").
+- **Doğrulama:** 642 birim + 19 e2e (M12/M16/simülasyon akışları birebir —
+  davranış değişmedi), 0 skip; production build yeşil; ekran görüntüleri
+  `docs/gorsel-baseline/2026-07-18-pr2/` (light+dark, kontrol detayı dahil).
+- **Kalan (PR-2'den sonraya):** CSP enforce (rapor envanteri toplanıyor),
+  piksel assertion'ları (görünüm stabilize — bir sonraki UI PR'ında
+  `toHaveScreenshot`a geçilebilir), tablo→mobil kart dönüşümü (bugün yatay
+  taşma yok, dar ekranlar kullanılabilir), komut paleti/inspector.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket

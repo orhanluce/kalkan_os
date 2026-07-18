@@ -3,7 +3,8 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/durum/status-badge";
+import { EvidenceTraceRail } from "@/components/evidence-trace-rail";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,10 +33,12 @@ import { useLocalStore } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
 import type { Durum, EvidenceTip } from "@/lib/types";
 import {
-  DURUM_BADGE_VARIANT,
   DURUM_LABEL,
+  DURUM_SEMANTIK,
   KANIT_SINIFI_LABEL,
   SAKLAMA_SINIFI_LABEL,
+  TEST_SONUC_LABEL,
+  TEST_SONUC_SEMANTIK,
 } from "@/lib/ui-labels";
 
 const DURUM_OPTIONS: Durum[] = ["karsilaniyor", "kismi", "acik", "kapsam_disi"];
@@ -85,6 +88,10 @@ export default function ControlDetailPage() {
       (e.hedefTablo === "tenant_controls" && e.hedefId === params.id) ||
       (e.hedefTablo === "evidences" && e.detay?.controlId === params.id),
   );
+
+  // Kanıt izi rayı için test güvence durumu — KontrolTestBolumu raporlar
+  // (setState stabil referans, yükleme döngüsü tetiklemez).
+  const [testGuvence, setTestGuvence] = useState<string | null>(null);
 
   const [notDraft, setNotDraft] = useState(tenantControl?.notMetni ?? "");
   const [tip, setTip] = useState<EvidenceTip>("dosya");
@@ -213,6 +220,54 @@ export default function ControlDetailPage() {
         <p className="mt-2 max-w-2xl text-sm">{control.aciklama}</p>
       </div>
 
+      {/* Kanıt izi rayı (master talimat §4.3, imza öğesi). DÜRÜST kısmi veri:
+          Hüküm/Yükümlülük düğümleri M20/M21 gelmeden "bağlı" GÖSTERİLMEZ —
+          TODO-DOGRULA referansı hukuk incelemesi bekler (kural 3), yükümlülük
+          zinciri henüz yok (unknown). Kontrol/Test/Kanıt gerçek veriden. */}
+      <EvidenceTraceRail
+        dugumler={[
+          {
+            ad: "Hüküm",
+            durum: control.maddeRef.startsWith("TODO-DOGRULA") ? "legal-review" : "neutral",
+            etiket: control.maddeRef.startsWith("TODO-DOGRULA") ? "Doğrulanmadı" : control.maddeRef,
+          },
+          { ad: "Yükümlülük", durum: "unknown", etiket: "Bağlı değil" },
+          {
+            ad: "Kontrol",
+            durum: DURUM_SEMANTIK[tenantControl.durum],
+            etiket: DURUM_LABEL[tenantControl.durum],
+          },
+          {
+            ad: "Test",
+            durum:
+              testGuvence === null || testGuvence === "NOT_TESTED"
+                ? "unknown"
+                : (TEST_SONUC_SEMANTIK[testGuvence] ?? "unknown"),
+            etiket:
+              testGuvence === null
+                ? "Yükleniyor…"
+                : testGuvence === "NOT_TESTED"
+                  ? "Test tanımsız"
+                  : (TEST_SONUC_LABEL[testGuvence] ?? testGuvence),
+          },
+          {
+            ad: "Kanıt",
+            durum:
+              evidences.length === 0
+                ? "unknown"
+                : evidences.some((ev) => ev.gecerlilikBitis && new Date(ev.gecerlilikBitis) < new Date())
+                  ? "warning"
+                  : "success",
+            etiket:
+              evidences.length === 0
+                ? "Kanıt yok"
+                : evidences.some((ev) => ev.gecerlilikBitis && new Date(ev.gecerlilikBitis) < new Date())
+                  ? "Süresi dolan var"
+                  : `${evidences.length} kanıt`,
+          },
+        ]}
+      />
+
       {equivalentControls.length > 0 && (
         <Card>
           <CardHeader>
@@ -246,9 +301,9 @@ export default function ControlDetailPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            <Badge variant={DURUM_BADGE_VARIANT[tenantControl.durum]}>
+            <StatusBadge durum={DURUM_SEMANTIK[tenantControl.durum]}>
               {DURUM_LABEL[tenantControl.durum]}
-            </Badge>
+            </StatusBadge>
             <Select
               items={DURUM_LABEL}
               value={tenantControl.durum}
@@ -301,7 +356,7 @@ export default function ControlDetailPage() {
         </CardContent>
       </Card>
 
-      <KontrolTestBolumu controlId={control.id} />
+      <KontrolTestBolumu controlId={control.id} onGuvenceDurumu={setTestGuvence} />
 
       <Card>
         <CardHeader>

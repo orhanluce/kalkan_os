@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/durum/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
+import { kontrolGuvenceDurumu, type TestSonuc } from "@/lib/control-test";
 import { createClient } from "@/lib/supabase/client";
-import { TEST_SONUC_BADGE_VARIANT, TEST_SONUC_LABEL, TEST_TUR_LABEL } from "@/lib/ui-labels";
+import { TEST_SONUC_LABEL, TEST_SONUC_SEMANTIK, TEST_TUR_LABEL } from "@/lib/ui-labels";
 
 // Kontrol test motoru UI'ı (docs/ROADMAP.md M12). Motor ve rotalar
 // (src/lib/control-test.ts, /api/kontrol-test/*) önceki bir dilimde bitti ve
@@ -59,7 +60,20 @@ const GOZLEM_LABEL: Record<GozlemSecimi, string> = {
   istisna: "İstisna — yönetimce kabul edilmiş boşluk",
 };
 
-export function KontrolTestBolumu({ controlId }: { controlId: string }) {
+export function KontrolTestBolumu({
+  controlId,
+  onGuvenceDurumu,
+}: {
+  controlId: string;
+  /**
+   * Kontrolün türetilmiş test güvence durumu (kontrolGuvenceDurumu — en kötü
+   * kazanır, birleştirme yok; kural 13). Kanıt izi rayı (EvidenceTraceRail)
+   * için sayfaya raporlanır — sayfa AYNI veriyi ikinci kez sorgulamasın.
+   * DİKKAT: stabil bir referans geçin (setState gibi) — inline arrow her
+   * render'da yeni kimlik üretir ve yükleme döngüsü tetikler.
+   */
+  onGuvenceDurumu?: (durum: string) => void;
+}) {
   const { currentUser } = useAuth();
 
   const [tanimlar, setTanimlar] = useState<TestTanimi[]>([]);
@@ -107,6 +121,9 @@ export function KontrolTestBolumu({ controlId }: { controlId: string }) {
         }
       }
       setSonRunlar(map);
+      // Türetilmiş güvence: MOTORUN önceliğiyle (en kötü kazanır) — burada
+      // yeniden icat edilmez, kontrolGuvenceDurumu kullanılır.
+      onGuvenceDurumu?.(kontrolGuvenceDurumu(Object.values(map).map((r) => r.sonuc as TestSonuc)));
 
       const { data: props } = await db
         .from("control_test_finding_proposals")
@@ -117,9 +134,10 @@ export function KontrolTestBolumu({ controlId }: { controlId: string }) {
     } else {
       setSonRunlar({});
       setOneriler([]);
+      onGuvenceDurumu?.(kontrolGuvenceDurumu([]));
     }
     setYukleniyor(false);
-  }, [controlId]);
+  }, [controlId, onGuvenceDurumu]);
 
   useEffect(() => {
     const calistir = async () => {
@@ -242,9 +260,9 @@ export function KontrolTestBolumu({ controlId }: { controlId: string }) {
                       </p>
                     </div>
                     {sonRun && (
-                      <Badge variant={TEST_SONUC_BADGE_VARIANT[sonRun.sonuc] ?? "outline"}>
+                      <StatusBadge durum={TEST_SONUC_SEMANTIK[sonRun.sonuc] ?? "unknown"}>
                         {TEST_SONUC_LABEL[sonRun.sonuc] ?? sonRun.sonuc}
-                      </Badge>
+                      </StatusBadge>
                     )}
                   </div>
 

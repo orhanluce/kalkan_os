@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { LegalStatusBadge } from "@/components/durum/legal-status-badge";
+import { StatusBadge } from "@/components/durum/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,11 +14,10 @@ import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
 import {
-  ONEM_BADGE_VARIANT,
   ONEM_LABEL,
-  SOD_CATISMA_DURUM_BADGE_VARIANT,
+  ONEM_SEMANTIK,
   SOD_CATISMA_DURUM_LABEL,
-  SOD_MEVZUAT_DURUMU_LABEL,
+  SOD_CATISMA_DURUM_SEMANTIK,
 } from "@/lib/ui-labels";
 
 // Görevler Ayrılığı (SoD) — ana sayfa (docs/ROADMAP.md M16, SPK notları §5).
@@ -218,9 +218,9 @@ export default function SodPage() {
               <span className="text-sm text-muted-foreground">Açık çatışma yok.</span>
             ) : (
               onemDagilimi.map((d) => (
-                <Badge key={d.onem} variant={ONEM_BADGE_VARIANT[d.onem as keyof typeof ONEM_BADGE_VARIANT]}>
+                <StatusBadge key={d.onem} durum={ONEM_SEMANTIK[d.onem as keyof typeof ONEM_SEMANTIK]}>
                   {ONEM_LABEL[d.onem as keyof typeof ONEM_LABEL]}: {d.sayi}
-                </Badge>
+                </StatusBadge>
               ))
             )}
           </CardContent>
@@ -262,17 +262,15 @@ export default function SodPage() {
                     <TableCell className="font-mono text-xs">{k.kod}</TableCell>
                     <TableCell>{k.ad}</TableCell>
                     <TableCell>
-                      <Badge variant={ONEM_BADGE_VARIANT[k.onem as keyof typeof ONEM_BADGE_VARIANT]}>
+                      <StatusBadge durum={ONEM_SEMANTIK[k.onem as keyof typeof ONEM_SEMANTIK]}>
                         {ONEM_LABEL[k.onem as keyof typeof ONEM_LABEL]}
-                      </Badge>
+                      </StatusBadge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {k.kaynak_turu === "spk_notu" ? k.kaynak_referansi ?? "SPK notu" : "İç kural"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={k.mevzuat_durumu === "VERIFIED" ? "default" : "outline"}>
-                        {SOD_MEVZUAT_DURUMU_LABEL[k.mevzuat_durumu]}
-                      </Badge>
+                      <LegalStatusBadge mevzuatDurumu={k.mevzuat_durumu} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -463,14 +461,14 @@ export default function SodPage() {
                       <TableCell>{kural?.ad ?? kural?.kod ?? "—"}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">{c.sistem_kapsami}</TableCell>
                       <TableCell>
-                        <Badge variant={ONEM_BADGE_VARIANT[c.onem as keyof typeof ONEM_BADGE_VARIANT]}>
+                        <StatusBadge durum={ONEM_SEMANTIK[c.onem as keyof typeof ONEM_SEMANTIK]}>
                           {ONEM_LABEL[c.onem as keyof typeof ONEM_LABEL]}
-                        </Badge>
+                        </StatusBadge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={SOD_CATISMA_DURUM_BADGE_VARIANT[c.durum]}>
+                        <StatusBadge durum={SOD_CATISMA_DURUM_SEMANTIK[c.durum] ?? "unknown"}>
                           {SOD_CATISMA_DURUM_LABEL[c.durum]}
-                        </Badge>
+                        </StatusBadge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(c.son_gorulme_at).toLocaleString("tr-TR")}

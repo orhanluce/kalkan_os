@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/durum/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,13 +15,14 @@ import { useAuth } from "@/lib/auth";
 import { useLocalStore } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
 import {
-  ONEM_BADGE_VARIANT,
   ONEM_LABEL,
-  SOD_CATISMA_DURUM_BADGE_VARIANT,
+  ONEM_SEMANTIK,
   SOD_CATISMA_DURUM_LABEL,
+  SOD_CATISMA_DURUM_SEMANTIK,
   SOD_ISTISNA_DURUM_LABEL,
-  TEST_SONUC_BADGE_VARIANT,
+  SOD_ISTISNA_DURUM_SEMANTIK,
   TEST_SONUC_LABEL,
+  TEST_SONUC_SEMANTIK,
 } from "@/lib/ui-labels";
 
 // SoD çatışma detayı (docs/ROADMAP.md M16). Bu sayfa RLS'in üstünde bir
@@ -309,12 +310,12 @@ export default function SodCatismaDetayPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
-            <Badge variant={SOD_CATISMA_DURUM_BADGE_VARIANT[catisma.durum]}>
+            <StatusBadge durum={SOD_CATISMA_DURUM_SEMANTIK[catisma.durum] ?? "unknown"}>
               {SOD_CATISMA_DURUM_LABEL[catisma.durum]}
-            </Badge>
-            <Badge variant={ONEM_BADGE_VARIANT[catisma.onem as keyof typeof ONEM_BADGE_VARIANT]}>
+            </StatusBadge>
+            <StatusBadge durum={ONEM_SEMANTIK[catisma.onem as keyof typeof ONEM_SEMANTIK]}>
               {ONEM_LABEL[catisma.onem as keyof typeof ONEM_LABEL]}
-            </Badge>
+            </StatusBadge>
           </div>
           <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
             <div>
@@ -384,7 +385,9 @@ export default function SodCatismaDetayPage() {
           {istisnalar.map((i) => (
             <div key={i.id} className="rounded-lg border p-3 text-sm">
               <div className="flex items-center justify-between">
-                <Badge variant="outline">{SOD_ISTISNA_DURUM_LABEL[i.durum]}</Badge>
+                <StatusBadge durum={SOD_ISTISNA_DURUM_SEMANTIK[i.durum] ?? "unknown"}>
+                  {SOD_ISTISNA_DURUM_LABEL[i.durum]}
+                </StatusBadge>
                 <span className="text-xs text-muted-foreground">Bitiş: {i.bitis}</span>
               </div>
               <p className="mt-2">{i.gerekce}</p>
@@ -440,9 +443,9 @@ export default function SodCatismaDetayPage() {
               <div className="flex items-center justify-between">
                 <span className="font-medium">{t.ad}</span>
                 {t.son_test_sonuc && (
-                  <Badge variant={TEST_SONUC_BADGE_VARIANT[t.son_test_sonuc] ?? "outline"}>
+                  <StatusBadge durum={TEST_SONUC_SEMANTIK[t.son_test_sonuc] ?? "unknown"}>
                     {TEST_SONUC_LABEL[t.son_test_sonuc] ?? t.son_test_sonuc}
-                  </Badge>
+                  </StatusBadge>
                 )}
               </div>
               {t.son_test_gerekce && <p className="mt-1 text-xs text-muted-foreground">{t.son_test_gerekce}</p>}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/durum/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,8 +21,8 @@ import type { Finding, Onem } from "@/lib/types";
 import {
   FINDING_DURUM_LABEL,
   KAYNAK_LABEL,
-  ONEM_BADGE_VARIANT,
   ONEM_LABEL,
+  ONEM_SEMANTIK,
 } from "@/lib/ui-labels";
 
 const KAYNAK_OPTIONS = Object.keys(KAYNAK_LABEL) as Finding["kaynak"][];
@@ -162,7 +162,7 @@ export default function FindingsPage() {
                     </TableCell>
                     <TableCell>{KAYNAK_LABEL[f.kaynak]}</TableCell>
                     <TableCell>
-                      <Badge variant={ONEM_BADGE_VARIANT[f.onem]}>{ONEM_LABEL[f.onem]}</Badge>
+                      <StatusBadge durum={ONEM_SEMANTIK[f.onem]}>{ONEM_LABEL[f.onem]}</StatusBadge>
                     </TableCell>
                     <TableCell>{f.hedefKapama ?? "—"}</TableCell>
                     <TableCell>{FINDING_DURUM_LABEL[f.durum]}</TableCell>

@@ -92,8 +92,16 @@ güvenlik başlıkları (CSP report-only). Tema e2e iki gerçek bug yakaladı: A
 Router manuel `<head>`'i yok sayar (script body'ye taşındı) ve supabase-js
 builder lazy (`void builder` istek GÖNDERMEZ — `.then` şart). **642 birim +
 19 e2e, 0 skip; production build yeşil.** Görsel baseline:
-`docs/gorsel-baseline/`. Sıradaki: PR-2 ekran taşıma → PR-3C/3D → M16 kapısı;
-M19+ ancak ondan sonra.
+`docs/gorsel-baseline/`.
+
+**PR-2 Ekran Taşıma da BİTTİ** (ROADMAP §1.7 altında tam liste): tüm
+`*_BADGE_VARIANT` sabitleri kaldırıldı, 13 ekran tek semantik durum diline
+(`StatusBadge`, ui-labels `*_SEMANTIK` eşlemeleri) geçti — kural 13 görselde
+de ayrık (UNKNOWN≠FAILED≠STALE≠EXCEPTION). Kanıt izi rayı kontrol detayında
+canlı (dürüst kısmi zincir; Test düğümü `kontrolGuvenceDurumu`nu bileşen
+callback'iyle alır). Davranış birebir korundu (19 e2e yeşil). Sıradaki:
+PR-3C rollback → PR-3D import UI + e2e → **M16 üretim kapısı**; M19+ ancak
+ondan sonra.
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler

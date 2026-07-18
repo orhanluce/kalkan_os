@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "@playwright/test";
-import { girisYap } from "./helpers";
+import { girisYap, kontrolAc } from "./helpers";
 
 // Görsel baseline yakalama (PR-0/PR-1, master talimat §3.8 + §30).
 //
@@ -30,6 +30,18 @@ const EKRANLAR = [
   { ad: "sod", yol: "/sod" },
   { ad: "denetim-izi", yol: "/denetim-izi" },
 ] as const;
+
+test("kontrol detayı (kanıt izi rayı) baseline'ı", async ({ page }) => {
+  test.setTimeout(120_000);
+  mkdirSync(KLASOR, { recursive: true });
+  await girisYap(page);
+  for (const tema of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme: tema });
+    await kontrolAc(page, "TODO-DOGRULA-01");
+    await page.waitForLoadState("networkidle");
+    await page.screenshot({ path: join(KLASOR, `kontrol-detay-masaustu-${tema}.png`), fullPage: true });
+  }
+});
 
 test("kritik ekranların görsel baseline'ını yakala", async ({ page }) => {
   test.setTimeout(300_000);

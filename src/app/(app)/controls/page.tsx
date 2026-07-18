@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/durum/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -15,7 +15,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/empty-state";
 import { useLocalStore } from "@/lib/store";
-import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
+import { DURUM_LABEL, DURUM_SEMANTIK } from "@/lib/ui-labels";
 
 const TUMU = "tumu";
 
@@ -119,7 +119,7 @@ export default function ControlsPage() {
                         {profileById.get(sorumluByControlId.get(c.id) ?? "")?.fullName ?? "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={DURUM_BADGE_VARIANT[durum]}>{DURUM_LABEL[durum]}</Badge>
+                        <StatusBadge durum={DURUM_SEMANTIK[durum]}>{DURUM_LABEL[durum]}</StatusBadge>
                       </TableCell>
                     </TableRow>
                   );

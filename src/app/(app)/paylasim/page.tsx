@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/durum/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -150,9 +150,9 @@ export default function PaylasimPage() {
                       <TableCell>{new Date(sl.createdAt).toLocaleDateString("tr-TR")}</TableCell>
                       <TableCell>{new Date(sl.sonGecerlilik).toLocaleDateString("tr-TR")}</TableCell>
                       <TableCell>
-                        <Badge variant={valid ? "default" : "destructive"}>
+                        <StatusBadge durum={valid ? "success" : "danger"}>
                           {valid ? "Geçerli" : "Süresi Doldu"}
-                        </Badge>
+                        </StatusBadge>
                       </TableCell>
                       <TableCell className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => handleCopy(sl.token)}>

@@ -1,21 +1,16 @@
 // Mevzuat doğrulama durumu rozeti (kural 3 + M16 mevzuat_durumu sözlüğü).
 //
-// INTERNAL: KALKAN_OS'un kendi tasarım kararı — doğrulama beklemez.
-// TODO_DOGRULA: SPK notu/araştırmadan türedi, hukuk/uyum onayı bekliyor.
-// VERIFIED: doğrulandı (geçiş ayrı yetki ister, DB guard'lı).
-// M21 knowledge graph durumları (DRAFT_RESEARCH/LEGAL_REVIEW/SUPERSEDED/
-// REJECTED) o taş geldiğinde BURAYA eklenir — ikinci bir rozet bileşeni değil.
-import { StatusBadge, type SemantikDurum } from "./status-badge";
+// Etiket ve semantik TEK kaynaktan (ui-labels): ürünün yerleşik dili
+// ("Doğrulanmadı" vb.) burada YENİDEN icat edilmez. M21 knowledge graph
+// durumları (DRAFT_RESEARCH/LEGAL_REVIEW/SUPERSEDED/REJECTED) o taş
+// geldiğinde ui-labels eşlemesine eklenir — ikinci bir rozet bileşeni değil.
+import { SOD_MEVZUAT_DURUMU_LABEL, SOD_MEVZUAT_DURUMU_SEMANTIK } from "@/lib/ui-labels";
+import { StatusBadge } from "./status-badge";
 
-export type MevzuatDurumu = "INTERNAL" | "TODO_DOGRULA" | "VERIFIED";
-
-const ESLEME: Record<MevzuatDurumu, { durum: SemantikDurum; etiket: string }> = {
-  INTERNAL: { durum: "neutral", etiket: "İç kural" },
-  TODO_DOGRULA: { durum: "legal-review", etiket: "Hukuk onayı bekliyor" },
-  VERIFIED: { durum: "success", etiket: "Doğrulandı" },
-};
-
-export function LegalStatusBadge({ mevzuatDurumu }: { mevzuatDurumu: MevzuatDurumu }) {
-  const { durum, etiket } = ESLEME[mevzuatDurumu];
-  return <StatusBadge durum={durum}>{etiket}</StatusBadge>;
+export function LegalStatusBadge({ mevzuatDurumu }: { mevzuatDurumu: string }) {
+  return (
+    <StatusBadge durum={SOD_MEVZUAT_DURUMU_SEMANTIK[mevzuatDurumu] ?? "unknown"}>
+      {SOD_MEVZUAT_DURUMU_LABEL[mevzuatDurumu] ?? mevzuatDurumu}
+    </StatusBadge>
+  );
 }

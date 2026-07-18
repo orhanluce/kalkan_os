@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/empty-state";
 import { createClient } from "@/lib/supabase/client";
-import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
+import { StatusBadge } from "@/components/durum/status-badge";
+import { DURUM_LABEL, DURUM_SEMANTIK } from "@/lib/ui-labels";
 import type { Durum } from "@/lib/types";
 
 // Denetçi görünümü: OTURUMSUZ çalışır (denetçinin hesabı yoktur).
@@ -114,9 +115,9 @@ export default function ShareLinkGuestPage() {
                         <TableCell>{k.baslik}</TableCell>
                         <TableCell className="tabular-nums">{k.kritiklik}</TableCell>
                         <TableCell>
-                          <Badge variant={DURUM_BADGE_VARIANT[k.durum]}>
+                          <StatusBadge durum={DURUM_SEMANTIK[k.durum]}>
                             {DURUM_LABEL[k.durum]}
-                          </Badge>
+                          </StatusBadge>
                         </TableCell>
                         <TableCell className="tabular-nums">{k.kanit_sayisi}</TableCell>
                       </TableRow>

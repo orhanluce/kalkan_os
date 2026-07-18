@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
-import { SIMULASYON_DURUM_LABEL } from "@/lib/ui-labels";
+import { StatusBadge } from "@/components/durum/status-badge";
+import { SIMULASYON_DURUM_LABEL, SIMULASYON_DURUM_SEMANTIK } from "@/lib/ui-labels";
 
 // Senaryo kütüphanesi (M7). Yürütme ekranları (control room / katılımcı /
 // gözlemci) M8'in kalan işidir — bu sayfa yalnızca şablonları gösterir.
@@ -155,7 +156,9 @@ export default function SimulasyonlarPage() {
                 className="flex items-center justify-between rounded-md border px-3 py-2 text-sm hover:bg-muted"
               >
                 <span>{t.ad}</span>
-                <Badge variant="outline">{SIMULASYON_DURUM_LABEL[t.durum] ?? t.durum}</Badge>
+                <StatusBadge durum={SIMULASYON_DURUM_SEMANTIK[t.durum] ?? "unknown"}>
+                  {SIMULASYON_DURUM_LABEL[t.durum] ?? t.durum}
+                </StatusBadge>
               </Link>
             ))}
           </CardContent>

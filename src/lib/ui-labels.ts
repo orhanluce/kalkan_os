@@ -1,4 +1,12 @@
+import type { SemantikDurum } from "@/components/durum/status-badge";
 import type { AuditEylem, Durum, Finding, FindingDurum, Onem, Role } from "./types";
+
+// PR-2 (master talimat §5.3): her iş durumu TEK yerde semantik duruma eşlenir;
+// ekranlar StatusBadge'e bu eşlemeyle gider. Eski *_BADGE_VARIANT sabitleri
+// kaldırıldı — iki paralel görsel dil yaşatılmaz. Eşleme ilkeleri:
+//   - kural 13: UNKNOWN ayrı 'unknown' (nötr gri DEĞİL), STALE 'warning',
+//     EXCEPTION 'legal-review' — beş durum görsel olarak da birleşmez.
+//   - "ölçemedik" (UNKNOWN) ile "ihlal" (FAILED/danger) asla aynı renk değil.
 
 export const DURUM_LABEL: Record<Durum, string> = {
   karsilaniyor: "Karşılanıyor",
@@ -7,11 +15,11 @@ export const DURUM_LABEL: Record<Durum, string> = {
   kapsam_disi: "Kapsam Dışı",
 };
 
-export const DURUM_BADGE_VARIANT: Record<Durum, "default" | "secondary" | "destructive" | "outline"> = {
-  karsilaniyor: "default",
-  kismi: "secondary",
-  acik: "destructive",
-  kapsam_disi: "outline",
+export const DURUM_SEMANTIK: Record<Durum, SemantikDurum> = {
+  karsilaniyor: "success",
+  kismi: "warning",
+  acik: "danger",
+  kapsam_disi: "neutral",
 };
 
 export const ONEM_LABEL: Record<Onem, string> = {
@@ -22,12 +30,12 @@ export const ONEM_LABEL: Record<Onem, string> = {
   dusuk: "Düşük",
 };
 
-export const ONEM_BADGE_VARIANT: Record<Onem, "default" | "secondary" | "destructive" | "outline"> = {
-  acil: "destructive",
-  kritik: "destructive",
-  yuksek: "secondary",
-  orta: "outline",
-  dusuk: "outline",
+export const ONEM_SEMANTIK: Record<Onem, SemantikDurum> = {
+  acil: "danger",
+  kritik: "danger",
+  yuksek: "warning",
+  orta: "neutral",
+  dusuk: "neutral",
 };
 
 export const FINDING_DURUM_LABEL: Record<FindingDurum, string> = {
@@ -65,12 +73,38 @@ export const TEST_SONUC_LABEL: Record<string, string> = {
   EXCEPTION: "İstisna",
 };
 
-export const TEST_SONUC_BADGE_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  PASSED: "default",
-  FAILED: "destructive",
-  UNKNOWN: "outline",
-  STALE: "secondary",
-  EXCEPTION: "secondary",
+/** Kural 13 görsel dili: beş durum beş AYRI semantiğe düşer, birleşmez. */
+export const TEST_SONUC_SEMANTIK: Record<string, SemantikDurum> = {
+  PASSED: "success",
+  FAILED: "danger",
+  UNKNOWN: "unknown", // "ölçemedik" — nötr gri de, danger da DEĞİL
+  STALE: "warning",
+  EXCEPTION: "legal-review",
+};
+
+export const FINDING_DURUM_SEMANTIK: Record<FindingDurum, SemantikDurum> = {
+  acik: "danger",
+  kapali: "success",
+};
+
+export const SIMULASYON_DURUM_SEMANTIK: Record<string, SemantikDurum> = {
+  taslak: "neutral",
+  planlandi: "info",
+  hazir: "info",
+  calisiyor: "info",
+  duraklatildi: "warning",
+  tamamlandi: "success",
+  puanlaniyor: "info",
+  incelendi: "success",
+  kapandi: "neutral",
+  iptal: "neutral",
+};
+
+export const PUANLAMA_DURUM_SEMANTIK: Record<string, SemantikDurum> = {
+  BASARILI: "success",
+  KISMI: "warning",
+  BASARISIZ: "danger",
+  CRITICAL_FAILURE: "danger",
 };
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -142,19 +176,30 @@ export const SOD_CATISMA_DURUM_LABEL: Record<string, string> = {
   FALSE_POSITIVE: "Yanlış pozitif",
 };
 
-export const SOD_CATISMA_DURUM_BADGE_VARIANT: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  OPEN: "destructive",
-  UNDER_REVIEW: "secondary",
-  EXCEPTION_REQUESTED: "secondary",
-  EXCEPTION_APPROVED: "outline",
-  MITIGATED: "default",
-  RESOLVED: "default",
-  REOPENED: "destructive",
-  EXPIRED: "destructive",
-  FALSE_POSITIVE: "outline",
+export const SOD_CATISMA_DURUM_SEMANTIK: Record<string, SemantikDurum> = {
+  OPEN: "danger",
+  UNDER_REVIEW: "info",
+  EXCEPTION_REQUESTED: "legal-review",
+  EXCEPTION_APPROVED: "legal-review",
+  MITIGATED: "success",
+  RESOLVED: "success",
+  REOPENED: "danger",
+  EXPIRED: "danger",
+  FALSE_POSITIVE: "neutral",
+};
+
+export const SOD_ISTISNA_DURUM_SEMANTIK: Record<string, SemantikDurum> = {
+  talep_edildi: "info",
+  onaylandi: "success",
+  reddedildi: "danger",
+  iptal: "neutral",
+  suresi_doldu: "danger",
+};
+
+export const SOD_MEVZUAT_DURUMU_SEMANTIK: Record<string, SemantikDurum> = {
+  INTERNAL: "neutral",
+  TODO_DOGRULA: "legal-review",
+  VERIFIED: "success",
 };
 
 export const SOD_ISTISNA_DURUM_LABEL: Record<string, string> = {

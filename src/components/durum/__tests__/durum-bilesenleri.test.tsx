@@ -16,9 +16,9 @@ describe("StatusBadge", () => {
 });
 
 describe("LegalStatusBadge", () => {
-  it("TODO_DOGRULA hukuk incelemesi olarak görünür (kural 3)", () => {
+  it("TODO_DOGRULA ürün dilindeki etiketiyle görünür (kural 3, ui-labels tek kaynak)", () => {
     render(<LegalStatusBadge mevzuatDurumu="TODO_DOGRULA" />);
-    expect(screen.getByText("Hukuk onayı bekliyor")).toBeInTheDocument();
+    expect(screen.getByText("Doğrulanmadı")).toBeInTheDocument();
   });
 });
 

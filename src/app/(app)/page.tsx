@@ -1,10 +1,10 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/durum/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateMaturityScore, topRiskyOpenControls } from "@/lib/maturity";
 import { useLocalStore } from "@/lib/store";
-import { DURUM_BADGE_VARIANT, DURUM_LABEL } from "@/lib/ui-labels";
+import { DURUM_LABEL, DURUM_SEMANTIK } from "@/lib/ui-labels";
 import type { Durum } from "@/lib/types";
 
 const EMPTY_DAGILIM: Record<Durum, number> = {
@@ -93,9 +93,9 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
           {(Object.keys(dagilim) as Durum[]).map((durum) => (
-            <Badge key={durum} variant={DURUM_BADGE_VARIANT[durum]}>
+            <StatusBadge key={durum} durum={DURUM_SEMANTIK[durum]}>
               {DURUM_LABEL[durum]}: {dagilim[durum]}
-            </Badge>
+            </StatusBadge>
           ))}
         </CardContent>
       </Card>
@@ -110,9 +110,9 @@ export default function DashboardPage() {
               <span className="text-sm font-medium">{framework.code}</span>
               <div className="flex flex-wrap gap-2">
                 {(Object.keys(counts) as Durum[]).map((durum) => (
-                  <Badge key={durum} variant={DURUM_BADGE_VARIANT[durum]}>
+                  <StatusBadge key={durum} durum={DURUM_SEMANTIK[durum]}>
                     {DURUM_LABEL[durum]}: {counts[durum]}
-                  </Badge>
+                  </StatusBadge>
                 ))}
               </div>
             </div>
@@ -139,7 +139,7 @@ export default function DashboardPage() {
                     <span className="text-xs text-muted-foreground">
                       kritiklik {r.control.kritiklik}
                     </span>
-                    <Badge variant={DURUM_BADGE_VARIANT[r.durum]}>{DURUM_LABEL[r.durum]}</Badge>
+                    <StatusBadge durum={DURUM_SEMANTIK[r.durum]}>{DURUM_LABEL[r.durum]}</StatusBadge>
                   </div>
                 </li>
               ))}
