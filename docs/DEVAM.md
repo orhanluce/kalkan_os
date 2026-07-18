@@ -53,32 +53,36 @@ deploy health `hazir`. Devreden blokaj YOK.
 Test tabanı: **789 birim (61 dosya) + 34 e2e, 0 skip**; production build yeşil.
 Migration sırası son: `20260718190000_els_delete_alignment` (CANLIDA).
 
-## 2. SIRADAKİ İŞ — QREGU REKABET SPRİNTİ (18 Temmuz gece: yeni kurucu talimatı)
-**Öncelik değişti:** kurucu QRegu Rekabet Sprinti talimatını verdi
-(`docs/arastirma/KALKAN_OS_QRegu_Rekabet_Sprinti_Talimati_2026.md` — çelişkide
-ÖNCELİKLİ; + AI/Blockchain raporu + Regülasyon Zekâsı belgesi repo'ya kopyalandı).
-**PR-Q0 BİTTİ:** `docs/adr/PRQ0-qregu-rekabet-sprinti-2026-07-18.md` (TEK
-yetkili kaynak: baseline + boşluk analizi + 3 ADR taslağı + lisans matrisi +
-pilot kapsam çerçevesi + ölçüm sözleşmesi + açık kararlar). Boşluk özeti:
-QRegu Q1-Q4 çekirdeği PR-4a/4b ile ZATEN kodda; sıradaki gerçek işler:
+## 2. SIRADAKİ İŞ — NİHAİ TEK TALİMAT (v3.0) GATE SIRASI
+**⚠️ BAĞLAYICI BELGE DEĞİŞTİ (18 Temmuz gece, en son):**
+`docs/arastirma/KALKAN_OS_Nihai_Tek_Talimat_2026.md` artık TEK kurucu
+talimatı; QRegu dahil öncekiler tarihsel. Fark analizi + gate↔repo eşlemesi:
+`docs/adr/G0-nihai-talimat-fark-analizi-2026-07-18.md` (ROADMAP §1.20).
+Rapor formatı: nihai §15. Özet: **G0 GEÇMİŞ; sıradaki G1 kapanışı → G2
+(M34 Policy Lifecycle) → G3 (connector+TSA interface)**. G1'in tek gerçek
+blocker'ı kurucu İÇERİK teslimi (≥20 doğrulanmış SPK/7545 kontrolü + hukuk
+doğrulayıcı rolü). QRegu döneminde teslim edilenler (ROADMAP §1.16-1.19):
 1. ~~**PR-Q1'** (kaynak ingest dilimi)~~ **BİTTİ** (ROADMAP §1.17): bucket +
    küratör ingest scripti + `source_fetch_runs` + tazelik (kural 8) + UI
    nüsha listesi; canlı smoke 8/8. Sapma: staleness cron'u connector'a
    ertelendi (türetim okuma-anı saf fonksiyon).
-2. ~~**PR-Q2a'** dört-göz iş akışı~~ **BİTTİ** (ROADMAP §1.18): guard + rota +
-   `/regulasyon/dogrulama` kuyruğu + iki-kullanıcılı e2e. **KALAN → PR-Q2b'**:
-   applicability wizard (`eksikProfilAlanlari` motoru hazır; eksik olguda yalnız
-   UNKNOWN önerilir + /kurulum'a yönlendirme; tam olguda insan kararı gerekçe+
-   onayla) + EvidenceTraceRail Hüküm/Yükümlülük düğümlerine gerçek veri
-   (Control Lineage'ın parçası).
-3. **PR-Q3'**: 20-40 SPK/7545 kontrolü — **KURUCU İÇERİK BLOCKER'ı** (kural 3:
-   `data/*.yaml` + hukuk doğrulayıcı onayı; kod hazır, içerik uydurulmaz).
-4. **PR-Q4'**: SCITT-tarzı transparency ledger (M5.5 Merkle kodu yeniden
-   kullanılır) + Proof Room (paylasim genişletmesi) + decision receipt.
-5. Sonra Q5 connector (kurucu kararı #7) → Q6 AI Gateway+RegBench (karar #1-2)
-   → Q7 ürünleştirme/pilot.
+2. ~~**PR-Q2a'** dört-göz iş akışı~~ **BİTTİ** (ROADMAP §1.18).
+3. ~~**PR-Q2b'** applicability wizard + kanıt izi rayı gerçek verisi~~
+   **BİTTİ** (ROADMAP §1.19).
+
+**GATE SIRASI (nihai §8; ayrıntı fark-analizi ADR'sinde):**
+1. **G1 kapanış dilimi:** Proof Room (paylasim genişletmesi: süreli salt-okur
+   alanda artifact/receipt/verifier sonucu) — kod tarafında kalan tek büyük
+   parça; ≥20 kontrol İÇERİĞİ ve ≥5 gerçek test tanımı KURUCU teslimi bekler.
+2. **G2 — M34 Policy Lifecycle:** yeni kod alanı (PolicyDocument/Version/
+   Clause/Approval/Attestation/Exception/Impact; draft→review→approved→
+   effective→retired state machine; preparer≠approver — dört-göz deseni
+   hazır; clause→hüküm/kontrol bağı).
+3. **G3:** connector sözleşmesi + RFC 3161 TSA adapter interface (kurucu
+   kararları beklerken interface+test double) + SCITT-tarzı ledger (M5.5
+   Merkle kodu yeniden kullanılır).
 Her adım: migration (PGlite RLS testi) → canlı db:push+db:types → gerçek
-Chromium e2e → commit. Kural 3'ü her adımda koru; hiçbir mevzuat uydurma.
+Chromium e2e → commit; rapor nihai §15 formatında. Kural 3'ü her adımda koru.
 
 ## 3. V2 PR-4b SONRASI SIRA (V2 §9)
 PR-5 M17 Audit Workspace MVP → PR-6 M18 Training MVP (M12 test motorunu yeniden

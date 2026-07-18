@@ -518,6 +518,42 @@ kapısı) → admin onaylar (VERIFIED) → admin kendi sunumunu onaylayamaz (409
 taşındı (sunan≠doğrulayan + service'te dört-göz reddi assert'i). **800 birim
 + 36 e2e, 0 skip; build yeşil.**
 
+### 1.19 QRegu PR-Q2b' — Applicability wizard + kanıt izi rayı gerçek verisi ✅ (18 Temmuz gece)
+
+Kod değişikliği migration'sız (M22 şeması yeterliydi): (1) **`/regulasyon/
+uygulanabilirlik`** — master §9.7 sadakatiyle: kritik profil olgusu EKSİKSE
+tek seçilebilir sonuç UNKNOWN (diğer butonlar disabled + `/kurulum`a
+yönlendirme; yeşil GÖSTERİLMEZ), tam olguda insan kararı gerekçe + oturum-
+sahibi onayıyla (kimlik atfı DB guard'ıyla uyumlu); yeniden değerlendirme
+supersede + yeni satır (append-only, e2e DB assert'iyle kanıtlı: eski karar
+silinmez, kapatılır); fact_snapshot + RFC8785 fingerprint istemcide kendi
+canonical uygulamamızla hesaplanır. (2) Kontrol detayındaki **EvidenceTraceRail
+Hüküm/Yükümlülük düğümleri artık GERÇEK M21 zincirinden** (REJECTED eşleme
+iddia sayılmaz; eşleme yoksa dürüst "Bağlı değil" korunur; VERIFIED öncelikli
++ kalan sayısı). Nav: Regülasyon > Uygulanabilirlik. E2e: `uygulanabilirlik.
+spec.ts` (tam profil → APPLICABLE + onay atfı + 64-hex fingerprint; profil
+eksiltilince yalnız-UNKNOWN + append-only zincir) + legal-basis.spec'e ray
+assert'i (E2E hüküm ref'i ve yükümlülük kodu rayda görünür). Bir e2e yarışı
+düzeltildi (form butonu/rozet metin çakışması — form kapanışı beklenir).
+
+### 1.20 Mimari karar kaydı — 18 Temmuz gece (NİHAİ TEK TALİMAT v3.0 — bağlayıcı belge değişti)
+
+Kurucu `docs/arastirma/KALKAN_OS_Nihai_Tek_Talimat_2026.md` verdi (birebir
+kopya, fc /b doğrulı): bundan böyle TEK bağlayıcı talimat; önceki talimatlar
+(QRegu dahil) tarihsel materyal. Çelişki sırası: güvenlik invariant'ları →
+repo ADR + çalışan testler → nihai talimat → diğer belgeler. **Fark analizi
+ve gate↔repo eşlemesi TEK yetkili kaynakta:
+`docs/adr/G0-nihai-talimat-fark-analizi-2026-07-18.md`** — özet: G0 (M16)
+GEÇMİŞ; G1 (SPK/7545 source-to-proof) çekirdeği kodda, kalan üçlü: kurucu
+İÇERİK teslimi (≥20 doğrulanmış kontrol — blocker kurucuda), ≥5 gerçek test
+tanımı (içerikle), Proof Room (paylasim genişletmesi); Proof katmanının
+büyük kısmı (envelope/JWS adapter/offline verifier ×2/portable package) G3
+gereksinimlerini şimdiden karşılıyor. **YENİ PLANLANAN MODÜLLER (kod yok,
+gate sırasıyla): M34 Policy Lifecycle (G2), M35 TPRM/ICT (G4), M36
+PrivacyOps (G6), M37 AI Assurance (G5), M38 Regulatory Engagement (G7),
+M39 Connector Hub (G3), M40 Risk/Board (G8), M41 Partner Network (G7).**
+Mevcut milestone numaraları değişmedi; rapor formatı artık nihai §15.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket
