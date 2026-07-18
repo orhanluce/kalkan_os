@@ -411,6 +411,73 @@ nav org-type duyarlı (REGULATED/KARMA'da Regülasyon grubu). 4 RLS + 1 e2e.
 Erişim politikası 'onay_bekliyor' — connector SourceAccessPolicy onaysız
 üretime çıkmaz.
 
+### 1.15 V2 PR-4b — Regulated dikey dilim: M20-M24 TEK yeşil dilim ✅ (18 Temmuz gece)
+
+Beş adım, hepsi canlıda + gerçek Chromium e2e kanıtlı (migration
+`20260718150000`→`20260718190000`; commit `606a22a`→`2a73143`):
+
+1. **M20 provisions** (bitemporal, global/ADR-T3): valid-time + system-time
+   ayrı eksenler; düzeltme = eski kaydın system_to kapaması + yeni satır
+   (fiziksel UPDATE/DELETE yok, kural 2 ruhu); güncel-dilim partial unique.
+2. **M21 obligations + obligation_control_mappings:** 6 doğrulama durumu
+   (DRAFT_RESEARCH/TODO_DOGRULA/LEGAL_REVIEW/VERIFIED/SUPERSEDED/REJECTED);
+   ortak DB guard: **hiçbir kayıt VERIFIED doğamaz** (AI/parser/seed dahil),
+   VERIFIED yalnız LEGAL_REVIEW'den + dogrulayan+zaman atfıyla, VERIFIED
+   içerik-kimliği alanları DONUK (sessiz iddia kayması yok). Eşlemede kapsam
+   tam/kismi ayrı (kısmi eşleme "karşılanıyor" yanılsaması yapamaz).
+3. **M22 applicability_decisions (TENANT'A ÖZGÜ):** 4 durum; **UNKNOWN ≠
+   NOT_APPLICABLE DB invariant'ı** — NA gerekçe+onaylayan+zaman ister
+   (service_role bile atlayamaz), kimlik atfı M16 #9 deseni; append-only
+   karar zinciri (supersede; kapatılan yeniden açılamaz); fact_snapshot +
+   RFC 8785 fingerprint (`applicability.ts` sıra-bağımsız). **Kural motoru
+   UYDURULMADI:** eksik kritik olguda tek dürüst sonuç UNKNOWN; tam olguda
+   karar insanda (kural 3'ün kapsam versiyonu).
+4. **M23 legal-basis guard:** saf motor `legal-basis.ts` (kural 11; ALLOW/
+   ALLOW_WITH_WARNING/BLOCK + sebep kodları) + RLS toplayıcı `legal-basis-
+   server.ts`; `/api/kontrol-test/[id]/calistir` koşu ÖNCESİ değerlendirir —
+   **doğrulanmamış eşleme ZORUNLU kontrolü 409 + koşusuz-fotoğrafla BLOKlar**
+   (V2 kabulü), rehberde uyarı; kapsam sorunları BLOK DEĞİL uyarı (kural 13
+   ruhu: ölçmeyi durdurma); dayanak iddiası olmayan kontrol bloklanmaz
+   (mevcut M12 akışı bozulmadı). Her koşuda immutable `execution_legal_
+   snapshots` (BLOCK=koşusuz check'i; UPDATE herkese kapalı; DELETE test_runs
+   disipliniyle hizalı `20260718190000` — fixture cascade regresyonunu PGlite
+   testi canlıya çıkmadan yakaladı). İKİNCİ TEST MOTORU YOK.
+5. **M24 citation bundle:** `citation-bundle.ts` (KALKAN_CITATION_BUNDLE_V1;
+   imzaDurumu IMZASIZ_HASH_BUTUNLUKLU — sahte "production signed" yok) + rota
+   `/api/kontrol-test/run/[runId]/sitasyon` (tamamen kullanıcı RLS'iyle) +
+   bağımsız `scripts/verify-sitasyon.ts` (DB'siz, kendi RFC 8785'imizle;
+   e2e'de AYRI SÜREÇTE sağlam=VERIFIED/exit0, kurcalı=FAILED/exit1). Üç EK
+   hash `legalSnapshotHash`/`sourceBundleHash`/`applicabilityDecisionHash` —
+   mevcut dörtlü sözleşme BOZULMADI (kural 15); fotoğrafsız eski koşuda hash
+   NULL, uydurulmaz.
+
+Canlı doğrulama: 4 tablonun guard'ları canlı smoke 21/21 (geçici script,
+silindi); e2e `legal-basis.spec.ts` tam akışı sürdü. **789 birim (61 dosya)
++ 34 e2e, 0 skip; build yeşil; deploy health `hazir`.** Kalan dar iş:
+EvidenceTraceRail Hüküm/Yükümlülük düğümlerine gerçek veri + hüküm listesi
+UI (DEVAM.md §2).
+
+### 1.16 Mimari karar kaydı — 18 Temmuz gece (QRegu Rekabet Sprinti — PR-Q0, KOD YOK)
+
+Kurucu iki YENİ belge verdi (birebir kopya, fc /b doğrulı):
+`docs/arastirma/KALKAN_OS_QRegu_Rekabet_Sprinti_Talimati_2026.md` (ÖNCELİKLİ)
+ve `KALKAN_OS_AI_Blockchain_Strateji_Raporu_2026.md`; ayrıca
+`KALKAN_OS_Regulasyon_Zekasi_ve_Tam_Uyum_Modulleri_2026.md` repo'ya kopyalandı.
+**PR-Q0 dökümü tek yetkili kaynak:
+`docs/adr/PRQ0-qregu-rekabet-sprinti-2026-07-18.md`** — baseline doğrulaması,
+QRegu PR-Q0..Q7 ↔ repo boşluk analizi (Q1-Q4 çekirdeği PR-4a/4b ile ZATEN
+kodda; eksikler: ingest/staleness, dört-göz iş akışı+wizard UI, 20-40
+kontrollük KURUCU İÇERİK teslimi, transparency ledger/Proof Room, connector,
+AI Gateway), üç ADR taslağı (rekabet konumu / AI karar sınırı / proof
+receipt+ledger), kaynak erişim-lisans matrisi, SPK/7545 pilot kapsam
+çerçevesi (içerik kural 3 gereği kurucu/küratör YAML'ından), 3 tasarım
+ortağı ölçüm sözleşmesi taslağı, açık kurucu kararları (10 + K1/K2).
+Terminoloji kararları: applicability sözlüğü CONDITIONAL'lı dörtlü KORUNDU
+(canlıda + daha sıkı; QRegu'nun REVIEW_REQUIRED'ı supersede kuyruğuyla
+karşılanır), guard çıktısı üçlü + sebep kodları KORUNDU. İlk 90 gün sırası:
+PR-Q1' (kaynak ingest dilimi) → Q2' (dört-göz+wizard) → Q3' (içerik gelince
+pilot kapsam) → Q4' (transparency ledger + Proof Room) → Q5-Q7.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket

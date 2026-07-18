@@ -53,16 +53,28 @@ deploy health `hazir`. Devreden blokaj YOK.
 Test tabanı: **789 birim (61 dosya) + 34 e2e, 0 skip**; production build yeşil.
 Migration sırası son: `20260718190000_els_delete_alignment` (CANLIDA).
 
-## 2. SIRADAKİ İŞ
-1. **PR-4b UI dokunuşu (dar, kalan tek parça):** kontrol detayındaki
-   EvidenceTraceRail Hüküm/Yükümlülük düğümlerine gerçek veri (artık "bağlı
-   değil" değil; koşu yanıtındaki `dayanak` alanı da kullanılabilir),
-   `/regulasyon/kaynaklar` altına hüküm/yükümlülük listesi (salt-okur,
-   doğrulama rozetli). Sonra ROADMAP'e PR-4b kaydı + kurucuya kapanış özeti.
-2. Ardından V2 §9 sırası: PR-5 M17 Audit Workspace MVP → PR-6 M18 Training →
-   PR-7 Connector+Consolidation → PR-8 Product Analytics; CFO kalan dilimleri
-   (§3). SPK/7545 starter pack İÇERİĞİ kural 3 gereği kurucu/küratör kaynaklı
-   YAML ister — kod hazır, içerik uydurulmaz.
+## 2. SIRADAKİ İŞ — QREGU REKABET SPRİNTİ (18 Temmuz gece: yeni kurucu talimatı)
+**Öncelik değişti:** kurucu QRegu Rekabet Sprinti talimatını verdi
+(`docs/arastirma/KALKAN_OS_QRegu_Rekabet_Sprinti_Talimati_2026.md` — çelişkide
+ÖNCELİKLİ; + AI/Blockchain raporu + Regülasyon Zekâsı belgesi repo'ya kopyalandı).
+**PR-Q0 BİTTİ:** `docs/adr/PRQ0-qregu-rekabet-sprinti-2026-07-18.md` (TEK
+yetkili kaynak: baseline + boşluk analizi + 3 ADR taslağı + lisans matrisi +
+pilot kapsam çerçevesi + ölçüm sözleşmesi + açık kararlar). Boşluk özeti:
+QRegu Q1-Q4 çekirdeği PR-4a/4b ile ZATEN kodda; sıradaki gerçek işler:
+1. **PR-Q1'** (kaynak ingest dilimi): `regulatory-source-artifacts` bucket +
+   manuel güvenli ingest rotası (hash=Storage doğrulaması, MIME/boyut) +
+   `source_fetch_runs` + staleness pg_cron + `/regulasyon/kaynaklar` artifact
+   listesi/ingest formu + RLS/e2e. (PRQ0 belgesi §10'da tam kapsam.)
+2. **PR-Q2'**: dört-göz doğrulama iş akışı (hazırlayan≠dogrulayan DB guard'ı +
+   rotalar + inceleme kuyruğu UI) + applicability wizard (`eksikProfilAlanlari`
+   motoru hazır) + EvidenceTraceRail Hüküm/Yükümlülük gerçek verisi (PR-4b'den
+   devreden dar UI işi buraya katıldı — Control Lineage ekranının parçası).
+3. **PR-Q3'**: 20-40 SPK/7545 kontrolü — **KURUCU İÇERİK BLOCKER'ı** (kural 3:
+   `data/*.yaml` + hukuk doğrulayıcı onayı; kod hazır, içerik uydurulmaz).
+4. **PR-Q4'**: SCITT-tarzı transparency ledger (M5.5 Merkle kodu yeniden
+   kullanılır) + Proof Room (paylasim genişletmesi) + decision receipt.
+5. Sonra Q5 connector (kurucu kararı #7) → Q6 AI Gateway+RegBench (karar #1-2)
+   → Q7 ürünleştirme/pilot.
 Her adım: migration (PGlite RLS testi) → canlı db:push+db:types → gerçek
 Chromium e2e → commit. Kural 3'ü her adımda koru; hiçbir mevzuat uydurma.
 
