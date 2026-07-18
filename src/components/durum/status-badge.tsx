@@ -29,14 +29,29 @@ export type SemantikDurum =
   | "unknown"
   | "legal-review";
 
-const GORUNUM: Record<SemantikDurum, { Ikon: LucideIcon; sinif: string }> = {
-  success: { Ikon: CheckCircle2, sinif: "bg-success/10 text-success border-success/30" },
-  warning: { Ikon: AlertTriangle, sinif: "bg-warning/10 text-warning border-warning/30" },
-  danger: { Ikon: XCircle, sinif: "bg-danger/10 text-danger border-danger/30" },
-  info: { Ikon: Info, sinif: "bg-info/10 text-info border-info/30" },
-  neutral: { Ikon: CircleDashed, sinif: "bg-neutral-status/10 text-neutral-status border-neutral-status/30" },
-  unknown: { Ikon: HelpCircle, sinif: "bg-unknown/10 text-unknown border-unknown/30" },
-  "legal-review": { Ikon: Scale, sinif: "bg-legal-review/10 text-legal-review border-legal-review/30" },
+/** Semantik → Tailwind renk sınıfı (tek kaynak; ObligationBasisBadge de kullanır). */
+export const SEMANTIK_SINIF: Record<SemantikDurum, string> = {
+  success: "bg-success/10 text-success border-success/30",
+  warning: "bg-warning/10 text-warning border-warning/30",
+  danger: "bg-danger/10 text-danger border-danger/30",
+  info: "bg-info/10 text-info border-info/30",
+  neutral: "bg-neutral-status/10 text-neutral-status border-neutral-status/30",
+  unknown: "bg-unknown/10 text-unknown border-unknown/30",
+  "legal-review": "bg-legal-review/10 text-legal-review border-legal-review/30",
+};
+
+/** Ortak rozet kabuğu — dıştan verilen ikon + renk sınıfı. */
+export const ROZET_TEMEL =
+  "inline-flex h-5 w-fit shrink-0 items-center gap-1 whitespace-nowrap rounded-md border px-2 py-0.5 text-xs font-medium";
+
+const IKON: Record<SemantikDurum, LucideIcon> = {
+  success: CheckCircle2,
+  warning: AlertTriangle,
+  danger: XCircle,
+  info: Info,
+  neutral: CircleDashed,
+  unknown: HelpCircle,
+  "legal-review": Scale,
 };
 
 export function StatusBadge({
@@ -48,15 +63,9 @@ export function StatusBadge({
   children: React.ReactNode;
   className?: string;
 }) {
-  const { Ikon, sinif } = GORUNUM[durum];
+  const Ikon = IKON[durum];
   return (
-    <span
-      className={cn(
-        "inline-flex h-5 w-fit shrink-0 items-center gap-1 whitespace-nowrap rounded-md border px-2 py-0.5 text-xs font-medium",
-        sinif,
-        className,
-      )}
-    >
+    <span className={cn(ROZET_TEMEL, SEMANTIK_SINIF[durum], className)}>
       <Ikon className="size-3 shrink-0" aria-hidden />
       {children}
     </span>

@@ -202,6 +202,27 @@ export const SOD_MEVZUAT_DURUMU_SEMANTIK: Record<string, SemantikDurum> = {
   VERIFIED: "success",
 };
 
+/**
+ * Yükümlülük dayanak türü (V2 §6.4, ADR-V2-2). Dört ayrı SEMANTİK — kritik
+ * kural: BEST_PRACTICE ASLA mevzuat gibi gösterilmez (nötr; "İyi uygulama").
+ * LEGAL_MANDATORY en bağlayıcı (danger tonu = "zorunlu, atlanamaz"),
+ * BOARD_POLICY iç yönetişim (legal-review/indigo), CONTRACTUAL sözleşmesel
+ * (info). Renk tek sinyal değil — bileşen ikon+metin de taşır.
+ */
+export const OBLIGATION_BASIS_LABEL: Record<string, string> = {
+  LEGAL_MANDATORY: "Yasal zorunluluk",
+  CONTRACTUAL: "Sözleşmesel zorunluluk",
+  BOARD_POLICY: "Yönetim kurulu politikası",
+  BEST_PRACTICE: "İyi uygulama",
+};
+
+export const OBLIGATION_BASIS_SEMANTIK: Record<string, SemantikDurum> = {
+  LEGAL_MANDATORY: "danger",
+  CONTRACTUAL: "info",
+  BOARD_POLICY: "legal-review",
+  BEST_PRACTICE: "neutral",
+};
+
 export const SOD_ISTISNA_DURUM_LABEL: Record<string, string> = {
   talep_edildi: "Talep edildi",
   onaylandi: "Onaylandı",

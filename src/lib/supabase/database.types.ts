@@ -546,6 +546,68 @@ export type Database = {
           },
         ]
       }
+      control_pack_versions: {
+        Row: {
+          created_at: string
+          id: string
+          pack_id: string
+          surum: number
+          yayin_durumu: string
+          yayinlandi_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pack_id: string
+          surum: number
+          yayin_durumu?: string
+          yayinlandi_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pack_id?: string
+          surum?: number
+          yayin_durumu?: string
+          yayinlandi_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "control_pack_versions_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "control_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      control_packs: {
+        Row: {
+          aciklama: string | null
+          ad: string
+          audience: string
+          created_at: string
+          id: string
+          kod: string
+        }
+        Insert: {
+          aciklama?: string | null
+          ad: string
+          audience: string
+          created_at?: string
+          id?: string
+          kod: string
+        }
+        Update: {
+          aciklama?: string | null
+          ad?: string
+          audience?: string
+          created_at?: string
+          id?: string
+          kod?: string
+        }
+        Relationships: []
+      }
       control_test_definitions: {
         Row: {
           aciklama: string | null
@@ -1108,6 +1170,48 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: true
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pack_controls: {
+        Row: {
+          basis: string
+          control_id: string
+          created_at: string
+          id: string
+          kaynak_referansi: string | null
+          pack_version_id: string
+        }
+        Insert: {
+          basis: string
+          control_id: string
+          created_at?: string
+          id?: string
+          kaynak_referansi?: string | null
+          pack_version_id: string
+        }
+        Update: {
+          basis?: string
+          control_id?: string
+          created_at?: string
+          id?: string
+          kaynak_referansi?: string | null
+          pack_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pack_controls_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pack_controls_pack_version_id_fkey"
+            columns: ["pack_version_id"]
+            isOneToOne: false
+            referencedRelation: "control_pack_versions"
             referencedColumns: ["id"]
           },
         ]
