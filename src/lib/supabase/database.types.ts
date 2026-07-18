@@ -2011,6 +2011,8 @@ export type Database = {
         Row: {
           aktivite_kodu: string
           created_at: string
+          display_name: string | null
+          email: string | null
           gecerlilik_baslangic: string
           gecerlilik_bitis: string | null
           harici_kullanici_id: string | null
@@ -2020,11 +2022,15 @@ export type Database = {
           rol_kodu: string | null
           sistem_kapsami: string
           son_senkron_at: string | null
+          source_record_id: string | null
+          subject_type: string | null
           tenant_id: string
         }
         Insert: {
           aktivite_kodu: string
           created_at?: string
+          display_name?: string | null
+          email?: string | null
           gecerlilik_baslangic?: string
           gecerlilik_bitis?: string | null
           harici_kullanici_id?: string | null
@@ -2034,11 +2040,15 @@ export type Database = {
           rol_kodu?: string | null
           sistem_kapsami?: string
           son_senkron_at?: string | null
+          source_record_id?: string | null
+          subject_type?: string | null
           tenant_id: string
         }
         Update: {
           aktivite_kodu?: string
           created_at?: string
+          display_name?: string | null
+          email?: string | null
           gecerlilik_baslangic?: string
           gecerlilik_bitis?: string | null
           harici_kullanici_id?: string | null
@@ -2048,6 +2058,8 @@ export type Database = {
           rol_kodu?: string | null
           sistem_kapsami?: string
           son_senkron_at?: string | null
+          source_record_id?: string | null
+          subject_type?: string | null
           tenant_id?: string
         }
         Relationships: [
@@ -2213,6 +2225,78 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sod_import_onizlemeleri: {
+        Row: {
+          assignment_snapshot_hash: string
+          beklenen_catismalar: Json
+          created_at: string
+          diff: Json
+          duplicateler: Json
+          durum: string
+          file_hash: string
+          id: string
+          kaynak: string
+          mode: string
+          normalized_records: Json
+          normalized_records_hash: string
+          rule_set_version: string
+          satir_hatalari: Json
+          tenant_id: string
+          yukleyen: string | null
+        }
+        Insert: {
+          assignment_snapshot_hash: string
+          beklenen_catismalar?: Json
+          created_at?: string
+          diff: Json
+          duplicateler?: Json
+          durum?: string
+          file_hash: string
+          id?: string
+          kaynak: string
+          mode: string
+          normalized_records: Json
+          normalized_records_hash: string
+          rule_set_version: string
+          satir_hatalari?: Json
+          tenant_id: string
+          yukleyen?: string | null
+        }
+        Update: {
+          assignment_snapshot_hash?: string
+          beklenen_catismalar?: Json
+          created_at?: string
+          diff?: Json
+          duplicateler?: Json
+          durum?: string
+          file_hash?: string
+          id?: string
+          kaynak?: string
+          mode?: string
+          normalized_records?: Json
+          normalized_records_hash?: string
+          rule_set_version?: string
+          satir_hatalari?: Json
+          tenant_id?: string
+          yukleyen?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sod_import_onizlemeleri_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_import_onizlemeleri_yukleyen_fkey"
+            columns: ["yukleyen"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2709,6 +2793,7 @@ export type Database = {
           redaksiyon_mi: boolean
         }[]
       }
+      kanit_suresi_dolanlari_isle: { Args: never; Returns: number }
       kontrol_son_test_sonuclari: {
         Args: { target_control_id: string }
         Returns: {
@@ -2737,6 +2822,15 @@ export type Database = {
         Args: { target_manifest_id: string }
         Returns: string
       }
+      sod_cron_durumu: {
+        Args: never
+        Returns: {
+          active: boolean
+          jobname: string
+          schedule: string
+        }[]
+      }
+      sod_istisna_suresi_dolanlari_isle: { Args: never; Returns: number }
       tenant_has_profiles: {
         Args: { target_tenant_id: string }
         Returns: boolean

@@ -935,7 +935,7 @@ muafiyet / varsa manuel override" izini üretmeli — bu M14 uygulanırken eklen
   teknik restore başarılı ama mutabakat başarısızsa `Recovered` sayılmaz;
   rapor düzenlemesi önceki gönderimi değiştirmez, yeni sürüm doğar.
 
-### M16 — Görevler Ayrılığı ve Telafi Edici Kontroller (SPK notları §5) ⏳ ilk dikey dilim + süre-dolumu otomasyonu ✅; CSV import/tetikler/dashboard/güvenlik ✗
+### M16 — Görevler Ayrılığı ve Telafi Edici Kontroller (SPK notları §5) ⏳ dikey dilim + süre-dolumu + PR-3A (import dry-run) ✅; apply/rollback/UI/tetikler/dashboard ✗
 
 **Tamamlanan (18 Temmuz 2026):** şema (`sod_kurallari`/`sod_kural_taraflari`/
 `sod_atamalari`/`sod_catismalari`/`sod_istisnalari`/`sod_telafi_edici_kontroller`/
@@ -1140,12 +1140,53 @@ kararı: CSV import'tan ÖNCE iki korkuluk:**
   döndürdü (`*/5 * * * *`, active). Zamanlama defansif DO bloğunda (PGlite no-op).
 
 **KALAN (kurucunun sırası, sonraki turlar — her biri ayrı PR):**
-- **PR-3 asıl işi: CSV atama içe aktarma** — sağlayıcıdan bağımsız import
-  contract (`SodAssignmentImportRecord`), dry-run/apply durum makinesi,
-  hash-bütünlük (stale preview → 409), CSV güvenliği (formula injection vb.),
-  kimlik çözümleme, idempotency, silme-yerine-sona-erdirme (DELTA/SNAPSHOT),
-  transactional-outbox SoD değerlendirmesi, import manifesti, rollback, yetki,
-  dar UI, testler. (Kurucunun 18 bölümlük PR-3 spec'i — bu turda BAŞLAMADI.)
+**PR-3 dört ayrı PR'a bölündü (kurucu kararı 18 Temmuz):** 3A güvenlik temeli
++ sözleşme + dry-run (SALT OKUR); 3B atomik apply + idempotency + outbox;
+3C rollback + bağımsız onay; 3D dar UI + gerçek Chromium e2e. Her PR kendi
+kabul kapısıyla; biri geçmeden sonraki başlamaz.
+
+**✅ PR-3A BİTTİ (18 Temmuz, migration `20260718030000`) — hiçbir atama
+değiştirmez:**
+- Sözleşme `SodAssignmentImportRecord` (sağlayıcıdan bağımsız; gelecekteki
+  IAM/PAM connector yalnız ilk adımı — kaynağı bu tipe çevirmeyi — değiştirir).
+- Güvenli CSV parser (`src/lib/sod-import.ts`): RFC 4180 tarzı tırnak/kaçış,
+  BOM temizleme, null-byte/boyut/kolon/satır/hücre sınırları, **formula
+  injection** reddi (`= + - @ \t \r` ile başlayan hücre → satır reddi),
+  yinelenen başlık, eksik zorunlu kolon.
+- Deterministik normalizasyon: satır SIRASI çıktıyı etkilemez (doğal anahtara
+  göre sıralı), e-posta küçük harfe (değişmez kimlik DEĞİL), duplicate
+  (`source, sourceRecordId`) tespiti.
+- Diff: ekle/güncelle/değişmez/**sona erdir** (DELTA vs AUTHORITATIVE_SNAPSHOT;
+  boş snapshot = kaynağı boşalt; BAŞKA kaynağın atamasına dokunmaz; eski elle
+  atamalar (`source_record_id` null) kapsam dışı).
+- Bütünlük hash'leri: `fileHash` (ham bayt), `normalizedRecordsHash`,
+  `assignmentSnapshotHash` + `ruleSetVersion` (motorun mevcut fonksiyonları
+  yeniden kullanıldı). `onizlemeBayatMi()` → stale preview mantığı (409 zemini,
+  apply 3B'de zorlar).
+- Şema: `sod_atamalari`'na import alanları (`source_record_id/subject_type/
+  display_name/email`) + idempotency partial unique index; `sod_import_
+  onizlemeleri` tablosu (dry-run kaydı, append-only, RLS, audit trigger).
+- Rota `POST /api/sod/import/onizle` (admin/uyum): CSV → güvenlik → normalize →
+  diff → hash → önizleme yaz + **beklenen yeni çatışmalar** (motor projeksiyonu,
+  TAHMİN — 3A'da tam kimlik çözümlemesi yok). **İnşa yoluyla kanıt:**
+  `sod_atamalari` yalnız OKUNUYOR (tek `.insert` önizleme tablosuna), atama
+  yazılmıyor.
+- **Testler:** `sod-import.test.ts` (29 — parser/güvenlik/determinizm/diff/
+  stale), `rls-sod-import.test.ts` (6 — önizleme kiracı izolasyonu, append-only,
+  idempotency index). **621 birim + 17 e2e, sıfır skip.**
+- **Bilinçli borç:** kimlik çözümleme minimal (harici kimlik = `kaynak:
+  externalSubjectId`; e-posta ipucu, otomatik-link yok) — tam çözümleme 3B/
+  sonrası. Route e2e'si (upload→dry-run) 3D'de (kurucu split'i).
+
+**KALAN PR-3 aşamaları:**
+- **PR-3B:** dry-run üzerinden atomik apply, apply-öncesi hash yeniden
+  doğrulama (stale → 409), DELTA/SNAPSHOT uygulama, sona-erdirme (fiziksel
+  silme yok), idempotency, transactional-outbox SoD değerlendirmesi, import
+  manifesti.
+- **PR-3C:** rollback (ters değişiklik seti, fiziksel silme yok) + bağımsız
+  onay (uygulayan kendi rollback'ini onaylayamaz).
+- **PR-3D:** dar UI (yükleme/kaynak/mod/dry-run/hata/önizleme/apply/geçmiş/
+  rollback) + gerçek Chromium e2e (A import, B idempotency, C stale, D rollback).
 - **#3 İstisna uzatma** akışı (yeni gerekçe/risk/süre + bağımsız onay, geçmiş
   silinmez). Süre-kilidi yukarıda kondu; uzatma-kaydı modeli hâlâ yok.
 - **#4 CSV atama içe aktarma** — sağlayıcıdan bağımsız import contract, dry-run

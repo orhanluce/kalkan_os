@@ -39,8 +39,21 @@ import'tan ÖNCE iki korkuluk. (1) Onaylı/dolmuş istisnanın süre-kimlik alan
 frozen değil, süre-dolumu işi çalışmaya devam ediyor (regresyon testli).
 (2) pg_cron `*/5`'e indirildi (dolan istisna ~5 dk'da açılır); canlıda tek iş
 doğrulandı (`sod_cron_durumu()` → 1 kayıt, `*/5`, active — duplicate yok).
-586 birim + 17 e2e. Sıradaki: PR-3 asıl işi = CSV atama içe aktarma (18 bölümlük
-spec, henüz başlanmadı).
+586 birim + 17 e2e.
+
+**PR-3 dörde bölündü** (kurucu kararı): 3A güvenlik+sözleşme+dry-run (SALT OKUR),
+3B apply+idempotency+outbox, 3C rollback+bağımsız onay, 3D UI+e2e. **PR-3A BİTTİ**
+(`20260718030000`): `SodAssignmentImportRecord` sözleşmesi + güvenli CSV parser
+(`src/lib/sod-import.ts`: RFC4180 tırnak, BOM, null-byte/boyut/formula-injection
+reddi) + deterministik normalize (sıra-bağımsız) + diff (DELTA/SNAPSHOT, sona-
+erdir, başka kaynağa dokunmaz) + bütünlük hash'leri (fileHash/normalizedRecords/
+assignmentSnapshot/ruleSetVersion) + `onizlemeBayatMi` stale mantığı. Şema:
+`sod_atamalari` import alanları + idempotency partial unique index; `sod_import_
+onizlemeleri` (append-only, RLS, audit). Rota `POST /api/sod/import/onizle`
+(admin/uyum) — İNŞA YOLUYLA atama yazmaz (sod_atamalari yalnız okunuyor, tek
+insert önizlemeye). 621 birim + 17 e2e, 0 skip. Bilinçli borç: kimlik çözümleme
+minimal (harici=`kaynak:externalSubjectId`); route e2e'si 3D'de. Sıradaki: PR-3B
+(atomik apply + outbox).
 - **Kapsam dışı (bilinçli):** atama yönetim UI'ı yok (fixture/script ile
   giriliyor), IAM/PAM connector yok.
 - Yol boyunca iki bug: (1) `SodTaraf.sistem_kapsami` kuralın kendisine sabit
@@ -52,7 +65,7 @@ spec, henüz başlanmadı).
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler
-üzerinden bağlanıyoruz — direct connection IPv6-only. 37 migration uygulandı
+üzerinden bağlanıyoruz — direct connection IPv6-only. 38 migration uygulandı
 (`pnpm db:push`); `pnpm db:verify` çekirdek tabloları fiilen doğrular. Kontrol
 kütüphanesi seed edildi (2 çerçeve, 17 kontrol) ve ilk kuruma atandı.
 
