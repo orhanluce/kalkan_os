@@ -2465,6 +2465,7 @@ export type Database = {
           iptal_nedeni: string | null
           karar_notu: string | null
           onaylayan_id: string | null
+          onceki_istisna_id: string | null
           risk_degerlendirmesi: string | null
           risk_sahibi_id: string | null
           talep_eden_id: string
@@ -2483,6 +2484,7 @@ export type Database = {
           iptal_nedeni?: string | null
           karar_notu?: string | null
           onaylayan_id?: string | null
+          onceki_istisna_id?: string | null
           risk_degerlendirmesi?: string | null
           risk_sahibi_id?: string | null
           talep_eden_id: string
@@ -2501,6 +2503,7 @@ export type Database = {
           iptal_nedeni?: string | null
           karar_notu?: string | null
           onaylayan_id?: string | null
+          onceki_istisna_id?: string | null
           risk_degerlendirmesi?: string | null
           risk_sahibi_id?: string | null
           talep_eden_id?: string
@@ -2526,6 +2529,13 @@ export type Database = {
             columns: ["onaylayan_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sod_istisnalari_onceki_istisna_id_fkey"
+            columns: ["onceki_istisna_id"]
+            isOneToOne: false
+            referencedRelation: "sod_istisnalari"
             referencedColumns: ["id"]
           },
           {

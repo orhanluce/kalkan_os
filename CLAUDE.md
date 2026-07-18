@@ -128,9 +128,15 @@ migration'suz KIRMIZI koşularak **üç gerçek açık kanıtlandı ve kapatıld
 istisna başkası adına talep, onay atfı sahteleme ("dolaylı özdeşlikle kendi
 istisnasını onaylama"), resolved_by sahteleme; kimlik atfı alanları oturum
 sahibine sabitlendi (service/cron muaf, süre-dolumu regresyon testli).
-**664 birim + 23 e2e, 0 skip; production build yeşil.** M16 kapısı için kalan:
-#3 istisna uzatma, #6 atama UI, #8 dashboard + dış cron ADR'si. Deploy: `main`
-push'u Hostinger'a otomatik gider.
+**#3 İstisna uzatma BİTTİ (18 Temmuz, `20260718080000`):** uzatma = yeni kayıt
+(`onceki_istisna_id` zinciri; onaylı kayıt kilitli, geçmiş silinmez); zincir
+guard'lı (aynı çatışma + karara bağlanmış önceki + ileri tarih); bağımsız onay
+zinciri uzatmaya otomatik işler. UI `sod/[id]`'de "Uzatma Talep Et" + "Uzatma"
+rozeti; sod.spec e2e'si dolmuş→REOPENED→uzatma→ikinci-kullanıcı-onayı akışını
+sürüyor. Vitest global timeout 60sn'ye çekildi (PGlite yük-flake sınıfı — üç
+koşuda üç farklı dosyada aynı desen; assert değişmedi). **670 birim + 23 e2e,
+0 skip; production build yeşil.** M16 kapısı için kalan: #6 atama UI, #8
+dashboard + dış cron ADR'si. Deploy: `main` push'u Hostinger'a otomatik gider.
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler

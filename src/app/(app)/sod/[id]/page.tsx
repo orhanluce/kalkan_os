@@ -64,6 +64,7 @@ interface Istisna {
   bitis: string;
   durum: string;
   karar_notu: string | null;
+  onceki_istisna_id: string | null;
 }
 
 interface TelafiKontrol {
@@ -92,6 +93,9 @@ export default function SodCatismaDetayPage() {
   const [gerekce, setGerekce] = useState("");
   const [bitis, setBitis] = useState("");
   const [riskDegerlendirmesi, setRiskDegerlendirmesi] = useState("");
+  // UZATMA modu (M16 #3): dolu ise form yeni bir UZATMA kaydı açar —
+  // onaylı/dolmuş kayıt DEĞİŞTİRİLMEZ (kilit guard'ı), zincire bağlanır.
+  const [uzatilanId, setUzatilanId] = useState<string | null>(null);
 
   const [kararNotlari, setKararNotlari] = useState<Record<string, string>>({});
   const [secilenTanimId, setSecilenTanimId] = useState("");
@@ -118,7 +122,7 @@ export default function SodCatismaDetayPage() {
 
     const { data: exc } = await db
       .from("sod_istisnalari")
-      .select("id, gerekce, risk_degerlendirmesi, talep_eden_id, onaylayan_id, bitis, durum, karar_notu")
+      .select("id, gerekce, risk_degerlendirmesi, talep_eden_id, onaylayan_id, bitis, durum, karar_notu, onceki_istisna_id")
       .eq("conflict_id", c.id)
       .order("created_at", { ascending: false });
     setIstisnalar(exc ?? []);
@@ -173,6 +177,9 @@ export default function SodCatismaDetayPage() {
       talep_eden_id: currentUser.id,
       bitis,
       risk_degerlendirmesi: riskDegerlendirmesi.trim() || null,
+      // Uzatma: önceki kayda zincir (guard: aynı çatışma, karara bağlanmış
+      // önceki, ileri tarih). Normal talepte null.
+      onceki_istisna_id: uzatilanId,
     });
     if (error) {
       setHata(error.message);
@@ -182,6 +189,7 @@ export default function SodCatismaDetayPage() {
       setBitis("");
       setRiskDegerlendirmesi("");
       setIstisnaFormAcik(false);
+      setUzatilanId(null);
       await yukle();
     }
     setIslemSuruyor(false);
@@ -355,8 +363,15 @@ export default function SodCatismaDetayPage() {
 
           {istisnaFormAcik && (
             <form onSubmit={istisnaTalepEt} className="flex flex-col gap-3 rounded-lg border p-3">
+              {uzatilanId && (
+                <p className="text-xs text-muted-foreground">
+                  <strong>Uzatma talebi:</strong> önceki kayıt değiştirilmez; yeni gerekçe, yeni risk
+                  değerlendirmesi ve İLERİ bir bitiş tarihiyle yeni bir talep açılır — onay yine
+                  bağımsızdır.
+                </p>
+              )}
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="gerekce">Gerekçe</Label>
+                <Label htmlFor="gerekce">{uzatilanId ? "Uzatma gerekçesi (yeni)" : "Gerekçe"}</Label>
                 <Textarea id="gerekce" value={gerekce} onChange={(e) => setGerekce(e.target.value)} required />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -375,7 +390,15 @@ export default function SodCatismaDetayPage() {
                 <Button type="submit" size="sm" disabled={islemSuruyor}>
                   Talep Et
                 </Button>
-                <Button type="button" size="sm" variant="outline" onClick={() => setIstisnaFormAcik(false)}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setIstisnaFormAcik(false);
+                    setUzatilanId(null);
+                  }}
+                >
                   Vazgeç
                 </Button>
               </div>
@@ -385,9 +408,12 @@ export default function SodCatismaDetayPage() {
           {istisnalar.map((i) => (
             <div key={i.id} className="rounded-lg border p-3 text-sm">
               <div className="flex items-center justify-between">
-                <StatusBadge durum={SOD_ISTISNA_DURUM_SEMANTIK[i.durum] ?? "unknown"}>
-                  {SOD_ISTISNA_DURUM_LABEL[i.durum]}
-                </StatusBadge>
+                <div className="flex items-center gap-2">
+                  <StatusBadge durum={SOD_ISTISNA_DURUM_SEMANTIK[i.durum] ?? "unknown"}>
+                    {SOD_ISTISNA_DURUM_LABEL[i.durum]}
+                  </StatusBadge>
+                  {i.onceki_istisna_id && <StatusBadge durum="info">Uzatma</StatusBadge>}
+                </div>
                 <span className="text-xs text-muted-foreground">Bitiş: {i.bitis}</span>
               </div>
               <p className="mt-2">{i.gerekce}</p>
@@ -423,6 +449,23 @@ export default function SodCatismaDetayPage() {
                   Kendi talebinizi onaylayamazsınız — farklı bir yetkili karar vermeli.
                 </p>
               )}
+              {/* UZATMA (M16 #3): yalnız karara bağlanmış (onaylı/dolmuş)
+                  kayıttan; bekleyen bir talep zaten varken açılmaz. */}
+              {["onaylandi", "suresi_doldu"].includes(i.durum) &&
+                !istisnalar.some((x) => x.durum === "talep_edildi") &&
+                !istisnaFormAcik && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-3"
+                    onClick={() => {
+                      setUzatilanId(i.id);
+                      setIstisnaFormAcik(true);
+                    }}
+                  >
+                    Uzatma Talep Et
+                  </Button>
+                )}
             </div>
           ))}
         </CardContent>

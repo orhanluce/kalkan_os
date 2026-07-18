@@ -162,4 +162,39 @@ test("süresi dolan istisna çatışmayı yeniden açar (REOPENED)", async ({ pa
   await girisYap(page);
   await page.goto(`/sod/${catisma!.id}`);
   await expect(page.getByText("Yeniden açıldı").first()).toBeVisible({ timeout: 10_000 });
+
+  // --- UZATMA AKIŞI (M16 #3): dolmuş istisnadan yeni talep, bağımsız onay ---
+  // Dolmuş kayıt DEĞİŞTİRİLMEZ (kilit guard'ı); UI yeni gerekçe + İLERİ
+  // tarihli yeni bir talep açar (onceki_istisna_id zinciriyle).
+  await page.getByRole("button", { name: "Uzatma Talep Et" }).click();
+  await expect(page.getByText("Uzatma talebi:", { exact: false })).toBeVisible();
+  await page.getByLabel("Uzatma gerekçesi (yeni)").fill(`e2e uzatma ${damga} — risk yeniden değerlendirildi`);
+  const otuzGunSonra = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  await page.getByLabel("Bitiş tarihi (zorunlu — süresiz istisna olamaz)").fill(otuzGunSonra);
+  await page.getByRole("button", { name: "Talep Et", exact: true }).click();
+  // Yeni kayıt "Uzatma" rozetiyle listelenir; talep eden karar veremez.
+  await expect(page.getByText("Uzatma", { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText("Kendi talebinizi onaylayamazsınız", { exact: false })).toBeVisible();
+
+  // Bağımsız onay: İKİNCİ kullanıcı (Mehmet) onaylar.
+  await page.getByRole("button", { name: "Çıkış" }).click();
+  await page.waitForURL("**/giris");
+  await ikinciKullaniciGirisYap(page);
+  await page.goto(`/sod/${catisma!.id}`);
+  await page.getByPlaceholder("Karar gerekçesi (zorunlu)").fill("e2e uzatma onayı");
+  await page.getByRole("button", { name: "Onayla", exact: true }).click();
+  // Çatışma yeniden istisna altına girer; geçmiş silinmedi (dolmuş kayıt durur).
+  await expect(page.getByText("İstisna onaylandı").first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText("Süresi doldu").first()).toBeVisible();
+
+  // DB doğrulaması: iki istisna kaydı yan yana, uzatma zincirli.
+  const { data: kayitlar } = await db
+    .from("sod_istisnalari")
+    .select("durum, onceki_istisna_id")
+    .eq("conflict_id", catisma!.id)
+    .order("created_at");
+  expect(kayitlar).toHaveLength(2);
+  expect(kayitlar![0].durum).toBe("suresi_doldu");
+  expect(kayitlar![1].durum).toBe("onaylandi");
+  expect(kayitlar![1].onceki_istisna_id).not.toBeNull();
 });

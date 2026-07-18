@@ -1369,8 +1369,16 @@ için kurucunun listesinden HÂLÂ AÇIK: #3 istisna uzatma, #5 değerlendirme
 tetikleri (outbox drenajına cron), #6 atama yönetim UI, #8 dashboard
 metrikleri, #9 güvenlik testleri (IDOR/yetki yükseltme taraması). #7 domain
 event kısmen kapalı (outbox `SOD_*` olayları var; e-posta/Slack bilinçli yok).
-- **#3 İstisna uzatma** akışı (yeni gerekçe/risk/süre + bağımsız onay, geçmiş
-  silinmez). Süre-kilidi yukarıda kondu; uzatma-kaydı modeli hâlâ yok.
+- ✅ **#3 İstisna uzatma BİTTİ** (18 Temmuz, `20260718080000`): uzatma =
+  YENİ istisna kaydı (`onceki_istisna_id` zinciri) — onaylı/dolmuş kayıt
+  kilitli kalır, GEÇMİŞ SİLİNMEZ. Zincir guard'ı: önceki kayıt AYNI çatışmaya
+  ait + karara bağlanmış (onaylandi/suresi_doldu) olmalı; yeni bitiş İLERİDE
+  olmalı. Onay yine bağımsız (mevcut maker-checker + kimlik atfı guard'ları
+  yeni kayda otomatik işler — "talep eden uzatmayı da kendisi onaylayamaz"
+  testli). UI: `sod/[id]`'de karara bağlanmış kayıtta "Uzatma Talep Et" →
+  aynı form uzatma modunda, "Uzatma" rozeti. 6 PGlite testi + sod.spec e2e'si
+  uzatıldı (dolmuş istisna → REOPENED → UI'dan uzatma → ikinci kullanıcı
+  onayı → yeniden EXCEPTION_APPROVED; iki kayıt yan yana DB'de doğrulanır).
 - **#4 CSV atama içe aktarma** — sağlayıcıdan bağımsız import contract, dry-run
   önizleme, SHA-256 + import manifesti, evidence storage, rollback, idempotency
   (`source+sourceRecordId`), formula-injection/boyut/MIME güvenliği. (Hiç yok.)
