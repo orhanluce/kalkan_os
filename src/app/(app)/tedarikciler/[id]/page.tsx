@@ -1,0 +1,386 @@
+"use client";
+
+// Tedarikçi detayı (M35, G4): karar (insan) + hizmet + dördüncü taraf +
+// sözleşme + çıkış planı + DORA RoI iskele indirme. İnvariant'lar DB'de:
+// insan-karar, bilinmeyen dördüncü taraf, tested-exit kanıt şartı, süresiz
+// sözleşme yasağı.
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { StatusBadge } from "@/components/durum/status-badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { roiKaydiUret, sozlesmeYakinligi } from "@/lib/tedarikci";
+import { createClient } from "@/lib/supabase/client";
+import { KARAR, TIER } from "../page";
+
+interface Tedarikci {
+  ad: string;
+  ulke: string | null;
+  tier: string;
+  karar: string;
+  dis_rating: string | null;
+  dis_rating_kaynagi: string | null;
+}
+interface Hizmet {
+  id: string;
+  hizmet_adi: string;
+  kritik: boolean;
+  veri_siniflari: string[];
+}
+interface Dorduncu {
+  id: string;
+  ad: string | null;
+  bilinmiyor: boolean;
+  ulke: string | null;
+}
+interface Sozlesme {
+  id: string;
+  sozlesme_ref: string;
+  baslangic: string;
+  bitis: string;
+  denetim_hakki: boolean;
+  cikis_maddesi: boolean;
+  durum: string;
+}
+interface CikisPlani {
+  id: string;
+  ozet: string;
+  test_edildi: boolean;
+  test_tarihi: string | null;
+  test_kaniti: string | null;
+}
+
+export default function TedarikciDetayPage() {
+  const params = useParams<{ id: string }>();
+  const [t, setT] = useState<Tedarikci | null>(null);
+  const [hizmetler, setHizmetler] = useState<Hizmet[]>([]);
+  const [dorduncular, setDorduncular] = useState<Dorduncu[]>([]);
+  const [sozlesmeler, setSozlesmeler] = useState<Sozlesme[]>([]);
+  const [cikis, setCikis] = useState<CikisPlani[]>([]);
+  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [kullaniciId, setKullaniciId] = useState<string | null>(null);
+  const [hata, setHata] = useState<string | null>(null);
+
+  // Form state
+  const [hizmetAd, setHizmetAd] = useState("");
+  const [hizmetKritik, setHizmetKritik] = useState(false);
+  const [dtAd, setDtAd] = useState("");
+  const [dtBilinmiyor, setDtBilinmiyor] = useState(false);
+  const [szRef, setSzRef] = useState("");
+  const [szBitis, setSzBitis] = useState("");
+  const [cpOzet, setCpOzet] = useState("");
+  const [cpTest, setCpTest] = useState(false);
+  const [cpKanit, setCpKanit] = useState("");
+
+  const bugun = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  const yukle = useCallback(async () => {
+    const db = createClient();
+    const {
+      data: { user },
+    } = await db.auth.getUser();
+    setKullaniciId(user?.id ?? null);
+    if (user) {
+      const { data: p } = await db.from("profiles").select("tenant_id").eq("id", user.id).maybeSingle();
+      setTenantId(p?.tenant_id ?? null);
+    }
+    const { data: tp } = await db
+      .from("third_parties")
+      .select("ad, ulke, tier, karar, dis_rating, dis_rating_kaynagi")
+      .eq("id", params.id)
+      .maybeSingle();
+    setT(tp as Tedarikci | null);
+    const [{ data: hs }, { data: ds }, { data: ss }, { data: cs }] = await Promise.all([
+      db.from("third_party_services").select("id, hizmet_adi, kritik, veri_siniflari").eq("third_party_id", params.id),
+      db.from("fourth_parties").select("id, ad, bilinmiyor, ulke").eq("third_party_id", params.id),
+      db.from("third_party_contracts").select("id, sozlesme_ref, baslangic, bitis, denetim_hakki, cikis_maddesi, durum").eq("third_party_id", params.id),
+      db.from("exit_plans").select("id, ozet, test_edildi, test_tarihi, test_kaniti").eq("third_party_id", params.id),
+    ]);
+    setHizmetler((hs ?? []) as Hizmet[]);
+    setDorduncular((ds ?? []) as Dorduncu[]);
+    setSozlesmeler((ss ?? []) as Sozlesme[]);
+    setCikis((cs ?? []) as CikisPlani[]);
+  }, [params.id]);
+
+  useEffect(() => {
+    const c = async () => {
+      await yukle();
+    };
+    void c();
+  }, [yukle]);
+
+  const kararVer = useCallback(
+    async (karar: "ONAYLANDI" | "REDDEDILDI") => {
+      setHata(null);
+      if (!kullaniciId) return;
+      const db = createClient();
+      const { error } = await db
+        .from("third_parties")
+        .update({ karar, karar_veren: kullaniciId, karar_zamani: new Date().toISOString() })
+        .eq("id", params.id);
+      if (error) setHata(error.message);
+      await yukle();
+    },
+    [kullaniciId, params.id, yukle],
+  );
+
+  const hizmetEkle = useCallback(async () => {
+    setHata(null);
+    if (!hizmetAd.trim() || !tenantId) return;
+    const db = createClient();
+    const { error } = await db.from("third_party_services").insert({ tenant_id: tenantId, third_party_id: params.id, hizmet_adi: hizmetAd.trim(), kritik: hizmetKritik });
+    if (error) setHata(error.message);
+    setHizmetAd("");
+    setHizmetKritik(false);
+    await yukle();
+  }, [hizmetAd, hizmetKritik, tenantId, params.id, yukle]);
+
+  const dtEkle = useCallback(async () => {
+    setHata(null);
+    if (!tenantId) return;
+    if (!dtBilinmiyor && !dtAd.trim()) {
+      setHata("Bilinen dördüncü taraf için ad zorunlu (ya da bilinmiyor işaretleyin).");
+      return;
+    }
+    const db = createClient();
+    const { error } = await db.from("fourth_parties").insert({ tenant_id: tenantId, third_party_id: params.id, ad: dtBilinmiyor ? null : dtAd.trim(), bilinmiyor: dtBilinmiyor });
+    if (error) setHata(error.message);
+    setDtAd("");
+    setDtBilinmiyor(false);
+    await yukle();
+  }, [dtAd, dtBilinmiyor, tenantId, params.id, yukle]);
+
+  const szEkle = useCallback(async () => {
+    setHata(null);
+    if (!szRef.trim() || !szBitis || !tenantId) return;
+    const db = createClient();
+    const { error } = await db.from("third_party_contracts").insert({ tenant_id: tenantId, third_party_id: params.id, sozlesme_ref: szRef.trim(), baslangic: bugun, bitis: szBitis });
+    if (error) setHata(error.message);
+    setSzRef("");
+    setSzBitis("");
+    await yukle();
+  }, [szRef, szBitis, tenantId, params.id, bugun, yukle]);
+
+  const cpEkle = useCallback(async () => {
+    setHata(null);
+    if (!cpOzet.trim() || !tenantId) return;
+    const db = createClient();
+    // test_edildi=true ise kanıt+tarih DB'de zorunlu; kanıtsız işaretlersek DB reddeder.
+    const { error } = await db.from("exit_plans").insert({
+      tenant_id: tenantId,
+      third_party_id: params.id,
+      ozet: cpOzet.trim(),
+      test_edildi: cpTest,
+      test_tarihi: cpTest ? bugun : null,
+      test_kaniti: cpTest ? (cpKanit.trim() || null) : null,
+    });
+    if (error) {
+      setHata(error.message.includes("exit_plans_test_kaniti") ? "Test edildi işaretlendiyse tatbikat kanıtı zorunlu." : error.message);
+      return;
+    }
+    setCpOzet("");
+    setCpTest(false);
+    setCpKanit("");
+    await yukle();
+  }, [cpOzet, cpTest, cpKanit, tenantId, params.id, bugun, yukle]);
+
+  const roiUrl = useMemo(() => {
+    if (!t) return null;
+    const kayit = roiKaydiUret({
+      tedarikci: { ad: t.ad, ulke: t.ulke, tier: t.tier as "KRITIK" | "ONEMLI" | "DUSUK", karar: t.karar },
+      hizmetler: hizmetler.map((h) => ({ hizmet_adi: h.hizmet_adi, kritik: h.kritik, veri_siniflari: h.veri_siniflari })),
+      sozlesmeler: sozlesmeler.map((s) => ({ sozlesme_ref: s.sozlesme_ref, baslangic: s.baslangic, bitis: s.bitis, denetim_hakki: s.denetim_hakki, cikis_maddesi: s.cikis_maddesi })),
+      dorduncuTaraflar: dorduncular.map((d) => ({ ad: d.ad, bilinmiyor: d.bilinmiyor, ulke: d.ulke })),
+    });
+    return URL.createObjectURL(new Blob([JSON.stringify(kayit, null, 2)], { type: "application/json" }));
+  }, [t, hizmetler, sozlesmeler, dorduncular]);
+
+  if (!t) return <div className="p-2 text-sm text-muted-foreground">Yükleniyor…</div>;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <Link href="/tedarikciler" className="text-sm text-muted-foreground hover:underline">
+          ← Tedarikçiler
+        </Link>
+        <div className="mt-1 flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight">{t.ad}</h1>
+          <StatusBadge durum={TIER[t.tier]?.semantik ?? "neutral"}>{TIER[t.tier]?.etiket ?? t.tier}</StatusBadge>
+          <StatusBadge durum={KARAR[t.karar]?.semantik ?? "neutral"}>{KARAR[t.karar]?.etiket ?? t.karar}</StatusBadge>
+        </div>
+      </div>
+
+      {hata ? (
+        <p role="alert" className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+          {hata}
+        </p>
+      ) : null}
+
+      {/* Karar (insan) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Vendor kararı</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 text-sm">
+          <p className="text-muted-foreground">
+            Dış rating {t.dis_rating ? `(${t.dis_rating}, ${t.dis_rating_kaynagi ?? "?"})` : "yok"} — salt bilgi; karar
+            insana aittir.
+          </p>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => void kararVer("ONAYLANDI")} disabled={t.karar === "ONAYLANDI"}>
+              Onayla
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => void kararVer("REDDEDILDI")} disabled={t.karar === "REDDEDILDI"}>
+              Reddet
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Hizmetler */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Hizmetler ({hizmetler.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 text-sm">
+          {hizmetler.map((h) => (
+            <div key={h.id} className="flex flex-wrap items-center gap-2">
+              <span>{h.hizmet_adi}</span>
+              {h.kritik ? <StatusBadge durum="danger">Kritik</StatusBadge> : null}
+            </div>
+          ))}
+          <div className="flex flex-wrap items-end gap-2 border-t pt-2">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="hz-ad">Hizmet</Label>
+              <Input id="hz-ad" value={hizmetAd} onChange={(e) => setHizmetAd(e.target.value)} className="w-56" />
+            </div>
+            <label className="flex items-center gap-1 text-xs">
+              <input type="checkbox" checked={hizmetKritik} onChange={(e) => setHizmetKritik(e.target.checked)} /> Kritik hizmet
+            </label>
+            <Button size="sm" onClick={() => void hizmetEkle()} disabled={!hizmetAd.trim()}>
+              Hizmet Ekle
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Dördüncü taraflar */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Dördüncü taraflar ({dorduncular.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 text-sm">
+          {dorduncular.map((d) => (
+            <div key={d.id} className="flex flex-wrap items-center gap-2">
+              {d.bilinmiyor ? <StatusBadge durum="unknown">Bilinmiyor</StatusBadge> : <span>{d.ad}</span>}
+            </div>
+          ))}
+          <div className="flex flex-wrap items-end gap-2 border-t pt-2">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="dt-ad">Alt yüklenici</Label>
+              <Input id="dt-ad" value={dtAd} onChange={(e) => setDtAd(e.target.value)} disabled={dtBilinmiyor} className="w-56" />
+            </div>
+            <label className="flex items-center gap-1 text-xs">
+              <input type="checkbox" checked={dtBilinmiyor} onChange={(e) => setDtBilinmiyor(e.target.checked)} /> Bilinmiyor
+            </label>
+            <Button size="sm" onClick={() => void dtEkle()}>
+              Dördüncü Taraf Ekle
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Sözleşmeler */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Sözleşmeler ({sozlesmeler.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 text-sm">
+          {sozlesmeler.map((s) => {
+            const y = sozlesmeYakinligi(s.bitis, new Date());
+            return (
+              <div key={s.id} className="flex flex-wrap items-center gap-2">
+                <span>{s.sozlesme_ref}</span>
+                <StatusBadge durum={s.durum === "SURESI_DOLDU" || y.gecmis ? "danger" : y.yaklasiyor ? "warning" : "success"}>
+                  {s.durum === "SURESI_DOLDU" ? "Süresi doldu" : y.mesaj}
+                </StatusBadge>
+              </div>
+            );
+          })}
+          <div className="flex flex-wrap items-end gap-2 border-t pt-2">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="sz-ref">Sözleşme ref</Label>
+              <Input id="sz-ref" value={szRef} onChange={(e) => setSzRef(e.target.value)} className="w-40" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="sz-bitis">Bitiş</Label>
+              <Input id="sz-bitis" type="date" value={szBitis} onChange={(e) => setSzBitis(e.target.value)} />
+            </div>
+            <Button size="sm" onClick={() => void szEkle()} disabled={!szRef.trim() || !szBitis}>
+              Sözleşme Ekle
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Çıkış planı */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Çıkış planı ({cikis.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 text-sm">
+          {cikis.map((c) => (
+            <div key={c.id} className="flex flex-wrap items-center gap-2">
+              <span>{c.ozet}</span>
+              <StatusBadge durum={c.test_edildi ? "success" : "warning"}>
+                {c.test_edildi ? `Test edildi (${c.test_kaniti})` : "Test edilmedi"}
+              </StatusBadge>
+            </div>
+          ))}
+          <div className="flex flex-wrap items-end gap-2 border-t pt-2">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="cp-ozet">Özet</Label>
+              <Input id="cp-ozet" value={cpOzet} onChange={(e) => setCpOzet(e.target.value)} className="w-56" />
+            </div>
+            <label className="flex items-center gap-1 text-xs">
+              <input type="checkbox" checked={cpTest} onChange={(e) => setCpTest(e.target.checked)} /> Test edildi
+            </label>
+            {cpTest ? (
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="cp-kanit">Tatbikat kanıtı</Label>
+                <Input id="cp-kanit" value={cpKanit} onChange={(e) => setCpKanit(e.target.value)} className="w-48" />
+              </div>
+            ) : null}
+            <Button size="sm" onClick={() => void cpEkle()} disabled={!cpOzet.trim()}>
+              Çıkış Planı Ekle
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* RoI export */}
+      <Card>
+        <CardHeader>
+          <CardTitle>DORA Register of Information (iskele)</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 text-sm">
+          <p className="text-muted-foreground">
+            MVP iskele — resmî DORA RTS şeması açık karardır; tedarikçi grafından türetilir.
+          </p>
+          {roiUrl ? (
+            <a
+              href={roiUrl}
+              download={`kalkan-roi-${t.ad}.json`}
+              className="inline-flex h-8 w-fit items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              RoI kaydını indir (JSON)
+            </a>
+          ) : null}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

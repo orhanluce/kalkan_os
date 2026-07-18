@@ -6,6 +6,7 @@
 // belge IA'sında yoktu; canlı modül silinmez, Güvence altında "Tatbikatlar"
 // olarak yaşar (PR-0 sapma kaydı).
 import {
+  Boxes,
   FileWarning,
   FlaskConical,
   LandmarkIcon,
@@ -78,6 +79,10 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
         { href: "/sod", etiket: "Görevler Ayrılığı", Ikon: UsersRound },
         { href: "/politikalar", etiket: "Politikalar", Ikon: ScrollText },
       ],
+    },
+    {
+      baslik: "Operasyonel Dayanıklılık",
+      ogeler: [{ href: "/tedarikciler", etiket: "Tedarikçiler", Ikon: Boxes }],
     },
     { baslik: "Yönetim", ogeler: [{ href: "/paylasim", etiket: "Paylaşım", Ikon: Share2 }] },
   ];

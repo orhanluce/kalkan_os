@@ -636,6 +636,32 @@ effective mutasyon, cross-tenant, doğrulanmamış hukuk otomatik doğrulanamaz,
 RETIRED silinmez, eşzamanlı determinizm, geriye-tarih, istisna süre-dolumu,
 impact) + `politikalar.spec.ts` iki-kullanıcılı e2e (7 adım) + canlı smoke 6/6.
 
+### 1.24 Gate G4 — M35 Third-Party & ICT Supply-Chain Risk (ilk üretim dikeyi) ✅ (19 Temmuz)
+
+Migration `20260719000000` — YENİ kod alanı, tenant'a özgü. 5 tablo:
+`third_parties` (tiering KRITIK/ONEMLI/DUSUK + dış rating SALT BİLGİ + insan
+kararı), `third_party_services` (hizmet/kritik/veri sınıfları), `fourth_parties`
+(alt yüklenici + BİLİNMEYEN bağımlılık), `third_party_contracts` (yenileme/
+süre-dolumu + denetim hakkı/çıkış maddesi), `exit_plans` (çıkış planı).
+**ANAHTAR İNVARYANT'lar (DB guard/check — canlı smoke 5/5):** dış rating tek
+başına vendor'ı ONAYLANDI/REDDEDILDI yapamaz — **karar İNSANA ait** (karar_veren
++ zaman + kimlik atfı, nihai §4 #25); **bilinmeyen dördüncü taraf** açıkça
+işaretlenir, düşük risk varsayılmaz (check: bilinmiyor veya ad zorunlu); **"test
+edildi" çıkış planı** yalnız tatbikat kanıtı + tarihle (check); süresiz sözleşme
+yasak (`bitis>baslangic`); sözleşme süre-dolumu idempotent pg_cron `tpr_sozlesme_
+dolanlari_isle` → SURESI_DOLDU (SoD deseni, PGlite no-op). Saf yardımcı
+`src/lib/tedarikci.ts` (kural 11): **yoğunlaşma analizi** (aynı dördüncü tarafa
+bağımlı ≥2 tedarikçi = yoğunlaşma noktası; bilinmeyen ayrı raporlanır), sözleşme
+yakınlığı, **DORA RoI iskelesi** (`KALKAN_DORA_ROI_MVP_V1` — tedarikçi grafından
+TÜRETİLİR, saklanmaz; resmî RTS şeması AÇIK KARAR, sahte "resmî RoI" yok). UI:
+`/tedarikciler` indeks + yoğunlaşma sinyalleri kartı + `/tedarikciler/[id]` detay
+(karar/hizmet/dördüncü-taraf/sözleşme/çıkış planı/RoI indirme). Testler:
+rls-third-party 7/7 + tedarikci 8/8 + `tedarikciler.spec.ts` e2e (oluştur →
+hizmet/dördüncü-taraf/sözleşme/çıkış planı → kanıtsız-tested reddi → insan kararı
+→ yoğunlaşma → RoI) + canlı smoke 5/5. **BİLİNÇLİ SONRAKİ DİLİM:**
+ThirdPartyAssessment/Questionnaire/Finding due-diligence iş akışı, resmî DORA RoI
+RTS şeması, vendor-portal dış erişim (G7 M41 partner modeliyle).
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket

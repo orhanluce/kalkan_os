@@ -100,10 +100,17 @@ doğrulayıcı rolü). QRegu döneminde teslim edilenler (ROADMAP §1.16-1.19):
    `/politikalar` + `/politikalar/[id]` detay (madde→bağ→onay→yürürlük→
    salt-okur+audit); rls 14/14 + e2e 7-adım + canlı smoke 6/6. Redline diff
    görünümü bilinçli sonraki dilim.
-3. **G3:** connector sözleşmesi + RFC 3161 TSA adapter interface (kurucu
-   kararları beklerken interface+test double) + SCITT-tarzı ledger (M5.5
-   Merkle kodu yeniden kullanılır). Ayrıca G4 M35 TPRM, G5 M37 AI Assurance,
-   G6 M36 PrivacyOps sırayla (nihai §8).
+3. ~~**G4 — M35 TPRM**~~ **BİTTİ** (ROADMAP §1.24): 5 tablo (third_parties/
+   services/fourth_parties/contracts/exit_plans), insan-karar guard, bilinmeyen
+   dördüncü taraf, tested-exit kanıt şartı, süre-dolumu cron, yoğunlaşma analizi
+   + DORA RoI iskelesi; `/tedarikciler` + detay UI; rls 7/7 + saf 8/8 + e2e +
+   smoke 5/5. Sonraki dilim: assessment/questionnaire/finding + resmî RoI +
+   vendor-portal.
+4. **Sıradaki gate'ler (nihai §8):** G5 M37 AI Assurance & Agent Governance,
+   G6 M36 PrivacyOps, G7 M38+M41 Regulatory Engagement + Partner, G8 M13/M17/
+   M18 genişleme + M40. G3 (connector + TSA adapter + SCITT ledger) connector'lar
+   pilot stack'i (kurucu #7) bekliyor — interface+ledger kısmı dış-karar
+   bağımsız yapılabilir.
 Her adım: migration (PGlite RLS testi) → canlı db:push+db:types → gerçek
 Chromium e2e → commit; rapor nihai §15 formatında. Kural 3'ü her adımda koru.
 

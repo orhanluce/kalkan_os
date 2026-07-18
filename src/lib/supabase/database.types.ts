@@ -1154,6 +1154,57 @@ export type Database = {
           },
         ]
       }
+      exit_plans: {
+        Row: {
+          created_at: string
+          id: string
+          ozet: string
+          tenant_id: string
+          test_edildi: boolean
+          test_kaniti: string | null
+          test_tarihi: string | null
+          third_party_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ozet: string
+          tenant_id: string
+          test_edildi?: boolean
+          test_kaniti?: string | null
+          test_tarihi?: string | null
+          third_party_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ozet?: string
+          tenant_id?: string
+          test_edildi?: boolean
+          test_kaniti?: string | null
+          test_tarihi?: string | null
+          third_party_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exit_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exit_plans_third_party_id_fkey"
+            columns: ["third_party_id"]
+            isOneToOne: false
+            referencedRelation: "third_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       findings: {
         Row: {
           aksiyon_plani: string | null
@@ -1236,6 +1287,54 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fourth_parties: {
+        Row: {
+          ad: string | null
+          bilinmiyor: boolean
+          created_at: string
+          hizmet_ozeti: string | null
+          id: string
+          tenant_id: string
+          third_party_id: string
+          ulke: string | null
+        }
+        Insert: {
+          ad?: string | null
+          bilinmiyor?: boolean
+          created_at?: string
+          hizmet_ozeti?: string | null
+          id?: string
+          tenant_id: string
+          third_party_id: string
+          ulke?: string | null
+        }
+        Update: {
+          ad?: string | null
+          bilinmiyor?: boolean
+          created_at?: string
+          hizmet_ozeti?: string | null
+          id?: string
+          tenant_id?: string
+          third_party_id?: string
+          ulke?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fourth_parties_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fourth_parties_third_party_id_fkey"
+            columns: ["third_party_id"]
+            isOneToOne: false
+            referencedRelation: "third_parties"
             referencedColumns: ["id"]
           },
         ]
@@ -4432,6 +4531,177 @@ export type Database = {
           },
         ]
       }
+      third_parties: {
+        Row: {
+          ad: string
+          created_at: string
+          dis_rating: string | null
+          dis_rating_kaynagi: string | null
+          durum: string
+          hizmet_ozeti: string | null
+          id: string
+          karar: string
+          karar_veren: string | null
+          karar_zamani: string | null
+          tenant_id: string
+          tier: string
+          ulke: string | null
+          updated_at: string
+        }
+        Insert: {
+          ad: string
+          created_at?: string
+          dis_rating?: string | null
+          dis_rating_kaynagi?: string | null
+          durum?: string
+          hizmet_ozeti?: string | null
+          id?: string
+          karar?: string
+          karar_veren?: string | null
+          karar_zamani?: string | null
+          tenant_id: string
+          tier?: string
+          ulke?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ad?: string
+          created_at?: string
+          dis_rating?: string | null
+          dis_rating_kaynagi?: string | null
+          durum?: string
+          hizmet_ozeti?: string | null
+          id?: string
+          karar?: string
+          karar_veren?: string | null
+          karar_zamani?: string | null
+          tenant_id?: string
+          tier?: string
+          ulke?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "third_parties_karar_veren_fkey"
+            columns: ["karar_veren"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "third_parties_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      third_party_contracts: {
+        Row: {
+          baslangic: string
+          bitis: string
+          cikis_maddesi: boolean
+          created_at: string
+          denetim_hakki: boolean
+          durum: string
+          id: string
+          sozlesme_ref: string
+          tenant_id: string
+          third_party_id: string
+          updated_at: string
+        }
+        Insert: {
+          baslangic: string
+          bitis: string
+          cikis_maddesi?: boolean
+          created_at?: string
+          denetim_hakki?: boolean
+          durum?: string
+          id?: string
+          sozlesme_ref: string
+          tenant_id: string
+          third_party_id: string
+          updated_at?: string
+        }
+        Update: {
+          baslangic?: string
+          bitis?: string
+          cikis_maddesi?: boolean
+          created_at?: string
+          denetim_hakki?: boolean
+          durum?: string
+          id?: string
+          sozlesme_ref?: string
+          tenant_id?: string
+          third_party_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "third_party_contracts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "third_party_contracts_third_party_id_fkey"
+            columns: ["third_party_id"]
+            isOneToOne: false
+            referencedRelation: "third_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      third_party_services: {
+        Row: {
+          created_at: string
+          hizmet_adi: string
+          id: string
+          kritik: boolean
+          kritik_hizmet_adi: string | null
+          tenant_id: string
+          third_party_id: string
+          veri_siniflari: string[]
+        }
+        Insert: {
+          created_at?: string
+          hizmet_adi: string
+          id?: string
+          kritik?: boolean
+          kritik_hizmet_adi?: string | null
+          tenant_id: string
+          third_party_id: string
+          veri_siniflari?: string[]
+        }
+        Update: {
+          created_at?: string
+          hizmet_adi?: string
+          id?: string
+          kritik?: boolean
+          kritik_hizmet_adi?: string | null
+          tenant_id?: string
+          third_party_id?: string
+          veri_siniflari?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "third_party_services_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "third_party_services_third_party_id_fkey"
+            columns: ["third_party_id"]
+            isOneToOne: false
+            referencedRelation: "third_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -4538,6 +4808,7 @@ export type Database = {
         Args: { target_tenant_id: string }
         Returns: boolean
       }
+      tpr_sozlesme_dolanlari_isle: { Args: never; Returns: undefined }
       verify_audit_chain: {
         Args: { target_tenant_id: string }
         Returns: {
