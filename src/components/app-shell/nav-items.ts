@@ -55,6 +55,7 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
     ogeler: [
       { href: "/regulasyon/kaynaklar", etiket: "Kaynaklar", Ikon: Library },
       { href: "/regulasyon/dogrulama", etiket: "Doğrulama Kuyruğu", Ikon: ShieldCheck },
+      { href: "/regulasyon/uygulanabilirlik", etiket: "Uygulanabilirlik", Ikon: ScrollText },
     ],
   };
   return [

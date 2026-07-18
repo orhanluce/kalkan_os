@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StatusBadge } from "@/components/durum/status-badge";
 import { EvidenceTraceRail } from "@/components/evidence-trace-rail";
 import { Button } from "@/components/ui/button";
@@ -92,6 +92,56 @@ export default function ControlDetailPage() {
   // Kanıt izi rayı için test güvence durumu — KontrolTestBolumu raporlar
   // (setState stabil referans, yükleme döngüsü tetiklemez).
   const [testGuvence, setTestGuvence] = useState<string | null>(null);
+
+  // PR-Q2b': Hüküm/Yükümlülük düğümleri artık GERÇEK zincirden (M21 mapping →
+  // obligation → provision). Eşleme yoksa dürüst "Bağlı değil" korunur —
+  // REJECTED eşleme iddia değildir, sayılmaz.
+  const [dayanak, setDayanak] = useState<{
+    hukumEtiket: string;
+    hukumDurum: "success" | "warning" | "legal-review" | "neutral";
+    yukumlulukEtiket: string;
+    yukumlulukDurum: "success" | "warning" | "legal-review";
+  } | null>(null);
+  useEffect(() => {
+    const yukleDayanak = async () => {
+      const db = createClient();
+      const { data } = await db
+        .from("obligation_control_mappings")
+        .select(
+          `dogrulama_durumu,
+           obligations!inner (kod, dogrulama_durumu,
+             provisions!inner (provision_ref, dogrulama_durumu))`,
+        )
+        .eq("control_id", params.id)
+        .neq("dogrulama_durumu", "REJECTED");
+      const satirlar = (data ?? []) as unknown as {
+        dogrulama_durumu: string;
+        obligations: { kod: string; dogrulama_durumu: string; provisions: { provision_ref: string; dogrulama_durumu: string } };
+      }[];
+      if (satirlar.length === 0) {
+        setDayanak(null);
+        return;
+      }
+      // VERIFIED eşleme öncelikli gösterilir; kalanı sayıyla özetlenir.
+      const sirali = [...satirlar].sort((a, b) =>
+        (a.dogrulama_durumu === "VERIFIED" ? 0 : 1) - (b.dogrulama_durumu === "VERIFIED" ? 0 : 1),
+      );
+      const ilk = sirali[0];
+      const ek = satirlar.length > 1 ? ` (+${satirlar.length - 1})` : "";
+      const durumSemantigi = (d: string): "success" | "warning" | "legal-review" =>
+        d === "VERIFIED" ? "success" : d === "LEGAL_REVIEW" ? "legal-review" : "warning";
+      const zincirTam = ilk.dogrulama_durumu === "VERIFIED" && ilk.obligations.dogrulama_durumu === "VERIFIED";
+      setDayanak({
+        hukumEtiket: ilk.obligations.provisions.provision_ref,
+        hukumDurum: durumSemantigi(ilk.obligations.provisions.dogrulama_durumu),
+        yukumlulukEtiket: `${ilk.obligations.kod}${ek}`,
+        yukumlulukDurum: zincirTam ? "success" : durumSemantigi(
+          ilk.obligations.dogrulama_durumu === "VERIFIED" ? ilk.dogrulama_durumu : ilk.obligations.dogrulama_durumu,
+        ),
+      });
+    };
+    void yukleDayanak();
+  }, [params.id]);
 
   const [notDraft, setNotDraft] = useState(tenantControl?.notMetni ?? "");
   const [tip, setTip] = useState<EvidenceTip>("dosya");
@@ -226,12 +276,16 @@ export default function ControlDetailPage() {
           zinciri henüz yok (unknown). Kontrol/Test/Kanıt gerçek veriden. */}
       <EvidenceTraceRail
         dugumler={[
-          {
-            ad: "Hüküm",
-            durum: control.maddeRef.startsWith("TODO-DOGRULA") ? "legal-review" : "neutral",
-            etiket: control.maddeRef.startsWith("TODO-DOGRULA") ? "Doğrulanmadı" : control.maddeRef,
-          },
-          { ad: "Yükümlülük", durum: "unknown", etiket: "Bağlı değil" },
+          dayanak
+            ? { ad: "Hüküm", durum: dayanak.hukumDurum, etiket: dayanak.hukumEtiket }
+            : {
+                ad: "Hüküm",
+                durum: control.maddeRef.startsWith("TODO-DOGRULA") ? "legal-review" : "neutral",
+                etiket: control.maddeRef.startsWith("TODO-DOGRULA") ? "Doğrulanmadı" : control.maddeRef,
+              },
+          dayanak
+            ? { ad: "Yükümlülük", durum: dayanak.yukumlulukDurum, etiket: dayanak.yukumlulukEtiket }
+            : { ad: "Yükümlülük", durum: "unknown", etiket: "Bağlı değil" },
           {
             ad: "Kontrol",
             durum: DURUM_SEMANTIK[tenantControl.durum],
