@@ -1216,6 +1216,68 @@ export type Database = {
           },
         ]
       }
+      plan_versions: {
+        Row: {
+          created_at: string
+          id: string
+          plan_id: string
+          surum: number
+          yayin_durumu: string
+          yetkiler: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plan_id: string
+          surum: number
+          yayin_durumu?: string
+          yetkiler: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plan_id?: string
+          surum?: number
+          yayin_durumu?: string
+          yetkiler?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_versions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "product_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_plans: {
+        Row: {
+          ad: string
+          aktif: boolean
+          created_at: string
+          id: string
+          kod: string
+          urun_hatti: string
+        }
+        Insert: {
+          ad: string
+          aktif?: boolean
+          created_at?: string
+          id?: string
+          kod: string
+          urun_hatti: string
+        }
+        Update: {
+          ad?: string
+          aktif?: boolean
+          created_at?: string
+          id?: string
+          kod?: string
+          urun_hatti?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -2988,6 +3050,58 @@ export type Database = {
           },
         ]
       }
+      subscription_events: {
+        Row: {
+          actor: string | null
+          created_at: string
+          detay: Json
+          event_type: string
+          id: string
+          plan_version_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          actor?: string | null
+          created_at?: string
+          detay?: Json
+          event_type: string
+          id?: string
+          plan_version_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          actor?: string | null
+          created_at?: string
+          detay?: Json
+          event_type?: string
+          id?: string
+          plan_version_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_events_actor_fkey"
+            columns: ["actor"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_events_plan_version_id_fkey"
+            columns: ["plan_version_id"]
+            isOneToOne: false
+            referencedRelation: "plan_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_controls: {
         Row: {
           control_id: string
@@ -3038,6 +3152,54 @@ export type Database = {
             foreignKeyName: "tenant_controls_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_subscriptions: {
+        Row: {
+          baslangic: string
+          bitis: string | null
+          durum: string
+          id: string
+          plan_version_id: string
+          tenant_id: string
+          trial_bitis: string | null
+          updated_at: string
+        }
+        Insert: {
+          baslangic?: string
+          bitis?: string | null
+          durum?: string
+          id?: string
+          plan_version_id: string
+          tenant_id: string
+          trial_bitis?: string | null
+          updated_at?: string
+        }
+        Update: {
+          baslangic?: string
+          bitis?: string | null
+          durum?: string
+          id?: string
+          plan_version_id?: string
+          tenant_id?: string
+          trial_bitis?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_subscriptions_plan_version_id_fkey"
+            columns: ["plan_version_id"]
+            isOneToOne: false
+            referencedRelation: "plan_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },

@@ -334,6 +334,27 @@ e2e, 0 skip.** Bilinçli sınır: paket İÇERİĞİ (hangi kontrol hangi dayana
 data/packs/*.yaml'dan seed edilecek (kural 3; uydurulmaz) — CFO baseline pack'i
 PR-3'te (CFO MVP).
 
+### 1.11 V2 PR-2c — Sürümlü plan/entitlement + server-side zorlama (ADR-V2-3) ✅
+
+`product_plans`/`plan_versions`/`tenant_subscriptions`/`subscription_events`
+(migration `20260718110000`, canlıda). 5 plan × v1 yetenek matrisi seed'li
+(ADR-V2-3 taslağı — ÜRÜN KONFİGÜ, hukuk değil, sürümlü/düzenlenebilir; limitler
+KODA GÖMÜLÜ DEĞİL, matris jsonb). **Yetki server/DB'de zorlanır (UI gizleme
+yetki değil):** `entitlement.ts` saf yorumlama (tek kaynak; VARSAYILAN
+permissive — abonesiz pilot kiracı mevcut yüzeyleri kullanır, yeni ücretli
+yetenekler kapalı), `entitlement-server.ts` aktif abonelik→yetkiler. `/api/sod/
+degerlendir` `sod_tam` ister → **Starter 402, Pro 200** (gerçek Chromium e2e ile
+kanıtlı). **Forged plan claim DB'de reddedilir:** istemci `tenant_subscriptions`/
+`subscription_events` YAZAMAZ (RLS revoke — kendi planını yükseltemez), provisioning
+yalnız service_role (MVP mock billing; **billing provider K3 OPEN-DECISION**).
+**Downgrade veri SİLMEZ** (RLS testli: Pro→Starter sonrası SoD verisi durur,
+yalnız yetki daralır; read-only zorlaması rota katmanında). append-only
+subscription_events. 6 birim + 6 RLS + 1 e2e (bypass+upgrade). **710 birim +
+30 e2e, 0 skip.** **V2 PR-2 (Segment+Entitlement Foundation) TAMAM.** Sıradaki:
+CFO Kalkanı MVP. Bilinçli sınır: UI plan-kapılı EKRAN (denetçi alanı vb.)
+henüz yok — CFO MVP'de gerçek plan-farklı yüzeylerle gelecek; bugün zorlama
+mevcut SoD yazma yüzeyinde kanıtlandı.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket

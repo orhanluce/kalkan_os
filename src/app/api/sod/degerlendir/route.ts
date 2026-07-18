@@ -9,6 +9,8 @@
 // GİBİ bırakılır. Kapanışı yalnız insan/guard kararı yapar (append-only'nin
 // ruhu, kural 2).
 import { NextResponse } from "next/server";
+import { sodTamMi } from "@/lib/entitlement";
+import { entitlementGerekli } from "@/lib/entitlement-server";
 import { sodKosuyuYurut } from "@/lib/sod-kosu";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,6 +28,17 @@ export async function POST() {
     return NextResponse.json(
       { hata: "Değerlendirme çalıştırma yalnızca admin veya uyum rolünün işidir." },
       { status: 403 },
+    );
+  }
+
+  // ENTITLEMENT (V2 PR-2c): SoD değerlendirme YAZMA işlemi tam SoD ister.
+  // Starter planı yalnız "gorunum" (okuma) alır → 402. Aboneliği olmayan
+  // (pilot/mevcut) kiracı VARSAYILAN ile izinli — mevcut davranış korunur.
+  // Yetki UI'da gizlense bile burada sunucu tarafında yeniden doğrulanır.
+  if (!(await entitlementGerekli(db, profil.tenant_id, sodTamMi))) {
+    return NextResponse.json(
+      { hata: "Planınız SoD değerlendirmesini kapsamıyor (yalnız görünüm). Yükseltme gerekir.", kod: "ENTITLEMENT_YOK" },
+      { status: 402 },
     );
   }
 
