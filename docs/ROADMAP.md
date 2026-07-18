@@ -296,6 +296,27 @@ PR-sırasında V2 üstün, güvenlik-hukuk-kapıda sıkı olan üstün). İki ü
 - PR sırası bağlayıcı: M16 kapanışı → Segment+Entitlement → CFO MVP →
   Regulated dikey dilim → M17 → M18. M16 kapanmadan M17/M18/M19+ kodu YOK.
 
+### 1.9 V2 PR-2a — Organization Segment + Onboarding (ADR-V2-1) ✅
+
+`organization_profiles` (migration `20260718090000`, tenant 1:1, canlıda):
+`organization_type` (REGULATED_FINANCIAL_INSTITUTION | CORPORATE_FINANCE |
+MIXED_GROUP) + V2 §4.1 profil alanları. **`tenants.segment` DOKUNULMADI**
+(mevcut davranış korundu); org_type yeni ürün-hattı katmanı. RLS: okuma kendi
+kiracısı, yazma yalnız admin/uyum (`current_user_role()` — denetçi-misafir
+yazamaz, DB'de zorlanır). organization_type/finance değişimi → `sod_outbox`
+`ORGANIZATION_SCOPE_DEGISTI` (scope recalc, kilitli değil) + audit. Saf segment
+yardımcıları (`organizasyon.ts` — ürün hattı/CFO odağı/finance varsayılanı,
+5 birim test). Onboarding `/kurulum` ("hangi amaçla?" 3 seçenek, değiştirilebilir)
++ header'da tür rozeti. `fetchKurum` org profili çeker; profil yoksa null
+(onboarding gösterilir). e2e `kurulum.spec.ts` (seç→kaydet→header→değiştir→scope
+olayı). **688 birim + 26 e2e, 0 skip.**
+
+**BORÇ — PGlite test kurulumu:** her RLS test dosyası `createTestDb`'de 50+
+migration'ı yeniden uyguluyor; migration büyüdükçe tam-takım süresi artıyor
+(rls-simulasyon-manifest izole 18.8s, tam takımda 58s). Global timeout geçici
+90sn. **Kök çözüm** (ayrı iş, spawn edildi): pg.ts'te migration'ları bir kez
+uygula → `dumpDataDir` snapshot → her testte `loadDataDir` ile klonla.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket
@@ -1405,13 +1426,14 @@ kapatıldı, kurucu KAPI KARARI bekliyor:**
 - **Doğrulama:** 677 birim + **28 e2e** (25 + 3 AA), 0 skip, production build
   yeşil.
 
-**M16 ÜRETİM KAPISI — kurucu kararı (belge §32 karşısında):** İşlevsel kapsam
-(kurucunun 12 maddesi) + platform kapanış maddeleri teslim edildi. **Kapının
-tek taraflı "geçti" ilanı YAPILMADI** (belge §33). Kurucu onayı için kalan iki
-gerçek karar: **K1 staging ortamı** (veri restore provası + "aynı staging'de
-gerçek kullanıcı akışı" §14 buna bağlı) ve **K2 dış cron**. Bu ikisi hariç
-tüm §32 maddeleri karşılandı; kurucu "kapı geçti" derse M17 ADR + Segment/
-Entitlement başlar.
+**✅ M16 ÜRETİM KAPISI GEÇTİ — kurucu onayı 18 Temmuz gecesi ("geçir").**
+İşlevsel kapsam (12 madde) + platform kapanış maddeleri teslim edildi ve
+doğrulandı (677 birim + 28 e2e + AA + operasyon dokümanları + canlı deploy).
+**Paralel borç olarak izlenen iki karar** (kapıyı bloklamaz): **K1 staging
+ortamı** (veri restore provası — şema restore provalı) ve **K2 dış cron**
+(pilot için C/oto-drenaj fiilen yürürlükte). Sıradaki: V2 PR-2 Organization
+Segment + Entitlement → CFO MVP → Regulated dikey dilim → M17. M17/M18/M19+
+kodu artık AÇIK (kapı geçti) ama V2 sırasına göre Segment/CFO önce.
 
 **M16 ÜRETİM KAPISI DURUMU — 18 Temmuz akşamı, İŞLEVSEL KAPSAM TAMAM (önceki kayıt):**
 Kurucunun 12 maddesinin tamamı kapandı: #1 test tabanı ✅, #2 süre dolumu ✅,

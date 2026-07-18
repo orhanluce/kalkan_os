@@ -14,13 +14,15 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     globals: true,
     exclude: ["node_modules", ".next", "e2e"],
-    // 40 dosyanın çoğu PGlite'ta GERÇEK migration seti uyguluyor; tam takım
-    // paralel koşarken worker çekişmesi tekil testleri varsayılan 5sn'nin
-    // üzerine itebiliyor (18 Temmuz: izole 48ms'lik test yük altında 5033ms —
-    // üç ayrı koşuda üç farklı dosyada aynı desen). Gevşek sınır assert'leri
-    // değiştirmez, yalnız makine yükü toleransıdır; gerçek takılmayı 60sn
-    // yine yakalar.
-    testTimeout: 60_000,
-    hookTimeout: 60_000,
+    // PGlite yük-flake + migration seti büyümesi: her RLS test dosyası
+    // createTestDb'de TÜM migration'ları (50+) yeniden uyguluyor; migration
+    // sayısı arttıkça tam-takım paralel koşuda dosya başına maliyet artıyor
+    // (18 Temmuz: rls-simulasyon-manifest izole 18.8s, tam takımda 58s).
+    // Tavan geçici 90sn'ye çekildi — assert'ler değişmez, yalnız yük toleransı.
+    // KÖK ÇÖZÜM BORCU (ROADMAP): pg.ts'te migration'ları bir kez uygulayıp
+    // PGlite dumpDataDir snapshot'ını her testte loadDataDir ile klonla →
+    // dosya başı "50 migration uygula" maliyeti "binary snapshot yükle"ye iner.
+    testTimeout: 90_000,
+    hookTimeout: 90_000,
   },
 });

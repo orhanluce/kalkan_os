@@ -56,6 +56,8 @@ interface StoreApi extends StoreState {
   toggleFindingDurum: (findingId: string) => Promise<void>;
   updateFinding: (findingId: string, patch: Partial<Finding>) => Promise<void>;
   addShareLink: (shareLink: ShareLink) => Promise<void>;
+  /** Tüm kurum/kütüphane/state'i yeniden çeker (ör. onboarding sonrası). */
+  yenidenYukle: () => Promise<void>;
 }
 
 const BOS_STATE: StoreState = {
@@ -67,7 +69,7 @@ const BOS_STATE: StoreState = {
 };
 
 const BOS_KUTUPHANE: Kutuphane = { frameworks: [], controls: [], mappings: [] };
-const BOS_KURUM: Kurum = { tenant: null, profiller: [] };
+const BOS_KURUM: Kurum = { tenant: null, profiller: [], organizasyon: null };
 
 const StoreContext = createContext<StoreApi | null>(null);
 
@@ -342,6 +344,7 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
       toggleFindingDurum,
       updateFinding,
       addShareLink,
+      yenidenYukle,
     }),
     [
       state,
@@ -357,6 +360,7 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
       toggleFindingDurum,
       updateFinding,
       addShareLink,
+      yenidenYukle,
     ],
   );
 

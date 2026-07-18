@@ -79,19 +79,33 @@ export async function fetchKutuphane(db: Db): Promise<Kutuphane> {
  * yalnızca kullanıcının kendi kurumunu, profiles yalnızca aynı kurumun
  * üyelerini döndürür.
  */
+export interface OrganizasyonProfili {
+  organizationType: string;
+  financeDepartmentEnabled: boolean;
+  profilTamamlandiMi: boolean;
+}
+
 export interface Kurum {
   tenant: Tenant | null;
   profiller: Profile[];
+  // null = profil henüz yok (onboarding gösterilmeli). RLS altında yalnız
+  // kendi kiracısının profili döner.
+  organizasyon: OrganizasyonProfili | null;
 }
 
 export async function fetchKurum(db: Db): Promise<Kurum> {
-  const [t, p] = await Promise.all([
+  const [t, p, o] = await Promise.all([
     db.from("tenants").select("id, name, segment, created_at").maybeSingle(),
     db.from("profiles").select("id, tenant_id, role, full_name"),
+    db
+      .from("organization_profiles")
+      .select("organization_type, finance_department_enabled, profil_tamamlandi_at")
+      .maybeSingle(),
   ]);
 
   if (t.error) throw t.error;
   if (p.error) throw p.error;
+  // o.error: tablo yeni; profil yoksa maybeSingle null döner (hata değil).
 
   return {
     tenant: t.data
@@ -100,6 +114,13 @@ export async function fetchKurum(db: Db): Promise<Kurum> {
           name: t.data.name,
           segment: t.data.segment as Tenant["segment"],
           createdAt: t.data.created_at,
+        }
+      : null,
+    organizasyon: o.data
+      ? {
+          organizationType: o.data.organization_type,
+          financeDepartmentEnabled: o.data.finance_department_enabled,
+          profilTamamlandiMi: o.data.profil_tamamlandi_at !== null,
         }
       : null,
     profiller: (p.data ?? []).map((r) => ({

@@ -1038,6 +1038,80 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_profiles: {
+        Row: {
+          bank_portal_count_band: string | null
+          created_at: string
+          critical_supplier_status: boolean
+          employee_band: string | null
+          erp_systems: string[]
+          finance_department_enabled: boolean
+          finance_function_types: string[]
+          jurisdictions: string[]
+          legal_entity_count: number | null
+          operating_sectors: string[]
+          organization_type: string
+          payment_volume_band: string | null
+          payroll_in_scope: boolean
+          profil_tamamlandi_at: string | null
+          regulated_status: string | null
+          regulator_types: string[]
+          supplier_master_in_scope: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          bank_portal_count_band?: string | null
+          created_at?: string
+          critical_supplier_status?: boolean
+          employee_band?: string | null
+          erp_systems?: string[]
+          finance_department_enabled?: boolean
+          finance_function_types?: string[]
+          jurisdictions?: string[]
+          legal_entity_count?: number | null
+          operating_sectors?: string[]
+          organization_type?: string
+          payment_volume_band?: string | null
+          payroll_in_scope?: boolean
+          profil_tamamlandi_at?: string | null
+          regulated_status?: string | null
+          regulator_types?: string[]
+          supplier_master_in_scope?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          bank_portal_count_band?: string | null
+          created_at?: string
+          critical_supplier_status?: boolean
+          employee_band?: string | null
+          erp_systems?: string[]
+          finance_department_enabled?: boolean
+          finance_function_types?: string[]
+          jurisdictions?: string[]
+          legal_entity_count?: number | null
+          operating_sectors?: string[]
+          organization_type?: string
+          payment_volume_band?: string | null
+          payroll_in_scope?: boolean
+          profil_tamamlandi_at?: string | null
+          regulated_status?: string | null
+          regulator_types?: string[]
+          supplier_master_in_scope?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -2984,6 +3058,7 @@ export type Database = {
       }
       current_role: { Args: never; Returns: string }
       current_tenant_id: { Args: never; Returns: string }
+      current_user_role: { Args: never; Returns: string }
       evidence_anchor_bilgisi: {
         Args: { target_evidence_id: string }
         Returns: {
