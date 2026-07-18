@@ -21,6 +21,15 @@ Gece oturumundaki izin blokajı kurucu onayıyla ("izin verdim") aşıldı:
 yazma smoke'u 21/21 geçti (geçici script silindi), tüm commit'ler push'landı,
 deploy health `hazir`. Devreden blokaj YOK.
 
+## 0a2. KALICI ONAY (19 Temmuz) — GECE OTONOM MODU
+Kurucu: **"sabaha kadar çalış, ben hepsine devam diyorum."** → nihai §8 gate
+sırasında (G5/G6/G7/G8...) duraksamadan, her gate'i bağımsız çalışan dikey
+olarak teslim et: migration+RLS+guard+birim+RLS testi+gerçek Chromium e2e+
+build+canlı guard smoke+deploy health, commit+push. Kurucu kararı gerektiren
+şeyleri (JWS/TSA/connector pilot stack/AI sağlayıcı/dış lisans/G1 içerik)
+UYDURMA — adapter/OPEN_DECISION + interface ile ilerle, dış gönderim/gerçek
+para/credential yapma. Her gate sonunda §15 raporu.
+
 ## 0c. GERÇEK DURUM (18 Temmuz gece, en son ölçüm)
 - **Remote (origin/main) HEAD:** `7f5f314` (G2 M34 Policy Lifecycle). `32cd808`
   (Proof Room) remote'da mevcut ve zincirde. Push edilmemiş commit YOK.
@@ -106,11 +115,14 @@ doğrulayıcı rolü). QRegu döneminde teslim edilenler (ROADMAP §1.16-1.19):
    + DORA RoI iskelesi; `/tedarikciler` + detay UI; rls 7/7 + saf 8/8 + e2e +
    smoke 5/5. Sonraki dilim: assessment/questionnaire/finding + resmî RoI +
    vendor-portal.
-4. **Sıradaki gate'ler (nihai §8):** G5 M37 AI Assurance & Agent Governance,
-   G6 M36 PrivacyOps, G7 M38+M41 Regulatory Engagement + Partner, G8 M13/M17/
-   M18 genişleme + M40. G3 (connector + TSA adapter + SCITT ledger) connector'lar
-   pilot stack'i (kurucu #7) bekliyor — interface+ledger kısmı dış-karar
-   bağımsız yapılabilir.
+4. ~~**G6 — M36 PrivacyOps**~~ **BİTTİ** (ROADMAP §1.25): ROPA + DSAR (kimlik
+   şartı + süre saati) + ihlal (bildirim saati) + DPIA dört-göz; veri
+   minimizasyonu (maskeli+hash); `/gizlilik` hub; rls 7/7 + saf 6/6 + e2e +
+   smoke 4/4. Sonraki dilim: connector, DSAR kanıt paketi, TransferAssessment.
+5. **Sıradaki gate'ler (nihai §8):** G5 M37 AI Assurance & Agent Governance,
+   G7 M38+M41 Regulatory Engagement + Partner, G8 M13/M17/M18 genişleme + M40.
+   G3 (connector + TSA adapter + SCITT ledger) connector'lar pilot stack'i
+   (kurucu #7) bekliyor — interface+ledger kısmı dış-karar bağımsız yapılabilir.
 Her adım: migration (PGlite RLS testi) → canlı db:push+db:types → gerçek
 Chromium e2e → commit; rapor nihai §15 formatında. Kural 3'ü her adımda koru.
 

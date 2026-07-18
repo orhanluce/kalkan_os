@@ -662,6 +662,28 @@ hizmet/dördüncü-taraf/sözleşme/çıkış planı → kanıtsız-tested reddi
 ThirdPartyAssessment/Questionnaire/Finding due-diligence iş akışı, resmî DORA RoI
 RTS şeması, vendor-portal dış erişim (G7 M41 partner modeliyle).
 
+### 1.25 Gate G6 — M36 PrivacyOps (KVKK/GDPR) ilk üretim dikeyi ✅ (19 Temmuz)
+
+Migration `20260719010000` — YENİ kod alanı, tenant'a özgü. 4 tablo:
+`processing_activities` (ROPA: amaç + hukuki dayanak KVKK/GDPR + kaynak soyu
+`dayanak_provision_id` + saklama + sınır-ötesi), `data_subject_requests` (DSAR:
+tür + maskeli+hash veri sahibi + kimlik doğrulama + süre), `privacy_incidents`
+(ihlal: tespit + sınıflandırma + otorite/veri-sahibi bildirim), `privacy_
+assessments` (DPIA/LIA/TIA + dört-göz tamamlama). **İnvariant'lar (DB guard —
+canlı smoke 4/4):** DSAR TAMAMLANDI yalnız KİMLİK DOĞRULANDIYSA (yanlış kişiye
+veri riski; tamamlandi_at otomatik); DPIA TAMAMLANDI sonuç+onaylayan+zaman +
+onaylayan≠hazırlayan (dört göz); **veri minimizasyonu** — veri sahibinin TAM
+kimliği SAKLANMAZ (maskeli + 64-hex hash, check'li). Süre saatleri SAKLANMAZ,
+saf yardımcı `src/lib/gizlilik.ts` (kural 11) ile TÜRETİLİR: `dsarSonTarih`
+(KVKK 30 gün), `ihlalBildirimSaati` (otorite 72 saat), `maskele` — gerçek-zamanlı
+alarm (M05 incident clock ilkesi). ROPA doğrulanmamış hükme bağlanabilir ama
+onu VERIFIED yapmaz (kural 3). UI `/gizlilik` hub (ROPA + DSAR süre saati/kimlik
+doğrula/tamamla + ihlal bildirim saati); nav "Gizlilik" grubu. Testler:
+rls-privacy-ops 7/7 + gizlilik 6/6 + `gizlilik.spec.ts` e2e (ROPA → DSAR
+kimlik-şartı reddi → doğrula → tamamla → ihlal saati; DB'de tam e-posta
+SAKLANMADI) + canlı smoke 4/4. **BİLİNÇLİ SONRAKİ DİLİM:** consent/data-discovery
+connector (read-only), DSAR kanıt paketi, sınır-ötesi TransferAssessment detayı.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket

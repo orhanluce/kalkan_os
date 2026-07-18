@@ -12,6 +12,7 @@ import {
   LandmarkIcon,
   LayoutDashboard,
   Library,
+  Lock,
   ScrollText,
   Share2,
   ShieldCheck,
@@ -83,6 +84,10 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
     {
       baslik: "Operasyonel Dayanıklılık",
       ogeler: [{ href: "/tedarikciler", etiket: "Tedarikçiler", Ikon: Boxes }],
+    },
+    {
+      baslik: "Gizlilik",
+      ogeler: [{ href: "/gizlilik", etiket: "KVKK / Gizlilik", Ikon: Lock }],
     },
     { baslik: "Yönetim", ogeler: [{ href: "/paylasim", etiket: "Paylaşım", Ikon: Share2 }] },
   ];

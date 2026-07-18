@@ -908,6 +908,59 @@ export type Database = {
           },
         ]
       }
+      data_subject_requests: {
+        Row: {
+          alindi_at: string
+          created_at: string
+          durum: string
+          id: string
+          kimlik_dogrulandi: boolean
+          tamamlandi_at: string | null
+          tenant_id: string
+          tur: string
+          updated_at: string
+          veri_sahibi_hash: string | null
+          veri_sahibi_maskeli: string
+          yasal_sure_gun: number
+        }
+        Insert: {
+          alindi_at?: string
+          created_at?: string
+          durum?: string
+          id?: string
+          kimlik_dogrulandi?: boolean
+          tamamlandi_at?: string | null
+          tenant_id: string
+          tur: string
+          updated_at?: string
+          veri_sahibi_hash?: string | null
+          veri_sahibi_maskeli: string
+          yasal_sure_gun?: number
+        }
+        Update: {
+          alindi_at?: string
+          created_at?: string
+          durum?: string
+          id?: string
+          kimlik_dogrulandi?: boolean
+          tamamlandi_at?: string | null
+          tenant_id?: string
+          tur?: string
+          updated_at?: string
+          veri_sahibi_hash?: string | null
+          veri_sahibi_maskeli?: string
+          yasal_sure_gun?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_subject_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evidence_reviews: {
         Row: {
           created_at: string
@@ -2125,6 +2178,202 @@ export type Database = {
           },
           {
             foreignKeyName: "policy_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      privacy_assessments: {
+        Row: {
+          created_at: string
+          durum: string
+          hazirlayan: string | null
+          id: string
+          onay_zamani: string | null
+          onaylayan: string | null
+          processing_activity_id: string
+          sonuc: string | null
+          tenant_id: string
+          tur: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          durum?: string
+          hazirlayan?: string | null
+          id?: string
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          processing_activity_id: string
+          sonuc?: string | null
+          tenant_id: string
+          tur: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          durum?: string
+          hazirlayan?: string | null
+          id?: string
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          processing_activity_id?: string
+          sonuc?: string | null
+          tenant_id?: string
+          tur?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "privacy_assessments_hazirlayan_fkey"
+            columns: ["hazirlayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "privacy_assessments_onaylayan_fkey"
+            columns: ["onaylayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "privacy_assessments_processing_activity_id_fkey"
+            columns: ["processing_activity_id"]
+            isOneToOne: false
+            referencedRelation: "processing_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "privacy_assessments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      privacy_incidents: {
+        Row: {
+          created_at: string
+          durum: string
+          id: string
+          otorite_bildirildi_at: string | null
+          otorite_bildirim_gerekli: boolean
+          ozet: string
+          siniflandirma: string
+          tenant_id: string
+          tespit_at: string
+          updated_at: string
+          veri_sahibi_bildirildi_at: string | null
+          veri_sahibi_bildirim_gerekli: boolean
+        }
+        Insert: {
+          created_at?: string
+          durum?: string
+          id?: string
+          otorite_bildirildi_at?: string | null
+          otorite_bildirim_gerekli?: boolean
+          ozet: string
+          siniflandirma?: string
+          tenant_id: string
+          tespit_at: string
+          updated_at?: string
+          veri_sahibi_bildirildi_at?: string | null
+          veri_sahibi_bildirim_gerekli?: boolean
+        }
+        Update: {
+          created_at?: string
+          durum?: string
+          id?: string
+          otorite_bildirildi_at?: string | null
+          otorite_bildirim_gerekli?: boolean
+          ozet?: string
+          siniflandirma?: string
+          tenant_id?: string
+          tespit_at?: string
+          updated_at?: string
+          veri_sahibi_bildirildi_at?: string | null
+          veri_sahibi_bildirim_gerekli?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "privacy_incidents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_activities: {
+        Row: {
+          ad: string
+          alicilar: string[]
+          amac: string
+          created_at: string
+          dayanak_provision_id: string | null
+          durum: string
+          hukuki_dayanak: string
+          id: string
+          saklama_dayanagi: string | null
+          saklama_suresi: string | null
+          sinir_otesi_transfer: boolean
+          tenant_id: string
+          transfer_ulkeleri: string[]
+          updated_at: string
+          veri_kategorileri: string[]
+          veri_sahibi_kategorileri: string[]
+        }
+        Insert: {
+          ad: string
+          alicilar?: string[]
+          amac: string
+          created_at?: string
+          dayanak_provision_id?: string | null
+          durum?: string
+          hukuki_dayanak: string
+          id?: string
+          saklama_dayanagi?: string | null
+          saklama_suresi?: string | null
+          sinir_otesi_transfer?: boolean
+          tenant_id: string
+          transfer_ulkeleri?: string[]
+          updated_at?: string
+          veri_kategorileri?: string[]
+          veri_sahibi_kategorileri?: string[]
+        }
+        Update: {
+          ad?: string
+          alicilar?: string[]
+          amac?: string
+          created_at?: string
+          dayanak_provision_id?: string | null
+          durum?: string
+          hukuki_dayanak?: string
+          id?: string
+          saklama_dayanagi?: string | null
+          saklama_suresi?: string | null
+          sinir_otesi_transfer?: boolean
+          tenant_id?: string
+          transfer_ulkeleri?: string[]
+          updated_at?: string
+          veri_kategorileri?: string[]
+          veri_sahibi_kategorileri?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_activities_dayanak_provision_id_fkey"
+            columns: ["dayanak_provision_id"]
+            isOneToOne: false
+            referencedRelation: "provisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_activities_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
