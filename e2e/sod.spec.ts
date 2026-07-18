@@ -111,3 +111,55 @@ test("kural→çatışma→istisna→onay→telafi edici kontrol→durum", async
   await expect(page.getByText("SoD çatışması tespit edildi")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("SoD istisnası karara bağlandı").first()).toBeVisible();
 });
+
+// M16 tamamlama — Senaryo A (kurucu talimatı): süresi dolan istisna otomatik
+// olarak çatışmayı yeniden açmalı. Bu "gerçek kontrol boşluğu"nun kapandığının
+// kanıtı. Onaylı istisna + geçmiş bitiş service client ile kurulur (gerçekte
+// zamanla oluşur), süre-dolumu İŞİ çağrılır, ve çatışmanın UI'da yeniden AÇIK
+// göründüğü doğrulanır.
+test("süresi dolan istisna çatışmayı yeniden açar (REOPENED)", async ({ page }) => {
+  test.setTimeout(60_000);
+  const db = admin();
+  const damga = Date.now();
+
+  const { data: kurum } = await db.from("tenants").select("id").eq("name", "E2E Test Kurumu A.Ş.").single();
+  const { data: talepEden } = await db
+    .from("profiles").select("id").eq("tenant_id", kurum!.id).eq("full_name", "Ayşe Yılmaz").single();
+  const { data: onaylayan } = await db
+    .from("profiles").select("id").eq("tenant_id", kurum!.id).eq("full_name", "Mehmet Kaya").single();
+
+  // Kural + EXCEPTION_APPROVED çatışma + onaylı istisna (geçmiş bitiş).
+  const { data: kural } = await db
+    .from("sod_kurallari")
+    .insert({ tenant_id: kurum!.id, kod: `SOD-EXP-${damga}`, ad: `Süre dolumu ${damga}`, onem: "kritik" })
+    .select("id").single();
+  const { data: catisma } = await db
+    .from("sod_catismalari")
+    .insert({
+      tenant_id: kurum!.id, rule_id: kural!.id, kullanici_id: talepEden!.id,
+      sistem_kapsami: "kalkan_os", onem: "kritik", fingerprint: `fp-exp-${damga}`, durum: "OPEN",
+    })
+    .select("id").single();
+  const altmisGunOnce = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const dun = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  await db.from("sod_istisnalari").insert({
+    conflict_id: catisma!.id, tenant_id: kurum!.id, gerekce: "e2e süre dolumu",
+    talep_eden_id: talepEden!.id, onaylayan_id: onaylayan!.id,
+    baslangic: altmisGunOnce, bitis: dun, durum: "onaylandi",
+  });
+  await db.from("sod_catismalari").update({ durum: "EXCEPTION_APPROVED" }).eq("id", catisma!.id);
+
+  // Süre-dolumu işini çalıştır (pg_cron'un günlük yaptığı).
+  const { data: islenen, error } = await db.rpc("sod_istisna_suresi_dolanlari_isle");
+  expect(error).toBeNull();
+  expect(Number(islenen)).toBeGreaterThanOrEqual(1);
+
+  // Çatışma REOPENED, istisna suresi_doldu — DB'de.
+  const { data: c2 } = await db.from("sod_catismalari").select("durum").eq("id", catisma!.id).single();
+  expect(c2!.durum).toBe("REOPENED");
+
+  // UI: çatışma detayında "Yeniden açıldı" durumu görünür.
+  await girisYap(page);
+  await page.goto(`/sod/${catisma!.id}`);
+  await expect(page.getByText("Yeniden açıldı").first()).toBeVisible({ timeout: 10_000 });
+});

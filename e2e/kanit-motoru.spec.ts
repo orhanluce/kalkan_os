@@ -1,5 +1,14 @@
+import { createClient } from "@supabase/supabase-js";
 import { expect, test, type Page } from "@playwright/test";
 import { E2E_KULLANICI_ADI, girisYap, kontrolAc } from "./helpers";
+
+/** Node tarafı service client — süre-dolumu işini (revoke'lu RPC) çağırmak için. */
+function admin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase env eksik (.env.local).");
+  return createClient(url, key, { auth: { persistSession: false } });
+}
 
 // docs/ROADMAP.md M2 kabul kriteri:
 //   "kanıt yükle → kontrol 'karşılanıyor' olur → geçerliliği geçmişe çek →
@@ -100,21 +109,63 @@ test("denetim izi sayfası kim/ne/ne zaman gösterir ve sayfa yenilenince kalıc
 // veritabanı trigger'ı veya zamanlanmış iş (pg_cron), ve bu "Playwright'ı
 // yeniden aç" görevinin kapsamı dışında — kendi başına bir iştir. Test kodu,
 // düzeltildiğinde tam olarak neyin doğrulanması gerektiğini burada belgeliyor.
-test.skip("otomatik süre-dolma kaydı kullanıcıya değil Sistem'e atfedilir — DB tarafında henüz uygulanmadı", async ({
+// M2 borcu KAPANDI (migration 20260718010000): otomatik kanıt süre-dolumu
+// artık bir pg_cron işi (`kanit_suresi_dolanlari_isle`). Eskiden bu test
+// skip'liydi çünkü append-only evidences'ta bir kanıdı geçmişe çekemiyorduk
+// ve trigger/cron yoktu. Şimdi: geçmiş tarihli kanıt + karsilaniyor durumu
+// service client ile kurulur (gerçek dünyada bu durum ZAMANLA oluşur — kanıt
+// geçerliyken yüklenir, sonra dolar), süre-dolumu İŞİ çalıştırılır, ve
+// sonuç — kontrol 'kismi'ye düşer, audit "Sistem"e atfedilir — UI'da doğrulanır.
+test("otomatik kanıt süre-dolumu kontrolü 'kısmi'ye düşürür ve Sistem'e atfedilir", async ({
   page,
 }) => {
+  test.setTimeout(45_000);
+  const db = admin();
+
+  // Diğer testlerin dokunmadığı bir kontrol seç (TODO-DOGRULA-15).
+  const { data: kurum } = await db.from("tenants").select("id").eq("name", "E2E Test Kurumu A.Ş.").single();
+  const { data: kontrol } = await db
+    .from("controls")
+    .select("id")
+    .eq("madde_ref", "TODO-DOGRULA-15")
+    .single();
+
+  // Durumu 'karsilaniyor' yap + geçmiş tarihli (dünkü) kanıt ekle. Bu, kanıt
+  // geçerliyken karşılanmış, sonra kanıdı dolmuş bir kontrolün durumudur.
+  await db
+    .from("tenant_controls")
+    .update({ durum: "karsilaniyor" })
+    .eq("tenant_id", kurum!.id)
+    .eq("control_id", kontrol!.id);
+  const dun = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  await db.from("evidences").insert({
+    tenant_id: kurum!.id,
+    control_id: kontrol!.id,
+    tip: "beyan",
+    classification: "gizli",
+    retention_class: "10y",
+    envelope_schema_version: "KALKAN_EVIDENCE_ENVELOPE_V1",
+    gecerlilik_bitis: dun,
+  });
+
+  // Süre-dolumu İŞİNİ çalıştır (pg_cron'un günlük yaptığını burada elle).
+  const { data: islenen, error } = await db.rpc("kanit_suresi_dolanlari_isle");
+  expect(error).toBeNull();
+  expect(Number(islenen)).toBeGreaterThanOrEqual(1);
+
+  // Kontrol 'kismi'ye düştü mü — DB'de.
+  const { data: tc } = await db
+    .from("tenant_controls")
+    .select("durum")
+    .eq("tenant_id", kurum!.id)
+    .eq("control_id", kontrol!.id)
+    .single();
+  expect(tc!.durum).toBe("kismi");
+
+  // UI: denetim izinde "Kanıt süresi doldu" + "Sistem" görünür.
   await girisYap(page);
-  await kontrolAc(page, "TODO-DOGRULA-09");
-
-  await beyanKanitiYukle(page, "Geçerli tatbikat raporu", "2030-01-01");
-  await expect(page.getByRole("combobox").first()).toContainText("Karşılanıyor");
-
-  // Burada eskiden localStorage'daki kaydı elle geçmişe çekip reload
-  // ediyorduk. Artık veri Supabase'de; bu adım gerçek bir trigger/cron
-  // olmadan simüle edilemez.
-
   await page.goto("/denetim-izi");
-  await expect(page.getByText("Kanıt süresi doldu")).toBeVisible();
+  await expect(page.getByText("Kanıt süresi doldu").first()).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("Sistem").first()).toBeVisible();
 });
 

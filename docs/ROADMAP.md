@@ -935,7 +935,7 @@ muafiyet / varsa manuel override" izini üretmeli — bu M14 uygulanırken eklen
   teknik restore başarılı ama mutabakat başarısızsa `Recovered` sayılmaz;
   rapor düzenlemesi önceki gönderimi değiştirmez, yeni sürüm doğar.
 
-### M16 — Görevler Ayrılığı ve Telafi Edici Kontroller (SPK notları §5) ⏳ ilk dikey dilim ✅ kodlandı + canlıda e2e ile doğrulandı
+### M16 — Görevler Ayrılığı ve Telafi Edici Kontroller (SPK notları §5) ⏳ ilk dikey dilim + süre-dolumu otomasyonu ✅; CSV import/tetikler/dashboard/güvenlik ✗
 
 **Tamamlanan (18 Temmuz 2026):** şema (`sod_kurallari`/`sod_kural_taraflari`/
 `sod_atamalari`/`sod_catismalari`/`sod_istisnalari`/`sod_telafi_edici_kontroller`/
@@ -952,6 +952,31 @@ atama → değerlendir → çatışma gör → istisna talep et → **farklı ku
 DEĞİŞMEZ) → başarılı çalıştır (MITIGATED) → audit izini gör. 569 birim
 (mevcut 534 + 35 yeni SoD testi) + e2e (mevcut 14 + 1 yeni SoD testi) yeşil —
 mevcut davranış bozulmadı.
+
+**Tamamlanan 2 (18 Temmuz 2026 — süre-dolumu otomasyonu, migration
+`20260718010000`):** kurucunun işaret ettiği gerçek kontrol boşluğu — süresi
+dolan istisnanın otomatik açılmaması — kapatıldı.
+- `sod_istisna_suresi_dolanlari_isle()`: `durum='onaylandi'` + `bitis <
+  current_date` istisnaları `suresi_doldu` yapar ve çatışmayı YALNIZ
+  `EXCEPTION_APPROVED` ise `REOPENED`'e döndürür (MITIGATED çatışma ayrı
+  mekanizma, dokunulmaz; telafi edici kontrol PASSED olsa bile istisna dolunca
+  açılır). İdempotent (`durum='onaylandi'` koşullu UPDATE + `if found`),
+  eşzamanlı-güvenli (`for update skip locked`), satır-bazlı hata izolasyonu
+  (bir tenant'ın hatası diğerlerini durdurmaz), DB zamanı (`current_date`) esas.
+- `kanit_suresi_dolanlari_isle()`: **eski M2 borcunu kapatır** — kanıtı süresi
+  dolmuş `karsilaniyor` kontrolü `kismi`'ye düşürür ve "Sistem" adına
+  (`actor_id=null`) `kanit_suresi_doldu` audit'i yazar. `e2e/kanit-motoru.spec.ts`'teki
+  `test.skip` GERÇEK teste dönüştü — artık **17/17 e2e, SIFIR skip**.
+- **BullMQ DEĞİL, pg_cron** (kural 4 + ROADMAP §1.5'in üç kez verdiği karar):
+  mantık idempotent SQL fonksiyonunda, zamanlama pg_cron'da (`kalkan-sure-dolumu`,
+  günlük 02:00 UTC). pg_cron **canlıda mevcut ve zamanlandı** (db:push NOTICE +
+  fonksiyonlar service_role ile canlıda çağrıldı, 0 döndü — dolmuş veri yoktu).
+  Zamanlama PGlite'ı bozmasın diye defansif DO bloğunda (test harness'inde
+  no-op). Fonksiyonlar `authenticated/anon`'dan revoke — sistem işi.
+- Testler: `rls-sure-dolumu.test.ts` (12 birim — sınır durumları: bugün dolan
+  vs dün dolan, gelecek, idempotency, OPEN/MITIGATED çatışma, Sistem audit'i),
+  `sod.spec.ts` Senaryo A (istisna dolar → çatışma UI'da "Yeniden açıldı"),
+  kanıt süre-dolumu e2e. **581 birim + 17 e2e (0 skip) yeşil.**
 
 **Yol boyunca bulunan bir tasarım kusuru:** `SodTaraf.sistem_kapsami` başta
 kuralın KENDİSİNE sabit bir kapsam atıyordu ("A ve B yalnız 'kalkan_os'
@@ -1091,13 +1116,36 @@ findings gibi) ama her durum geçişi audit_log'da satır bırakır.
 - Gerçek Chromium'da en az bir uçtan uca akış (kural→çatışma→istisna→onay→
   telafi edici kontrol→başarısız/başarılı→durum).
 
-#### Kapsam dışı (bu turda)
+#### Üretim kapatma — kurucunun 18 Temmuz talimatı (12 madde) karşısında durum
 
-Harici IAM/PAM connector'ları (Keycloak/AD/AWS vb. — repo'da zaten bağlı
-DEĞİL); BullMQ/ayrı iş kuyruğu (motor senkron çalışır, `pg_cron` gerekirse
-sonraki tur); `SodConflict` ↔ `findings` otomatik ilişkisi; çoklu kural
-sürümleme UI'ı (DB'de sürüm alanı var, karşılaştırma ekranı yok); ReviewCampaign
-(periyodik SoD gözden geçirme kampanyası — veri modelinde yer AÇILMAZ bu turda).
+Kurucu M16'yı "gösterim özelliği"nden "işletilebilir kontrol sistemi"ne
+çevirmek için 12 maddelik bir tamamlama sırası verdi. **Bu turda ilk iki madde
+(kurucunun kendi sırasının başı) tam ve doğrulanmış teslim edildi:**
+- ✅ **#1 Test tabanı tamamen yeşil** — "15/16" aslında 15 geçen + 1 BİLİNÇLİ
+  SKIP'ti (başarısızlık değil, M2 borcunun placeholder'ı); o skip artık gerçek
+  bir teste dönüştü → **17/17 e2e, 0 skip**, 581 birim.
+- ✅ **#2 İstisna süre-dolumu** — yukarıda "Tamamlanan 2".
+
+**KALAN (kurucunun sırası, sonraki turlar — her biri ayrı PR):**
+- **#3 İstisna uzatma** akışı (yeni gerekçe/risk/süre + bağımsız onay, geçmiş
+  silinmez; `expiresAt` sessizce değişmez). Bugün DB'de tek `bitis` var,
+  uzatma-kaydı modeli yok.
+- **#4 CSV atama içe aktarma** — sağlayıcıdan bağımsız import contract, dry-run
+  önizleme, SHA-256 + import manifesti, evidence storage, rollback, idempotency
+  (`source+sourceRecordId`), formula-injection/boyut/MIME güvenliği. (Hiç yok.)
+- **#5 SoD değerlendirme tetikleri** — atama/kural değişiminde `sod.evaluate`
+  kuyruğa alma (bugün yalnız manuel "Değerlendir" butonu).
+- **#6 Atama yönetim UI'ı** (dar sürüm — liste/filtre/CSV/dry-run/import geçmişi).
+- **#7 Domain event'ler** (`SOD_*` — sağlayıcıdan bağımsız; e-posta/Slack yok).
+- **#8 Üretim dashboard'u** (bugün `/sod` özet var ama kurucunun istediği tüm
+  metrikler — kapsama oranı, importtan sonra yeni çatışmalar vb. — eksik).
+- **#9 Güvenlik testleri** (CSV injection, IDOR, yetki yükseltme, worker'da RLS
+  yanlış tenant, dolaylı özdeşlikle kendi istisnasını onaylama).
+- **#10 e2e Senaryo B/C** (CSV import + idempotency) — #4 gelince.
+- **#12 M17 ADR incelemesi** — M16 üretim kapısı geçmeden M17 kodu yazılmaz
+  (kurucu kararı; M17 hâlâ yalnız tasarım).
+
+Harici IAM/PAM connector'ları ve ReviewCampaign bu sırada da kapsam dışı.
 
 #### Açık kurucu kararları
 

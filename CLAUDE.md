@@ -18,8 +18,21 @@ doğmaz (`INTERNAL/TODO_DOGRULA/VERIFIED`; geçiş ayrı yetki ister). DB guard'
 ancak PASSED telafi edici test ile, `RESOLVED` ancak bağımsız kapanışla. Telafi
 edici kontrol M12'nin test motorunu YENİDEN KULLANIR (yeni test altyapısı yok).
 569 birim (534 + 35 yeni SoD) + 15 e2e yeşil; mevcut davranış bozulmadı.
+
+**M16 süre-dolumu otomasyonu (18 Temmuz, migration `20260718010000`):** kurucunun
+işaret ettiği gerçek boşluk kapatıldı. İki idempotent pg_cron işi (BullMQ DEĞİL
+— kural 4): `sod_istisna_suresi_dolanlari_isle` (dolan istisna → çatışma
+REOPENED, yalnız EXCEPTION_APPROVED'da; MITIGATED'e dokunmaz) ve
+`kanit_suresi_dolanlari_isle` (eski M2 borcu — dolan kanıt → kontrol 'kismi' +
+"Sistem" audit'i). `e2e/kanit-motoru`'daki `test.skip` GERÇEK teste döndü →
+**17/17 e2e, SIFIR skip, 581 birim.** pg_cron canlıda mevcut ve zamanlandı
+(`kalkan-sure-dolumu`, günlük 02:00 UTC); zamanlama defansif DO bloğunda
+(PGlite'ta no-op). **KALAN (kurucunun 12 maddesinden):** #3 istisna uzatma,
+#4 CSV atama import, #5 değerlendirme tetikleri, #6 atama UI, #7 domain event,
+#8 dashboard, #9 güvenlik testleri, #10 e2e B/C, #12 M17 ADR (M16 üretim kapısı
+geçmeden M17 kodu yok). Tam liste ROADMAP M16 "Üretim kapatma" altında.
 - **Kapsam dışı (bilinçli):** atama yönetim UI'ı yok (fixture/script ile
-  giriliyor), IAM/PAM connector yok, BullMQ yok (senkron motor).
+  giriliyor), IAM/PAM connector yok.
 - Yol boyunca iki bug: (1) `SodTaraf.sistem_kapsami` kuralın kendisine sabit
   kapsam atıyordu, farklı kapsamlı gerçek atamalar hiç eşleşmiyordu — opsiyonel
   yapıldı (birim testi yakaladı); (2) `setup-e2e-fixtures.ts` `control_test_
@@ -29,7 +42,7 @@ edici kontrol M12'nin test motorunu YENİDEN KULLANIR (yeni test altyapısı yok
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler
-üzerinden bağlanıyoruz — direct connection IPv6-only. 34 migration uygulandı
+üzerinden bağlanıyoruz — direct connection IPv6-only. 35 migration uygulandı
 (`pnpm db:push`); `pnpm db:verify` çekirdek tabloları fiilen doğrular. Kontrol
 kütüphanesi seed edildi (2 çerçeve, 17 kontrol) ve ilk kuruma atandı.
 
@@ -47,10 +60,10 @@ hiçbir ekrana bağlı değil.
 **Geçişin açtığı borçlar, çoğu kapandı** (docs/ROADMAP.md "Supabase geçişi" altında
 tam liste): audit_log yazması artık trigger'da (atomik); denetçi paylaşımı
 `paylasim_goruntule` RPC'siyle çalışıyor; Playwright akışları ayrı bir e2e
-kiracısına karşı yeniden yazıldı ve 10/10 yeşil (`pnpm e2e`, 1 bilinçli skip).
-Kalan gerçek açık:
-kanıt süresi dolması yalnızca yükleme anında hesaplanıyor, DB'de otomatik
-yeniden değerlendirilmiyor (bir test bunun için bilinçli `skip`).
+kiracısına karşı yeniden yazıldı ve e2e yeşil (`pnpm e2e`). Kanıt süre-dolumu
+borcu KAPANDI (18 Temmuz, migration `20260718010000`): artık `kanit_suresi_
+dolanlari_isle` pg_cron işi kontrolü otomatik 'kismi'ye düşürüyor, ilgili
+`test.skip` gerçek teste döndü (yukarıda M16 süre-dolumu notu).
 
 **RLS gerçekten test ediliyor** (kural 1 için mazeret yok): PGlite
 (Postgres'in WASM derlemesi, kurulum gerektirmez) ile gerçek migration
