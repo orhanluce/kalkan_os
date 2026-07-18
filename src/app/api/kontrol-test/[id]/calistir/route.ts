@@ -18,6 +18,8 @@ import {
   type TestTanimi,
   type TestTuru,
 } from "@/lib/control-test";
+import { executionLegalSnapshot, legalBasisDegerlendir } from "@/lib/legal-basis";
+import { dayanakEslemeleriniTopla } from "@/lib/legal-basis-server";
 import type { CanonicalDeger } from "@/lib/canonical";
 import type { Json } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
@@ -54,6 +56,34 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     .maybeSingle();
   if (!tanim) {
     return NextResponse.json({ hata: "Test tanımı bulunamadı." }, { status: 404 });
+  }
+
+  // LEGAL-BASIS GUARD (M23): koşudan ÖNCE dayanak zinciri değerlendirilir.
+  // Karar saf motorda (legal-basis.ts, kural 11); burada yalnız ham malzeme
+  // toplanır ve sonuç uygulanır. BLOCK ise koşu HİÇ başlamaz — engellenen
+  // girişim de değişmez fotoğrafla kayıt altına alınır (koşusuz snapshot).
+  const eslemeler = await dayanakEslemeleriniTopla(db, tanim.control_id, tanim.tenant_id);
+  const asOf = new Date().toISOString();
+  const dayanak = legalBasisDegerlendir(eslemeler, asOf);
+  if (dayanak.karar === "BLOCK") {
+    const { error: snapErr } = await db.from("execution_legal_snapshots").insert({
+      tenant_id: tanim.tenant_id,
+      control_id: tanim.control_id,
+      test_definition_id: tanim.id,
+      test_run_id: null,
+      karar: dayanak.karar,
+      snapshot: executionLegalSnapshot(eslemeler, asOf, dayanak) as unknown as Json,
+    });
+    if (snapErr) {
+      return NextResponse.json({ hata: snapErr.message }, { status: 500 });
+    }
+    return NextResponse.json(
+      {
+        hata: "Yasal dayanak doğrulanmadan zorunlu kontrol çalıştırılamaz.",
+        dayanak,
+      },
+      { status: 409 },
+    );
   }
 
   const govde = (await req.json().catch(() => ({}))) as {
@@ -104,6 +134,20 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     return NextResponse.json({ hata: runErr.message }, { status: 500 });
   }
 
+  // Koşunun dayanak fotoğrafı — koşu kaydıyla aynı kararı mühürler (M23).
+  // (İki ayrı REST insert'i; run+öneri ikilisiyle aynı bilinçli sınır.)
+  const { error: snapErr } = await db.from("execution_legal_snapshots").insert({
+    tenant_id: tanim.tenant_id,
+    control_id: tanim.control_id,
+    test_definition_id: tanim.id,
+    test_run_id: run.id,
+    karar: dayanak.karar,
+    snapshot: executionLegalSnapshot(eslemeler, asOf, dayanak) as unknown as Json,
+  });
+  if (snapErr) {
+    return NextResponse.json({ hata: snapErr.message }, { status: 500 });
+  }
+
   // Başarısızlık → bulgu ÖNERİSİ (PROPOSED). Motor UNKNOWN/STALE'de null
   // döner — "ölçemedik" iş listesine sahte bulgu sokmaz (kural 11).
   let oneriId: string | null = null;
@@ -140,5 +184,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     sonuc: sonuc.sonuc,
     gerekce: sonuc.gerekce,
     oneriId,
+    dayanak,
   });
 }

@@ -100,7 +100,7 @@ describe("execution_legal_snapshots — RLS + değişmezlik (M23)", () => {
     await expect(ekle()).rejects.toThrow();
   });
 
-  it("fotoğraf DEĞİŞMEZ: UPDATE/DELETE service_role bağlamında bile reddedilir", async () => {
+  it("fotoğraf DEĞİŞMEZ: UPDATE service_role'de bile red; istemci DELETE'i kapalı", async () => {
     const { definitionId, runId } = await tanimVeKosu(seed.A.tenantId, true);
     const { rows } = await db.sql(
       `insert into public.execution_legal_snapshots (tenant_id, control_id, test_definition_id, test_run_id, karar, snapshot)
@@ -110,8 +110,26 @@ describe("execution_legal_snapshots — RLS + değişmezlik (M23)", () => {
     await expect(
       db.sql(`update public.execution_legal_snapshots set karar = 'ALLOW_WITH_WARNING' where id = $1`, [rows[0].id]),
     ).rejects.toThrow(/immutable/);
+    // İstemci silemez (revoke — 20260718190000 sonrası da geçerli).
     await expect(
-      db.sql(`delete from public.execution_legal_snapshots where id = $1`, [rows[0].id]),
-    ).rejects.toThrow(/immutable/);
+      db.asUser(seed.A.userId, `delete from public.execution_legal_snapshots where id = $1`, [rows[0].id]),
+    ).rejects.toThrow();
+  });
+
+  it("fixture reset yolu ÇALIŞIR: tanım silinince koşu + fotoğraf cascade ile gider", async () => {
+    // 20260718190000'in varlık sebebi: e2e fixture'ı her koşuda tanımları
+    // siler ve cascade'e güvenir — fotoğraf bu zinciri KIRMAMALI.
+    const { definitionId, runId } = await tanimVeKosu(seed.A.tenantId, true);
+    await db.sql(
+      `insert into public.execution_legal_snapshots (tenant_id, control_id, test_definition_id, test_run_id, karar, snapshot)
+       values ($1, $2, $3, $4, 'ALLOW', ${SNAPSHOT})`,
+      [seed.A.tenantId, seed.controlId, definitionId, runId],
+    );
+    await db.sql(`delete from public.control_test_definitions where id = $1`, [definitionId]);
+    const { rows } = await db.sql(
+      `select count(*)::int as n from public.execution_legal_snapshots where test_definition_id = $1`,
+      [definitionId],
+    );
+    expect(rows[0].n).toBe(0);
   });
 });
