@@ -1361,14 +1361,20 @@ doğrulandı:**
   görseller `docs/gorsel-baseline/2026-07-18-pr3d/`.
 - Base UI nativeButton uyarısı düzeltildi (Link + buttonVariants deseni).
 
-**M16 ÜRETİM KAPISI DURUMU (belge §32'ye karşı):** PR-3 serisi (import'un
-tamamı) kapandı; migration'lar staging yerine DOĞRUDAN canlıda denendi (tek
-ortam — bilinen sınır), RLS+guard+idempotency+concurrency testli, audit +
-immutable manifest var, dark/light/mobil doğrulı, deploy+health yeşil. Kapı
-için kurucunun listesinden HÂLÂ AÇIK: #3 istisna uzatma, #5 değerlendirme
-tetikleri (outbox drenajına cron), #6 atama yönetim UI, #8 dashboard
-metrikleri, #9 güvenlik testleri (IDOR/yetki yükseltme taraması). #7 domain
-event kısmen kapalı (outbox `SOD_*` olayları var; e-posta/Slack bilinçli yok).
+**M16 ÜRETİM KAPISI DURUMU — 18 Temmuz akşamı, İŞLEVSEL KAPSAM TAMAM:**
+Kurucunun 12 maddesinin tamamı kapandı: #1 test tabanı ✅, #2 süre dolumu ✅,
+#3 uzatma ✅, #4 CSV import (PR-3A–3D) ✅, #5 tetikler ✅ (dış cron altyapısı
+hariç — aşağıda), #6 atama UI (dar, salt-okur) ✅, #7 domain event ✅ dar
+(outbox `SOD_*` olayları; e-posta/Slack bilinçli yok), #8 dashboard ✅,
+#9 güvenlik testleri ✅ (3 gerçek açık bulundu+kapatıldı), #10 e2e A–E ✅,
+#12 M17 ADR incelemesi kapı SONRASI iş. **Belge §32'nin M16'ya özgü olmayan
+PLATFORM maddeleri AÇIK ve kurucu kararı bekliyor:** staging ortamı yok
+(migration'lar tek ortamda/canlıda deneniyor), yazılı threat model yok,
+backup/restore–rollback prosedürü yazılı değil, resmi WCAG AA denetimi
+yapılmadı (palet AA hedefli, klavye çalışıyor; ölçüm yok), dış cron
+(servis-token'lı drenaj ucu) ADR'lik. Bu maddeler M17/M18/M19 kodundan önce
+kurucunun "kapı geçti mi" kararının girdileridir — tek taraflı "geçti"
+İLAN EDİLMEDİ (belge §33).
 - ✅ **#3 İstisna uzatma BİTTİ** (18 Temmuz, `20260718080000`): uzatma =
   YENİ istisna kaydı (`onceki_istisna_id` zinciri) — onaylı/dolmuş kayıt
   kilitli kalır, GEÇMİŞ SİLİNMEZ. Zincir guard'ı: önceki kayıt AYNI çatışmaya
@@ -1391,7 +1397,13 @@ event kısmen kapalı (outbox `SOD_*` olayları var; e-posta/Slack bilinçli yok
   4 PGlite testi (debounce, DONE sonrası yeni olay, taraf→kural tenant
   çözümü, kiracı izolasyonu). AÇIK KALAN ALTYAPI PARÇASI: dış zamanlayıcı
   (route'u çağıran gerçek cron — servis-token'lı uç ister, ayrı ADR).
-- **#6 Atama yönetim UI'ı** (dar sürüm — liste/filtre/CSV/dry-run/import geçmişi).
+- ✅ **#6 Atama yönetim UI'ı BİTTİ** (18 Temmuz, dar sürüm): `/sod/atamalar` —
+  liste (kişi/aktivite/rol/kapsam/kaynak/geçerlilik, ilk 500 kayıt sınırı
+  DÜRÜSTÇE görünür) + kaynak/geçerlilik/metin filtreleri + Aktif/Sona ermiş
+  rozetleri. **BİLİNÇLİ SALT-OKUR:** elle atama girme/düzenleme yolu YOK —
+  giriş yolu CSV import (manifest/ters-set bütünlük zinciri baypas edilemez);
+  ekran bunu açıkça söylüyor, e2e "düzenleme kontrolü yok"u da assert ediyor.
+  CSV/dry-run/import geçmişi zaten `/sod/import`ta (PR-3D).
 - **#7 Domain event'ler** (`SOD_*` — sağlayıcıdan bağımsız; e-posta/Slack yok).
 - ✅ **#8 Üretim dashboard'u BİTTİ** (18 Temmuz): `/sod`'a dört kartlık
   Üretim Panosu — **Kapsama** (aktif kural/kişi/aktif atama; sona ermiş atama

@@ -141,9 +141,18 @@ görünür; eksik taraf = unknown "değerlendirilemiyor"), Kural Doğrulama
 (kural 3), Çatışma Yaşam Döngüsü (durumlar birleşmez), İzleme Sinyalleri
 (yaklaşan istisna + SON IMPORT SONRASI yeni çatışma; import yoksa null ≠ 0).
 Türetme saf `sod-metrikler.ts` (7 birim test, kural 11); master §9.1: tek
-birleşik skor YOK. **677 birim + 24 e2e, 0 skip; production build yeşil.**
-M16 kapısı için kalan: #6 atama UI + dış cron ADR'si. Deploy: `main` push'u
-Hostinger'a otomatik gider.
+birleşik skor YOK.
+
+**#6 Atama UI BİTTİ (18 Temmuz, dar): `/sod/atamalar`** — liste+filtre
+(kaynak/geçerlilik/metin), 500 kayıt sınırı görünür, BİLİNÇLİ SALT-OKUR
+(giriş yolu CSV import; elle düzenleme bütünlük zincirini baypas ederdi —
+e2e "düzenleme kontrolü yok"u assert ediyor). **KURUCUNUN 12 MADDESİ TAMAM**
+(#1–#10; #12 kapı-sonrası ADR işi). **677 birim + 25 e2e, 0 skip.** M16 kapı
+KARARI kurucuda: belge §32'nin platform maddeleri açık (staging yok, threat
+model yazılı değil, backup/rollback prosedürü yazılı değil, resmi AA denetimi
+yok, dış cron ADR'lik) — ROADMAP "M16 ÜRETİM KAPISI DURUMU" bölümünde. Kapı
+kararı verilmeden M17/M18/M19+ kodu YOK. Deploy: `main` push'u Hostinger'a
+otomatik gider.
 
 ## Mevcut aşama (güncellenir)
 Canlı Supabase projesi (`jgunbctnoprklseusaee`) **kullanımda**. Session Pooler

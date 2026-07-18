@@ -139,6 +139,38 @@ test("üretim panosu (M16 #8): kapsama, doğrulama, yaşam döngüsü ve izleme 
   ).toBeVisible();
 });
 
+test("atama listesi (M16 #6): fixture ataması listelenir, filtre çalışır, salt-okur", async ({ page }) => {
+  const db = admin();
+  const damga = Date.now();
+  const { data: kurum } = await db.from("tenants").select("id").eq("name", "E2E Test Kurumu A.Ş.").single();
+  const { data: kisi } = await db
+    .from("profiles").select("id").eq("tenant_id", kurum!.id).eq("full_name", "Ayşe Yılmaz").single();
+  await db.from("sod_atamalari").insert([
+    { tenant_id: kurum!.id, kullanici_id: kisi!.id, aktivite_kodu: `LISTE_A_${damga}`, kaynak_sistem: "e2e-liste" },
+    {
+      tenant_id: kurum!.id, kullanici_id: kisi!.id, aktivite_kodu: `LISTE_B_${damga}`,
+      kaynak_sistem: "e2e-liste", gecerlilik_bitis: "2026-01-01", // sona ermiş
+    },
+  ]);
+
+  await girisYap(page);
+  await page.goto("/sod/atamalar");
+  await expect(page.getByRole("heading", { name: "Atamalar" })).toBeVisible({ timeout: 15_000 });
+
+  // Metin filtresi: yalnız bu koşunun kaydı kalana dek daralt.
+  await page.getByLabel("Ara (kişi / aktivite / rol / kapsam)").fill(`LISTE_A_${damga}`);
+  await expect(page.getByText(`LISTE_A_${damga}`)).toBeVisible();
+  await expect(page.getByText(`LISTE_B_${damga}`)).toHaveCount(0);
+
+  // Geçerlilik filtresi: sona ermiş kayıt "Sona ermiş" rozetiyle ayrışır.
+  await page.getByLabel("Ara (kişi / aktivite / rol / kapsam)").fill(`LISTE_B_${damga}`);
+  const satir = page.locator("tr").filter({ hasText: `LISTE_B_${damga}` });
+  await expect(satir.getByText("Sona ermiş")).toBeVisible();
+
+  // Salt-okur: ekranda atama düzenleme/oluşturma kontrolü YOK (bilinçli sınır).
+  await expect(page.getByRole("button", { name: /düzenle|sil|yeni atama/i })).toHaveCount(0);
+});
+
 test("süresi dolan istisna çatışmayı yeniden açar (REOPENED)", async ({ page }) => {
   test.setTimeout(60_000);
   const db = admin();

@@ -257,6 +257,9 @@ export default function SodPage() {
         <div className="flex shrink-0 gap-2">
           {/* Link, buton olarak stillenmiş — Base UI nativeButton uyarısını
               önlemek için Button render'ı yerine düz Link + buttonVariants. */}
+          <Link href="/sod/atamalar" className={buttonVariants({ variant: "outline" })}>
+            Atamalar
+          </Link>
           <Link href="/sod/import" className={buttonVariants({ variant: "outline" })}>
             CSV İçe Aktar
           </Link>
