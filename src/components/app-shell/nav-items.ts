@@ -6,6 +6,7 @@
 // belge IA'sında yoktu; canlı modül silinmez, Güvence altında "Tatbikatlar"
 // olarak yaşar (PR-0 sapma kaydı).
 import {
+  Activity,
   Bot,
   Boxes,
   FileWarning,
@@ -85,7 +86,10 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
     },
     {
       baslik: "Operasyonel Dayanıklılık",
-      ogeler: [{ href: "/tedarikciler", etiket: "Tedarikçiler", Ikon: Boxes }],
+      ogeler: [
+        { href: "/kritik-hizmetler", etiket: "Kritik Hizmetler", Ikon: Activity },
+        { href: "/tedarikciler", etiket: "Tedarikçiler", Ikon: Boxes },
+      ],
     },
     {
       baslik: "Gizlilik",

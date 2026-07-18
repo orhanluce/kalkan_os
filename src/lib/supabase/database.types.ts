@@ -1124,6 +1124,54 @@ export type Database = {
           },
         ]
       }
+      critical_business_services: {
+        Row: {
+          aciklama: string | null
+          ad: string
+          created_at: string
+          durum: string
+          id: string
+          sahip: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          aciklama?: string | null
+          ad: string
+          created_at?: string
+          durum?: string
+          id?: string
+          sahip?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          aciklama?: string | null
+          ad?: string
+          created_at?: string
+          durum?: string
+          id?: string
+          sahip?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "critical_business_services_sahip_fkey"
+            columns: ["sahip"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "critical_business_services_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_subject_requests: {
         Row: {
           alindi_at: string
@@ -1631,6 +1679,76 @@ export type Database = {
           yururluk_tarihi?: string | null
         }
         Relationships: []
+      }
+      impact_tolerances: {
+        Row: {
+          created_at: string
+          critical_service_id: string
+          durum: string
+          id: string
+          max_kesinti_saat: number | null
+          max_mutabakat_farki: string | null
+          max_veri_kaybi_saat: number | null
+          onay_zamani: string | null
+          onaylayan: string | null
+          surum: number
+          tenant_id: string
+          updated_at: string
+          yonetim_onayi: boolean
+        }
+        Insert: {
+          created_at?: string
+          critical_service_id: string
+          durum?: string
+          id?: string
+          max_kesinti_saat?: number | null
+          max_mutabakat_farki?: string | null
+          max_veri_kaybi_saat?: number | null
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          surum: number
+          tenant_id: string
+          updated_at?: string
+          yonetim_onayi?: boolean
+        }
+        Update: {
+          created_at?: string
+          critical_service_id?: string
+          durum?: string
+          id?: string
+          max_kesinti_saat?: number | null
+          max_mutabakat_farki?: string | null
+          max_veri_kaybi_saat?: number | null
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          surum?: number
+          tenant_id?: string
+          updated_at?: string
+          yonetim_onayi?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impact_tolerances_critical_service_id_fkey"
+            columns: ["critical_service_id"]
+            isOneToOne: false
+            referencedRelation: "critical_business_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impact_tolerances_onaylayan_fkey"
+            columns: ["onaylayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impact_tolerances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       independence_declarations: {
         Row: {
@@ -3363,6 +3481,61 @@ export type Database = {
           tehdit_kategorisi?: string
         }
         Relationships: []
+      }
+      service_dependencies: {
+        Row: {
+          ad: string
+          bagimlilik_turu: string
+          created_at: string
+          critical_service_id: string
+          id: string
+          tekil_nokta: boolean
+          tenant_id: string
+          third_party_id: string | null
+        }
+        Insert: {
+          ad: string
+          bagimlilik_turu?: string
+          created_at?: string
+          critical_service_id: string
+          id?: string
+          tekil_nokta?: boolean
+          tenant_id: string
+          third_party_id?: string | null
+        }
+        Update: {
+          ad?: string
+          bagimlilik_turu?: string
+          created_at?: string
+          critical_service_id?: string
+          id?: string
+          tekil_nokta?: boolean
+          tenant_id?: string
+          third_party_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_dependencies_critical_service_id_fkey"
+            columns: ["critical_service_id"]
+            isOneToOne: false
+            referencedRelation: "critical_business_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_dependencies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_dependencies_third_party_id_fkey"
+            columns: ["third_party_id"]
+            isOneToOne: false
+            referencedRelation: "third_parties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       share_links: {
         Row: {

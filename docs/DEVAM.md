@@ -129,11 +129,16 @@ doğrulayıcı rolü). QRegu döneminde teslim edilenler (ROADMAP §1.16-1.19):
    matter_access_grants + oturumsuz `/matter/[token]`; rls 4/4 + saf 2/2 +
    üç-context e2e + smoke 3/3. Sonraki dilim: meeting, external org/prof sicili,
    external review/note, gerçek gönderim connector.
-7. **Sıradaki gate'ler (nihai §8):** G8 M13/M17/M18 genişleme + M40 (risk/board;
-   M17 audit workspace + M18 training + M13 impact tolerance + M40 risk appetite/
-   KRI). G3 (connector + TSA adapter interface + SCITT-tarzı ledger, M5.5 Merkle
-   yeniden kullanılır) — connector'lar pilot stack'i (kurucu #7) bekliyor ama
-   TSA interface + ledger dış-karar bağımsız.
+7. **G8 parça 1 — M13 Critical Service & Impact Tolerance BİTTİ** (ROADMAP
+   §1.28): critical_business_services/impact_tolerances/service_dependencies;
+   yönetim-onaylı tolerans + eşik donukluğu + sistemik tekil-nokta; M35 tedarikçi
+   bağı; `/kritik-hizmetler`; rls 5/5 + saf 2/2 + e2e + smoke 2/2.
+8. **G8 kalan + sıradaki (nihai §8):** M17 audit workspace (denetim evreni/
+   örnekleme/workpaper/independence — nav "Denetim"), M18 training/competency
+   (M12 test motoru + attestation), M40 risk appetite/KRI/loss-distribution
+   (CRQ — sahte kesinlik yok, dağılım+varsayım). G3 (connector + RFC 3161 TSA
+   adapter interface + SCITT-tarzı ledger M5.5 Merkle) — connector'lar kurucu #7
+   pilot stack'i bekliyor; TSA interface + ledger dış-karar bağımsız.
 Her adım: migration (PGlite RLS testi) → canlı db:push+db:types → gerçek
 Chromium e2e → commit; rapor nihai §15 formatında. Kural 3'ü her adımda koru.
 
