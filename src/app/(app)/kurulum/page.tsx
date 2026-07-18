@@ -48,6 +48,10 @@ export default function KurulumPage() {
       setSuruyor(false);
       return;
     }
+    // Aktivasyon (ADR-V2-5): TTV başlangıcı. PII yok — yalnız tür + org tipi.
+    await db
+      .from("activation_events")
+      .insert({ tenant_id: currentUser.tenantId, event_type: "PROFILE_COMPLETED", meta: { organization_type: secilen } });
     await yenidenYukle();
     router.push("/");
   }

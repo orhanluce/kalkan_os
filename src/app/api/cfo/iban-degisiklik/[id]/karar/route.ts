@@ -63,5 +63,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (error) {
     return NextResponse.json({ hata: error.message }, { status: 500 });
   }
+  // Aktivasyon (ADR-V2-5): ilk IBAN doğrulaması TTV kilometre taşı (yalnız
+  // DOGRULA — reddedilen değişiklik "değer" üretmez). PII yok.
+  if (karar === "DOGRULA") {
+    const { data: p } = await db.from("profiles").select("tenant_id").eq("id", user.id).maybeSingle();
+    if (p) {
+      await db.from("activation_events").insert({ tenant_id: p.tenant_id, event_type: "FIRST_IBAN_VERIFICATION" });
+    }
+  }
   return NextResponse.json({ karar, durum: yeniDurum });
 }

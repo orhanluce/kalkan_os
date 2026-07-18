@@ -28,6 +28,7 @@ const EKRANLAR = [
   { ad: "kontroller", yol: "/controls" },
   { ad: "bulgular", yol: "/findings" },
   { ad: "sod", yol: "/sod" },
+  { ad: "cfo-iban", yol: "/cfo/iban-degisiklik" },
   { ad: "sod-import", yol: "/sod/import" },
   { ad: "denetim-izi", yol: "/denetim-izi" },
 ] as const;

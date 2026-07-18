@@ -47,6 +47,11 @@ export async function POST() {
     return NextResponse.json({ hata: hata ?? "Değerlendirme çalıştırılamadı." }, { status: 500 });
   }
 
+  // Aktivasyon (ADR-V2-5): ilk SoD değerlendirmesi TTV kilometre taşı. PII yok.
+  await db
+    .from("activation_events")
+    .insert({ tenant_id: profil.tenant_id, event_type: "FIRST_SOD_EVALUATION", meta: { bulunan: sonuc.bulunanSayisi } });
+
   return NextResponse.json({
     calistirmaId: sonuc.calistirmaId,
     bulunanSayisi: sonuc.bulunanSayisi,

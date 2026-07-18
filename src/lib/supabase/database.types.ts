@@ -42,6 +42,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      activation_events: {
+        Row: {
+          event_type: string
+          id: string
+          meta: Json
+          occurred_at: string
+          tenant_id: string
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          meta?: Json
+          occurred_at?: string
+          tenant_id: string
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          meta?: Json
+          occurred_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activation_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       anchor_batch_leaves: {
         Row: {
           batch_id: string

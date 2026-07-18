@@ -6,10 +6,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { MOBIL_ANA_HEDEFLER, NAV_GRUPLARI, aktifMi } from "./nav-items";
+import { useLocalStore } from "@/lib/store";
+import { MOBIL_ANA_HEDEFLER, navGruplari, aktifMi } from "./nav-items";
 
 export function MobileNav() {
   const pathname = usePathname();
+  const { kurum } = useLocalStore();
+  const NAV_GRUPLARI = navGruplari(kurum.organizasyon?.organizationType);
   const [menuAcik, setMenuAcik] = useState(false);
 
   // Route değişince sheet kapanır (link tıklandı demektir). Effect değil,

@@ -371,6 +371,28 @@ karar donuk, kimlik oturum sahibine sabit). Rotalar (`/api/cfo/iban-degisiklik`
 **723 birim + 31 e2e, 0 skip.** M12 test motoru yeniden kullanılacak (BEC/
 deepfake tatbikatı, V2 §5.3) — ayrı motor kurulmaz; o dilim PR-3b/sonrası.
 
+### 1.13 V2 PR-3b — CFO dashboard + aktivasyon/TTV + org-type duyarlı nav (ADR-V2-5) ✅
+
+`activation_events` (migration `20260718130000`, canlıda; PII taşımaz — yalnız
+enum tür + sayısal meta, kural 7/ADR-V2-5). Saf TTV türetimi (`aktivasyon.ts`,
+4 birim test — profil tamamlanmasından kilometre taşlarına saat; ulaşılmayan
+taş null, 0 ile karışmaz). Olaylar akışlara bağlandı: PROFILE_COMPLETED
+(onboarding), FIRST_SOD_EVALUATION (degerlendir), FIRST_IBAN_VERIFICATION
+(DOGRULA). **CFO dashboard `/cfo`** (V2 §6.3, "Finans Güvence Özeti"): açık SoD
+çatışması / bekleyen IBAN doğrulaması / süresi dolan kanıt / açık finans bulgusu
++ TTV — mevcut motorları YENİDEN KULLANIR (yeni motor yok). **Navigasyon
+org-type'a DUYARLI** (`navGruplari`, V2 §6.2): CFO/KARMA'da "Finans" grubu öne
+çıkar (sunum tercihi — yetki değil). 4+3 birim (aktivasyon+RLS) + 1 e2e
+(onboarding→Finans nav→dashboard→TTV). **730 birim + 32 e2e, 0 skip.**
+
+**CFO MVP'de KALAN (bilinçli sonraki dilimler):** (a) CFO baseline pack İÇERİĞİ
+— finans best-practice kontrolleri katalog çerçeve genişletmesi ister (mevcut
+katalog tümüyle regülasyon; kural 3 sınırında, BEST_PRACTICE etiketli yeni
+`data/packs` + framework); (b) finans-detay wizard (erp_systems/finance_function
+alanları); (c) BEC/deepfake tatbikatı M12 test motoruna bağlama (V2 §5.3, yeni
+motor YOK); (d) yönetim raporu export. Bugünkü dilim CFO self-service çekirdeğini
+(onboarding→segment→CFO dashboard→IBAN kontrolü→TTV ölçümü) uçtan uca kanıtladı.
+
 ### 1.4 Mimari karar kaydı — 17 Temmuz 2026 (bütünlük modeli: dört hash, iki katman)
 
 **Karar:** tek bir `reportHash` yerine dört ayrı hash; çekirdek manifest ile paket

@@ -9,13 +9,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useState } from "react";
+import { useLocalStore } from "@/lib/store";
 import { useIstemcideMi } from "@/lib/use-istemci";
-import { NAV_GRUPLARI, aktifMi } from "./nav-items";
+import { navGruplari, aktifMi } from "./nav-items";
 
 const DARALTMA_ANAHTARI = "kalkan-rail-dar";
 
 export function NavRail() {
   const pathname = usePathname();
+  const { kurum } = useLocalStore();
+  const NAV_GRUPLARI = navGruplari(kurum.organizasyon?.organizationType);
   const istemcide = useIstemcideMi();
   // localStorage RENDER SIRASINDA türetilir (bkz. use-istemci.ts): SSR'da
   // açık, istemcide kayıtlı tercih; kullanıcı tıklayınca state devralır.
