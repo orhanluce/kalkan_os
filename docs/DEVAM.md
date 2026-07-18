@@ -1,4 +1,4 @@
-# DEVAM TALİMATI — kaldığın yerden sürdür (18 Temmuz 2026 gecesi)
+# DEVAM TALİMATI — kaldığın yerden sürdür (18 Temmuz 2026 gece güncellemesi 2)
 
 Bu dosya oturumlar arası devir içindir. **Kurucu kalıcı onay verdi:
 "her bitişte onaya gerek yok, V2 PR sırasının SONUNA KADAR devam."** Her PR'ı
@@ -7,52 +7,65 @@ doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine g
 ## 0. İLK İŞ (her yeni oturumun başında)
 Yeşil taban doğrula (körlemesine güvenme):
 ```
-pnpm check        # typecheck + lint + vitest  (beklenen: ~730+ birim, 0 skip)
+pnpm check        # typecheck + lint + vitest  (beklenen: ~782 birim, 0 skip)
 pnpm e2e          # gerçek Chromium            (beklenen: ~33 e2e, 0 skip)
 cmd /c "pnpm build 2>&1"   # exit 0
 curl.exe -s https://blue-yak-865668.hostingersite.com/health/ready  # hazir/erisilebilir
 ```
-NOT: son commit `bca975b` (PR-4a) sonrası TAM `pnpm check`+`pnpm e2e`+`pnpm build`
-kombine koşusu YAPILMADI (oturum bitti). PR-4a parçaları tek tek yeşildi
-(rls-regulatory-source 4/4, e2e 1/1, typecheck+lint temiz, migration+seed
-canlıda). İlk iş bu üçlüyü tam koşup gerçekten yeşil olduğunu teyit et; kırmızı
-çıkarsa önce onu düzelt.
+Bu üçlü 18 Temmuz gece oturumunda TAM koşuldu ve yeşildi (742→782 birim,
+33 e2e, build exit 0). Kırmızı çıkarsa önce onu düzelt.
+
+## 0b. ⚠️ BU OTURUMDAN DEVREDEN BLOKAJ (önce bunu çöz)
+Gece oturumunda `git push` ve `pnpm db:push` (ve Supabase MCP yazma) izin
+sınıflandırıcısı tarafından ENGELLENDİ. Sonuç:
+- **main'de push edilmemiş 4 commit var**: `606a22a` (adım 1 provisions),
+  `66178e3` (adım 2 obligations), `e5df2f9` (adım 3 applicability),
+  `2432c8c` (adım 4 legal-basis motoru+snapshot şeması).
+- **Canlıya uygulanmamış 4 migration var**: `20260718150000_provisions`,
+  `20260718160000_obligations`, `20260718170000_applicability_decisions`,
+  `20260718180000_execution_legal_snapshots`. Hepsi PGlite'ta gerçek
+  migration olarak test edildi ama canlıda YOK; `pnpm db:types` da koşulmadı.
+İLK İŞ: `pnpm db:push` → `pnpm db:types` (tip farkı çıkarsa commit) →
+canlıya gerçek yazma smoke'u (geçici script, sonra sil) → `git push` →
+deploy health. ANCAK ONDAN SONRA adım 4 rota bağlantısı + e2e yazılabilir
+(e2e gerçek Supabase'e koşuyor; tablolar canlıda yokken PR-4b e2e'si yazılamaz).
 
 ## 1. NEREDE KALINDI
-Bugün canlıya çıkanlar (hepsi `main`'de, Hostinger otomatik deploy):
 - **M16 üretim kapısı GEÇTİ** (kurucu onayı). Paralel borç: K1 staging, K2 dış cron.
-- **V2 PR-0** (keşif/ADR — `docs/adr/PR0-v2-mvp-strateji-2026-07-18.md`, 6 ADR taslağı)
-- **V2 PR-2** TAMAM: 2a organization_profiles+onboarding, 2b control_packs+basis,
-  2c plan/entitlement+server-side zorlama.
-- **V2 PR-3 (CFO MVP) çekirdeği**: 3a IBAN değişikliği doğrulama (maskeli+hash,
-  maker-checker), 3b CFO dashboard+aktivasyon/TTV+org-type duyarlı nav.
-- **V2 PR-4a**: resmî kaynak sicili iskeleti (global referans, küratör seed).
-- Ek: PGlite test snapshot hızlandırması (~66s→~34s), AA taraması.
+- **V2 PR-0 / PR-2 (a-b-c) / PR-3 (CFO çekirdeği) / PR-4a**: TAMAM (ayrıntı
+  CLAUDE.md + ROADMAP).
+- **V2 PR-4b adım 1-4 ŞEMA+MOTOR KATMANI TAMAM (yerel):**
+  1. `provisions` (M20, bitemporal, global) — rls-provisions 8/8.
+  2. `obligations`+`obligation_control_mappings` (M21) — 6 doğrulama durumu;
+     DB guard: VERIFIED doğamaz / yalnız LEGAL_REVIEW'den + dogrulayan atfıyla /
+     VERIFIED içerik donuk. rls-obligations 9/9.
+  3. `applicability_decisions` (M22, tenant'a özgü) — UNKNOWN != NOT_APPLICABLE
+     DB invariant'ı (NA gerekçe+onay+kimlik-atfı ister), append-only karar
+     zinciri (supersede), fact_snapshot + RFC8785 fingerprint; saf yardımcılar
+     `src/lib/applicability.ts` (kural motoru UYDURULMADI — eksik olgu →
+     UNKNOWN, tam olguda karar insanda). rls-applicability 10/10 + 6 birim.
+  4. `src/lib/legal-basis.ts` (M23 saf motor): ALLOW/ALLOW_WITH_WARNING/BLOCK;
+     V2 kabulü kodda — doğrulanmamış eşleme ZORUNLU kontrolü BLOKlar, rehberde
+     uyarı; kapsam sorunları BLOK DEĞİL uyarı (kural 13 ruhu); dayanak iddiası
+     olmayan kontrol bloklanmaz. `execution_legal_snapshots` tablosu: koşu
+     başına tek değişmez fotoğraf, BLOCK=koşusuz check'i, tam immutability
+     (service_role dahil). 11+4 test.
+Test tabanı: **782 birim (60 dosya) + 33 e2e, 0 skip**; production build yeşil.
+Migration sırası son: `20260718180000_execution_legal_snapshots` (CANLIDA DEĞİL, §0b).
 
-Migration sırası son: `20260718140000_regulatory_source_registry`.
-Test tabanı: ~730 birim + ~33 e2e (PR-4a e2e dahil), 0 skip.
-
-## 2. SIRADAKİ İŞ — V2 PR-4b (task #41, in-progress DEĞİL)
-**Regulated dikey dilim: provision→obligation→applicability→legal-guard→citation**
-(M20-M24, TEK yeşil dikey dilim — paralel yarım subsystem AÇMA, V2 §9 PR-4).
-Öneri dilimleme:
-1. **provisions** (M20 bitemporal: source_artifact'a bağlı hüküm; valid_time +
-   system_time; effective_from/to). Global referans (tenant'sız, ADR-T3).
-2. **obligations + obligation_control_mappings** (M21): hüküm→yükümlülük→kontrol;
-   doğrulama durumları (DRAFT_RESEARCH/TODO_DOGRULA/LEGAL_REVIEW/VERIFIED/
-   SUPERSEDED/REJECTED); **VERIFIED ayrı hukuk yetkisi ister** (bugün admin;
-   hukuk rolü K8 açık). Kural 3: AI/parser/seed VERIFIED yapamaz.
-3. **applicability_decisions** (M22, TENANT'A ÖZGÜ): kurum profilinden 4 durum
-   (APPLICABLE/NOT_APPLICABLE/CONDITIONAL/UNKNOWN); `UNKNOWN != NOT_APPLICABLE`
-   DB+UI invariant'ı; fact snapshot + fingerprint + insan onayı.
-4. **legal-basis guard** (M23): M12 kontrol testi ÇALIŞMADAN ÖNCE mapping
-   doğrulanmış mı / hüküm yürürlükte mi / applicability güncel mi → ALLOW/
-   ALLOW_WITH_WARNING/BLOCK; her koşuda immutable `execution_legal_snapshot`.
-   M12 test motorunu YENİDEN KULLAN (ikinci motor yok).
-5. **citation bundle** (M24): mevcut dört hash'e EK alanlar `legalSnapshotHash`/
+## 2. SIRADAKİ İŞ — V2 PR-4b KALAN (blokaj çözülünce)
+1. **Adım 4 rota bağlantısı**: `/api/kontrol-test/[id]/calistir` koşudan önce
+   zinciri okur (SQL yalnız ham malzeme) → `legalBasisDegerlendir` → BLOCK ise
+   409 + koşusuz snapshot; değilse koşu + snapshot aynı akışta. M12 motoruna
+   DOKUNMA. Gerçek Chromium e2e: doğrulanmamış eşleme zorunlu kontrolü
+   bloklar; V2 §akış: fixture ingest → doğrula → applicability → koş.
+2. **Adım 5 citation bundle (M24)**: mevcut dört hash'e EK `legalSnapshotHash`/
    `sourceBundleHash`/`applicabilityDecisionHash` (mevcut hash sözleşmesini
-   BOZMA — kural 15). Bağımsız verify CLI'ya bağlanabilir.
-Her adım: migration (PGlite'ta RLS testi) → canlı db:push+db:types → gerçek
+   BOZMA — kural 15); bağımsız verify CLI'ya bağla.
+3. UI dokunuşu (dar): kontrol detayındaki EvidenceTraceRail Hüküm/Yükümlülük
+   düğümlerine gerçek veri (artık "bağlı değil" değil), `/regulasyon/kaynaklar`
+   altına hüküm/yükümlülük listesi (salt-okur, doğrulama rozetli).
+Her adım: migration (PGlite RLS testi) → canlı db:push+db:types → gerçek
 Chromium e2e → commit. Kural 3'ü her adımda koru; hiçbir mevzuat uydurma.
 
 ## 3. V2 PR-4b SONRASI SIRA (V2 §9)
@@ -88,6 +101,6 @@ credential yok, salt-okur), IBAN maskeli+hash (tam IBAN saklanmaz).
 - Deploy health'i background task olarak koştur, bloklanma.
 
 ## 6. AÇIK BİR NOT
-Spawn'lanan "PGlite snapshot" görevi (task_f4c09120) kurucu tarafından ayrı bir
-worktree'de başlatılmıştı; ben ana oturumda çözüp commit ettim (`b637a5c`). O
-worktree'nin sonucu artık gereksiz — güvenle discard edilebilir.
+"PGlite snapshot" worktree'si (festive-austin) gece oturumunda kontrol edildi:
+içinde main'de olmayan hiçbir iş yoktu (temiz, aynı commit) — silindi. Ayrık
+worktree kalmadı; `git worktree list` yalnız ana çalışma ağacını gösteriyor.
