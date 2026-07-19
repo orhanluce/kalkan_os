@@ -13,6 +13,13 @@ function admin() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
+async function ledgerTemizle(db: ReturnType<typeof admin>, tenantId: string) {
+  await db.from("artifact_ledger_links").delete().eq("tenant_id", tenantId);
+  await db.from("ledger_outbox").delete().eq("tenant_id", tenantId);
+  await db.from("transparency_checkpoints").delete().eq("tenant_id", tenantId);
+  await db.from("transparency_ledger_entries").delete().eq("tenant_id", tenantId);
+}
+
 test("proof room: koşu → link → oturumsuz görüntüleme; expiry ve iptal aynı reddi verir", async ({ page, browser }) => {
   test.setTimeout(120_000);
   const db = admin();
@@ -25,13 +32,24 @@ test("proof room: koşu → link → oturumsuz görüntüleme; expiry ve iptal a
     .eq("ad", "E2E: MFA tüm ayrıcalıklı hesaplarda zorunlu")
     .single();
 
-  // 1) Admin bir PASSED koşusu üretir ve Proof Room linki açar.
+  // Önceki koşuların defter kalıntısı (leaf_index sıralamasını bozmasın) — temiz taban.
+  await ledgerTemizle(db, kurum!.id);
+
+  // 1) Admin bir PASSED koşusu üretir ve Proof Room linki açar. Koşu, AYNI
+  // transaction'da ledger_outbox'a bir olay yazdırır (nihai talimat v3.2 §8.0);
+  // rota bunu HEMEN drenaj eder ("otomatik" — ayrı bir "deftere ekle" adımı yok).
   await girisYap(page);
   const kosu = await page.request.post(`/api/kontrol-test/${tanim!.id}/calistir`, {
     data: { iddiaKarsilandi: true, gozlemZamani: new Date().toISOString() },
   });
   expect(kosu.ok()).toBeTruthy();
-  const { testRunId } = (await kosu.json()) as { testRunId: string };
+  const { testRunId, ledgerDurumu } = (await kosu.json()) as { testRunId: string; ledgerDurumu: string | null };
+  expect(ledgerDurumu).toBe("ANCHORED"); // yaprak deftere yazıldı (mühürlendi)
+
+  // Yaprak deftere yazıldı ama KAPSAYAN bir ağaç başı (STH) henüz yok — G3'ün
+  // kendi deseni (seffaflik.spec.ts): STH ayrı, kasıtlı bir yayın adımı.
+  const checkpoint = await page.request.post("/api/seffaflik/checkpoint");
+  expect(checkpoint.ok()).toBeTruthy();
 
   const link = await page.request.post("/api/proof-room", { data: { testRunId } });
   expect(link.ok()).toBeTruthy();
@@ -48,6 +66,22 @@ test("proof room: koşu → link → oturumsuz görüntüleme; expiry ve iptal a
     // Dayanak eşlemesi olmayan kontrol DÜRÜSTÇE söylenir (iddia uydurulmaz).
     await expect(misafir.getByText("dayanak eşlemesi yok", { exact: false })).toBeVisible();
     await expect(misafir.getByText("Paketi indir (JSON)")).toBeVisible();
+
+    // 2b) Şeffaflık defteri mührü — OTURUMSUZ RPC'den gelen makbuz, tarayıcıda
+    // kuruldu. Bağımsız bir process'e (verify-seffaflik.ts) TAŞINABİLİR.
+    await expect(misafir.getByText("Şeffaflık defterinde mühürlü")).toBeVisible();
+    const makbuzLink = misafir.getByRole("link", { name: "Kapsama makbuzunu indir (JSON)" });
+    await expect(makbuzLink).toBeVisible();
+    const [download] = await Promise.all([misafir.waitForEvent("download"), makbuzLink.click()]);
+    const makbuzYol = await download.path();
+    expect(makbuzYol).toBeTruthy();
+
+    const { execFileSync } = await import("node:child_process");
+    const cikti = execFileSync("npx", ["tsx", "scripts/verify-seffaflik.ts", makbuzYol as string], {
+      encoding: "utf8",
+      shell: process.platform === "win32",
+    });
+    expect(cikti).toContain("VERIFIED");
 
     // Görüntüleme audit'e düştü (aktör yok — token sahibi).
     const { data: audit } = await db
@@ -71,5 +105,6 @@ test("proof room: koşu → link → oturumsuz görüntüleme; expiry ve iptal a
     await expect(misafir.getByText("Link geçersiz veya süresi dolmuş.")).toBeVisible();
   } finally {
     await misafirCtx.close();
+    await ledgerTemizle(db, kurum!.id);
   }
 });

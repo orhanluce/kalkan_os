@@ -614,6 +614,48 @@ export type Database = {
           },
         ]
       }
+      artifact_ledger_links: {
+        Row: {
+          artifact_id: string
+          artifact_table: string
+          created_at: string
+          id: string
+          ledger_entry_id: string
+          tenant_id: string
+        }
+        Insert: {
+          artifact_id: string
+          artifact_table: string
+          created_at?: string
+          id?: string
+          ledger_entry_id: string
+          tenant_id: string
+        }
+        Update: {
+          artifact_id?: string
+          artifact_table?: string
+          created_at?: string
+          id?: string
+          ledger_entry_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artifact_ledger_links_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "transparency_ledger_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "artifact_ledger_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessment_findings: {
         Row: {
           aciklama: string | null
@@ -1720,36 +1762,27 @@ export type Database = {
           aciklanan_kategoriler: string[]
           dsar_id: string
           id: string
-          leaf_index: number
-          ledger_entry_id: string
           manifest: Json
           manifest_hash: string
           olusturuldu_at: string
-          signed_statement: Json
           tenant_id: string
         }
         Insert: {
           aciklanan_kategoriler?: string[]
           dsar_id: string
           id?: string
-          leaf_index: number
-          ledger_entry_id: string
           manifest: Json
           manifest_hash: string
           olusturuldu_at?: string
-          signed_statement: Json
           tenant_id: string
         }
         Update: {
           aciklanan_kategoriler?: string[]
           dsar_id?: string
           id?: string
-          leaf_index?: number
-          ledger_entry_id?: string
           manifest?: Json
           manifest_hash?: string
           olusturuldu_at?: string
-          signed_statement?: Json
           tenant_id?: string
         }
         Relationships: [
@@ -1758,13 +1791,6 @@ export type Database = {
             columns: ["dsar_id"]
             isOneToOne: true
             referencedRelation: "data_subject_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dsar_fulfillment_packages_ledger_entry_id_fkey"
-            columns: ["ledger_entry_id"]
-            isOneToOne: false
-            referencedRelation: "transparency_ledger_entries"
             referencedColumns: ["id"]
           },
           {
@@ -2425,6 +2451,56 @@ export type Database = {
           },
           {
             foreignKeyName: "kri_readings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ledger_outbox: {
+        Row: {
+          artifact_id: string
+          artifact_table: string
+          created_at: string
+          deneme_sayisi: number
+          durum: string
+          id: string
+          islenme_at: string | null
+          seq: number
+          son_hata: string | null
+          statement_kind: string
+          tenant_id: string
+        }
+        Insert: {
+          artifact_id: string
+          artifact_table: string
+          created_at?: string
+          deneme_sayisi?: number
+          durum?: string
+          id?: string
+          islenme_at?: string | null
+          seq?: never
+          son_hata?: string | null
+          statement_kind: string
+          tenant_id: string
+        }
+        Update: {
+          artifact_id?: string
+          artifact_table?: string
+          created_at?: string
+          deneme_sayisi?: number
+          durum?: string
+          id?: string
+          islenme_at?: string | null
+          seq?: never
+          son_hata?: string | null
+          statement_kind?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_outbox_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -6701,6 +6777,10 @@ export type Database = {
         Args: { target_batch_id: string }
         Returns: string
       }
+      artifact_ledger_durumu: {
+        Args: { p_artifact_id: string; p_artifact_table: string }
+        Returns: string
+      }
       audit_log_canonical: {
         Args: {
           p_actor_id: string
@@ -6750,6 +6830,36 @@ export type Database = {
           test_definition_id: string
         }[]
       }
+      ledger_outbox_claim: {
+        Args: { p_limit?: number }
+        Returns: {
+          artifact_id: string
+          artifact_table: string
+          created_at: string
+          deneme_sayisi: number
+          durum: string
+          id: string
+          islenme_at: string | null
+          seq: number
+          son_hata: string | null
+          statement_kind: string
+          tenant_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ledger_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      ledger_outbox_mark_failed: {
+        Args: { p_hata: string; p_id: string }
+        Returns: undefined
+      }
+      ledger_outbox_mark_processed: {
+        Args: { p_id: string; p_ledger_entry_id: string }
+        Returns: undefined
+      }
       manifest_dogrula: {
         Args: { target_hash: string }
         Returns: {
@@ -6768,6 +6878,7 @@ export type Database = {
       paylasim_goruntule: { Args: { p_token: string }; Returns: Json }
       policy_istisna_suresi_dolanlari_isle: { Args: never; Returns: undefined }
       proof_room_goruntule: { Args: { p_token: string }; Returns: Json }
+      proof_room_ledger_malzeme: { Args: { p_token: string }; Returns: Json }
       simulation_manifest_durumu: {
         Args: { target_manifest_id: string }
         Returns: string

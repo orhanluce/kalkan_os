@@ -3,7 +3,7 @@
 // alarm (M05 incident clock ilkesi). Veri minimizasyonu için maskeleme.
 
 import { canonicalHash, type CanonicalDeger } from "./canonical";
-import { imzaliIfadeDogrula, type MakbuzSonucu, type SignedStatement } from "./transparency";
+import { makbuzDogrula, type MakbuzSonucu, type SeffaflikMakbuzu } from "./transparency";
 
 const SAAT_MS = 60 * 60 * 1000;
 const GUN_MS = 24 * SAAT_MS;
@@ -92,6 +92,12 @@ export function maskele(deger: string): string {
 // NE SAKLAMAZ (veri minimizasyonu): açıklanan VERİNİN KENDİSİ pakete girmez —
 // yalnız kategori ETİKETLERİ + veri sahibinin sha256 HASH'i (ham kimlik değil).
 // Paket "şunu şu tarihte karşıladık" der, açıklanan içeriği taşımaz.
+//
+// ASENKRON MÜHÜR (nihai talimat v3.2 §8.0): domain satırı (manifest + hash)
+// ile ledger mühürü artık AYRI adımlardır — biri transactional-outbox'a
+// (ledger_outbox), diğeri drenaja (ledger-outbox.ts) aittir. Paket zarfı bu
+// yüzden `durum` taşır (PENDING/ANCHORED/FAILED) ve `makbuz` yalnız ANCHORED
+// olunca dolar — mühür gecikirse zarf SAHTE "mühürlü" GÖRÜNMEZ.
 
 export const DSAR_FULFILLMENT_SCHEMA = "KALKAN_DSAR_FULFILLMENT_V1" as const;
 export const DSAR_PACKAGE_SCHEMA = "KALKAN_DSAR_PACKAGE_V1" as const;
@@ -106,13 +112,16 @@ export interface DsarManifest {
   aciklananKategoriler: string[];
 }
 
-export interface DsarKanitPaketi {
+/** Defter mührü durumu — artifact_ledger_durumu() ile birebir. */
+export type DsarLedgerDurumu = "PENDING" | "ANCHORED" | "FAILED" | "KAYITSIZ";
+
+export interface DsarKanitZarfi {
   schema: typeof DSAR_PACKAGE_SCHEMA;
   manifest: DsarManifest;
   manifestHash: string;
-  signedStatement: SignedStatement;
-  ledgerEntryId: string;
-  leafIndex: number;
+  durum: DsarLedgerDurumu;
+  /** Yalnız durum === 'ANCHORED' iken dolu (G3 kapsama makbuzu, transparency.ts). */
+  makbuz: SeffaflikMakbuzu | null;
 }
 
 /** Kanonik manifest (deterministik alan sırası + sıralı kategoriler). */
@@ -150,11 +159,14 @@ export function dsarManifestHash(m: DsarManifest): Promise<string> {
 }
 
 /**
- * DSAR kanıt paketini ÇEVRİMDIŞI doğrular (DB/ağ yok): manifest hash'i yeniden
- * hesaplanır, imzalı ifade doğrulanır ve ifadenin statementHash'i manifest
- * hash'ine BAĞLI mı bakılır. Denetçi paketle tek başına doğrulayabilir.
+ * DSAR kanıt zarfını ÇEVRİMDIŞI doğrular (DB/ağ yok): (1) manifest hash'i
+ * içerikten yeniden hesaplanır; (2) durum ANCHORED değilse dürüstçe "henüz
+ * mühürlenmedi" denir — bu bir KURCALAMA değil, bir BEKLEME durumudur, ayrı
+ * raporlanır; (3) ANCHORED ise makbuzun statementHash'i manifest hash'ine
+ * BAĞLI mı ve doğru KIND'i taşıyor mu bakılır, ardından Merkle/STH/imza
+ * doğrulaması (makbuzDogrula, G3'ten YENİDEN KULLANILIR) devralır.
  */
-export async function dsarPaketiDogrula(p: DsarKanitPaketi): Promise<MakbuzSonucu> {
+export async function dsarPaketiDogrula(p: DsarKanitZarfi): Promise<MakbuzSonucu> {
   const k: MakbuzSonucu["kontroller"] = [];
 
   const semaOk = p.schema === DSAR_PACKAGE_SCHEMA && p.manifest?.schema === DSAR_FULFILLMENT_SCHEMA;
@@ -164,36 +176,38 @@ export async function dsarPaketiDogrula(p: DsarKanitPaketi): Promise<MakbuzSonuc
     aciklama: semaOk ? "Beklenen DSAR paket/manifest şeması." : "Şema beklenenden farklı.",
   });
 
-  let hashOk = false;
-  if (semaOk) {
-    hashOk = (await dsarManifestHash(p.manifest)) === p.manifestHash;
-  }
+  const hashOk = semaOk && (await dsarManifestHash(p.manifest)) === p.manifestHash;
   k.push({
     ad: "Manifest ↔ hash tutarlılığı",
     gecti: hashOk,
     aciklama: hashOk ? "Manifest hash'i içerikten birebir üretiliyor." : "Manifest hash'i içerikle uyuşmuyor.",
   });
 
-  const kindOk = p.signedStatement?.kind === DSAR_FULFILLMENT_KIND;
+  if (p.durum !== "ANCHORED" || !p.makbuz) {
+    k.push({
+      ad: "Defter mührü",
+      gecti: false,
+      aciklama: `Henüz mühürlenmedi (durum: ${p.durum}) — kapsama doğrulanamaz. Bu bir kurcalama değil, bekleme durumudur; daha sonra tekrar deneyin.`,
+    });
+    return { gecerli: false, kontroller: k };
+  }
+
+  const kindOk = p.makbuz.signedStatement.kind === DSAR_FULFILLMENT_KIND;
   k.push({
     ad: "İfade türü DSAR_FULFILLMENT",
     gecti: kindOk,
     aciklama: kindOk ? "İmzalı ifade bir DSAR karşılanmasını mühürlüyor." : "İfade türü beklenenden farklı.",
   });
 
-  const bagOk = p.signedStatement?.statementHash === p.manifestHash;
+  const bagOk = p.makbuz.signedStatement.statementHash === p.manifestHash;
   k.push({
     ad: "İfade ↔ manifest bağı",
     gecti: bagOk,
     aciklama: bagOk ? "İmzalı ifade tam bu manifesti işaret ediyor." : "İmzalı ifade başka bir özeti işaret ediyor.",
   });
 
-  const imzaOk = semaOk ? await imzaliIfadeDogrula(p.signedStatement) : false;
-  k.push({
-    ad: "İmza geçerliliği",
-    gecti: imzaOk,
-    aciklama: imzaOk ? "Manifest özeti geçerli şekilde imzalı." : "İmza tutmadı.",
-  });
+  const makbuzSonuc = await makbuzDogrula(p.makbuz);
+  k.push(...makbuzSonuc.kontroller);
 
-  return { gecerli: k.every((x) => x.gecti), kontroller: k };
+  return { gecerli: hashOk && kindOk && bagOk && makbuzSonuc.gecerli, kontroller: k };
 }

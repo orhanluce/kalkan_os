@@ -20,6 +20,7 @@ import {
 } from "@/lib/control-test";
 import { executionLegalSnapshot, legalBasisDegerlendir } from "@/lib/legal-basis";
 import { dayanakEslemeleriniTopla } from "@/lib/legal-basis-server";
+import { ledgerOutboxDrain } from "@/lib/ledger-outbox";
 import type { CanonicalDeger } from "@/lib/canonical";
 import type { Json } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
@@ -179,11 +180,30 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     oneriId = prop.id;
   }
 
+  // Koşu, AYNI transaction'da ledger_outbox'a bir olay yazdırdı (DB trigger,
+  // nihai §8.0). Hızlı UX için drenajı hemen tetikle — "otomatik" (ayrı bir
+  // "deftere ekle" adımı yok). Başarısız olursa koşu KAYBOLMAZ: outbox olayı
+  // PENDING/FAILED kalır, sonraki drenajda (manuel veya bir sonraki koşuda)
+  // yeniden denenir — bu yüzden hatayı burada YUTUYORUZ (koşunun kendisi
+  // zaten başarılı ve dönmüş olmalı).
+  let ledgerDurumu: string | null = null;
+  try {
+    await ledgerOutboxDrain(db, 5);
+    const { data: durum } = await db.rpc("artifact_ledger_durumu", {
+      p_artifact_table: "test_runs",
+      p_artifact_id: run.id,
+    });
+    ledgerDurumu = durum ?? null;
+  } catch {
+    ledgerDurumu = null;
+  }
+
   return NextResponse.json({
     testRunId: run.id,
     sonuc: sonuc.sonuc,
     gerekce: sonuc.gerekce,
     oneriId,
     dayanak,
+    ledgerDurumu,
   });
 }

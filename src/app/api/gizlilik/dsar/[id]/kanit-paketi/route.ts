@@ -1,14 +1,56 @@
-// DSAR karşılanma kanıt paketi mühürler (M36 sonraki dilim). TAMAMLANDI bir
-// DSAR için: ne açıklandığını mühürleyen kanonik manifesti imzalar, şeffaflık
-// defterine (G3) yazar ve paketi DSAR'a bağlar. Tenant tablosu — RLS admin/uyum;
-// TAMAMLANDI şartı + tenant tutarlılığı DB guard'ında (savunma derinliği burada da).
+// DSAR karşılanma kanıt paketi (M36 sonraki dilim; nihai talimat v3.2 §8.0).
+// TAMAMLANDI bir DSAR için ne açıklandığını mühürleyen kanonik manifesti
+// yazar — İMZALAMA/MÜHÜRLEME artık SENKRON DEĞİL: domain satırı (manifest +
+// hash) AYNI transaction'da bir transactional-outbox olayı doğurur (DB
+// trigger), drenaj (ledger-outbox.ts, G3'ün imza+defter mekanizmasını
+// YENİDEN KULLANIR) sonradan mühürler. Bu rota, hızlı UX için drenajı AYNI
+// istekte de tetikler ("otomatik" — kullanıcı ayrı bir "mühürle" adımı
+// beklemez) ama mühür gecikirse durum PENDING olarak DÜRÜSTÇE döner.
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { LocalDevSigner } from "@/lib/manifest-signature";
-import { ifadeYaprakHash, imzaliIfadeOlustur } from "@/lib/transparency";
-import { DSAR_FULFILLMENT_KIND, DSAR_PACKAGE_SCHEMA, dsarManifestHash, dsarManifestKur } from "@/lib/gizlilik";
+import { ledgerOutboxDrain } from "@/lib/ledger-outbox";
+import { makbuzKurEntryIcin } from "@/lib/makbuz-server";
+import {
+  DSAR_PACKAGE_SCHEMA,
+  dsarManifestHash,
+  dsarManifestKur,
+  type DsarLedgerDurumu,
+} from "@/lib/gizlilik";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
+import type { SeffaflikMakbuzu } from "@/lib/transparency";
 
-// Mühürlenmiş paketi yeniden indir (çevrimdışı doğrulanabilir JSON).
+/** Paketin defter durumu + (ANCHORED ise) kapsama makbuzu. Tek yerde — GET ve POST aynı mantığı kullanır. */
+async function paketDurumuVeMakbuz(
+  db: SupabaseClient<Database>,
+  pkgId: string,
+): Promise<{ durum: DsarLedgerDurumu; makbuz: SeffaflikMakbuzu | null }> {
+  const { data: durum } = await db.rpc("artifact_ledger_durumu", {
+    p_artifact_table: "dsar_fulfillment_packages",
+    p_artifact_id: pkgId,
+  });
+  const d = (durum as DsarLedgerDurumu | null) ?? "KAYITSIZ";
+  if (d !== "ANCHORED") {
+    return { durum: d, makbuz: null };
+  }
+  const { data: link } = await db
+    .from("artifact_ledger_links")
+    .select("ledger_entry_id")
+    .eq("artifact_table", "dsar_fulfillment_packages")
+    .eq("artifact_id", pkgId)
+    .maybeSingle();
+  if (!link) {
+    // Savunma: durum ANCHORED dedi ama link henüz görünmedi — dürüstçe PENDING.
+    return { durum: "PENDING", makbuz: null };
+  }
+  const sonuc = await makbuzKurEntryIcin(db, link.ledger_entry_id);
+  if (!sonuc.ok) {
+    return { durum: d, makbuz: null };
+  }
+  return { durum: d, makbuz: sonuc.makbuz };
+}
+
+// Mühürlenmiş (veya PENDING) paket zarfını yeniden indir.
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id: dsarId } = await ctx.params;
   const db = await createClient();
@@ -20,19 +62,20 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   }
   const { data: pkg } = await db
     .from("dsar_fulfillment_packages")
-    .select("manifest, manifest_hash, signed_statement, ledger_entry_id, leaf_index")
+    .select("id, manifest, manifest_hash")
     .eq("dsar_id", dsarId)
     .maybeSingle();
   if (!pkg) {
     return NextResponse.json({ hata: "Bu DSAR için kanıt paketi yok." }, { status: 404 });
   }
+
+  const { durum, makbuz } = await paketDurumuVeMakbuz(db, pkg.id);
   return NextResponse.json({
     schema: DSAR_PACKAGE_SCHEMA,
     manifest: pkg.manifest,
     manifestHash: pkg.manifest_hash,
-    signedStatement: pkg.signed_statement,
-    ledgerEntryId: pkg.ledger_entry_id,
-    leafIndex: Number(pkg.leaf_index),
+    durum,
+    makbuz,
   });
 }
 
@@ -69,7 +112,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     return NextResponse.json({ hata: "Kanıt paketi yalnız TAMAMLANDI DSAR için mühürlenebilir." }, { status: 409 });
   }
 
-  // Kanonik manifest (ne açıklandı) → hash → imzalı ifade → defter.
+  // Kanonik manifest (ne açıklandı) → hash. İMZALAMA YOK burada — outbox+drenaj işi.
   const manifest = dsarManifestKur({
     dsarId: dsar.id,
     tur: dsar.tur,
@@ -79,47 +122,34 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   });
   const manifestHash = await dsarManifestHash(manifest);
 
-  const signer = await LocalDevSigner.olustur();
-  const ifade = await imzaliIfadeOlustur(DSAR_FULFILLMENT_KIND, manifestHash, signer);
-  const leafHash = await ifadeYaprakHash(ifade);
-
-  const { data: entry, error: entryErr } = await db
-    .from("transparency_ledger_entries")
+  const { data: pkg, error: pkgErr } = await db
+    .from("dsar_fulfillment_packages")
     .insert({
       tenant_id: prof.tenant_id,
-      statement_kind: DSAR_FULFILLMENT_KIND,
-      statement_hash: manifestHash,
-      signed_statement: JSON.parse(JSON.stringify(ifade)),
-      leaf_hash: leafHash,
+      dsar_id: dsar.id,
+      manifest: JSON.parse(JSON.stringify(manifest)),
+      manifest_hash: manifestHash,
+      aciklanan_kategoriler: manifest.aciklananKategoriler,
     })
-    .select("id, leaf_index")
+    .select("id")
     .single();
-  if (entryErr) {
-    return NextResponse.json({ hata: entryErr.message }, { status: 409 });
+  if (pkgErr || !pkg) {
+    // Zaten paket varsa (unique dsar_id) 409.
+    return NextResponse.json({ hata: pkgErr?.message ?? "Paket oluşturulamadı." }, { status: 409 });
   }
 
-  const { error: pkgErr } = await db.from("dsar_fulfillment_packages").insert({
-    tenant_id: prof.tenant_id,
-    dsar_id: dsar.id,
-    manifest: JSON.parse(JSON.stringify(manifest)),
-    manifest_hash: manifestHash,
-    aciklanan_kategoriler: manifest.aciklananKategoriler,
-    signed_statement: JSON.parse(JSON.stringify(ifade)),
-    ledger_entry_id: entry.id,
-    leaf_index: Number(entry.leaf_index),
-  });
-  if (pkgErr) {
-    // Zaten paket varsa (unique dsar_id) 409 — defter kaydı zararsız kalır.
-    return NextResponse.json({ hata: pkgErr.message }, { status: 409 });
-  }
+  // Trigger AYNI transaction'da ledger_outbox'a olay yazdı. Hızlı UX için
+  // drenajı hemen tetikle — "otomatik" (ayrı bir mühürleme adımı beklemez).
+  // Başarısız olursa domain kaydı KAYBOLMAZ: durum PENDING/FAILED döner.
+  await ledgerOutboxDrain(db, 5);
 
+  const { durum, makbuz } = await paketDurumuVeMakbuz(db, pkg.id);
   return NextResponse.json({
     muhurlendi: true,
     schema: DSAR_PACKAGE_SCHEMA,
     manifest,
     manifestHash,
-    signedStatement: ifade,
-    ledgerEntryId: entry.id,
-    leafIndex: Number(entry.leaf_index),
+    durum,
+    makbuz,
   });
 }

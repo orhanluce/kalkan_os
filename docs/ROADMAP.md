@@ -823,6 +823,54 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.37 Nihai talimat v3.2 §8.0 — transactional outbox → SCITT defterine OTOMATİK bağlama ✅ (19 Temmuz)
+
+**Sürüm 3.2'nin tek sıradaki dikeyi.** Gerçek domain artefaktı oluştuğunda
+kullanıcıdan ayrıca "deftere ekle" beklenmeden, AYNI transaction'da bir
+transactional-outbox olayı doğar; ayrı bir drenaj (imzalama Web Crypto ister,
+plpgsql'de yapılamaz) statement'i imzalar, G3 şeffaflık defterine yazar ve
+artefaktı GENEL bir link tablosuyla bağlar. Migration `20260719120000`:
+
+- `ledger_outbox` (append-only-ish, `unique(artifact_table,artifact_id)` —
+  idempotent enqueue) + `artifact_ledger_links` (aynı unique — idempotency
+  BACKSTOP, duplicate leaf imkânsız). Yazma yalnız SECURITY DEFINER (sod_outbox
+  disiplini); istemci ne yazar ne günceller.
+- `ledger_outbox_claim(limit)`: `FOR UPDATE SKIP LOCKED` ile race-safe claim +
+  5 dakikalık çökme-kurtarma (stale PROCESSING → PENDING).
+- `ledger_outbox_mark_processed`/`mark_failed`: link kurar (ON CONFLICT DO
+  NOTHING — retry güvenli) / 5 denemede FAILED'e düşer (dead-letter, sonsuz
+  tekrar yok).
+- `artifact_ledger_durumu()`: TEK doğruluk kaynağı — PENDING/ANCHORED/FAILED/
+  KAYITSIZ. **DÜRÜSTLÜK:** mühür gecikirse artefakt SAHTE ANCHORED görünmez.
+- **İlk kapsam madde 1 (kontrol testi):** `test_runs` (zaten append-only/
+  immutable) AFTER INSERT trigger'ı enqueue eder; `/api/kontrol-test/[id]/
+  calistir` aynı istekte drenajı tetikler (otomatik). Proof Room
+  (`proof_room_goruntule` + yeni `proof_room_ledger_malzeme`) ledger durumunu
+  + oturumsuz kapsama makbuzu malzemesini gösterir; makbuz TARAYICIDA
+  `makbuzUret` (G3, YENİDEN KULLANILIR) ile kurulur.
+- **İlk kapsam madde 2 (DSAR paketi):** `dsar_fulfillment_packages` ESKİ
+  senkron tasarımdan (route ikinci bir REST çağrısıyla ledger_entry_id
+  yazıyordu — "aynı transaction" kuralına aykırıydı) ASENKRON'a geçirildi;
+  `ledger_entry_id`/`leaf_index`/`signed_statement` sütunları DÜŞTÜ (link
+  tablosu tek kaynak). `dsarPaketiDogrula` PENDING'i kurcalamadan ayırt eder.
+- Saf katman: `kontrol-test-ledger.ts` (CONTROL_TEST_RUN manifesti),
+  `ledger-outbox.ts` (drenaj orkestratörü, artefakt türüne göre dispatch —
+  bulunamayan tür sessizce yutulmaz, FAILED'e düşer), `makbuz-server.ts`
+  (kapsama makbuzu kurma — iki rotadan PAYLAŞILIR, mükerrer yok).
+- Testler: rls-ledger-outbox 9 (idempotent enqueue, ROLLBACK→orphan yok, claim
+  tekrar almaz, mark_processed/failed, cross-tenant) + kontrol-test-ledger 2 +
+  gizlilik-paket 5 (PENDING≠kurcalama) + rls-dsar-fulfillment-package 5
+  (birim) + `proof-room.spec.ts` genişletildi (koşu→otomatik ANCHORED→
+  checkpoint→Proof Room→makbuz indir→**ayrı process** `verify-seffaflik.ts`
+  VERIFIED) + `gizlilik-kanit-paketi.spec.ts` güncellendi + canlı smoke 4/4.
+- **BİLİNÇLİ SONRAKİ DİLİM (§8.0'ın kalan "İlk kapsam" maddeleri 3-5):** M35
+  tedarikçi değerlendirme sign-off'u, M37 AI eval/olay kapanış paketi, M40
+  risk/board karar paketi — AYNI mekanizma (trigger + dispatch registry'ye
+  bir satır) ile mekanik olarak genişler; tek turda beşini birden yarım
+  bırakmamak için (nihai §8.0: "tek turda birçok modülü yarım bırakma")
+  bilinçli olarak bu tura alınmadı. Ayrıca: ciddi olay otorite-bildirim süre
+  saati, AI eval veri-soyağacı, M35 anket şablonu, M38 regülatör toplantısı.
+
 ### 1.36 M37 sonraki dilim — AI olay (incident) + değerlendirme (eval) ✅ (19 Temmuz)
 
 Migration `20260719110000` — mevcut M37 grafına (ai_systems) EKLEMELİ 2 tablo:

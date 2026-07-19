@@ -11,6 +11,8 @@ import {
   type SitasyonPaketi,
 } from "@/lib/citation-bundle";
 import type { CanonicalDeger } from "@/lib/canonical";
+import { makbuzUret, STH_SCHEMA, type AgacBasi, type SeffaflikMakbuzu, type SignedStatement } from "@/lib/transparency";
+import type { DetachedImza } from "@/lib/manifest-signature";
 import { createClient } from "@/lib/supabase/client";
 
 // Proof Room — OTURUMSUZ denetçi/regülatör görünümü (G1; nihai §8).
@@ -65,6 +67,18 @@ interface ProofVerisi {
     kararKaynagi: string;
   }[];
   kanit: { evidenceId: string; dosyaHashSha256: string | null } | null;
+  /** G3 şeffaflık defteri durumu (nihai §8.0) — PENDING/ANCHORED/FAILED/KAYITSIZ. */
+  ledgerDurumu: string;
+}
+
+/** proof_room_ledger_malzeme RPC'sinin ham dönüşü — yalnız ANCHORED iken leaves/signedStatement/sth dolu. */
+interface LedgerMalzemesi {
+  durum: string;
+  leafIndex?: number;
+  signedStatement?: SignedStatement;
+  sth?: { treeSize: number; rootHash: string };
+  sthImza?: DetachedImza;
+  leaves?: string[];
 }
 
 const SONUC_SEMANTIK: Record<string, SemantikDurum> = {
@@ -90,19 +104,40 @@ const DOGRULAMA_ETIKET: Record<string, string> = {
   REJECTED: "Reddedildi",
 };
 
+const LEDGER_DURUM_SEMANTIK: Record<string, SemantikDurum> = {
+  ANCHORED: "success",
+  PENDING: "warning",
+  DEFTERDE_STH_BEKLIYOR: "warning",
+  FAILED: "danger",
+  KAYITSIZ: "unknown",
+};
+const LEDGER_DURUM_ETIKET: Record<string, string> = {
+  ANCHORED: "Şeffaflık defterinde mühürlü",
+  PENDING: "Mühür bekleniyor (PENDING)",
+  DEFTERDE_STH_BEKLIYOR: "Defterde — ağaç başı bekleniyor",
+  FAILED: "Mühürleme başarısız",
+  KAYITSIZ: "Bu koşu deftere bağlı değil",
+};
+
 export default function ProofRoomPage() {
   const params = useParams<{ token: string }>();
   const [veri, setVeri] = useState<ProofVerisi | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [paket, setPaket] = useState<SitasyonPaketi | null>(null);
+  const [ledgerMalzeme, setLedgerMalzeme] = useState<LedgerMalzemesi | null>(null);
+  const [makbuz, setMakbuz] = useState<SeffaflikMakbuzu | null>(null);
 
   useEffect(() => {
     let iptal = false;
     const yukle = async () => {
       const db = createClient();
-      const { data } = await db.rpc("proof_room_goruntule", { p_token: params.token });
+      const [{ data }, { data: malzeme }] = await Promise.all([
+        db.rpc("proof_room_goruntule", { p_token: params.token }),
+        db.rpc("proof_room_ledger_malzeme", { p_token: params.token }),
+      ]);
       if (iptal) return;
       setVeri((data as unknown as ProofVerisi | null) ?? null);
+      setLedgerMalzeme((malzeme as unknown as LedgerMalzemesi | null) ?? null);
       setYukleniyor(false);
     };
     void yukle();
@@ -110,6 +145,34 @@ export default function ProofRoomPage() {
       iptal = true;
     };
   }, [params.token]);
+
+  // ANCHORED ise makbuzu TARAYICIDA kur (transparency.ts makbuzUret,
+  // G3'ten YENİDEN KULLANILIR — Merkle proof burada yeniden yazılmaz).
+  useEffect(() => {
+    if (!ledgerMalzeme || ledgerMalzeme.durum !== "ANCHORED") return;
+    if (!ledgerMalzeme.leaves || ledgerMalzeme.leafIndex === undefined || !ledgerMalzeme.sth || !ledgerMalzeme.sthImza || !ledgerMalzeme.signedStatement) return;
+    let iptal = false;
+    const kur = async () => {
+      const sth: AgacBasi = { schema: STH_SCHEMA, treeSize: ledgerMalzeme.sth!.treeSize, rootHash: ledgerMalzeme.sth!.rootHash };
+      const m = await makbuzUret(
+        ledgerMalzeme.leaves!,
+        ledgerMalzeme.leafIndex!,
+        sth,
+        ledgerMalzeme.sthImza!,
+        ledgerMalzeme.signedStatement!,
+      );
+      if (!iptal) setMakbuz(m);
+    };
+    void kur();
+    return () => {
+      iptal = true;
+    };
+  }, [ledgerMalzeme]);
+
+  const makbuzIndirmeUrl = useMemo(() => {
+    if (!makbuz) return null;
+    return URL.createObjectURL(new Blob([JSON.stringify(makbuz, null, 2)], { type: "application/json" }));
+  }, [makbuz]);
 
   // Sitasyon paketi tarayıcıda, sunucudan gelen veriyle üretilir (RFC 8785
   // hash'leri dahil) — indirme sonrası bağımsız CLI doğrulaması için.
@@ -208,6 +271,9 @@ export default function ProofRoomPage() {
             ) : (
               <StatusBadge durum="unknown">Dayanak fotoğrafı yok (eski koşu)</StatusBadge>
             )}
+            <StatusBadge durum={LEDGER_DURUM_SEMANTIK[veri.ledgerDurumu] ?? "neutral"}>
+              {LEDGER_DURUM_ETIKET[veri.ledgerDurumu] ?? veri.ledgerDurumu}
+            </StatusBadge>
           </div>
           <p className="text-muted-foreground">{veri.kosu.gerekce}</p>
           <p className="text-xs text-muted-foreground">
@@ -319,6 +385,41 @@ export default function ProofRoomPage() {
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">Paket hazırlanıyor…</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Şeffaflık Defteri Mührü (G3)</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 text-sm">
+          <p className="text-muted-foreground">
+            Bu koşu, append-only bir Merkle defterine (SCITT tarzı) imzalı ifade olarak eklendi.
+            Aşağıdaki kapsama makbuzu, KALKAN-OS&apos;a erişmeden{" "}
+            <code>npx tsx scripts/verify-seffaflik.ts makbuz.json</code> ile bağımsız
+            doğrulanabilir — mühür DÜRÜST bir durum taşır: henüz mühürlenmediyse{" "}
+            <em>bekliyor</em> denir, sahte &quot;doğrulandı&quot; iddiası üretilmez.
+          </p>
+          {!ledgerMalzeme || ledgerMalzeme.durum !== "ANCHORED" ? (
+            <StatusBadge durum={LEDGER_DURUM_SEMANTIK[ledgerMalzeme?.durum ?? "KAYITSIZ"] ?? "unknown"}>
+              {LEDGER_DURUM_ETIKET[ledgerMalzeme?.durum ?? "KAYITSIZ"] ?? "Bilinmiyor"}
+            </StatusBadge>
+          ) : makbuz && makbuzIndirmeUrl ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={makbuzIndirmeUrl}
+                download={`kalkan-makbuz-${veri.kosu.id}.json`}
+                className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Kapsama makbuzunu indir (JSON)
+              </a>
+              <code className="text-xs text-muted-foreground" title={makbuz.sth.rootHash}>
+                kök: {makbuz.sth.rootHash.slice(0, 16)}… · yaprak #{makbuz.leafIndex}
+              </code>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">Makbuz hazırlanıyor…</p>
           )}
         </CardContent>
       </Card>

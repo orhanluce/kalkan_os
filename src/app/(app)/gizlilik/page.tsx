@@ -47,11 +47,25 @@ const DSAR_DURUM: Record<string, SemantikDurum> = {
   REDDEDILDI: "danger",
 };
 
+// Kanıt paketinin G3 defter mührü durumu (nihai §8.0) — dürüstçe ayrık:
+// henüz mühürlenmedi ≠ başarısız ≠ mühürlü.
+const PAKET_DURUM_SEM: Record<string, SemantikDurum> = {
+  ANCHORED: "success",
+  PENDING: "warning",
+  FAILED: "danger",
+};
+const PAKET_DURUM_ETIKET: Record<string, string> = {
+  ANCHORED: "Kanıt paketi ✓ mühürlü",
+  PENDING: "Kanıt paketi (mühür bekleniyor)",
+  FAILED: "Kanıt paketi (mühürleme başarısız)",
+};
+
 export default function GizlilikPage() {
   const [ropalar, setRopalar] = useState<Ropa[]>([]);
   const [dsarlar, setDsarlar] = useState<Dsar[]>([]);
   const [ihlaller, setIhlaller] = useState<Ihlal[]>([]);
-  const [paketler, setPaketler] = useState<Record<string, { leafIndex: number }>>({});
+  const [paketVarMi, setPaketVarMi] = useState<Record<string, boolean>>({});
+  const [paketDurumu, setPaketDurumu] = useState<Record<string, string>>({});
   const [kat, setKat] = useState<Record<string, string>>({});
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [hata, setHata] = useState<string | null>(null);
@@ -90,14 +104,12 @@ export default function GizlilikPage() {
       db.from("processing_activities").select("id, ad, amac, hukuki_dayanak, durum").order("ad"),
       db.from("data_subject_requests").select("id, tur, veri_sahibi_maskeli, kimlik_dogrulandi, durum, alindi_at, yasal_sure_gun").order("alindi_at", { ascending: false }),
       db.from("privacy_incidents").select("id, ozet, tespit_at, siniflandirma, otorite_bildirildi_at, durum").order("tespit_at", { ascending: false }),
-      db.from("dsar_fulfillment_packages").select("dsar_id, leaf_index"),
+      db.from("dsar_fulfillment_packages").select("dsar_id"),
     ]);
     setRopalar((rs ?? []) as Ropa[]);
     setDsarlar((ds ?? []) as Dsar[]);
     setIhlaller((is ?? []) as Ihlal[]);
-    setPaketler(
-      Object.fromEntries(((ps ?? []) as { dsar_id: string; leaf_index: number }[]).map((p) => [p.dsar_id, { leafIndex: Number(p.leaf_index) }])),
-    );
+    setPaketVarMi(Object.fromEntries(((ps ?? []) as { dsar_id: string }[]).map((p) => [p.dsar_id, true])));
   }, []);
 
   useEffect(() => {
@@ -174,13 +186,30 @@ export default function GizlilikPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ aciklananKategoriler: kategoriler }),
       });
-      const j = (await r.json().catch(() => ({}))) as { hata?: string };
+      const j = (await r.json().catch(() => ({}))) as { hata?: string; durum?: string };
       if (!r.ok) return setHata(j.hata ?? "Kanıt paketi mühürlenemedi.");
       setKat((m) => ({ ...m, [dsarId]: "" }));
+      setPaketDurumu((m) => ({ ...m, [dsarId]: j.durum ?? "PENDING" }));
       await yukle();
     },
     [kat, yukle],
   );
+
+  // İndir: zarfı ÇEK (durum + varsa makbuz), durumu göster, ANCHORED ise blob indir.
+  const paketIndir = useCallback(async (dsarId: string) => {
+    setHata(null);
+    const r = await fetch(`/api/gizlilik/dsar/${dsarId}/kanit-paketi`);
+    const j = (await r.json().catch(() => ({}))) as { hata?: string; durum?: string };
+    if (!r.ok) return setHata(j.hata ?? "Paket çekilemedi.");
+    setPaketDurumu((m) => ({ ...m, [dsarId]: j.durum ?? "PENDING" }));
+    if (j.durum !== "ANCHORED") return; // dürüstçe: henüz mühürlenmedi, indirilecek makbuz yok
+    const url = URL.createObjectURL(new Blob([JSON.stringify(j, null, 2)], { type: "application/json" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dsar-paketi-${dsarId}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
 
   const ihlalEkle = useCallback(async () => {
     setHata(null);
@@ -351,15 +380,17 @@ export default function GizlilikPage() {
                                 Tamamla
                               </Button>
                             ) : null}
-                            {d.durum === "TAMAMLANDI" && paketler[d.id] ? (
+                            {d.durum === "TAMAMLANDI" && paketVarMi[d.id] ? (
                               <span className="flex items-center gap-1">
-                                <StatusBadge durum="success">Kanıt paketi ✓ (yaprak #{paketler[d.id].leafIndex})</StatusBadge>
-                                <a href={`/api/gizlilik/dsar/${d.id}/kanit-paketi`} download={`dsar-paketi-${d.id}.json`} className="text-xs underline underline-offset-2">
-                                  İndir
-                                </a>
+                                <StatusBadge durum={PAKET_DURUM_SEM[paketDurumu[d.id] ?? ""] ?? "neutral"}>
+                                  {PAKET_DURUM_ETIKET[paketDurumu[d.id] ?? ""] ?? "Kanıt paketi var"}
+                                </StatusBadge>
+                                <Button size="sm" variant="outline" onClick={() => void paketIndir(d.id)}>
+                                  İndir / Durumu Gör
+                                </Button>
                               </span>
                             ) : null}
-                            {d.durum === "TAMAMLANDI" && !paketler[d.id] ? (
+                            {d.durum === "TAMAMLANDI" && !paketVarMi[d.id] ? (
                               <span className="flex items-center gap-1">
                                 <Input
                                   value={kat[d.id] ?? ""}
