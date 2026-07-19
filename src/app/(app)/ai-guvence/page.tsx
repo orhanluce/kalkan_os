@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { aiReceiptFingerprint } from "@/lib/ai-receipt";
-import { aiOlayOzeti, driftDegerlendir, type OlayKayit } from "@/lib/ai-olay";
+import { aiOlayOzeti, driftDegerlendir, driftSegmentGrupla, type DriftOkuma, type OlayKayit } from "@/lib/ai-olay";
 import { ihlalBildirimSaati } from "@/lib/gizlilik";
 import { createClient } from "@/lib/supabase/client";
 
@@ -70,11 +70,40 @@ interface Drift {
   baseline: number | null;
   esik: number | null;
   esik_kaynagi: string | null;
+  segment: string | null;
   olcum_tarihi: string;
+  override_edildi: boolean;
+  override_gerekce: string | null;
+}
+interface Rollback {
+  id: string;
+  ai_system_id: string;
+  onceki_surum: string;
+  yeni_surum: string;
+  sebep: string;
+  durum: string;
+  son_test_kaniti: string | null;
+  son_test_tarihi: string | null;
+}
+interface Crosswalk {
+  id: string;
+  iso42001_ref: string;
+  iso27001_ref: string;
+  iliski_turu: string;
+  gerekce: string | null;
+  dogrulama_durumu: string;
 }
 
 const RISK: Record<string, SemantikDurum> = { PROHIBITED: "danger", HIGH: "warning", LIMITED: "info", MINIMAL: "neutral" };
 const KARAR_SEM: Record<string, SemantikDurum> = { SUGGESTED: "legal-review", ACCEPTED: "success", REJECTED: "danger" };
+const DURUM_ROZET: Record<string, SemantikDurum> = {
+  DRAFT_RESEARCH: "neutral",
+  TODO_DOGRULA: "warning",
+  LEGAL_REVIEW: "legal-review",
+  VERIFIED: "success",
+  SUPERSEDED: "neutral",
+  REJECTED: "danger",
+};
 
 export default function AiGuvencePage() {
   const [sistemler, setSistemler] = useState<Sistem[]>([]);
@@ -106,6 +135,18 @@ export default function AiGuvencePage() {
   const [dBaseline, setDBaseline] = useState("");
   const [dEsik, setDEsik] = useState("");
   const [dEsikKaynak, setDEsikKaynak] = useState("");
+  const [dSegment, setDSegment] = useState("");
+  const [overrideGerekce, setOverrideGerekce] = useState<Record<string, string>>({});
+  const [rollbacklar, setRollbacklar] = useState<Rollback[]>([]);
+  const [rOnceki, setROnceki] = useState("");
+  const [rYeni, setRYeni] = useState("");
+  const [rSebep, setRSebep] = useState("");
+  const [rTestKanit, setRTestKanit] = useState<Record<string, string>>({});
+  const [crosswalklar, setCrosswalklar] = useState<Crosswalk[]>([]);
+  const [cw42001, setCw42001] = useState("");
+  const [cw27001, setCw27001] = useState("");
+  const [cwIliski, setCwIliski] = useState("KISMEN_ORTUSUYOR");
+  const [cwGerekce, setCwGerekce] = useState("");
   const simdi = useMemo(() => new Date(), []);
 
   const tenantCoz = useCallback(async (): Promise<string | null> => {
@@ -128,7 +169,18 @@ export default function AiGuvencePage() {
       db.from("ai_evaluations").select("id, ai_system_id, tur, sonuc").order("degerlendirme_at", { ascending: false }),
       db.from("ai_data_lineage").select("id, ai_evaluation_id, tur, ad, lisans, surum, sentetik_oran, poisoning_riski").order("created_at", { ascending: false }),
     ]);
-    const { data: dr } = await db.from("ai_drift_readings").select("id, ai_system_id, metrik, deger, baseline, esik, esik_kaynagi, olcum_tarihi").order("olcum_tarihi", { ascending: false });
+    const { data: dr } = await db
+      .from("ai_drift_readings")
+      .select("id, ai_system_id, metrik, deger, baseline, esik, esik_kaynagi, segment, olcum_tarihi, override_edildi, override_gerekce")
+      .order("olcum_tarihi", { ascending: false });
+    const { data: rb } = await db
+      .from("ai_model_rollbacks")
+      .select("id, ai_system_id, onceki_surum, yeni_surum, sebep, durum, son_test_kaniti, son_test_tarihi")
+      .order("created_at", { ascending: false });
+    const { data: cw } = await db
+      .from("iso_42001_27001_crosswalk")
+      .select("id, iso42001_ref, iso27001_ref, iliski_turu, gerekce, dogrulama_durumu")
+      .order("created_at", { ascending: false });
     setSistemler((ss ?? []) as Sistem[]);
     setAjanlar((as ?? []) as Ajan[]);
     setReceiptler((rs ?? []) as Receipt[]);
@@ -136,6 +188,8 @@ export default function AiGuvencePage() {
     setEvaller((es ?? []) as Eval[]);
     setSoyagaclar((sg ?? []) as Soyagaci[]);
     setDriftler((dr ?? []) as Drift[]);
+    setRollbacklar((rb ?? []) as Rollback[]);
+    setCrosswalklar((cw ?? []) as Crosswalk[]);
     if (!aSistem && (ss ?? []).length > 0) setASistem((ss as Sistem[])[0].id);
   }, [aSistem]);
 
@@ -286,6 +340,7 @@ export default function AiGuvencePage() {
       baseline: dBaseline.trim() ? Number(dBaseline) : null,
       esik: dEsik.trim() ? Number(dEsik) : null,
       esik_kaynagi: dEsikKaynak.trim() || null,
+      segment: dSegment.trim() || null,
     });
     if (error) return setHata(error.message.includes("esik_kaynagi") ? "Eşik verildiyse kaynağı zorunlu (eşik koda gömülmez)." : error.message);
     setDMetrik("");
@@ -293,8 +348,107 @@ export default function AiGuvencePage() {
     setDBaseline("");
     setDEsik("");
     setDEsikKaynak("");
+    setDSegment("");
     await yukle();
-  }, [dMetrik, dDeger, dBaseline, dEsik, dEsikKaynak, aSistem, tenantCoz, yukle]);
+  }, [dMetrik, dDeger, dBaseline, dEsik, dEsikKaynak, dSegment, aSistem, tenantCoz, yukle]);
+
+  // İnsan override gerekçesi (Dikey 4 kalanı): eşik aşımını bilinçli göz ardı
+  // etme — gerekçesiz/kimliksiz REDDEDİLİR (guard), karar verilince DONUK.
+  const driftOverrideEt = useCallback(
+    async (id: string) => {
+      setHata(null);
+      const gerekce = (overrideGerekce[id] ?? "").trim();
+      if (!gerekce) return setHata("Override gerekçesi zorunlu (kural: sessizce göz ardı edilemez).");
+      const db = createClient();
+      const {
+        data: { user },
+      } = await db.auth.getUser();
+      if (!user) return;
+      const { error } = await db
+        .from("ai_drift_readings")
+        .update({ override_edildi: true, override_gerekce: gerekce, override_eden: user.id, override_zamani: new Date().toISOString() })
+        .eq("id", id);
+      if (error) setHata(error.message);
+      setOverrideGerekce((m) => ({ ...m, [id]: "" }));
+      await yukle();
+    },
+    [overrideGerekce, yukle],
+  );
+
+  // Model rollback + son test (Dikey 4 kalanı, exit_plans deseni: kanıtsız "tamamlandı" yok).
+  const rollbackEkle = useCallback(async () => {
+    setHata(null);
+    if (!rOnceki.trim() || !rYeni.trim() || !rSebep.trim() || !aSistem) return;
+    const tid = await tenantCoz();
+    if (!tid) return setHata("Kurum bağlamı çözülemedi.");
+    const db = createClient();
+    const { error } = await db.from("ai_model_rollbacks").insert({
+      tenant_id: tid,
+      ai_system_id: aSistem,
+      onceki_surum: rOnceki.trim(),
+      yeni_surum: rYeni.trim(),
+      sebep: rSebep.trim(),
+    });
+    if (error) return setHata(error.message);
+    setROnceki("");
+    setRYeni("");
+    setRSebep("");
+    await yukle();
+  }, [rOnceki, rYeni, rSebep, aSistem, tenantCoz, yukle]);
+
+  const rollbackTamamla = useCallback(
+    async (id: string) => {
+      setHata(null);
+      const kanit = (rTestKanit[id] ?? "").trim();
+      if (!kanit) return setHata("Rollback tamamlama son test kanıtı ister.");
+      const db = createClient();
+      const {
+        data: { user },
+      } = await db.auth.getUser();
+      if (!user) return;
+      const { error } = await db
+        .from("ai_model_rollbacks")
+        .update({
+          durum: "TAMAMLANDI",
+          son_test_kaniti: kanit,
+          son_test_tarihi: new Date().toISOString().slice(0, 10),
+          karar_veren: user.id,
+          karar_zamani: new Date().toISOString(),
+        })
+        .eq("id", id);
+      if (error) setHata(error.message);
+      setRTestKanit((m) => ({ ...m, [id]: "" }));
+      await yukle();
+    },
+    [rTestKanit, yukle],
+  );
+
+  // ISO 42001↔27001 crosswalk (Dikey 4 kalanı) — global katalog, dört-göz.
+  const crosswalkEylemGonder = useCallback(
+    async (govde: Record<string, unknown>) => {
+      setHata(null);
+      const res = await fetch("/api/ai-guvence/crosswalk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(govde),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { hata?: string };
+        setHata(j.hata ?? "İşlem başarısız.");
+        return;
+      }
+      await yukle();
+    },
+    [yukle],
+  );
+
+  const crosswalkOner = useCallback(async () => {
+    if (!cw42001.trim() || !cw27001.trim()) return;
+    await crosswalkEylemGonder({ eylem: "olustur", iso42001Ref: cw42001.trim(), iso27001Ref: cw27001.trim(), iliskiTuru: cwIliski, gerekce: cwGerekce.trim() || undefined });
+    setCw42001("");
+    setCw27001("");
+    setCwGerekce("");
+  }, [cw42001, cw27001, cwIliski, cwGerekce, crosswalkEylemGonder]);
 
   const ajanEkle = useCallback(async () => {
     setHata(null);
@@ -763,17 +917,61 @@ export default function AiGuvencePage() {
 
                 <div className="mt-2 flex flex-wrap items-center gap-2 border-t pt-2">
                   <span className="font-medium">Drift izleme</span>
-                  <span className="text-xs text-muted-foreground">Eşik KODA GÖMÜLMEZ — kaynağı (sürümlü politika/uzman kararı) zorunlu.</span>
+                  <span className="text-xs text-muted-foreground">Eşik KODA GÖMÜLMEZ — kaynağı (sürümlü politika/uzman kararı) zorunlu. Segmentler BİRLEŞTİRİLMEZ.</span>
                 </div>
+                {(() => {
+                  const sistemDriftleri = driftler.filter((d) => d.ai_system_id === aSistem);
+                  const segmentOkumalari: DriftOkuma[] = sistemDriftleri.map((d) => ({
+                    metrik: d.metrik,
+                    segment: d.segment,
+                    deger: d.deger,
+                    baseline: d.baseline,
+                    esik: d.esik,
+                    olcumTarihi: d.olcum_tarihi,
+                    overrideEdildi: d.override_edildi,
+                  }));
+                  const segmentSonuclari = driftSegmentGrupla(segmentOkumalari);
+                  return (
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className="text-muted-foreground">Segment durumu (en son okuma):</span>
+                      {segmentSonuclari.map((s) => (
+                        <StatusBadge
+                          key={`${s.metrik}|${s.segment ?? ""}`}
+                          durum={s.degerlendirme.durum === "ESIK_ASILDI" ? (s.overrideEdildi ? "warning" : "danger") : s.degerlendirme.durum === "TOLERANS_ICINDE" ? "success" : "unknown"}
+                        >
+                          {s.metrik}
+                          {s.segment ? ` [${s.segment}]` : " [agregat]"}: {s.degerlendirme.durum === "ESIK_ASILDI" ? (s.overrideEdildi ? "Aşıldı (override)" : "Aşıldı") : s.degerlendirme.durum === "TOLERANS_ICINDE" ? "Tolerans içinde" : "Değerlendirilemedi"}
+                        </StatusBadge>
+                      ))}
+                    </div>
+                  );
+                })()}
                 {driftler.filter((d) => d.ai_system_id === aSistem).map((d) => {
                   const deg = driftDegerlendir(d.deger, d.esik, d.baseline);
                   return (
-                    <div key={d.id} className="flex flex-wrap items-center gap-2 text-xs">
-                      <span>{d.metrik}: {d.deger}{d.baseline !== null ? ` (baseline ${d.baseline})` : ""}</span>
-                      <StatusBadge durum={deg.durum === "ESIK_ASILDI" ? "danger" : deg.durum === "TOLERANS_ICINDE" ? "success" : "unknown"}>
-                        {deg.durum === "ESIK_ASILDI" ? "Eşik aşıldı" : deg.durum === "TOLERANS_ICINDE" ? "Tolerans içinde" : "Değerlendirilemedi (eşik yok)"}
-                      </StatusBadge>
-                      {d.esik_kaynagi ? <span className="text-muted-foreground">[eşik: {d.esik_kaynagi}]</span> : null}
+                    <div key={d.id} className="flex flex-col gap-1 border-t pt-1 text-xs first:border-t-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span>{d.metrik}{d.segment ? ` [${d.segment}]` : ""}: {d.deger}{d.baseline !== null ? ` (baseline ${d.baseline})` : ""}</span>
+                        <StatusBadge durum={deg.durum === "ESIK_ASILDI" ? "danger" : deg.durum === "TOLERANS_ICINDE" ? "success" : "unknown"}>
+                          {deg.durum === "ESIK_ASILDI" ? "Eşik aşıldı" : deg.durum === "TOLERANS_ICINDE" ? "Tolerans içinde" : "Değerlendirilemedi (eşik yok)"}
+                        </StatusBadge>
+                        {d.esik_kaynagi ? <span className="text-muted-foreground">[eşik: {d.esik_kaynagi}]</span> : null}
+                        {d.override_edildi ? <StatusBadge durum="warning">Override: {d.override_gerekce}</StatusBadge> : null}
+                      </div>
+                      {deg.durum === "ESIK_ASILDI" && !d.override_edildi ? (
+                        <div className="flex flex-wrap items-center gap-2 pl-1">
+                          <Input
+                            value={overrideGerekce[d.id] ?? ""}
+                            onChange={(e) => setOverrideGerekce((m) => ({ ...m, [d.id]: e.target.value }))}
+                            placeholder="override gerekçesi (zorunlu)"
+                            aria-label={`${d.id} override gerekçesi`}
+                            className="h-7 w-64 text-xs"
+                          />
+                          <Button size="sm" variant="outline" onClick={() => void driftOverrideEt(d.id)} disabled={!(overrideGerekce[d.id] ?? "").trim()}>
+                            İnsan Override Et
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}
@@ -783,13 +981,98 @@ export default function AiGuvencePage() {
                   <Input type="number" value={dBaseline} onChange={(e) => setDBaseline(e.target.value)} placeholder="baseline" aria-label="Drift baseline" className="h-8 w-24 text-xs" />
                   <Input type="number" value={dEsik} onChange={(e) => setDEsik(e.target.value)} placeholder="eşik" aria-label="Drift eşiği" className="h-8 w-24 text-xs" />
                   <Input value={dEsikKaynak} onChange={(e) => setDEsikKaynak(e.target.value)} placeholder="eşik kaynağı (zorunlu)" aria-label="Drift eşik kaynağı" className="h-8 w-48 text-xs" />
+                  <Input value={dSegment} onChange={(e) => setDSegment(e.target.value)} placeholder="segment (opsiyonel, örn. bölge:istanbul)" aria-label="Drift segmenti" className="h-8 w-56 text-xs" />
                   <Button size="sm" variant="outline" onClick={() => void driftEkle()} disabled={!dMetrik.trim() || !dDeger.trim() || !aSistem}>
                     Drift Okuması Ekle
+                  </Button>
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-2 border-t pt-2">
+                  <span className="font-medium">Model rollback</span>
+                  <span className="text-xs text-muted-foreground">&quot;Tamamlandı&quot; yalnız son test kanıtı + tarih ile — kanıtsız tamamlama iddiası reddedilir.</span>
+                </div>
+                {rollbacklar.filter((r) => r.ai_system_id === aSistem).map((r) => (
+                  <div key={r.id} className="flex flex-col gap-1 border-t pt-1 text-xs first:border-t-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span>{r.onceki_surum} → {r.yeni_surum}: {r.sebep}</span>
+                      <StatusBadge durum={r.durum === "TAMAMLANDI" ? "success" : "neutral"}>{r.durum}</StatusBadge>
+                      {r.son_test_kaniti ? <span className="text-muted-foreground">[test: {r.son_test_kaniti}, {r.son_test_tarihi}]</span> : null}
+                    </div>
+                    {r.durum === "TASLAK" ? (
+                      <div className="flex flex-wrap items-center gap-2 pl-1">
+                        <Input
+                          value={rTestKanit[r.id] ?? ""}
+                          onChange={(e) => setRTestKanit((m) => ({ ...m, [r.id]: e.target.value }))}
+                          placeholder="son test kanıtı (zorunlu)"
+                          aria-label={`${r.id} son test kanıtı`}
+                          className="h-7 w-64 text-xs"
+                        />
+                        <Button size="sm" variant="outline" onClick={() => void rollbackTamamla(r.id)} disabled={!(rTestKanit[r.id] ?? "").trim()}>
+                          Son Test Kanıtıyla Tamamla
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+                <div className="flex flex-wrap items-end gap-2">
+                  <Input value={rOnceki} onChange={(e) => setROnceki(e.target.value)} placeholder="önceki sürüm" aria-label="Rollback önceki sürüm" className="h-8 w-32 text-xs" />
+                  <Input value={rYeni} onChange={(e) => setRYeni(e.target.value)} placeholder="yeni (hedef) sürüm" aria-label="Rollback yeni sürüm" className="h-8 w-32 text-xs" />
+                  <Input value={rSebep} onChange={(e) => setRSebep(e.target.value)} placeholder="sebep" aria-label="Rollback sebebi" className="h-8 w-56 text-xs" />
+                  <Button size="sm" variant="outline" onClick={() => void rollbackEkle()} disabled={!rOnceki.trim() || !rYeni.trim() || !rSebep.trim() || !aSistem}>
+                    Rollback Kaydı Ekle
                   </Button>
                 </div>
               </>
             );
           })()}
+        </CardContent>
+      </Card>
+
+      {/* ISO 42001↔27001 crosswalk (Dikey 4 kalanı) — global katalog, dört-göz */}
+      <Card>
+        <CardHeader>
+          <CardTitle>ISO 42001↔27001 Crosswalk ({crosswalklar.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 text-sm">
+          <p className="text-xs text-muted-foreground">
+            Standart METNİ saklanmaz/uydurulmaz (kural 3 + telif) — yalnız kısa madde referans kodu + ilişki türü +
+            küratörün kendi gerekçesi. TODO_DOGRULA doğar; VERIFIED yalnız dört-gözden (inceleyen ≠ doğrulayan).
+          </p>
+          {crosswalklar.map((c) => (
+            <div key={c.id} data-testid={`crosswalk-${c.id}`} className="flex flex-wrap items-center gap-2 border-b pb-2 last:border-0">
+              <span className="font-mono text-xs">42001 §{c.iso42001_ref} ↔ 27001 §{c.iso27001_ref}</span>
+              <StatusBadge durum="info">{c.iliski_turu}</StatusBadge>
+              <StatusBadge durum={DURUM_ROZET[c.dogrulama_durumu] ?? "neutral"}>{c.dogrulama_durumu}</StatusBadge>
+              {["DRAFT_RESEARCH", "TODO_DOGRULA"].includes(c.dogrulama_durumu) ? (
+                <Button size="sm" variant="outline" onClick={() => void crosswalkEylemGonder({ eylem: "incelemeye_al", id: c.id })}>
+                  İncelemeye Al
+                </Button>
+              ) : null}
+              {c.dogrulama_durumu === "LEGAL_REVIEW" ? (
+                <>
+                  <Button size="sm" onClick={() => void crosswalkEylemGonder({ eylem: "onayla", id: c.id })}>
+                    Onayla
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => void crosswalkEylemGonder({ eylem: "reddet", id: c.id })}>
+                    Reddet
+                  </Button>
+                </>
+              ) : null}
+            </div>
+          ))}
+          <div className="flex flex-wrap items-end gap-2 border-t pt-2">
+            <Input value={cw42001} onChange={(e) => setCw42001(e.target.value)} placeholder="ISO 42001 madde (örn. 6.1.2)" aria-label="ISO 42001 referansı" className="w-48" />
+            <Input value={cw27001} onChange={(e) => setCw27001(e.target.value)} placeholder="ISO 27001 madde (örn. A.5.1)" aria-label="ISO 27001 referansı" className="w-48" />
+            <select value={cwIliski} onChange={(e) => setCwIliski(e.target.value)} aria-label="Crosswalk ilişki türü" className="h-9 rounded-md border bg-background px-2 text-sm">
+              <option value="ESDEGER">Eşdeğer</option>
+              <option value="KISMEN_ORTUSUYOR">Kısmen örtüşüyor</option>
+              <option value="DESTEKLER">Destekler</option>
+            </select>
+            <Input value={cwGerekce} onChange={(e) => setCwGerekce(e.target.value)} placeholder="gerekçe (opsiyonel)" aria-label="Crosswalk gerekçesi" className="w-56" />
+            <Button size="sm" onClick={() => void crosswalkOner()} disabled={!cw42001.trim() || !cw27001.trim()}>
+              Crosswalk Öner (TODO_DOĞRULA)
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

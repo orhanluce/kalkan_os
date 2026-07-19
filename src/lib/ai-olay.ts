@@ -133,3 +133,47 @@ export function driftDegerlendir(deger: number, esik: number | null, baseline: n
   }
   return { durum: "TOLERANS_ICINDE", sapma, mesaj: `Tolerans içinde (${kiyas} ≤ ${esik}).` };
 }
+
+// --- Segment-bazlı drift sonucu (nihai v3.3 §8.0 Dikey 4 kalanı; kural 11) ---
+// Segmentler BİRLEŞTİRİLMEZ: bir metrik agregatta tolerans içinde görünse de
+// belirli bir segmentte eşiği aşabilir (adalet/bias izleme — tek sayı gizlemez).
+
+export interface DriftOkuma {
+  metrik: string;
+  /** null = agregat (segmentsiz) okuma. */
+  segment: string | null;
+  deger: number;
+  baseline: number | null;
+  esik: number | null;
+  olcumTarihi: string;
+  overrideEdildi: boolean;
+}
+
+export interface DriftGrupSonucu {
+  metrik: string;
+  segment: string | null;
+  degerlendirme: DriftDegerlendirme;
+  /** İnsan bilinçli override etti mi — durum yine görünür kalır, gizlenmez. */
+  overrideEdildi: boolean;
+}
+
+/**
+ * (metrik, segment) çifti başına EN SON okumayı değerlendirir. Deterministik;
+ * girdi sırasından bağımsız (kural 11).
+ */
+export function driftSegmentGrupla(okumalar: DriftOkuma[]): DriftGrupSonucu[] {
+  const enSon = new Map<string, DriftOkuma>();
+  for (const o of okumalar) {
+    const anahtar = `${o.metrik}|${o.segment ?? ""}`;
+    const mevcut = enSon.get(anahtar);
+    if (!mevcut || o.olcumTarihi > mevcut.olcumTarihi) enSon.set(anahtar, o);
+  }
+  const sonuc: DriftGrupSonucu[] = [...enSon.values()].map((o) => ({
+    metrik: o.metrik,
+    segment: o.segment,
+    degerlendirme: driftDegerlendir(o.deger, o.esik, o.baseline),
+    overrideEdildi: o.overrideEdildi,
+  }));
+  sonuc.sort((a, b) => `${a.metrik}|${a.segment ?? ""}`.localeCompare(`${b.metrik}|${b.segment ?? ""}`));
+  return sonuc;
+}

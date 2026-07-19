@@ -823,6 +823,44 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.47 Dikey 4 kalan dilimi — segment drift + insan override + model rollback + ISO 42001↔27001 crosswalk ✅ (19 Temmuz)
+
+§1.45'te "bilinçli sonraki dilim" olarak kaydedilen dört madde teslim edildi.
+Migration `20260719220000` — mevcut `ai_drift_readings` (20260719200000)
+YENİDEN YAZILMADAN genişletildi + iki yeni tablo:
+
+1. **Segment-bazlı sonuç:** `ai_drift_readings.segment` (nullable — null=agregat,
+   dolu=alt grup). Segmentler BİRLEŞTİRİLMEZ: aynı metrik bir segmentte eşiği
+   aşarken başka segmentte tolerans içinde olabilir (adalet/bias izleme —
+   agregat tek sayı bunu gizleyebilir). Saf `driftSegmentGrupla` (`ai-olay.ts`,
+   kural 11): (metrik, segment) başına EN SON okumayı değerlendirir, birleştirmez.
+2. **İnsan override gerekçesi:** `override_edildi/override_gerekce/override_eden/
+   override_zamani`. Guard (ai_execution_receipts deseni): gerekçesiz/kimliksiz
+   override REDDEDİLİR; AI/service atlayamaz (kimlik atfı oturum sahibine sabit);
+   bir kez override edilince DONUK (sessiz geri alma yok).
+3. **Model rollback + son test:** yeni `ai_model_rollbacks` (M35 exit_plans
+   deseninin AYNISI — "TAMAMLANDI" yalnız son_test_kaniti+tarih+karar_veren+
+   karar_zamani ile, check constraint); kaynak drift okumasıyla tenant tutarlılığı
+   guard'lı; tamamlanmış kayıt DONUK.
+4. **ISO 42001↔27001 crosswalk:** yeni `iso_42001_27001_crosswalk` — GLOBAL
+   katalog, obligations/control_resilience_domains dört-göz deseninin AYNISI
+   (TODO_DOGRULA doğar, VERIFIED yalnız LEGAL_REVIEW'den + farklı doğrulayan).
+   **KURAL 3 + TELİF:** standart METNİ seed EDİLMEZ/SAKLANMAZ — yalnız kısa
+   madde referans kodu (ör. "A.5.1") + ilişki türü + küratörün KENDİ gerekçe
+   metni; VERIFIED seed YOK.
+
+UI `/ai-guvence` genişletildi: drift bölümüne segment alanı + segment-durumu
+özeti + eşik aşımında "İnsan Override Et" aksiyonu; yeni "Model rollback" alt
+bölümü (kayıt + son test kanıtıyla tamamlama); yeni "ISO 42001↔27001 Crosswalk"
+kartı (öner + dört-göz aksiyonları, `/api/ai-guvence/crosswalk` — regulasyon/
+dogrulama rotasının aynı deseni: service_role yazar, rol kapısı route'ta).
+Canlı guard smoke'u (override gerekçesiz red, rollback kanıtsız tamamlama red,
+crosswalk doğrudan VERIFIED red) gerçek Supabase'e karşı doğrulandı. Testler:
+rls-ai-drift-rollback-crosswalk 16 + ai-olay 4 yeni saf (segment gruplama) +
+`ai-drift-rollback-crosswalk.spec.ts` e2e (iki-kullanıcı dört-göz + rol-kapısı
+reddi, regulasyon-dogrulama.spec.ts deseniyle). **1035 birim (101 dosya) + 58
+e2e, 0 skip; build yeşil.**
+
 ### 1.46 Nihai v3.3 §8.0 Dikey 5 (ilk yarı) — M21/M42 dayanıklılık taksonomisi + etki grafiği ✅ (19 Temmuz)
 
 Migration `20260719210000` — YENİ graf DB kurulmadı; M13'ün mevcut kritik hizmet

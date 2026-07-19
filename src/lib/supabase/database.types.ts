@@ -221,6 +221,11 @@ export type Database = {
           id: string
           metrik: string
           olcum_tarihi: string
+          override_eden: string | null
+          override_edildi: boolean
+          override_gerekce: string | null
+          override_zamani: string | null
+          segment: string | null
           tenant_id: string
         }
         Insert: {
@@ -234,6 +239,11 @@ export type Database = {
           id?: string
           metrik: string
           olcum_tarihi?: string
+          override_eden?: string | null
+          override_edildi?: boolean
+          override_gerekce?: string | null
+          override_zamani?: string | null
+          segment?: string | null
           tenant_id: string
         }
         Update: {
@@ -247,6 +257,11 @@ export type Database = {
           id?: string
           metrik?: string
           olcum_tarihi?: string
+          override_eden?: string | null
+          override_edildi?: boolean
+          override_gerekce?: string | null
+          override_zamani?: string | null
+          segment?: string | null
           tenant_id?: string
         }
         Relationships: [
@@ -255,6 +270,13 @@ export type Database = {
             columns: ["ai_system_id"]
             isOneToOne: false
             referencedRelation: "ai_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_drift_readings_override_eden_fkey"
+            columns: ["override_eden"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -479,6 +501,86 @@ export type Database = {
           },
           {
             foreignKeyName: "ai_incidents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_model_rollbacks: {
+        Row: {
+          ai_system_id: string
+          created_at: string
+          durum: string
+          id: string
+          karar_veren: string | null
+          karar_zamani: string | null
+          kaynak_drift_reading_id: string | null
+          onceki_surum: string
+          sebep: string
+          son_test_kaniti: string | null
+          son_test_tarihi: string | null
+          tenant_id: string
+          updated_at: string
+          yeni_surum: string
+        }
+        Insert: {
+          ai_system_id: string
+          created_at?: string
+          durum?: string
+          id?: string
+          karar_veren?: string | null
+          karar_zamani?: string | null
+          kaynak_drift_reading_id?: string | null
+          onceki_surum: string
+          sebep: string
+          son_test_kaniti?: string | null
+          son_test_tarihi?: string | null
+          tenant_id: string
+          updated_at?: string
+          yeni_surum: string
+        }
+        Update: {
+          ai_system_id?: string
+          created_at?: string
+          durum?: string
+          id?: string
+          karar_veren?: string | null
+          karar_zamani?: string | null
+          kaynak_drift_reading_id?: string | null
+          onceki_surum?: string
+          sebep?: string
+          son_test_kaniti?: string | null
+          son_test_tarihi?: string | null
+          tenant_id?: string
+          updated_at?: string
+          yeni_surum?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_model_rollbacks_ai_system_id_fkey"
+            columns: ["ai_system_id"]
+            isOneToOne: false
+            referencedRelation: "ai_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_model_rollbacks_karar_veren_fkey"
+            columns: ["karar_veren"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_model_rollbacks_kaynak_drift_reading_id_fkey"
+            columns: ["kaynak_drift_reading_id"]
+            isOneToOne: false
+            referencedRelation: "ai_drift_readings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_model_rollbacks_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2709,6 +2811,66 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      iso_42001_27001_crosswalk: {
+        Row: {
+          created_at: string
+          dogrulama_durumu: string
+          dogrulama_zamani: string | null
+          dogrulayan: string | null
+          gerekce: string | null
+          id: string
+          iliski_turu: string
+          incelemeye_alan: string | null
+          incelemeye_alinma_zamani: string | null
+          iso27001_ref: string
+          iso42001_ref: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          gerekce?: string | null
+          id?: string
+          iliski_turu?: string
+          incelemeye_alan?: string | null
+          incelemeye_alinma_zamani?: string | null
+          iso27001_ref: string
+          iso42001_ref: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          gerekce?: string | null
+          id?: string
+          iliski_turu?: string
+          incelemeye_alan?: string | null
+          incelemeye_alinma_zamani?: string | null
+          iso27001_ref?: string
+          iso42001_ref?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iso_42001_27001_crosswalk_dogrulayan_fkey"
+            columns: ["dogrulayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "iso_42001_27001_crosswalk_incelemeye_alan_fkey"
+            columns: ["incelemeye_alan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
