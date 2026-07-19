@@ -17,6 +17,7 @@ import {
   LandmarkIcon,
   LayoutDashboard,
   Library,
+  ListTree,
   Lock,
   ScrollText,
   Share2,
@@ -78,6 +79,7 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
         { href: "/findings", etiket: "Bulgular", Ikon: FileWarning },
         { href: "/simulasyonlar", etiket: "Tatbikatlar", Ikon: FlaskConical },
         { href: "/denetim-izi", etiket: "Denetim İzi", Ikon: ScrollText },
+        { href: "/seffaflik", etiket: "Şeffaflık Defteri", Ikon: ListTree },
       ],
     },
     {

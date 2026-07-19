@@ -795,6 +795,35 @@ normalize edildi. Testler: rls-training-competency 5/5 + yetkinlik 3/3 +
 smoke 3/3. **BİLİNÇLİ SONRAKİ DİLİM:** phishing/tabletop = simülasyon (M7-M9)
 sonucuna gerçek bağ, retraining otomasyonu (periyot dolunca yeniden atama cron).
 
+### 1.32 Gate G3 — SCITT Şeffaflık Defteri + RFC 3161 TSA adaptörü ✅ (19 Temmuz)
+
+Migration `20260719080000` — dış-karardan BAĞIMSIZ dikey (connector pilot yığını
++ nitelikli TSA sağlayıcı OPEN_DECISION #7; UYDURULMADI, adaptör/interface ile
+ilerlendi). **M5.5 Merkle YENİDEN KULLANILDI — hiçbir kripto ilkeli yeniden
+yazılmadı** (merkle.ts RFC 6962, manifest-signature.ts ES256, canonical.ts
+RFC 8785).
+
+İki tablo, append-only: `transparency_ledger_entries` (imzalı ifadeler; **hash
+ZİNCİRİ** audit_log deseni — seal trigger leaf_index + previous/entry_hash kurar,
+istemci değerini ezer, `digest()` için `search_path = public, extensions`) +
+`transparency_checkpoints` (imzalı ağaç başı / STH; opsiyonel nitelikli TSA
+token). Guard'lar (canlı smoke 7/7): UPDATE service_role dahil reddedilir
+(değişmezlik), STH boyutu = kayıt sayısı (uydurma STH yok), STH yayını audit'e
+düşer. **DÜRÜSTLÜK (kural 15, ADR-M11-03):** durum `defterde_beklemede` →
+`seffaflik_defterinde` (STH kapsıyor, çevrimdışı inclusion doğrulanabilir) →
+`dis_zaman_damgali` (ANCAK nitelikli TSA); `local-dev-*` damga durumu YÜKSELTMEZ.
+
+Saf katman: `src/lib/transparency.ts` (imzalı ifade + defter kökü + STH imza +
+kapsama makbuzu + `makbuzDogrula` çevrimdışı, adım adım) ve `src/lib/timestamp.ts`
+(`TimestampProvider` arayüzü + `LocalDevTimestampProvider` — manifest signer
+adapter deseni; gerçek Kamu SM/QTSP + ASN.1 = altyapı, OPEN_DECISION). Üç rota
+(`/api/seffaflik/kaydet|checkpoint|makbuz/[id]`, session+RLS, service_role yok),
+UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
+(DB'siz; e2e ayrı process VERIFIED/kurcalı-FAILED). Testler: transparency.test
+10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
+`seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7. Kalan dilim: consistency
+proof (iki STH arası), STH'yi gerçek artefaktlara (manifest/policy) otomatik bağlama.
+
 ### 1.31 Gate G8 (parça 4, SON) — M40 Risk Appetite, KRI & Loss Distribution ✅ (19 Temmuz)
 
 Migration `20260719070000` — YENİ kod alanı, tenant'a özgü. 4 tablo:

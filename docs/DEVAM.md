@@ -31,13 +31,17 @@ UYDURMA — adapter/OPEN_DECISION + interface ile ilerle, dış gönderim/gerçe
 para/credential yapma. Her gate sonunda §15 raporu.
 
 ## 0c. GERÇEK DURUM (19 Temmuz, en son ölçüm — G8 TAM)
-- **Remote (origin/main) HEAD:** `64d9a35` (G8/M40 Risk Quantification). Öncesi
-  zincirde G3..G8 gate'leri. Push edilmemiş commit YOK.
+- **Remote (origin/main) HEAD:** `<G3 push sonrası güncellenecek>` (G3 SCITT
+  şeffaflık defteri + RFC 3161 TSA adaptörü). Öncesi `64d9a35` (G8/M40). Push
+  edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı:** 893 birim (81 dosya) + 47 e2e, 0 skip; build exit 0.
-- Migration sırası son: `20260719070000_risk_quantification` (canlıda).
-- **GATE G8 TAM** (M13 kurum profili + M17 denetim örnekleme + M18 eğitim/yetkinlik
-  + M40 risk quantification). Sonraki: nihai §8 kalan gate + sonraki-dilim borçları.
+- **Test tabanı:** ~913 birim (83 dosya) + 48 e2e, 0 skip; build exit 0
+  (G3 kapı koşusuyla teyit edilecek).
+- Migration sırası son: `20260719080000_transparency_ledger` (canlıda).
+- **GATE G8 TAM** (M13+M17+M18+M40). **GATE G3 dış-karardan bağımsız kısım TAM**
+  (SCITT şeffaflık defteri + TSA adaptör arayüzü; connector pilot yığını + nitelikli
+  TSA sağlayıcı OPEN_DECISION #7 bekliyor — UYDURULMADI). Sonraki: nihai §8 kalan
+  gate + sonraki-dilim borçları (ROADMAP §1.24-1.32).
 - **G1 durumu:** *Proof Room engineering slice complete; K8 content validation
   pending.* G1 source-to-proof dikeyinin KOD tarafı bitti (artifact ingest,
   temporal provision, dört-göz obligations, applicability, legal-basis guard,

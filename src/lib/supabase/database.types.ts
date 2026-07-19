@@ -6195,6 +6195,109 @@ export type Database = {
           },
         ]
       }
+      transparency_checkpoints: {
+        Row: {
+          id: string
+          olusturuldu_at: string
+          root_hash: string
+          seq: number
+          signer_ad: string
+          sth_jws: string
+          sth_kid: string
+          sth_public_jwk: Json
+          tenant_id: string
+          timestamp_saglayici: string | null
+          timestamp_token: Json | null
+          tree_size: number
+        }
+        Insert: {
+          id?: string
+          olusturuldu_at?: string
+          root_hash: string
+          seq?: never
+          signer_ad: string
+          sth_jws: string
+          sth_kid: string
+          sth_public_jwk: Json
+          tenant_id: string
+          timestamp_saglayici?: string | null
+          timestamp_token?: Json | null
+          tree_size: number
+        }
+        Update: {
+          id?: string
+          olusturuldu_at?: string
+          root_hash?: string
+          seq?: never
+          signer_ad?: string
+          sth_jws?: string
+          sth_kid?: string
+          sth_public_jwk?: Json
+          tenant_id?: string
+          timestamp_saglayici?: string | null
+          timestamp_token?: Json | null
+          tree_size?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transparency_checkpoints_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transparency_ledger_entries: {
+        Row: {
+          entry_hash: string
+          id: string
+          kaydedildi_at: string
+          leaf_hash: string
+          leaf_index: number
+          previous_entry_hash: string | null
+          seq: number
+          signed_statement: Json
+          statement_hash: string
+          statement_kind: string
+          tenant_id: string
+        }
+        Insert: {
+          entry_hash?: string
+          id?: string
+          kaydedildi_at?: string
+          leaf_hash: string
+          leaf_index?: number
+          previous_entry_hash?: string | null
+          seq?: never
+          signed_statement: Json
+          statement_hash: string
+          statement_kind: string
+          tenant_id: string
+        }
+        Update: {
+          entry_hash?: string
+          id?: string
+          kaydedildi_at?: string
+          leaf_hash?: string
+          leaf_index?: number
+          previous_entry_hash?: string | null
+          seq?: never
+          signed_statement?: Json
+          statement_hash?: string
+          statement_kind?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transparency_ledger_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -6303,6 +6406,10 @@ export type Database = {
         Returns: boolean
       }
       tpr_sozlesme_dolanlari_isle: { Args: never; Returns: undefined }
+      transparency_dogrulama_durumu: {
+        Args: { target_entry_id: string }
+        Returns: string
+      }
       verify_audit_chain: {
         Args: { target_tenant_id: string }
         Returns: {
