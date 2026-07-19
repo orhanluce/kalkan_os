@@ -4942,6 +4942,71 @@ export type Database = {
           },
         ]
       }
+      roi_kaynak_kayitlari: {
+        Row: {
+          alan_adi: string
+          alan_kodu: string | null
+          created_at: string
+          dogrulama_durumu: string
+          dogrulama_zamani: string | null
+          dogrulayan: string | null
+          eklenme_kaynagi: string
+          id: string
+          kapali_kume_degerleri: Json | null
+          kaynak_alintisi: string | null
+          kaynak_url: string
+          regulasyon_kimligi: string
+          sablon_kodu: string
+          updated_at: string
+          veri_tipi: string | null
+          zorunluluk_aciklamasi: string
+        }
+        Insert: {
+          alan_adi: string
+          alan_kodu?: string | null
+          created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          eklenme_kaynagi?: string
+          id?: string
+          kapali_kume_degerleri?: Json | null
+          kaynak_alintisi?: string | null
+          kaynak_url: string
+          regulasyon_kimligi?: string
+          sablon_kodu: string
+          updated_at?: string
+          veri_tipi?: string | null
+          zorunluluk_aciklamasi: string
+        }
+        Update: {
+          alan_adi?: string
+          alan_kodu?: string | null
+          created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          eklenme_kaynagi?: string
+          id?: string
+          kapali_kume_degerleri?: Json | null
+          kaynak_alintisi?: string | null
+          kaynak_url?: string
+          regulasyon_kimligi?: string
+          sablon_kodu?: string
+          updated_at?: string
+          veri_tipi?: string | null
+          zorunluluk_aciklamasi?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roi_kaynak_kayitlari_dogrulayan_fkey"
+            columns: ["dogrulayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scenario_control_mappings: {
         Row: {
           control_id: string
@@ -7045,6 +7110,69 @@ export type Database = {
             foreignKeyName: "tenant_controls_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_legal_identity: {
+        Row: {
+          ana_kurulus_lei: string | null
+          created_at: string
+          euid: string | null
+          guncelleme_zamani: string | null
+          guncelleyen: string | null
+          hiyerarsi_seviyesi: string | null
+          id: string
+          kurulus_turu: string | null
+          lei: string | null
+          para_birimi: string | null
+          tenant_id: string
+          ulke_kodu: string | null
+          updated_at: string
+        }
+        Insert: {
+          ana_kurulus_lei?: string | null
+          created_at?: string
+          euid?: string | null
+          guncelleme_zamani?: string | null
+          guncelleyen?: string | null
+          hiyerarsi_seviyesi?: string | null
+          id?: string
+          kurulus_turu?: string | null
+          lei?: string | null
+          para_birimi?: string | null
+          tenant_id: string
+          ulke_kodu?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ana_kurulus_lei?: string | null
+          created_at?: string
+          euid?: string | null
+          guncelleme_zamani?: string | null
+          guncelleyen?: string | null
+          hiyerarsi_seviyesi?: string | null
+          id?: string
+          kurulus_turu?: string | null
+          lei?: string | null
+          para_birimi?: string | null
+          tenant_id?: string
+          ulke_kodu?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_legal_identity_guncelleyen_fkey"
+            columns: ["guncelleyen"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_legal_identity_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },

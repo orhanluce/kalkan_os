@@ -135,7 +135,7 @@ Durum sözlüğü: **TAM** (kullanıcı sonucu uçtan uca teslim + test edilmiş
 | 5 | AI Assurance | KISMİ | Yok (Dikey E, sonraki) |
 | 6 | Açıklama/adalet/itiraz | YOK | Yok (Dikey D, DIŞ KARAR bekliyor) |
 | 7 | Model Claim Guard | YOK | Yok (Dikey C, sonraki) |
-| 8 | 3.taraf/bulut/AI tedarik | KISMİ | **Dikey A ✅ TAMAMLANDI (§1.56); Dikey B keşif ✅ BİTTİ, kod YOK (§1.57)** |
+| 8 | 3.taraf/bulut/AI tedarik | KISMİ | **Dikey A ✅ TAMAMLANDI (§1.56); Dikey B keşif ✅ (§1.57) + ilk migration dilimi ✅ (§1.58 — kurum kimlik+kaynak kataloğu, içerik seed'i yok)** |
 | 9 | Harici sinyal/tehdit | YOK | Yok (Dikey I, sonraki) |
 | 10 | AI/ESG fayda iddiası | YOK | Yok (Dikey J, KOS-7 sonrası) |
 | 11 | Gizlilik-koruyucu hesaplama | YOK | Yok (Dikey K, en son + kapı) |

@@ -823,6 +823,63 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.58 37 Tez Dikey B — ilk migration dilimi: kurum yasal kimlik + RoI kaynak kataloğu ✅ (19 Temmuz)
+
+Kurucunun 19 Temmuz ikinci talimatı §1.57'nin mapping ADR'sini kabul edilmiş
+saydı ve ilk dilimin kapsamını açıkça verdi. Önce kaynak özeti İKİNCİ kez
+gözden geçirildi: EUR-Lex'in birincil sayfası WebFetch ile doğrudan okundu,
+B_01.01/B_01.02/B_01.03/B_02.01/B_02.02 için BİREBİR alıntı toplandı (22
+maddelik "type of financial entity" kapalı kümesi dahil) — durum
+**LEGAL_REVIEW_REQUIRED**'a yükseltildi (ikincil-kaynak-only TODO_DOGRULA'dan
+daha güçlü, ama hâlâ VERIFIED DEĞİL). `docs/arastirma/DORA_RoI_ITS_2024_2956_
+Kaynak_Ozeti.md` ve `docs/adr/PR0-37-tez-dikeyB-roi-mapping-2026-07-19.md`
+güncellendi; iki fetch denemesinde de Annex III'ün (S01-S19) birebir metni
+sayfa kesitine girmedi — o liste hâlâ TODO_DOGRULA/SOURCE_PENDING kaldı,
+dürüstçe işaretlendi.
+
+**Durum sözlüğü YENİDEN KULLANILDI, ikinci bir dört-göz icat edilmedi:**
+kurucunun istediği üç durum (TODO_DOGRULA/SOURCE_PENDING/LEGAL_REVIEW_
+REQUIRED) `obligations.dogrulama_durumu`nun (20260718160000) altı durumuna
+eşlendi: SOURCE_PENDING≈DRAFT_RESEARCH, LEGAL_REVIEW_REQUIRED≈LEGAL_REVIEW.
+Migration `20260719310000` bu eşlemeyi ADR'de açıkça yazıyor.
+
+**Şema (İÇERİK SEED'İ YOK — migration hiçbir RoI alan/kod satırı INSERT
+etmedi):**
+1. `tenant_legal_identity` (tenant-scoped, tek satır/tenant): LEI/EUID/ülke
+   kodu/para birimi/kuruluş türü/hiyerarşi seviyesi/ana kuruluş LEI'si.
+   Yalnız ULUSLARARASI FORMAT kontrolleri (LEI 20 karakter ISO 17442, ülke
+   kodu ISO 3166-1 alpha-2, para birimi ISO 4217) CHECK ile zorlanıyor —
+   bunlar DORA yorumu değil, evrensel standart, doğrulama gerektirmiyor.
+   "Type of financial entity" 22 maddelik kapalı küme BİLİNÇLİ OLARAK CHECK
+   constraint YAPILMADI (serbest metin) — henüz VERIFIED olmayan bir listeyi
+   şemaya bağlayıcı kilitlemek kural 3'ü ihlal ederdi. Kimlik atfı guard'ı
+   (M16 #9 deseni: `guncelleyen` oturum sahibine sabit, service/cron muaf) +
+   audit_log trigger'ı (`kurum_yasal_kimlik_olusturuldu`/`_guncellendi`).
+2. `roi_kaynak_kayitlari` (GLOBAL referans, `obligations` deseninin BİREBİR
+   AYNISI — ADR-T3): şablon/alan kodu + kaynak URL/alıntı + kapalı küme
+   adayları (jsonb, henüz bağlayıcı değil) + `dogrulama_durumu` (DRAFT_
+   RESEARCH→TODO_DOGRULA→LEGAL_REVIEW→VERIFIED+SUPERSEDED/REJECTED) + aynı
+   guard mantığı (VERIFIED doğrudan doğamaz; VERIFIED'e geçiş yalnız
+   LEGAL_REVIEW'den + dogrulayan/zaman atfıyla; VERIFIED içerik donuk).
+   Fonksiyon KOPYALANDI (Postgres trigger'ları parametrik tabloya
+   bağlanamıyor) ama davranış birebir aynı tutuldu — testlerle kanıtlı.
+
+Testler: 18 PGlite (`rls-dora-roi-kimlik.test.ts` — format guard'ları, unique
+kısıt, kimlik atfı, cross-tenant izolasyon, dört-göz guard'ın her adımı) +
+canlı smoke (geçersiz LEI reddi, DRAFT_RESEARCH→LEGAL_REVIEW→VERIFIED atıflı
+geçiş, DRAFT_RESEARCH'ten VERIFIED'e atlama reddi, VERIFIED içerik donması,
+audit kaydı). **1144 birim (112 dosya) + 61 e2e (değişmedi — bu dilimde UI
+yok), 0 skip; build yeşil.**
+
+**Bilinçli kapsam dışı (bu dilimde YOK, ADR §3'te ertelenen liste):** S01-S19
+alan genişletmesi (third_party_services/fourth_parties'a), export mekanizması
+(citation-bundle/audit-worm-export deseninin RoI'ye uygulanması), snapshot+
+delta, eksik/çelişkili alan raporu, dört-göz yayın onayı, resmi şema
+değişince impact queue. Bunların hepsi bu ADR'nin §3'ünde sıralı — kurucudan
+yeni yön/onay geldikçe birer dilim olarak açılır. **İçerik girişi (gerçek
+LEI'ler, gerçek roi_kaynak_kayitlari satırları) de bu turda YAPILMADI** —
+tablo hazır, veri yok.
+
 ### 1.57 37 Tez Dikey B keşfi — DORA RoI kaynak özeti + mapping ADR (KOD YOK) ✅ (19 Temmuz)
 
 Talimatın kendi şartı (§4 Dikey B): "Önce güncel ve resmi AB kaynaklarını

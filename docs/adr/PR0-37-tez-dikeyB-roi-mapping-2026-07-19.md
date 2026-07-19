@@ -1,13 +1,28 @@
 # PR-0 — 37 Tez Dikey B Keşfi: DORA RoI Mapping + Gap Raporu (19 Temmuz 2026)
 
 **Kaynak belge:** `docs/arastirma/DORA_RoI_ITS_2024_2956_Kaynak_Ozeti.md`
-(Commission Implementing Regulation (EU) 2024/2956, ikincil kaynaklardan
-derlendi, **TODO_DOGRULA** — EUR-Lex birebir metniyle henüz karşılaştırılmadı).
+(Commission Implementing Regulation (EU) 2024/2956). İkinci geçiş (aynı gün,
+kurucu talimatıyla): EUR-Lex'in birincil sayfası WebFetch ile doğrudan
+okundu, birçok şablon için birebir alıntı toplandı — **LEGAL_REVIEW_REQUIRED**
+statüsüne yükseltildi (TODO_DOGRULA'dan daha güçlü, ama hâlâ VERIFIED
+DEĞİL — insan hukuk incelemesi şart).
 
-**Bu turda kod yazılmadı.** Talimatın kendi şartı (§4 Dikey B): "Bir alan
-mevcut modelde yoksa önce mapping/ADR; migration'ı gerekçesiz büyütme." Bu
-belge o mapping'i verir. Migration ancak bu ADR kurucu/hukuk gözünden
-geçtikten SONRA yazılır.
+## 0. Durum sözlüğü — YENİDEN KULLANIM (kural: var olan mekanizmayı ikinci kez kurma)
+
+Kurucunun istediği üç durum (TODO_DOGRULA/SOURCE_PENDING/LEGAL_REVIEW_REQUIRED)
+repodaki **`obligations.dogrulama_durumu`** dört-göz sözlüğüyle (`20260718160000_
+obligations.sql`) neredeyse birebir örtüşüyor: `DRAFT_RESEARCH → TODO_DOGRULA
+→ LEGAL_REVIEW → VERIFIED` (+ `SUPERSEDED`/`REJECTED`). Bu ADR ve migration
+İKİNCİL bir sözlük İCAT ETMEK yerine AYNEN bu altı durumu ve aynı guard
+mantığını (VERIFIED doğamaz; VERIFIED'e geçiş yalnız LEGAL_REVIEW'den +
+dogrulayan/zaman atfıyla; VERIFIED içerik donuk) yeniden kullanıyor.
+Kurucunun "SOURCE_PENDING" dediği kavram = `DRAFT_RESEARCH` (kaynak metni
+henüz yok/eksik); "LEGAL_REVIEW_REQUIRED" = `LEGAL_REVIEW` (inceleme
+kuyruğunda). Bu eşleme kaynak özetinde de (§0) açıkça yazılı.
+
+**Bu turda migration YAZILDI** (aşağıda §5) — kurucunun 19 Temmuz ikinci
+talimatı, ADR'yi kabul edilmiş sayıp somut ilk dilimi (kurum yasal kimlik
+profili + RoI kaynak durum tablosu, İÇERİK SEED'İ YOK) açıkça tarif etti.
 
 ## 1. Mevcut model → RoI şablonu eşlemesi
 
@@ -52,29 +67,32 @@ birine bilinçli atar).
 **Bağımlılık seviyesi (reliance level), fesih bildirim süreleri, uygulanacak
 hukuk:** hiçbiri modellenmemiş.
 
-## 3. Önerilen sonraki dikey (Dikey B'nin kendisi — BU ADR'DEN SONRA)
+## 3. Sonraki dikey — BU TURDA teslim edilen ilk dilim + ertelenen kalan
 
-1. `tenants`'a RoI kimlik alanları (LEI, EUID, yasal ad, ülke) — nullable,
-   dört-göz VERIFIED gerektirmez (kurumun kendi verisi, obligations gibi
-   üçüncü taraf hukuki hüküm değil) ama `kaynak_dogrulama_durumu` alanı
-   düşünülebilir (kural 3 ruhu — kurum kendi LEI'sini beyan eder, sistem
-   uydurmaz).
-2. Yeni `roi_field_mappings` (VEYA mevcut alanlara opsiyonel kolon) —
-   `third_party_services`/`fourth_parties`'a S01-S19 kodu + sağlayıcı
-   kimlik kodu (LEI/EUID/diğer) alanları, hepsi NULLABLE (mevcut veri
-   bozulmaz, kullanıcı isterse doldurur).
-3. Export mekanizması — YENİ bir mühürleme deseni İCAT EDİLMEZ: mevcut
-   `citation-bundle.ts`/`audit-worm-export.ts` deseninin AYNISI (RFC 8785
-   kanonik hash, service_role mühürler, bağımsız CLI doğrular). Snapshot +
-   delta (önceki export'a göre fark) + "eksik/çelişkili alan raporu" (saf
-   fonksiyon, hangi zorunlu RoI alanının hangi tenant kaydında boş olduğunu
-   listeler — kural 11).
-4. Dört-göz yayın/onay: mevcut obligations/independence-declaration
-   desenlerinin AYNISI.
-5. Resmi şema değişince impact queue: mevcut `IMPACT_REVIEW_REQUIRED` deseni
-   (uygulanabilirlik kararları için zaten var, Dikey F'de de kullanılacak) —
-   YENİ bir kuyruk mekanizması icat edilmeden aynı deseni RoI şema
-   sürümüne bağlamak.
+**1. BU TURDA TESLİM (§5, migration `20260719310000`):** `tenant_legal_
+identity` (tenant-scoped, tek satır/tenant: LEI/EUID/ülke/para birimi/
+hiyerarşi/ana kuruluş LEI — hepsi NULLABLE, format-seviyesi CHECK'ler
+DIŞINDA hiçbir alan zorlanmaz) + `roi_kaynak_kayitlari` (GLOBAL referans,
+`obligations` deseninin AYNISI — şablon/alan bazlı kaynak+doğrulama durumu
+takibi). **İÇERİK SEED'İ YOK** — migration hiçbir RoI alan/kod satırı
+INSERT etmiyor, yalnız tabloyu açıyor.
+
+**2. ERTELENEN (Dikey B'nin sonraki dilimleri):**
+- `third_party_services`/`fourth_parties`'a S01-S19 kodu + sağlayıcı
+  kimlik kodu (LEI/EUID/diğer) alanları (nullable kolon genişletmesi).
+- Export mekanizması — YENİ bir mühürleme deseni İCAT EDİLMEZ: mevcut
+  `citation-bundle.ts`/`audit-worm-export.ts` deseninin AYNISI (RFC 8785
+  kanonik hash, service_role mühürler, bağımsız CLI doğrular). Snapshot +
+  delta (önceki export'a göre fark) + "eksik/çelişkili alan raporu" (saf
+  fonksiyon, hangi zorunlu RoI alanının hangi tenant kaydında boş olduğunu
+  listeler — kural 11).
+- Dört-göz yayın/onay: mevcut obligations/independence-declaration
+  desenlerinin AYNISI (roi_kaynak_kayitlari zaten bu guard'ı taşıyor —
+  export'un KENDİSİNİN onayı ayrı bir adım).
+- Resmi şema değişince impact queue: mevcut `IMPACT_REVIEW_REQUIRED` deseni
+  (uygulanabilirlik kararları için zaten var, Dikey F'de de kullanılacak) —
+  YENİ bir kuyruk mekanizması icat edilmeden aynı deseni RoI şema
+  sürümüne bağlamak.
 
 ## 4. Açık kurucu/hukuk kararı
 
