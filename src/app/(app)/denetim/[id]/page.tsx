@@ -62,6 +62,14 @@ interface PbcTalep {
 
 const PBC_DURUM: Record<string, SemantikDurum> = { ACIK: "warning", ALINDI: "info", KAPANDI: "success" };
 
+interface BagimsizlikBeyani {
+  id: string;
+  external_email: string;
+  beyan_eden_ad: string;
+  cikar_catismasi_yok: boolean;
+  beyan_at: string;
+}
+
 const WP_DURUM: Record<string, SemantikDurum> = { TASLAK: "neutral", INCELEME: "legal-review", ONAYLANDI: "success" };
 
 export default function DenetimDetayPage() {
@@ -88,6 +96,10 @@ export default function DenetimDetayPage() {
   const [pbcMetin, setPbcMetin] = useState("");
   const [pbcSonTarih, setPbcSonTarih] = useState("");
   const [pbcKanit, setPbcKanit] = useState<Record<string, string>>({});
+  const [beyanlar, setBeyanlar] = useState<BagimsizlikBeyani[]>([]);
+  const [beyanAd, setBeyanAd] = useState("");
+  const [beyanEmail, setBeyanEmail] = useState("");
+  const [beyanCatismaYok, setBeyanCatismaYok] = useState(true);
 
   const yukle = useCallback(async () => {
     const db = createClient();
@@ -121,6 +133,8 @@ export default function DenetimDetayPage() {
     setBulguSecenekleri((bs ?? []).map((b) => ({ id: b.id, baslik: b.baslik })));
     const { data: pbc } = await db.from("audit_pbc_requests").select("id, talep_metni, son_tarih, durum, alinan_kanit, alindi_tarihi").eq("engagement_id", params.id).order("created_at", { ascending: false });
     setPbcTalepler((pbc ?? []) as PbcTalep[]);
+    const { data: bg } = await db.from("independence_declarations").select("id, external_email, beyan_eden_ad, cikar_catismasi_yok, beyan_at").eq("engagement_id", params.id).order("beyan_at", { ascending: false });
+    setBeyanlar((bg ?? []) as BagimsizlikBeyani[]);
   }, [params.id]);
 
   useEffect(() => {
@@ -251,6 +265,24 @@ export default function DenetimDetayPage() {
     },
     [yukle],
   );
+
+  const beyanEkle = useCallback(async () => {
+    setHata(null);
+    if (!beyanAd.trim() || !beyanEmail.trim() || !tenantId) return;
+    const db = createClient();
+    const { error } = await db.from("independence_declarations").insert({
+      tenant_id: tenantId,
+      engagement_id: params.id,
+      external_email: beyanEmail.trim(),
+      beyan_eden_ad: beyanAd.trim(),
+      cikar_catismasi_yok: beyanCatismaYok,
+    });
+    if (error) return setHata(error.message);
+    setBeyanAd("");
+    setBeyanEmail("");
+    setBeyanCatismaYok(true);
+    await yukle();
+  }, [beyanAd, beyanEmail, beyanCatismaYok, tenantId, params.id, yukle]);
 
   if (!is) return <div className="p-2 text-sm text-muted-foreground">Yükleniyor…</div>;
 
@@ -451,6 +483,43 @@ export default function DenetimDetayPage() {
             </div>
             <Button size="sm" onClick={() => void pbcEkle()} disabled={!pbcMetin.trim()}>
               Talep Ekle
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Bağımsızlık beyanları (M17 sonraki dilim): G7 tablosunun genellemesi */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Bağımsızlık Beyanları ({beyanlar.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 text-sm">
+          <p className="text-xs text-muted-foreground">Denetim ekibinin bu iş için çıkar-çatışması/bağımsızlık beyanı.</p>
+          {beyanlar.map((b) => (
+            <div key={b.id} className="flex flex-wrap items-center gap-2">
+              <span>
+                {b.beyan_eden_ad} ({b.external_email})
+              </span>
+              <StatusBadge durum={b.cikar_catismasi_yok ? "success" : "danger"}>
+                {b.cikar_catismasi_yok ? "Çıkar çatışması yok" : "Çıkar çatışması VAR"}
+              </StatusBadge>
+              <span className="text-xs text-muted-foreground">{new Date(b.beyan_at).toLocaleDateString("tr-TR")}</span>
+            </div>
+          ))}
+          <div className="flex flex-wrap items-end gap-2 border-t pt-2">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="beyan-ad">Ad</Label>
+              <Input id="beyan-ad" value={beyanAd} onChange={(e) => setBeyanAd(e.target.value)} className="w-48" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="beyan-email">E-posta</Label>
+              <Input id="beyan-email" type="email" value={beyanEmail} onChange={(e) => setBeyanEmail(e.target.value)} className="w-56" />
+            </div>
+            <label className="flex items-center gap-1 text-xs">
+              <input type="checkbox" checked={beyanCatismaYok} onChange={(e) => setBeyanCatismaYok(e.target.checked)} /> Çıkar çatışması yok
+            </label>
+            <Button size="sm" onClick={() => void beyanEkle()} disabled={!beyanAd.trim() || !beyanEmail.trim()}>
+              Beyan Ekle
             </Button>
           </div>
         </CardContent>

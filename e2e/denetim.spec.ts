@@ -83,6 +83,14 @@ test("denetim: tekrarlanabilir örnekleme + çalışma kağıdı bağımsızlık
     await adminPage.getByRole("button", { name: "Kapat" }).click();
     await expect(adminPage.getByText("KAPANDI", { exact: true })).toBeVisible();
 
+    // 3d) Bağımsızlık beyanı (M17 sonraki dilim, ROADMAP §1.29): mevcut G7
+    // tablosunun (independence_declarations) audit_engagements'e genellemesi.
+    await adminPage.getByLabel("Ad", { exact: true }).fill("E2E Denetçi");
+    await adminPage.getByLabel("E-posta").fill("e2e-denetci@ornek.com");
+    await adminPage.getByRole("button", { name: "Beyan Ekle" }).click();
+    await expect(adminPage.getByText("E2E Denetçi (e2e-denetci@ornek.com)")).toBeVisible();
+    await expect(adminPage.getByText("Çıkar çatışması yok", { exact: true }).first()).toBeVisible();
+
     // 4) UYUM (farklı reviewer) sign-off → ONAYLANDI.
     const eng = eng0;
     await ikinciKullaniciGirisYap(uyumPage);

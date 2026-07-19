@@ -823,6 +823,27 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.50 M17 sonraki dilim (madde 3/4) — formal independence bağı ✅ (19 Temmuz)
+
+§1.29'un üçüncü maddesi: "formal independence_declarations bağı (G7 tablosu)".
+Talimat AÇIKÇA yeni tablo değil, MEVCUT G7 tablosunun (independence_declarations,
+20260719030000 — dış uzmanın regülatör meselesi için bağımsızlık beyanı)
+genelleştirilmesini istiyordu. Migration `20260719250000` — `matter_id`
+NOT NULL kaldırıldı, `engagement_id` (audit_engagements'e FK) eklendi, **tam
+olarak bir bağlam** check constraint'i (matter YA DA engagement, ikisi birden
+ya da hiçbiri değil). İkinci bir tablo AÇILMADI — alanlar (external_email/
+beyan_eden_ad/cikar_catismasi_yok) her iki bağlam için de anlamlı.
+
+Mevcut M38 akışı (regulatory matter'a bağımsızlık beyanı) REGRESYONSUZ:
+`rls-regulatory-engagement.test.ts`'teki testler değişmeden geçti (her zaman
+matter_id ile insert ediyorlar). UI `/denetim/[id]`'ye "Bağımsızlık Beyanları"
+kartı eklendi (denetim ekibi üyesi ad/e-posta/çıkar-çatışması-yok beyanı).
+Canlı guard smoke'u (hiçbir bağlam→red, ikisi birden→red) gerçek Supabase'e
+karşı doğrulandı. Testler: rls-audit-independence 6 (+ mevcut rls-regulatory-
+engagement 4 regresyonsuz geçti) + mevcut `denetim.spec.ts` genişletildi (aynı
+testte beyan ekleme adımı). **1054 birim (104 dosya) + 58 e2e, 0 skip; build
+yeşil.** §1.29'un KALAN TEK maddesi (WORM export) bilinçli BEKLİYOR.
+
 ### 1.49 M17 sonraki dilim (madde 2/4) — PBC/request ✅ (19 Temmuz)
 
 §1.29'un ikinci maddesi: "PBC/request tablosu (M38 regulatory_requests deseni

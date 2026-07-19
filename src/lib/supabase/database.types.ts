@@ -2932,9 +2932,10 @@ export type Database = {
           beyan_eden_ad: string
           cikar_catismasi_yok: boolean
           created_at: string
+          engagement_id: string | null
           external_email: string
           id: string
-          matter_id: string
+          matter_id: string | null
           tenant_id: string
         }
         Insert: {
@@ -2942,9 +2943,10 @@ export type Database = {
           beyan_eden_ad: string
           cikar_catismasi_yok: boolean
           created_at?: string
+          engagement_id?: string | null
           external_email: string
           id?: string
-          matter_id: string
+          matter_id?: string | null
           tenant_id: string
         }
         Update: {
@@ -2952,12 +2954,20 @@ export type Database = {
           beyan_eden_ad?: string
           cikar_catismasi_yok?: boolean
           created_at?: string
+          engagement_id?: string | null
           external_email?: string
           id?: string
-          matter_id?: string
+          matter_id?: string | null
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "independence_declarations_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "audit_engagements"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "independence_declarations_matter_id_fkey"
             columns: ["matter_id"]
