@@ -41,7 +41,12 @@ import { supabaseAyarlari } from "./lib/supabase/env";
 // /matter da /proof gibi BİLİNÇLİ açıktır (G7 dış erişim): denetçi/regülatör
 // hesapsız, bağımsızlık beyanlı token'la girer; kapsam/süre/iptal/beyan
 // matter_goruntule RPC'sinde.
-const ACIK_YOLLAR = ["/giris", "/paylasim", "/auth", "/dogrula", "/health", "/proof", "/matter"];
+// /tedarikci-erisim da aynı desendir (M35 sonraki dilim, G7 M41 partner
+// modeli): tedarikçinin hesabı yok, süreli/iptal edilebilir token'la kendi
+// kaydının salt-okur özetini görür; kapsam/süre/iptal tedarikci_goruntule
+// RPC'sinde. Bilinçli olarak `/tedarikciler` (yönetim, oturum ister) İLE
+// KARIŞMAYAN ayrı bir kelime — startsWith çakışması yok ama okunurluk için de.
+const ACIK_YOLLAR = ["/giris", "/paylasim", "/auth", "/dogrula", "/health", "/proof", "/matter", "/tedarikci-erisim"];
 
 function acikYolMu(pathname: string): boolean {
   return ACIK_YOLLAR.some((yol) => pathname === yol || pathname.startsWith(`${yol}/`));

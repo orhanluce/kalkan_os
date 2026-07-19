@@ -100,6 +100,8 @@ export default function TedarikciDetayPage() {
   const [cpOzet, setCpOzet] = useState("");
   const [cpTest, setCpTest] = useState(false);
   const [cpKanit, setCpKanit] = useState("");
+  const [disEmail, setDisEmail] = useState("");
+  const [grantUrl, setGrantUrl] = useState<string | null>(null);
 
   const bugun = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
@@ -254,6 +256,27 @@ export default function TedarikciDetayPage() {
     },
     [bKanit, kullaniciId, yukle],
   );
+
+  // Vendor-portal dış erişim (M35 sonraki dilim, G7 M41 partner modeli):
+  // matter_access_grants/matter_goruntule deseninin AYNISI, bağımsızlık beyanı
+  // ön koşulu olmadan (o kavram regülatör bağlamına özgüydü).
+  const disErisimAc = useCallback(async () => {
+    setHata(null);
+    if (!disEmail.trim() || !tenantId) return;
+    const db = createClient();
+    const son = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: grant, error } = await db
+      .from("third_party_access_grants")
+      .insert({ tenant_id: tenantId, third_party_id: params.id, external_email: disEmail.trim(), son_gecerlilik: son, olusturan: kullaniciId })
+      .select("token")
+      .single();
+    if (error || !grant) {
+      setHata(error?.message ?? "Erişim oluşturulamadı.");
+      return;
+    }
+    setGrantUrl(`/tedarikci-erisim/${grant.token}`);
+    setDisEmail("");
+  }, [disEmail, tenantId, kullaniciId, params.id]);
 
   const degerlendirmeTamamla = useCallback(
     async (assessmentId: string) => {
@@ -629,6 +652,36 @@ export default function TedarikciDetayPage() {
               </div>
             );
           })}
+        </CardContent>
+      </Card>
+
+      {/* Dış erişim (tedarikçi portalı, M35 sonraki dilim) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Dış erişim (tedarikçi portalı)</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 text-sm">
+          <p className="text-muted-foreground">
+            Süreli, oturumsuz erişim — tedarikçi hesabı olmadan kendi durumunu/açık bulgularını görür.
+            Her görüntüleme denetim izine yazılır.
+          </p>
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="dis-email-td">Dış e-posta</Label>
+              <Input id="dis-email-td" value={disEmail} onChange={(e) => setDisEmail(e.target.value)} placeholder="tedarikci@firma.com" className="w-64" />
+            </div>
+            <Button size="sm" onClick={() => void disErisimAc()} disabled={!disEmail.trim()}>
+              Erişim Aç
+            </Button>
+          </div>
+          {grantUrl ? (
+            <p className="text-xs">
+              Erişim linki:{" "}
+              <Link href={grantUrl} className="text-primary underline">
+                {grantUrl}
+              </Link>
+            </p>
+          ) : null}
         </CardContent>
       </Card>
     </div>

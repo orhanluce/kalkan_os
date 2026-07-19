@@ -91,3 +91,76 @@ test("tedarikçi: hizmet/dördüncü-taraf/sözleşme/çıkış planı → insan
     await temizle(db, kurum!.id);
   }
 });
+
+// M35 sonraki dilim (ROADMAP §1.24 sonu, G7 M41 partner modeli): tedarikçi
+// hesapsız, süreli/iptal edilebilir bir token'la kendi değerlendirme
+// durumunu ve açık bulgularını görür — matter_goruntule deseninin aynısı.
+test("vendor-portal dış erişim: tedarikçi hesapsız kendi durumunu/açık bulgusunu görür", async ({ page, browser }) => {
+  test.setTimeout(90_000);
+  const db = admin();
+  const { data: kurum } = await db.from("tenants").select("id").eq("name", E2E_KURUM_ADI).single();
+  await temizle(db, kurum!.id);
+
+  const misafirCtx = await browser.newContext();
+  const misafirPage = await misafirCtx.newPage();
+
+  try {
+    const { data: authList } = await db.auth.admin.listUsers();
+    const adminUserId = authList?.users.find((u) => u.email?.toLowerCase() === "e2e-admin@kalkan-os.test")?.id;
+    if (!adminUserId) throw new Error("e2e-admin kullanıcısı bulunamadı.");
+
+    const { data: tp } = await db
+      .from("third_parties")
+      .insert({ tenant_id: kurum!.id, ad: "E2E-TP Dış Erişim", tier: "KRITIK" })
+      .select("id")
+      .single();
+    const { data: a } = await db
+      .from("third_party_assessments")
+      .insert({ tenant_id: kurum!.id, third_party_id: tp!.id, tur: "DORA", durum: "DEVAM" })
+      .select("id")
+      .single();
+    await db.from("assessment_findings").insert({
+      tenant_id: kurum!.id,
+      assessment_id: a!.id,
+      third_party_id: tp!.id,
+      baslik: "E2E şifreleme eksikliği",
+      ciddiyet: "YUKSEK",
+    });
+    // Kapanmış bulgu dış görünümde GÖRÜNMEMELİ.
+    await db.from("assessment_findings").insert({
+      tenant_id: kurum!.id,
+      assessment_id: a!.id,
+      third_party_id: tp!.id,
+      baslik: "E2E kapanmış bulgu",
+      durum: "KAPANDI",
+      kapanis_kanit: "kanit",
+      kapatan: adminUserId,
+      kapanis_zamani: new Date().toISOString(),
+    });
+
+    await girisYap(page);
+    await page.goto(`/tedarikciler/${tp!.id}`);
+    await page.getByLabel("Dış e-posta").fill("vendor@example.com");
+    await page.getByRole("button", { name: "Erişim Aç" }).click();
+    const link = page.getByRole("link", { name: /\/tedarikci-erisim\// });
+    await expect(link).toBeVisible();
+    const href = await link.getAttribute("href");
+
+    // OTURUMSUZ tedarikçi görünümü.
+    await misafirPage.goto(href!);
+    await expect(misafirPage.getByRole("heading", { name: "E2E-TP Dış Erişim" })).toBeVisible();
+    await expect(misafirPage.getByText("E2E şifreleme eksikliği")).toBeVisible();
+    await expect(misafirPage.getByText("E2E kapanmış bulgu")).toHaveCount(0);
+
+    const { data: audit } = await db
+      .from("audit_log")
+      .select("id, actor_id")
+      .eq("tenant_id", kurum!.id)
+      .eq("eylem", "tedarikci_dis_goruntulendi");
+    expect((audit ?? []).length).toBeGreaterThan(0);
+    expect(audit![0].actor_id).toBeNull();
+  } finally {
+    await misafirCtx.close();
+    await temizle(db, kurum!.id);
+  }
+});

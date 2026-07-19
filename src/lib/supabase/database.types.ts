@@ -7188,6 +7188,64 @@ export type Database = {
           },
         ]
       }
+      third_party_access_grants: {
+        Row: {
+          created_at: string
+          external_email: string
+          id: string
+          iptal_edildi: boolean
+          olusturan: string | null
+          son_gecerlilik: string
+          tenant_id: string
+          third_party_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          external_email: string
+          id?: string
+          iptal_edildi?: boolean
+          olusturan?: string | null
+          son_gecerlilik: string
+          tenant_id: string
+          third_party_id: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          external_email?: string
+          id?: string
+          iptal_edildi?: boolean
+          olusturan?: string | null
+          son_gecerlilik?: string
+          tenant_id?: string
+          third_party_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "third_party_access_grants_olusturan_fkey"
+            columns: ["olusturan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "third_party_access_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "third_party_access_grants_third_party_id_fkey"
+            columns: ["third_party_id"]
+            isOneToOne: false
+            referencedRelation: "third_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       third_party_assessments: {
         Row: {
           baslangic_at: string
@@ -7759,6 +7817,7 @@ export type Database = {
         Returns: Json
       }
       sod_istisna_suresi_dolanlari_isle: { Args: never; Returns: number }
+      tedarikci_goruntule: { Args: { p_token: string }; Returns: Json }
       tenant_has_profiles: {
         Args: { target_tenant_id: string }
         Returns: boolean

@@ -823,6 +823,43 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.54 M35 sonraki dilim — vendor-portal dış erişim (G7 M41 partner modeli) ✅ (19 Temmuz)
+
+§1.24'te bırakılan borç kapandı: "vendor-portal dış erişim (G7 M41 partner
+modeliyle)". Migration `20260719290000` — §1.27'de kurulan `matter_access_
+grants`/`matter_goruntule` deseninin AYNISI, tedarikçi grafına uygulandı; yeni
+bir dış-erişim mekanizması İCAT EDİLMEDİ.
+
+**ÖNCESİ:** bir tedarikçinin değerlendirme durumunu/açık bulgularını görmek
+için tenant tarafının kendisine e-posta/PDF göndermesi gerekiyordu — tedarikçi
+kendi durumunu göremiyordu. **SONRASI:** admin/uyum bir dış e-posta için
+süreli (14 gün), iptal edilebilir bir token üretir; tedarikçi hesapsız o
+linkle kendi kaydının SALT-OKUR özetini görür (kritiklik/karar + en güncel
+değerlendirme durumu + açık — KAPANDI olmayan — bulgular, `baslik/ciddiyet/
+durum/hedef_tarih` ile minimize; `sahibi`/`kapanis_kanit` gibi iç alanlar
+SIZMAZ).
+
+`matter_access_grants`'tan TEK kasıtlı fark: bağımsızlık beyanı ön koşulu YOK
+— o koşul regülatör/denetçi bağlamına özgü çıkar-çatışması riskiydi, tedarikçi
+bağlamında analog bir kavram uydurulmadı. Geçerlilik/iptal disiplini (token
+unique, `son_gecerlilik`, `iptal_edildi`, geçersiz/dolmuş/iptal AYNI null) ve
+audit izi (`tedarikci_dis_goruntulendi`, aktörsüz) birebir korundu.
+
+Rota `/tedarikci-erisim/[token]` (oturumsuz, `src/proxy.ts` `ACIK_YOLLAR`'a
+eklendi — bilinçli olarak `/tedarikciler` yönetim rotasıyla KARIŞMAYAN ayrı
+kelime). UI `/tedarikciler/[id]`'ye "Dış erişim (tedarikçi portalı)" kartı
+(regulator/[id]'nin `disErisimAc` deseninin aynısı, beyan adımı çıkarılmış).
+
+Canlı smoke: geçerli token → doğru tedarikçi/bulgu döndü; geçersiz token →
+null; audit_log aktörsüz kayıt attı. Gerçek Chromium e2e (`tedarikciler.spec.
+ts`'e eklendi, misafir context): admin erişim açar → oturumsuz sayfa
+tedarikçi adı + açık bulguyu gösterir, KAPANDI bulgu GÖRÜNMEZ, audit doğrulanır.
+Testler: 8 RLS/RPC (`rls-tedarikci-dis-erisim.test.ts`) + genişletilmiş e2e.
+**1098 birim (110 dosya) + 60 e2e, 0 skip, 0 flake; build yeşil.**
+**BİLİNÇLİ SONRAKİ DİLİM (bu turda YOK):** tedarikçinin kendi anket sorularını
+YANITLAMASI (yazma yolu — bugünkü dilim salt-okur), resmi DORA RoI RTS şeması,
+ThirdPartyAssessment/Questionnaire due-diligence akışının geri kalanı.
+
 ### 1.53 M18 sonraki dilim (madde 2/2) — tatbikat → eğitim tamamlama gerçek bağı ✅ (19 Temmuz)
 
 §1.31'de bırakılan ve §1.52'nin sonunda yinelenen borç kapandı: "phishing/
