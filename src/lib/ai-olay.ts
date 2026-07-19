@@ -4,6 +4,8 @@
 // KURAL 13: eval sonucu birleştirilmez — PASSED ≠ FAILED ≠ UNKNOWN. Ölçüm
 // yapılmadıysa UNKNOWN (başarısız DEĞİL); connector/ölçüm arızası FAILED üretmez.
 
+import { canonicalHash, type CanonicalDeger } from "./canonical";
+
 export type EvalSonuc = "PASSED" | "FAILED" | "UNKNOWN";
 export type OlayCiddiyet = "DUSUK" | "ORTA" | "YUKSEK" | "KRITIK";
 export type OlayDurum = "ACIK" | "INCELENIYOR" | "KAPANDI";
@@ -68,4 +70,36 @@ export function aiOlayOzeti(olaylar: OlayKayit[]): OlayOzeti {
     }
   }
   return { acikSayisi, acikCiddiVar, ciddiyetSayisi };
+}
+
+// --- AI olay kapanış manifesti (nihai v3.3 §8.0 Dikey 1, madde 2) ---
+// Mevcut outbox/defter mekanizması (ledger-outbox.ts) BU manifesti kullanarak
+// mühürler; yeni bir defter/outbox altyapısı KURULMAZ.
+
+export const AI_INCIDENT_CLOSURE_SCHEMA = "KALKAN_AI_INCIDENT_CLOSURE_MANIFEST_V1" as const;
+export const AI_INCIDENT_CLOSURE_KIND = "AI_INCIDENT_CLOSURE" as const;
+
+export interface AiIncidentClosureManifest {
+  schema: typeof AI_INCIDENT_CLOSURE_SCHEMA;
+  incidentId: string;
+  aiSystemId: string;
+  ciddiyet: OlayCiddiyet;
+  kapanisKanit: string;
+  kapatan: string;
+  kapanisZamani: string;
+}
+
+export function aiIncidentClosureManifestKur(args: {
+  incidentId: string;
+  aiSystemId: string;
+  ciddiyet: OlayCiddiyet;
+  kapanisKanit: string;
+  kapatan: string;
+  kapanisZamani: string;
+}): AiIncidentClosureManifest {
+  return { schema: AI_INCIDENT_CLOSURE_SCHEMA, ...args };
+}
+
+export function aiIncidentClosureManifestHash(m: AiIncidentClosureManifest): Promise<string> {
+  return canonicalHash(m as unknown as CanonicalDeger);
 }

@@ -173,6 +173,8 @@ export default function AiGuvencePage() {
         .eq("id", id);
       if (error) setHata(error.message);
       setOKanit((m) => ({ ...m, [id]: "" }));
+      // Olay kapanışı ledger_outbox'a olay yazdı (trigger) — mühürü otomatik tetikle.
+      if (!error) await fetch("/api/seffaflik/outbox/isle", { method: "POST" }).catch(() => {});
       await yukle();
     },
     [oKanit, yukle],
@@ -309,6 +311,8 @@ export default function AiGuvencePage() {
         .update({ karar, reviewer: user.id, reviewer_karar_zamani: new Date().toISOString() })
         .eq("id", id);
       if (error) setHata(error.message);
+      // İnsan kararı ledger_outbox'a olay yazdı (trigger) — mühürü otomatik tetikle.
+      if (!error) await fetch("/api/seffaflik/outbox/isle", { method: "POST" }).catch(() => {});
       await yukle();
     },
     [yukle],

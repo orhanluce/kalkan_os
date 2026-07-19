@@ -40,3 +40,36 @@ export function aiReceiptFingerprint(g: AiReceiptGirdisi): Promise<string> {
   };
   return canonicalHash(kanonik as unknown as CanonicalDeger);
 }
+
+// --- AI eval/karar manifesti (nihai v3.3 §8.0 Dikey 1, madde 2) ---
+// "AI eval karar paketi": bir AI önerisinin İNSAN kararı (ACCEPTED/REJECTED).
+// Mevcut outbox/defter mekanizması (ledger-outbox.ts) BU manifesti kullanarak
+// mühürler. receiptFingerprint (yukarıdaki fonksiyon, YENİDEN KULLANILIR)
+// "hangi öneri" sorusunu, bu manifest "ne karar verildi, kim, ne zaman"
+// sorusunu yanıtlar — ikisi AYRI (kural 5: AI kendi önerisini kabul edemez;
+// karar burada İNSAN reviewer'a bağlı kalır).
+
+export const AI_RECEIPT_DECISION_SCHEMA = "KALKAN_AI_RECEIPT_DECISION_MANIFEST_V1";
+
+export interface AiReceiptDecisionManifest {
+  schema: typeof AI_RECEIPT_DECISION_SCHEMA;
+  receiptId: string;
+  receiptFingerprint: string;
+  karar: "ACCEPTED" | "REJECTED";
+  reviewer: string;
+  reviewerKararZamani: string;
+}
+
+export function aiReceiptDecisionManifestKur(args: {
+  receiptId: string;
+  receiptFingerprint: string;
+  karar: "ACCEPTED" | "REJECTED";
+  reviewer: string;
+  reviewerKararZamani: string;
+}): AiReceiptDecisionManifest {
+  return { schema: AI_RECEIPT_DECISION_SCHEMA, ...args };
+}
+
+export function aiReceiptDecisionManifestHash(m: AiReceiptDecisionManifest): Promise<string> {
+  return canonicalHash(m as unknown as CanonicalDeger);
+}

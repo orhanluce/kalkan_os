@@ -82,6 +82,7 @@ export default function TedarikciDetayPage() {
   const [degerlendirmeler, setDegerlendirmeler] = useState<Degerlendirme[]>([]);
   const [bulgular, setBulgular] = useState<BulguRow[]>([]);
   const [sorular, setSorular] = useState<SoruRow[]>([]);
+  const [ledgerDurum, setLedgerDurum] = useState<Record<string, string>>({});
   const [bBaslik, setBBaslik] = useState<Record<string, string>>({});
   const [bCiddiyet, setBCiddiyet] = useState<Record<string, string>>({});
   const [bKanit, setBKanit] = useState<Record<string, string>>({});
@@ -141,6 +142,16 @@ export default function TedarikciDetayPage() {
     } else {
       setSorular([]);
     }
+    // TAMAMLANDI değerlendirmelerin defter mühür durumu (§8.0 Dikey 1).
+    const tamamlandiIds = (as_ ?? []).filter((a) => a.durum === "TAMAMLANDI").map((a) => a.id);
+    const durumlar: Record<string, string> = {};
+    await Promise.all(
+      tamamlandiIds.map(async (aid) => {
+        const { data: d } = await db.rpc("artifact_ledger_durumu", { p_artifact_table: "third_party_assessments", p_artifact_id: aid });
+        durumlar[aid] = (d as string | null) ?? "KAYITSIZ";
+      }),
+    );
+    setLedgerDurum(durumlar);
   }, [params.id]);
 
   useEffect(() => {
@@ -234,6 +245,9 @@ export default function TedarikciDetayPage() {
         .eq("id", findingId);
       if (error) setHata(error.message);
       setBKanit((m) => ({ ...m, [findingId]: "" }));
+      // Kritik bulgu kapanışı ledger_outbox'a olay yazdı (trigger, aynı
+      // transaction) — mühürü otomatik tetikle (§8.0 Dikey 1).
+      await fetch("/api/seffaflik/outbox/isle", { method: "POST" }).catch(() => {});
       await yukle();
     },
     [bKanit, kullaniciId, yukle],
@@ -249,6 +263,8 @@ export default function TedarikciDetayPage() {
         .update({ durum: "TAMAMLANDI", degerlendiren: kullaniciId })
         .eq("id", assessmentId);
       if (error) setHata(error.message.includes("KRITIK") ? "Açık KRİTİK bulgu varken tamamlanamaz." : error.message);
+      // Sign-off ledger_outbox'a olay yazdı (trigger) — mühürü otomatik tetikle.
+      if (!error) await fetch("/api/seffaflik/outbox/isle", { method: "POST" }).catch(() => {});
       await yukle();
     },
     [kullaniciId, yukle],
@@ -538,6 +554,15 @@ export default function TedarikciDetayPage() {
                     <Button size="sm" variant="outline" onClick={() => void sablondanKopyala(a.id, a.tur)}>
                       Şablondan Soru Kopyala
                     </Button>
+                  ) : null}
+                  {a.durum === "TAMAMLANDI" && ledgerDurum[a.id] ? (
+                    <StatusBadge durum={ledgerDurum[a.id] === "ANCHORED" ? "success" : ledgerDurum[a.id] === "FAILED" ? "danger" : "warning"}>
+                      {ledgerDurum[a.id] === "ANCHORED"
+                        ? "Sign-off deftere mühürlü"
+                        : ledgerDurum[a.id] === "FAILED"
+                          ? "Mühürleme başarısız"
+                          : "Mühür bekleniyor"}
+                    </StatusBadge>
                   ) : null}
                 </div>
 

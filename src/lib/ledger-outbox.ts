@@ -17,9 +17,37 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { canonicalHash, type CanonicalDeger } from "./canonical";
 import { controlTestRunManifestHash, controlTestRunManifestKur, CONTROL_TEST_RUN_KIND } from "./kontrol-test-ledger";
 import { dsarManifestHash, DSAR_FULFILLMENT_KIND, type DsarManifest } from "./gizlilik";
+import {
+  TPR_ASSESSMENT_SIGNOFF_KIND,
+  TPR_CRITICAL_FINDING_CLOSURE_KIND,
+  tprAssessmentSignoffManifestHash,
+  tprAssessmentSignoffManifestKur,
+  tprCriticalFindingClosureManifestHash,
+  tprCriticalFindingClosureManifestKur,
+} from "./tedarikci-ledger";
+import {
+  AI_INCIDENT_CLOSURE_KIND,
+  aiIncidentClosureManifestHash,
+  aiIncidentClosureManifestKur,
+  type OlayCiddiyet,
+} from "./ai-olay";
+import {
+  AI_RECEIPT_DECISION_SCHEMA,
+  aiReceiptDecisionManifestHash,
+  aiReceiptDecisionManifestKur,
+  aiReceiptFingerprint,
+} from "./ai-receipt";
+import {
+  BOARD_DECLARATION_ATTESTATION_KIND,
+  boardDeclarationAttestationManifestHash,
+  boardDeclarationAttestationManifestKur,
+} from "./board-declaration-ledger";
 import { LocalDevSigner } from "./manifest-signature";
 import { ifadeYaprakHash, imzaliIfadeOlustur } from "./transparency";
 import type { Database } from "./supabase/database.types";
+
+const AI_RECEIPT_DECISION_KIND = "AI_RECEIPT_DECISION" as const;
+void AI_RECEIPT_DECISION_SCHEMA;
 
 export interface ManifestSonucu {
   kind: string;
@@ -68,6 +96,134 @@ async function manifestKur(db: Db, artifactTable: string, artifactId: string): P
       );
     }
     return { kind: DSAR_FULFILLMENT_KIND, hash: pkg.manifest_hash };
+  }
+
+  if (artifactTable === "third_party_assessments") {
+    const { data: a } = await db
+      .from("third_party_assessments")
+      .select("id, third_party_id, tur, degerlendiren, tamamlandi_at")
+      .eq("id", artifactId)
+      .maybeSingle();
+    if (!a) return null;
+    if (!a.degerlendiren || !a.tamamlandi_at) {
+      throw new Error(`Assessment ${artifactId}: sign-off için degerlendiren + tamamlandi_at zorunlu (henüz TAMAMLANDI değil?)`);
+    }
+    const manifest = tprAssessmentSignoffManifestKur({
+      assessmentId: a.id,
+      thirdPartyId: a.third_party_id,
+      tur: a.tur,
+      degerlendiren: a.degerlendiren,
+      tamamlandiAt: a.tamamlandi_at,
+    });
+    return { kind: TPR_ASSESSMENT_SIGNOFF_KIND, hash: await tprAssessmentSignoffManifestHash(manifest) };
+  }
+
+  if (artifactTable === "assessment_findings") {
+    const { data: f } = await db
+      .from("assessment_findings")
+      .select("id, assessment_id, third_party_id, baslik, kapanis_kanit, kapatan, kapanis_zamani")
+      .eq("id", artifactId)
+      .maybeSingle();
+    if (!f) return null;
+    if (!f.kapanis_kanit || !f.kapatan || !f.kapanis_zamani) {
+      throw new Error(`Finding ${artifactId}: kapanış manifesti için kanıt + kapatan + zaman zorunlu`);
+    }
+    const manifest = tprCriticalFindingClosureManifestKur({
+      findingId: f.id,
+      assessmentId: f.assessment_id,
+      thirdPartyId: f.third_party_id,
+      baslik: f.baslik,
+      kapanisKanit: f.kapanis_kanit,
+      kapatan: f.kapatan,
+      kapanisZamani: f.kapanis_zamani,
+    });
+    return { kind: TPR_CRITICAL_FINDING_CLOSURE_KIND, hash: await tprCriticalFindingClosureManifestHash(manifest) };
+  }
+
+  if (artifactTable === "ai_incidents") {
+    const { data: o } = await db
+      .from("ai_incidents")
+      .select("id, ai_system_id, ciddiyet, kapanis_kanit, kapatan, kapanis_zamani")
+      .eq("id", artifactId)
+      .maybeSingle();
+    if (!o) return null;
+    if (!o.kapanis_kanit || !o.kapatan || !o.kapanis_zamani) {
+      throw new Error(`AI olay ${artifactId}: kapanış manifesti için kanıt + kapatan + zaman zorunlu`);
+    }
+    const manifest = aiIncidentClosureManifestKur({
+      incidentId: o.id,
+      aiSystemId: o.ai_system_id,
+      ciddiyet: o.ciddiyet as OlayCiddiyet,
+      kapanisKanit: o.kapanis_kanit,
+      kapatan: o.kapatan,
+      kapanisZamani: o.kapanis_zamani,
+    });
+    return { kind: AI_INCIDENT_CLOSURE_KIND, hash: await aiIncidentClosureManifestHash(manifest) };
+  }
+
+  if (artifactTable === "ai_execution_receipts") {
+    const { data: r } = await db
+      .from("ai_execution_receipts")
+      .select("id, ai_system_id, ai_agent_id, amac, model_saglayici, model_id, model_surum, prompt_hash, kaynak_hash, confidence, fingerprint, karar, reviewer, reviewer_karar_zamani")
+      .eq("id", artifactId)
+      .maybeSingle();
+    if (!r) return null;
+    if ((r.karar !== "ACCEPTED" && r.karar !== "REJECTED") || !r.reviewer || !r.reviewer_karar_zamani) {
+      throw new Error(`AI receipt ${artifactId}: karar manifesti için insan kararı (ACCEPTED/REJECTED) + reviewer + zaman zorunlu`);
+    }
+    // Fingerprint'i saklanan değere körlemesine güvenmek yerine kimlik
+    // alanlarından YENİDEN hesapla ve karşılaştır (savunma derinliği).
+    const yenidenFp = await aiReceiptFingerprint({
+      aiSystemId: r.ai_system_id,
+      aiAgentId: r.ai_agent_id,
+      amac: r.amac,
+      modelSaglayici: r.model_saglayici,
+      modelId: r.model_id,
+      modelSurum: r.model_surum,
+      promptHash: r.prompt_hash,
+      kaynakHash: r.kaynak_hash ?? [],
+      confidence: r.confidence,
+    });
+    if (r.fingerprint && r.fingerprint !== yenidenFp) {
+      throw new Error(`AI receipt ${artifactId}: kayıtlı fingerprint yeniden hesaplanan ile uyuşmuyor`);
+    }
+    const manifest = aiReceiptDecisionManifestKur({
+      receiptId: r.id,
+      receiptFingerprint: r.fingerprint ?? yenidenFp,
+      karar: r.karar,
+      reviewer: r.reviewer,
+      reviewerKararZamani: r.reviewer_karar_zamani,
+    });
+    return { kind: AI_RECEIPT_DECISION_KIND, hash: await aiReceiptDecisionManifestHash(manifest) };
+  }
+
+  if (artifactTable === "board_declarations") {
+    const { data: d } = await db
+      .from("board_declarations")
+      .select("id, donem_etiketi, sunan, sunuldu_at")
+      .eq("id", artifactId)
+      .maybeSingle();
+    if (!d) return null;
+    if (!d.sunan || !d.sunuldu_at) {
+      throw new Error(`YK beyanı ${artifactId}: attestation manifesti için sunan + sunuldu_at zorunlu (henüz sunulmadı?)`);
+    }
+    const { data: cevaplar } = await db
+      .from("board_declaration_answers")
+      .select("question_id, beyan, aciklama, tarih")
+      .eq("declaration_id", d.id);
+    const manifest = boardDeclarationAttestationManifestKur({
+      declarationId: d.id,
+      donemEtiketi: d.donem_etiketi,
+      sunan: d.sunan,
+      sunulduAt: d.sunuldu_at,
+      cevaplar: (cevaplar ?? []).map((c) => ({
+        questionId: c.question_id,
+        beyan: c.beyan,
+        aciklama: c.aciklama,
+        tarih: c.tarih,
+      })),
+    });
+    return { kind: BOARD_DECLARATION_ATTESTATION_KIND, hash: await boardDeclarationAttestationManifestHash(manifest) };
   }
 
   return null;

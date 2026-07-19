@@ -823,6 +823,35 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.42 Nihai v3.3 §8.0 Dikey 1 — G3 defter kapsamını tamamlama ✅ (19 Temmuz)
+
+Sürüm 3.3'ün ilk sıradaki dikeyi. Mevcut transactional-outbox/SCITT mekanizması
+(§1.37) YENİDEN KURULMADAN, beş yeni gerçek domain artefaktı otomatik defter
+bağına kavuştu. Migration `20260719170000` — **yalnız 5 AFTER UPDATE trigger**,
+hepsi genel `ledger_outbox_enqueue_trg()`'yi çağırıyor (TG_ARGV ile statement_
+kind); her biri `WHEN` ile TAM geçiş anına kilitli + ledger_outbox unique
+backstop (çifte idempotency):
+1. `third_party_assessments` → TAMAMLANDI (vendor **sign-off**);
+2. `assessment_findings` → **KRİTİK**+KAPANDI (kritik bulgu kapanışı, YÜKSEK
+   kapanışı tetiklemez);
+3. `ai_incidents` → KAPANDI (AI olay kapanışı);
+4. `ai_execution_receipts` → SUGGESTED→ACCEPTED/REJECTED (insan kararı);
+5. `board_declarations` → taslak→sunuldu (YK **attestation**).
+
+Saf manifest katmanı (kural 11/15, HAM içerik/PII deftere girmez — yalnız
+referans+hash): `tedarikci-ledger.ts` (sign-off + kritik-kapanış), `ai-olay.ts`
++`ai-receipt.ts` (olay kapanış + receipt karar), `board-declaration-ledger.ts`
+(attestation; cevaplar sıra-bağımsız). `ledger-outbox.ts` dispatch registry'sine
+beş dal eklendi — her biri domain satırının hash'ini/fingerprint'ini KÖRLEMESİNE
+değil YENİDEN hesaplayıp karşılaştırır (savunma derinliği). UI: tedarikçi
+sign-off + kritik bulgu kapanışı + AI olay kapanışı + receipt kararı sonrası
+`/api/seffaflik/outbox/isle` OTOMATİK tetiklenir; tedarikçi detayında "sign-off
+deftere mühürlü" rozeti. **NOT (dürüst):** board_declarations UI'ı henüz yok
+(M10 ekranı ertelenmiş) — trigger+dispatch hazır, ekran gelince otomatik
+mühürlenir. Testler: rls-ledger-scope-expansion 6 + ledger-manifests 7 (birim)
++ `tedarikci-signoff-ledger.spec.ts` e2e (tamamla→OTOMATİK ANCHORED→checkpoint→
+makbuz→ayrı process VERIFIED/kurcalı-FAILED) + canlı trigger smoke 3/3.
+
 ### 1.41 Nihai v3.2 §8.0 sonu, öncelik #4 (SON) — M38 regülatör toplantı kaydı ✅ (19 Temmuz)
 
 Migration `20260719160000` — `regulatory_meetings` (G7 veri modelinde adı
