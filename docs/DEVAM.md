@@ -52,9 +52,9 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    hedef/senaryo sürümü/başlangıç-bitiş/beklenen-gerçek/FP-FN/log hash/hazırlayan-
    onaylayan; hazırlayan≠onaylayan guard) — **BİTTİ** (`e73fd20`, §1.43). Sonraki
    dilim: manifeste bulgu/retest referansı + tatbikat (simülasyon) koşularına V2.
-3. M35 Cloud & Critical Third-Party Assurance Pack (bulut envanteri/shared-
-   responsibility/SLA/fourth-party/veri lokasyonu/IAM-log/olay süresi/yedekleme-
-   kurtarma/imha/çıkış/DDoS) — şablon içeriği uydurulmaz, kaynak+VERIFIED taşır.
+3. **M35 Cloud & Critical Third-Party Assurance Pack** (11 bulut alanı + kaynak
+   künyesi + VERIFIED disiplini kural 6; içerik uydurulmaz) — **BİTTİ** (`15831b9`,
+   §1.44). Sonraki dilim: madde bazlı applicability UI + pak önizleme/paylaşım.
 4. M37 AI veri/model güvence genişlemesi (eğitim-eval kaynak/lisans/izin/sürüm/
    hash, sentetik oran, poisoning, label-noise, drift, segment sonuç, override,
    rollback, ISO 42001↔27001 crosswalk). Ham veri LLM'e gitmez; eşik koda gömülmez.
@@ -62,24 +62,29 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (19 Temmuz — v3.3 §8.0 Dikey 1-2 BİTTİ; sırada Dikey 3)
-- **Remote (origin/main) HEAD:** `e73fd20` (v3.3 §8.0 Dikey 2: M12 test/tatbikat
-  V2 manifesti). Öncesi `5df9176` (Dikey 1: G3 defter kapsamı), `b6283bc` (M38
+## 0c. GERÇEK DURUM (19 Temmuz — v3.3 §8.0 Dikey 1-3 BİTTİ; sırada Dikey 4)
+- **Remote (origin/main) HEAD:** `15831b9` (v3.3 §8.0 Dikey 3: bulut güvence
+  paketi). Öncesi `e73fd20` (Dikey 2: M12 V2 manifest), `5df9176` (Dikey 1: G3
+  defter kapsamı), `b6283bc` (M38
   toplantı), `65767b7` (M35 anket şablonu), `2e5efea` (AI eval soyağacı),
   `4007aad` (AI olay bildirim saati), `7c548e6` (transactional outbox → SCITT),
   `88df93e` (M37 AI olay/eval), `be073f3` (M35 değerlendirme), `2a40eca` (M36
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı:** 980 birim (96 dosya) + 55 e2e, 0 skip; build exit 0.
-- Migration sırası son: `20260719180000_test_run_manifest_fields` (canlıda).
+- **Test tabanı:** 985 birim (97 dosya) + 56 e2e, 0 skip; build exit 0.
+- Migration sırası son: `20260719190000_cloud_assurance_pack` (canlıda).
 - **E2E LEDGER TEMİZLİK KURALI (kayıt için):** kontrol testleri artık auto-anchor
   ediyor → `artifact_ledger_links` entries'e ON DELETE RESTRICT'li. Ledger'a
   dokunan HER e2e spec temizliğinde links+outbox ÖNCE silinmeli (yoksa toplu
   entry-delete sessizce başarısız olur, paylaşımlı E2E kiracısında birikir).
   seffaflik/proof-room/dsar/tedarikci-signoff/kontrol-test-manifest hepsi bu
   sıraya uyar.
-- Sıradaki: **Dikey 3** — M35 Cloud & Critical Third-Party Assurance Pack.
+- Sıradaki: **Dikey 4** — M37 AI veri/model güvence genişlemesi (eğitim-eval
+  kaynak/lisans/izin/sürüm/hash, sentetik oran, poisoning, label-noise, drift/
+  baseline/eşik, segment sonuç, override, rollback, ISO 42001↔27001 crosswalk;
+  ham veri LLM'e gitmez, eşik koda gömülmez, AI kendi eval'ini onaylayamaz).
+  Sonra Dikey 5 (M21/M42 dayanıklılık taksonomisi + etki grafiği).
 - **§8.0 ana dikeyi TAM (ilk kapsam madde 1-2):** kontrol testi koşusu
   (`test_runs`, otomatik, Proof Room'a bağlı) + DSAR kanıt paketi (senkrondan
   asenkrona geçirildi). Genel mekanizma (`ledger_outbox`+`artifact_ledger_links`
