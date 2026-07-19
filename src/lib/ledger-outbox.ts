@@ -61,18 +61,42 @@ async function manifestKur(db: Db, artifactTable: string, artifactId: string): P
   if (artifactTable === "test_runs") {
     const { data: run } = await db
       .from("test_runs")
-      .select("id, control_id, test_definition_id, sonuc, gerekce, tanim_surumu, calisti_at, evidence_id")
+      .select(
+        "id, control_id, test_definition_id, sonuc, gerekce, tanim_surumu, calisti_at, evidence_id, beklenen_sonuc, performans_etkisi, yanlis_pozitif, yanlis_negatif, baslangic_at, bitis_at, log_referanslari, hazirlayan, sorumlu, bagimsiz_onaylayan",
+      )
       .eq("id", artifactId)
       .maybeSingle();
     if (!run) return null;
+    // Sabit kapsam tanımdan gelir (V2 zengin snapshot).
+    const { data: tanim } = await db
+      .from("control_test_definitions")
+      .select("amac, kapsam, hedef_varlik, kritik_hizmet_adi, senaryo_kimligi, senaryo_surumu")
+      .eq("id", run.test_definition_id)
+      .maybeSingle();
     const manifest = controlTestRunManifestKur({
       testRunId: run.id,
       controlId: run.control_id,
       testDefinitionId: run.test_definition_id,
+      tanimSurumu: run.tanim_surumu,
+      amac: tanim?.amac ?? null,
+      kapsam: tanim?.kapsam ?? null,
+      hedefVarlik: tanim?.hedef_varlik ?? null,
+      kritikHizmetAdi: tanim?.kritik_hizmet_adi ?? null,
+      senaryoKimligi: tanim?.senaryo_kimligi ?? null,
+      senaryoSurumu: tanim?.senaryo_surumu ?? null,
       sonuc: run.sonuc,
       gerekce: run.gerekce,
-      tanimSurumu: run.tanim_surumu,
+      beklenenSonuc: run.beklenen_sonuc,
+      performansEtkisi: run.performans_etkisi,
+      yanlisPozitif: run.yanlis_pozitif,
+      yanlisNegatif: run.yanlis_negatif,
+      baslangicAt: run.baslangic_at,
+      bitisAt: run.bitis_at,
       calistiAt: run.calisti_at,
+      logReferanslari: (run.log_referanslari as { ad: string; hash: string | null }[] | null) ?? [],
+      hazirlayan: run.hazirlayan,
+      sorumlu: run.sorumlu,
+      bagimsizOnaylayan: run.bagimsiz_onaylayan,
       evidenceId: run.evidence_id,
     });
     return { kind: CONTROL_TEST_RUN_KIND, hash: await controlTestRunManifestHash(manifest) };

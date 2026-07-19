@@ -1554,14 +1554,20 @@ export type Database = {
         Row: {
           aciklama: string | null
           ad: string
+          amac: string | null
           basarisizlik_onem: string
           beklenen: Json | null
           control_id: string
           created_at: string
           grace_gun: number | null
+          hedef_varlik: string | null
           id: string
+          kapsam: string | null
+          kritik_hizmet_adi: string | null
           otomatik_bulgu: boolean
           retest_gerekli: boolean
+          senaryo_kimligi: string | null
+          senaryo_surumu: number | null
           tanim_surumu: number
           tazelik_gun: number | null
           tenant_id: string
@@ -1570,14 +1576,20 @@ export type Database = {
         Insert: {
           aciklama?: string | null
           ad: string
+          amac?: string | null
           basarisizlik_onem?: string
           beklenen?: Json | null
           control_id: string
           created_at?: string
           grace_gun?: number | null
+          hedef_varlik?: string | null
           id?: string
+          kapsam?: string | null
+          kritik_hizmet_adi?: string | null
           otomatik_bulgu?: boolean
           retest_gerekli?: boolean
+          senaryo_kimligi?: string | null
+          senaryo_surumu?: number | null
           tanim_surumu?: number
           tazelik_gun?: number | null
           tenant_id: string
@@ -1586,14 +1598,20 @@ export type Database = {
         Update: {
           aciklama?: string | null
           ad?: string
+          amac?: string | null
           basarisizlik_onem?: string
           beklenen?: Json | null
           control_id?: string
           created_at?: string
           grace_gun?: number | null
+          hedef_varlik?: string | null
           id?: string
+          kapsam?: string | null
+          kritik_hizmet_adi?: string | null
           otomatik_bulgu?: boolean
           retest_gerekli?: boolean
+          senaryo_kimligi?: string | null
+          senaryo_surumu?: number | null
           tanim_surumu?: number
           tazelik_gun?: number | null
           tenant_id?: string
@@ -6364,48 +6382,85 @@ export type Database = {
       }
       test_runs: {
         Row: {
+          bagimsiz_onaylayan: string | null
+          baslangic_at: string | null
+          beklenen_sonuc: string | null
+          bitis_at: string | null
           calisti_at: string
           control_id: string
           created_at: string
           evidence_id: string | null
           gerekce: string
           gozlem: Json | null
+          hazirlayan: string | null
           id: string
+          log_referanslari: Json
+          performans_etkisi: string | null
           seq: number
           sonuc: string
+          sorumlu: string | null
           tanim_surumu: number
           tenant_id: string
           test_definition_id: string
+          yanlis_negatif: boolean | null
+          yanlis_pozitif: boolean | null
         }
         Insert: {
+          bagimsiz_onaylayan?: string | null
+          baslangic_at?: string | null
+          beklenen_sonuc?: string | null
+          bitis_at?: string | null
           calisti_at?: string
           control_id: string
           created_at?: string
           evidence_id?: string | null
           gerekce: string
           gozlem?: Json | null
+          hazirlayan?: string | null
           id?: string
+          log_referanslari?: Json
+          performans_etkisi?: string | null
           seq?: never
           sonuc: string
+          sorumlu?: string | null
           tanim_surumu: number
           tenant_id: string
           test_definition_id: string
+          yanlis_negatif?: boolean | null
+          yanlis_pozitif?: boolean | null
         }
         Update: {
+          bagimsiz_onaylayan?: string | null
+          baslangic_at?: string | null
+          beklenen_sonuc?: string | null
+          bitis_at?: string | null
           calisti_at?: string
           control_id?: string
           created_at?: string
           evidence_id?: string | null
           gerekce?: string
           gozlem?: Json | null
+          hazirlayan?: string | null
           id?: string
+          log_referanslari?: Json
+          performans_etkisi?: string | null
           seq?: never
           sonuc?: string
+          sorumlu?: string | null
           tanim_surumu?: number
           tenant_id?: string
           test_definition_id?: string
+          yanlis_negatif?: boolean | null
+          yanlis_pozitif?: boolean | null
         }
         Relationships: [
+          {
+            foreignKeyName: "test_runs_bagimsiz_onaylayan_fkey"
+            columns: ["bagimsiz_onaylayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "test_runs_control_id_fkey"
             columns: ["control_id"]
@@ -6418,6 +6473,20 @@ export type Database = {
             columns: ["evidence_id"]
             isOneToOne: false
             referencedRelation: "evidences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_runs_hazirlayan_fkey"
+            columns: ["hazirlayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_runs_sorumlu_fkey"
+            columns: ["sorumlu"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {

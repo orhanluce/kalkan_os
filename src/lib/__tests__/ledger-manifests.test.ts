@@ -8,9 +8,37 @@ import {
   tprCriticalFindingClosureManifestHash,
   tprCriticalFindingClosureManifestKur,
 } from "../tedarikci-ledger";
+import { controlTestRunManifestHash, controlTestRunManifestKur } from "../kontrol-test-ledger";
 import { aiIncidentClosureManifestHash, aiIncidentClosureManifestKur } from "../ai-olay";
 import { aiReceiptDecisionManifestHash, aiReceiptDecisionManifestKur } from "../ai-receipt";
 import { boardDeclarationAttestationManifestHash, boardDeclarationAttestationManifestKur } from "../board-declaration-ledger";
+
+describe("kontrol testi koşusu manifesti V2 (Dikey 2 zengin snapshot)", () => {
+  const base = {
+    testRunId: "r1", controlId: "c1", testDefinitionId: "d1", tanimSurumu: 1,
+    amac: "a", kapsam: "k", hedefVarlik: "h", kritikHizmetAdi: "kh", senaryoKimligi: "TAT-01", senaryoSurumu: 1,
+    sonuc: "PASSED", gerekce: "g", beklenenSonuc: "b", performansEtkisi: "yok",
+    yanlisPozitif: false, yanlisNegatif: false, baslangicAt: "2026-07-19T00:00:00.000Z",
+    bitisAt: "2026-07-19T00:01:00.000Z", calistiAt: "2026-07-19T00:01:00.000Z",
+    hazirlayan: "u1", sorumlu: "u2", bagimsizOnaylayan: "u3", evidenceId: null,
+  };
+  it("deterministik + 64-hex; log referans SIRASI hash'i değiştirmez", async () => {
+    const h1 = await controlTestRunManifestHash(controlTestRunManifestKur({ ...base, logReferanslari: [{ ad: "b", hash: null }, { ad: "a", hash: "x".repeat(64) }] }));
+    const h2 = await controlTestRunManifestHash(controlTestRunManifestKur({ ...base, logReferanslari: [{ ad: "a", hash: "x".repeat(64) }, { ad: "b", hash: null }] }));
+    expect(h1).toMatch(/^[0-9a-f]{64}$/);
+    expect(h1).toBe(h2);
+  });
+  it("sonuç değişince hash değişir (kural 13)", async () => {
+    const h1 = await controlTestRunManifestHash(controlTestRunManifestKur({ ...base, sonuc: "PASSED" }));
+    const h2 = await controlTestRunManifestHash(controlTestRunManifestKur({ ...base, sonuc: "FAILED" }));
+    expect(h1).not.toBe(h2);
+  });
+  it("beklenen sonuç (snapshot) değişince hash değişir", async () => {
+    const h1 = await controlTestRunManifestHash(controlTestRunManifestKur({ ...base, beklenenSonuc: "b1" }));
+    const h2 = await controlTestRunManifestHash(controlTestRunManifestKur({ ...base, beklenenSonuc: "b2" }));
+    expect(h1).not.toBe(h2);
+  });
+});
 
 describe("TPR sign-off manifesti", () => {
   const base = { assessmentId: "a1", thirdPartyId: "t1", tur: "DORA", degerlendiren: "u1", tamamlandiAt: "2026-07-19T00:00:00.000Z" };

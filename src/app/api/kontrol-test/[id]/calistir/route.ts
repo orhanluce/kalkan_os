@@ -95,6 +95,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     gozlenenDeger?: CanonicalDeger;
     iddiaKarsilandi?: boolean | null;
     evidenceId?: string | null;
+    // Dikey 2 (v3.3): koşu-anı snapshot alanları.
+    baslangicAt?: string | null;
+    bitisAt?: string | null;
+    beklenenSonuc?: string | null;
+    performansEtkisi?: string | null;
+    yanlisPozitif?: boolean | null;
+    yanlisNegatif?: boolean | null;
+    logReferanslari?: { ad: string; hash: string | null }[];
+    sorumlu?: string | null;
+    bagimsizOnaylayan?: string | null;
   };
 
   const gozlem: Gozlem = {
@@ -128,6 +138,18 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       gozlem: gozlem as unknown as Json,
       tanim_surumu: tanim.tanim_surumu,
       evidence_id: govde.evidenceId ?? null,
+      // Dikey 2 (v3.3): zengin immutable snapshot. hazirlayan = koşuyu
+      // çalıştıran (oturum sahibi); bağımsız onaylayan farklı olmalı (DB guard).
+      baslangic_at: govde.baslangicAt ?? null,
+      bitis_at: govde.bitisAt ?? null,
+      beklenen_sonuc: govde.beklenenSonuc ?? null,
+      performans_etkisi: govde.performansEtkisi ?? null,
+      yanlis_pozitif: govde.yanlisPozitif ?? null,
+      yanlis_negatif: govde.yanlisNegatif ?? null,
+      log_referanslari: (govde.logReferanslari ?? []) as unknown as Json,
+      hazirlayan: user.id,
+      sorumlu: govde.sorumlu ?? null,
+      bagimsiz_onaylayan: govde.bagimsizOnaylayan ?? null,
     })
     .select("id")
     .single();

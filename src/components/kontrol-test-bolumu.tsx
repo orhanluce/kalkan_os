@@ -37,9 +37,13 @@ interface TestTanimi {
 }
 
 interface SonTestRun {
+  id: string;
   sonuc: string;
   gerekce: string;
   calisti_at: string;
+  beklenen_sonuc: string | null;
+  performans_etkisi: string | null;
+  ledgerDurum?: string;
 }
 
 interface OneriSatiri {
@@ -90,9 +94,18 @@ export function KontrolTestBolumu({
   const [yeniOnem, setYeniOnem] = useState("yuksek");
   const [yeniOtomatikBulgu, setYeniOtomatikBulgu] = useState(true);
   const [yeniRetestGerekli, setYeniRetestGerekli] = useState(true);
+  // Dikey 2 (v3.3): tanım sabit kapsam alanları.
+  const [yeniAmac, setYeniAmac] = useState("");
+  const [yeniKapsam, setYeniKapsam] = useState("");
+  const [yeniHedefVarlik, setYeniHedefVarlik] = useState("");
+  const [yeniKritikHizmet, setYeniKritikHizmet] = useState("");
+  const [yeniSenaryoKimligi, setYeniSenaryoKimligi] = useState("");
 
   const [gozlemSecimleri, setGozlemSecimleri] = useState<Record<string, GozlemSecimi>>({});
   const [toplamaHatasi, setToplamaHatasi] = useState<Record<string, string>>({});
+  // Dikey 2 (v3.3): koşu-anı gözlem alanları (opsiyonel).
+  const [beklenen, setBeklenen] = useState<Record<string, string>>({});
+  const [performans, setPerformans] = useState<Record<string, string>>({});
 
   const yukle = useCallback(async () => {
     const db = createClient();
@@ -106,7 +119,7 @@ export function KontrolTestBolumu({
     if (t && t.length > 0) {
       const { data: runs } = await db
         .from("test_runs")
-        .select("test_definition_id, sonuc, gerekce, calisti_at")
+        .select("id, test_definition_id, sonuc, gerekce, calisti_at, beklenen_sonuc, performans_etkisi")
         .in(
           "test_definition_id",
           t.map((x) => x.id),
@@ -117,9 +130,24 @@ export function KontrolTestBolumu({
       const map: Record<string, SonTestRun> = {};
       for (const r of runs ?? []) {
         if (!map[r.test_definition_id]) {
-          map[r.test_definition_id] = { sonuc: r.sonuc, gerekce: r.gerekce, calisti_at: r.calisti_at };
+          map[r.test_definition_id] = {
+            id: r.id,
+            sonuc: r.sonuc,
+            gerekce: r.gerekce,
+            calisti_at: r.calisti_at,
+            beklenen_sonuc: r.beklenen_sonuc,
+            performans_etkisi: r.performans_etkisi,
+          };
         }
       }
+      // En yeni koşuların defter mühür durumu (§8.0 Dikey 2: her koşu manifest+
+      // receipt taşır; §1.37/§1.42 ile OTOMATİK mühür).
+      await Promise.all(
+        Object.values(map).map(async (r) => {
+          const { data: d } = await db.rpc("artifact_ledger_durumu", { p_artifact_table: "test_runs", p_artifact_id: r.id });
+          r.ledgerDurum = (d as string | null) ?? "KAYITSIZ";
+        }),
+      );
       setSonRunlar(map);
       // Türetilmiş güvence: MOTORUN önceliğiyle (en kötü kazanır) — burada
       // yeniden icat edilmez, kontrolGuvenceDurumu kullanılır.
@@ -151,7 +179,14 @@ export function KontrolTestBolumu({
     setHata(null);
     const secim = gozlemSecimleri[tanimId] ?? "gecti";
 
-    const govde: Record<string, unknown> = { gozlemZamani: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const govde: Record<string, unknown> = {
+      gozlemZamani: now,
+      baslangicAt: now,
+      bitisAt: now,
+      beklenenSonuc: beklenen[tanimId]?.trim() || null,
+      performansEtkisi: performans[tanimId]?.trim() || null,
+    };
     if (secim === "gecti") govde.iddiaKarsilandi = true;
     else if (secim === "kaldi") govde.iddiaKarsilandi = false;
     else if (secim === "olcemedim") {
@@ -199,11 +234,22 @@ export function KontrolTestBolumu({
       basarisizlik_onem: yeniOnem,
       otomatik_bulgu: yeniOtomatikBulgu,
       retest_gerekli: yeniRetestGerekli,
+      // Dikey 2 (v3.3): sabit test kapsamı (manifeste girer).
+      amac: yeniAmac.trim() || null,
+      kapsam: yeniKapsam.trim() || null,
+      hedef_varlik: yeniHedefVarlik.trim() || null,
+      kritik_hizmet_adi: yeniKritikHizmet.trim() || null,
+      senaryo_kimligi: yeniSenaryoKimligi.trim() || null,
     });
     if (error) {
       setHata(error.message);
     } else {
       setYeniAd("");
+      setYeniAmac("");
+      setYeniKapsam("");
+      setYeniHedefVarlik("");
+      setYeniKritikHizmet("");
+      setYeniSenaryoKimligi("");
       setFormAcik(false);
       await yukle();
     }
@@ -267,9 +313,23 @@ export function KontrolTestBolumu({
                   </div>
 
                   {sonRun && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {sonRun.gerekce} — {new Date(sonRun.calisti_at).toLocaleString("tr-TR")}
-                    </p>
+                    <div className="mt-2 flex flex-col gap-1">
+                      <p className="text-xs text-muted-foreground">
+                        {sonRun.gerekce} — {new Date(sonRun.calisti_at).toLocaleString("tr-TR")}
+                      </p>
+                      {sonRun.beklenen_sonuc ? (
+                        <p className="text-xs text-muted-foreground">Beklenen: {sonRun.beklenen_sonuc}</p>
+                      ) : null}
+                      {sonRun.ledgerDurum ? (
+                        <StatusBadge durum={sonRun.ledgerDurum === "ANCHORED" ? "success" : sonRun.ledgerDurum === "FAILED" ? "danger" : "warning"}>
+                          {sonRun.ledgerDurum === "ANCHORED"
+                            ? "Manifest deftere mühürlü"
+                            : sonRun.ledgerDurum === "FAILED"
+                              ? "Mühürleme başarısız"
+                              : "Mühür bekleniyor"}
+                        </StatusBadge>
+                      ) : null}
+                    </div>
                   )}
 
                   {tanimOnerisi && (
@@ -332,6 +392,26 @@ export function KontrolTestBolumu({
                         />
                       </div>
                     )}
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor={`beklenen-${tanim.id}`}>Beklenen sonuç (opsiyonel)</Label>
+                      <Input
+                        id={`beklenen-${tanim.id}`}
+                        value={beklenen[tanim.id] ?? ""}
+                        onChange={(e) => setBeklenen((s) => ({ ...s, [tanim.id]: e.target.value }))}
+                        placeholder="ör. tüm hesaplar MFA'lı"
+                        className="w-48"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor={`perf-${tanim.id}`}>Performans etkisi (opsiyonel)</Label>
+                      <Input
+                        id={`perf-${tanim.id}`}
+                        value={performans[tanim.id] ?? ""}
+                        onChange={(e) => setPerformans((s) => ({ ...s, [tanim.id]: e.target.value }))}
+                        placeholder="ör. yok / <%1 gecikme"
+                        className="w-44"
+                      />
+                    </div>
                     <Button size="sm" disabled={islemSuruyor} onClick={() => testCalistir(tanim.id)}>
                       Çalıştır
                     </Button>
@@ -388,6 +468,28 @@ export function KontrolTestBolumu({
                   onChange={(e) => setYeniTazelik(e.target.value)}
                   placeholder="boş = tazelik şartı yok"
                 />
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="yeni-amac">Amaç (opsiyonel)</Label>
+                <Input id="yeni-amac" value={yeniAmac} onChange={(e) => setYeniAmac(e.target.value)} placeholder="testin amacı" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="yeni-kapsam">Kapsam (opsiyonel)</Label>
+                <Input id="yeni-kapsam" value={yeniKapsam} onChange={(e) => setYeniKapsam(e.target.value)} placeholder="ör. tüm ayrıcalıklı hesaplar" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="yeni-hedef">Hedef varlık (opsiyonel)</Label>
+                <Input id="yeni-hedef" value={yeniHedefVarlik} onChange={(e) => setYeniHedefVarlik(e.target.value)} placeholder="ör. Entra ID" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="yeni-kritik">Kritik hizmet (opsiyonel)</Label>
+                <Input id="yeni-kritik" value={yeniKritikHizmet} onChange={(e) => setYeniKritikHizmet(e.target.value)} placeholder="ör. Ödeme sistemi" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="yeni-senaryo">Senaryo kimliği (opsiyonel)</Label>
+                <Input id="yeni-senaryo" value={yeniSenaryoKimligi} onChange={(e) => setYeniSenaryoKimligi(e.target.value)} placeholder="ör. TATBIKAT-MFA-01" />
               </div>
             </div>
             <div className="flex flex-col gap-1.5">

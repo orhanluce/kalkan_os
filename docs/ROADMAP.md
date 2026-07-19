@@ -823,6 +823,30 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.43 Nihai v3.3 §8.0 Dikey 2 — M12 standart test/tatbikat manifesti ✅ (19 Temmuz)
+
+Mevcut M12 test motoru BÜYÜTÜLDÜ (yeni paralel motor kurulmadı). Migration
+`20260719180000` — `control_test_definitions`'a SABİT KAPSAM (amaç/kapsam/hedef
+varlık/kritik hizmet/senaryo kimliği+sürümü), `test_runs`'a KOŞU-ANI SNAPSHOT
+(başlangıç-bitiş/beklenen sonuç/performans etkisi/yanlış-pozitif-negatif/log
+referans+hash/hazırlayan-sorumlu-bağımsız onaylayan). Hepsi nullable (geriye
+dönük uyum; eski koşu = "kaydedilmedi", uydurulmaz). **test_runs append-only
+KORUNUR** (yeni alanlar da INSERT-anı yazılır, UPDATE zaten yasak — immutable
+snapshot). **Hazırlayan/onaylayan ayrımı (kural 4):** bağımsız onaylayan ≠
+hazırlayan (BEFORE INSERT guard). Manifest **V2**'ye yükseltildi
+(`kontrol-test-ledger.ts`) — tanım+koşu alanlarını birleştirip kanonik hash'ler,
+log referansları sıra-bağımsız, manifest kendi hash'ini içermez (kural 11).
+HAM log/gözlem verisi girmez (kural 22) — yalnız referans+hash. Mühür zaten
+§1.42/§1.37 ile OTOMATİK (CONTROL_TEST_RUN outbox trigger). `ledger-outbox.ts`
+dispatch tanım+koşu birleşik okuyup V2 manifest kurar. Run route zengin alanları
+persist eder (hazirlayan=oturum sahibi). UI (`kontrol-test-bolumu.tsx`): tanım
+kapsam alanları + koşu beklenen/performans girişi + koşu başına "manifest
+deftere mühürlü" rozeti. Testler: rls-test-run-manifest 4 + ledger-manifests +3
+(V2 determinism, log-sıra bağımsızlık) + `kontrol-test-manifest.spec.ts` e2e
+(zengin koşu→OTOMATİK ANCHORED→checkpoint→makbuz→ayrı process VERIFIED) + canlı
+smoke 4/4. Bulgu→retest→closure zinciri M12'de zaten mevcut; sonraki dilim:
+manifeste bulgu/retest referansı + tatbikat (simülasyon) koşularına da V2 manifest.
+
 ### 1.42 Nihai v3.3 §8.0 Dikey 1 — G3 defter kapsamını tamamlama ✅ (19 Temmuz)
 
 Sürüm 3.3'ün ilk sıradaki dikeyi. Mevcut transactional-outbox/SCITT mekanizması

@@ -14,7 +14,11 @@ function admin() {
 }
 
 async function temizle(db: ReturnType<typeof admin>, tenantId: string) {
-  // Append-only: UPDATE yasak ama tenant temizliği için DELETE (service_role) serbest.
+  // Append-only: UPDATE yasak ama tenant temizliği için DELETE (service_role)
+  // serbest. FK sırası: artifact_ledger_links + ledger_outbox ÖNCE (kontrol
+  // testi vb. auto-anchor kayıtları entries'e ON DELETE RESTRICT ile bağlı).
+  await db.from("artifact_ledger_links").delete().eq("tenant_id", tenantId);
+  await db.from("ledger_outbox").delete().eq("tenant_id", tenantId);
   await db.from("transparency_checkpoints").delete().eq("tenant_id", tenantId);
   await db.from("transparency_ledger_entries").delete().eq("tenant_id", tenantId);
 }

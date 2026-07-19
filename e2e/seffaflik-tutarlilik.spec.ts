@@ -13,6 +13,9 @@ function admin() {
 }
 
 async function temizle(db: ReturnType<typeof admin>, tenantId: string) {
+  // FK sırası: link+outbox ÖNCE (auto-anchor kayıtları entries'e restrict'li).
+  await db.from("artifact_ledger_links").delete().eq("tenant_id", tenantId);
+  await db.from("ledger_outbox").delete().eq("tenant_id", tenantId);
   await db.from("transparency_checkpoints").delete().eq("tenant_id", tenantId);
   await db.from("transparency_ledger_entries").delete().eq("tenant_id", tenantId);
 }
