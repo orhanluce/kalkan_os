@@ -69,6 +69,12 @@ interface BagimsizlikBeyani {
   cikar_catismasi_yok: boolean;
   beyan_at: string;
 }
+interface WormExport {
+  id: string;
+  seq: number;
+  paket_hash: string;
+  created_at: string;
+}
 
 const WP_DURUM: Record<string, SemantikDurum> = { TASLAK: "neutral", INCELEME: "legal-review", ONAYLANDI: "success" };
 
@@ -100,6 +106,8 @@ export default function DenetimDetayPage() {
   const [beyanAd, setBeyanAd] = useState("");
   const [beyanEmail, setBeyanEmail] = useState("");
   const [beyanCatismaYok, setBeyanCatismaYok] = useState(true);
+  const [wormExports, setWormExports] = useState<WormExport[]>([]);
+  const [wormYukleniyor, setWormYukleniyor] = useState(false);
 
   const yukle = useCallback(async () => {
     const db = createClient();
@@ -135,6 +143,8 @@ export default function DenetimDetayPage() {
     setPbcTalepler((pbc ?? []) as PbcTalep[]);
     const { data: bg } = await db.from("independence_declarations").select("id, external_email, beyan_eden_ad, cikar_catismasi_yok, beyan_at").eq("engagement_id", params.id).order("beyan_at", { ascending: false });
     setBeyanlar((bg ?? []) as BagimsizlikBeyani[]);
+    const { data: worm } = await db.from("audit_worm_exports").select("id, seq, paket_hash, created_at").eq("engagement_id", params.id).order("seq", { ascending: false });
+    setWormExports((worm ?? []) as WormExport[]);
   }, [params.id]);
 
   useEffect(() => {
@@ -283,6 +293,38 @@ export default function DenetimDetayPage() {
     setBeyanCatismaYok(true);
     await yukle();
   }, [beyanAd, beyanEmail, beyanCatismaYok, tenantId, params.id, yukle]);
+
+  const wormDisaAktar = useCallback(async () => {
+    setHata(null);
+    setWormYukleniyor(true);
+    try {
+      const res = await fetch(`/api/denetim/${params.id}/worm-export`, { method: "POST" });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { hata?: string };
+        setHata(j.hata ?? "Dışa aktarım başarısız.");
+        return;
+      }
+      await yukle();
+    } finally {
+      setWormYukleniyor(false);
+    }
+  }, [params.id, yukle]);
+
+  const wormIndir = useCallback(
+    async (exportId: string, seq: number) => {
+      setHata(null);
+      const db = createClient();
+      const { data, error } = await db.from("audit_worm_exports").select("paket").eq("id", exportId).single();
+      if (error || !data) return setHata(error?.message ?? "Paket okunamadı.");
+      const blob = new Blob([JSON.stringify(data.paket, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `denetim-worm-export-${seq}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    },
+    [],
+  );
 
   if (!is) return <div className="p-2 text-sm text-muted-foreground">Yükleniyor…</div>;
 
@@ -522,6 +564,33 @@ export default function DenetimDetayPage() {
               Beyan Ekle
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* WORM export (M17 sonraki dilim son maddesi): mühürlenince değişmez */}
+      <Card>
+        <CardHeader>
+          <CardTitle>WORM Export ({wormExports.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 text-sm">
+          <p className="text-xs text-muted-foreground">
+            Denetim işinin o anki tam görünümünü (örnekleme + çalışma kağıtları + PBC + bağımsızlık beyanları)
+            hash-bütünlüklü bir JSON&apos;a mühürler. Mühürlendikten sonra DEĞİŞMEZ. İmzasız — yalnız bütünlük
+            (bağımsız doğrulama: <code>npx tsx scripts/verify-audit-worm.ts &lt;dosya&gt;</code>).
+          </p>
+          {wormExports.map((w) => (
+            <div key={w.id} className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-xs">#{w.seq}</span>
+              <span className="font-mono text-xs text-muted-foreground">{w.paket_hash.slice(0, 16)}…</span>
+              <span className="text-xs text-muted-foreground">{new Date(w.created_at).toLocaleString("tr-TR")}</span>
+              <Button size="sm" variant="outline" onClick={() => void wormIndir(w.id, w.seq)}>
+                İndir (JSON)
+              </Button>
+            </div>
+          ))}
+          <Button size="sm" className="w-fit" onClick={() => void wormDisaAktar()} disabled={wormYukleniyor}>
+            {wormYukleniyor ? "Mühürleniyor…" : "Dışa Aktar (Mühürle)"}
+          </Button>
         </CardContent>
       </Card>
     </div>

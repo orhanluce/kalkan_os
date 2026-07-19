@@ -1537,6 +1537,61 @@ export type Database = {
           },
         ]
       }
+      audit_worm_exports: {
+        Row: {
+          created_at: string
+          engagement_id: string
+          id: string
+          olusturan: string | null
+          paket: Json
+          paket_hash: string
+          seq: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          engagement_id: string
+          id?: string
+          olusturan?: string | null
+          paket: Json
+          paket_hash: string
+          seq?: never
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          engagement_id?: string
+          id?: string
+          olusturan?: string | null
+          paket?: Json
+          paket_hash?: string
+          seq?: never
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_worm_exports_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "audit_engagements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_worm_exports_olusturan_fkey"
+            columns: ["olusturan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_worm_exports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       board_cross_audit_rules: {
         Row: {
           aciklama: string

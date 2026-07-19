@@ -823,6 +823,42 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.51 M17 sonraki dilim (madde 4/4, SON) — WORM export → §1.29 KAPANDI ✅ (19 Temmuz)
+
+§1.29'un dördüncü ve SON maddesi: "WORM export". 20260719050000'de kaydedilen
+dört maddelik borç listesi bu migration'la biter. M11/M24 desenindeki hash-
+bütünlüklü mühür ilkesinin AYNISI — yeni bir mühürleme mekanizması icat
+edilmedi: `simulation_result_manifests`'in (M9) "sealed, service_role yazar,
+istemci INSERT/UPDATE/DELETE edemez" deseni birebir uygulandı.
+
+Saf motor `src/lib/audit-worm-export.ts` (citation-bundle.ts deseni): bir
+denetim işinin (örnekleme + çalışma kağıtları+bağları + PBC + bağımsızlık
+beyanları) kanonik anlık görüntüsünü kurar, RFC 8785 üzerinden TEK `paketHash`
+üretir (dizi sırası önemsiz — kural 11). Migration `20260719260000` —
+`audit_worm_exports`: INSERT/UPDATE/DELETE authenticated/anon'dan REVOKE,
+immutable trigger UPDATE'i service_role dahil reddeder, `paket_hash` unique.
+Rota `POST /api/denetim/[id]/worm-export` (admin/uyum) session client'la (RLS
+altında) tenant verisini okur, paketi kurar, service_role ile mühürler.
+**BAĞIMSIZ CLI** `scripts/verify-audit-worm.ts` (DB'siz, M24 deseni): hash'i
+içerikten yeniden hesaplar, VERIFIED/FAILED (çıkış 0/1). İMZASIZ_HASH_
+BUTUNLUKLU — sahte "signed" iddiası yok (master §18 uyarısı).
+
+UI `/denetim/[id]`'ye "WORM Export" kartı: mühürlenmiş listeler (seq/hash/
+tarih) + "Dışa Aktar (Mühürle)" + JSON indirme. Canlı doğrulama uçtan uca:
+tarayıcıda mühürle → gerçek Supabase'ten paketi çek → BAĞIMSIZ CLI ayrı
+process'te VERIFIED verdi (çıkış 0). Testler: audit-worm-export 6 saf +
+rls-audit-worm-export 7 + mevcut `denetim.spec.ts` genişletildi (mühürle →
+CLI VERIFIED → kurcalanmış paket CLI'da FAILED → DB'de mühür donukluk reddi,
+tek testte) + canlı guard smoke. **1067 birim (106 dosya) + 58 e2e, 0 skip;
+build yeşil.**
+
+**M17'nin (ROADMAP §1.29) DÖRT maddesi de TAMAMLANDI:** workpaper→bulgu/kontrol
+bağı (§1.48), PBC/request (§1.49), formal independence bağı (§1.50), WORM
+export (bu bölüm). Nihai talimat v3.3 §8.0'ın beş dikeyi + M17'nin tüm sonraki-
+dilim borcu bitti. Sıradaki iş için kurucudan yeni belge/yön beklenmeli ya da
+ROADMAP §1.24-1.30'un diğer bölümlerinin ("sonraki dilim" notları — M13/M35/
+M36/M38) veya Dikey 5'in 29 alt-kategori kalanının arasından seçim yapılmalı.
+
 ### 1.50 M17 sonraki dilim (madde 3/4) — formal independence bağı ✅ (19 Temmuz)
 
 §1.29'un üçüncü maddesi: "formal independence_declarations bağı (G7 tablosu)".

@@ -116,6 +116,40 @@ test("denetim: tekrarlanabilir örnekleme + çalışma kağıdı bağımsızlık
     expect(kBaglar).toHaveLength(1);
     const { error: donukHata } = await db.from("audit_workpaper_controls").insert({ tenant_id: kurum!.id, workpaper_id: wp2!.id, control_id: control!.id });
     expect(donukHata?.message).toMatch(/donuk/);
+
+    // 5) WORM export (M17 sonraki dilim SON maddesi, ROADMAP §1.29): denetim
+    // işinin tam görünümü mühürlenir → BAĞIMSIZ CLI ile DB'siz doğrulanır.
+    const disaAktar = await uyumPage.request.post(`/api/denetim/${eng!.id}/worm-export`);
+    expect(disaAktar.ok()).toBeTruthy();
+    const paketSonuc = await disaAktar.json();
+    expect(paketSonuc.paket.schema).toBe("KALKAN_AUDIT_WORM_EXPORT_V1");
+    expect(paketSonuc.paket.workpaperlar).toHaveLength(1);
+    expect(paketSonuc.paket.beyanlar).toHaveLength(1);
+
+    const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { execFileSync } = await import("node:child_process");
+    const klasor = mkdtempSync(join(tmpdir(), "kalkan-worm-"));
+    try {
+      const yol = join(klasor, "paket.json");
+      writeFileSync(yol, JSON.stringify(paketSonuc.paket));
+      const cikti = execFileSync("npx", ["tsx", "scripts/verify-audit-worm.ts", yol], { encoding: "utf8", shell: process.platform === "win32" });
+      expect(cikti).toContain("VERIFIED");
+
+      // Kurcalanmış paket FAILED verir (çıkış kodu 1) — bağımsızlık gerçek.
+      const kurcalanmis = { ...paketSonuc.paket, workpaperlar: [{ ...paketSonuc.paket.workpaperlar[0], icerik: "kurcalandı" }] };
+      const kurcaYol = join(klasor, "kurcalanmis.json");
+      writeFileSync(kurcaYol, JSON.stringify(kurcalanmis));
+      expect(() => execFileSync("npx", ["tsx", "scripts/verify-audit-worm.ts", kurcaYol], { encoding: "utf8", shell: process.platform === "win32" })).toThrow();
+    } finally {
+      rmSync(klasor, { recursive: true, force: true });
+    }
+
+    // DB: mühür DEĞİŞMEZ — service_role bile güncelleyemez.
+    const { data: worm } = await db.from("audit_worm_exports").select("id").eq("engagement_id", eng!.id).single();
+    const { error: wormDonukHata } = await db.from("audit_worm_exports").update({ paket_hash: "f".repeat(64) }).eq("id", worm!.id);
+    expect(wormDonukHata?.message).toMatch(/degistirilemez/);
   } finally {
     await adminCtx.close();
     await uyumCtx.close();
