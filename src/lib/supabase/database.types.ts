@@ -1211,6 +1211,70 @@ export type Database = {
           },
         ]
       }
+      audit_pbc_requests: {
+        Row: {
+          alan: string | null
+          alinan_kanit: string | null
+          alindi_tarihi: string | null
+          created_at: string
+          durum: string
+          engagement_id: string
+          id: string
+          son_tarih: string | null
+          talep_metni: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          alan?: string | null
+          alinan_kanit?: string | null
+          alindi_tarihi?: string | null
+          created_at?: string
+          durum?: string
+          engagement_id: string
+          id?: string
+          son_tarih?: string | null
+          talep_metni: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          alan?: string | null
+          alinan_kanit?: string | null
+          alindi_tarihi?: string | null
+          created_at?: string
+          durum?: string
+          engagement_id?: string
+          id?: string
+          son_tarih?: string | null
+          talep_metni?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_pbc_requests_alan_fkey"
+            columns: ["alan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_pbc_requests_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "audit_engagements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_pbc_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_review_notes: {
         Row: {
           cozuldu: boolean

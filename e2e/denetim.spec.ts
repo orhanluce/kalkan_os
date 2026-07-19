@@ -68,6 +68,21 @@ test("denetim: tekrarlanabilir örnekleme + çalışma kağıdı bağımsızlık
     await adminPage.getByRole("button", { name: "Bulgu Bağla" }).click();
     await expect(adminPage.getByText(finding!.baslik).first()).toBeVisible();
 
+    // 3c) PBC talebi (M17 sonraki dilim, ROADMAP §1.29): kanıtsız "geldi/
+    // kapandı" iddiası yok (kural 14 ruhu, regulatory_requests deseni).
+    await adminPage.getByLabel("Talep").fill("IAM erişim listesi");
+    await adminPage.getByRole("button", { name: "Talep Ekle" }).click();
+    await expect(adminPage.getByText("IAM erişim listesi")).toBeVisible();
+    await expect(adminPage.getByText("ACIK", { exact: true })).toBeVisible();
+
+    // ACIK'tan doğrudan "Kapat" görünmez (kanıtsız kapanış yok) — kanıt gir, Alındı işaretle.
+    await adminPage.getByLabel(/pbc kanıtı/).fill("IAM export - e2e.csv");
+    await adminPage.getByRole("button", { name: "Alındı İşaretle" }).click();
+    await expect(adminPage.getByText("ALINDI", { exact: true })).toBeVisible();
+    await expect(adminPage.getByText("IAM export - e2e.csv")).toBeVisible();
+    await adminPage.getByRole("button", { name: "Kapat" }).click();
+    await expect(adminPage.getByText("KAPANDI", { exact: true })).toBeVisible();
+
     // 4) UYUM (farklı reviewer) sign-off → ONAYLANDI.
     const eng = eng0;
     await ikinciKullaniciGirisYap(uyumPage);

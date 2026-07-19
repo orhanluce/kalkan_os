@@ -823,6 +823,26 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.49 M17 sonraki dilim (madde 2/4) — PBC/request ✅ (19 Temmuz)
+
+§1.29'un ikinci maddesi: "PBC/request tablosu (M38 regulatory_requests deseni
+yeniden kullanılabilir)". Migration `20260719240000` — YENİ altyapı KURULMADI;
+`regulatory_requests`/`regulatory_responses`'ın (20260719030000) durum makinesi
+PBC'nin (Prepared By Client — denetlenenden istenen belge/kanıt) daha sade
+ihtiyacına uyarlandı: sürüm/onay/gönderim-makbuzu YOK (PBC dış otorite yazışması
+değil, dahili takip listesi), ama **kural 14 ruhu AYNI**: `audit_pbc_requests`
+ACIK → ALINDI (kanıt+tarih zorunlu) → KAPANDI (yalnız ALINDI'dan — hiç
+gelmemiş talep "kapandı" sayılamaz). ALINDI/KAPANDI'da kanıt alanları DONUK
+(sessiz değişim yok). Tenant'a özgü, RLS `audit_workspace` deseninin aynısı.
+
+UI `/denetim/[id]`'ye "PBC Talepleri" kartı eklendi (talep oluştur → kanıtla
+"Alındı İşaretle" → "Kapat"; ACIK'tan Kapat butonu hiç görünmez). Canlı guard
+smoke'u (kanıtsız ALINDI red, ACIK'tan doğrudan KAPANDI red, ALINDI'dan KAPANDI
+geçer) gerçek Supabase'e karşı doğrulandı. Testler: rls-audit-pbc-requests 6 +
+mevcut `denetim.spec.ts` genişletildi (talep→alındı→kapat akışı aynı testte).
+**1048 birim (103 dosya) + 58 e2e, 0 skip; build yeşil.** §1.29'un kalan iki
+maddesi (formal independence bağı, WORM export) bilinçli olarak BEKLİYOR.
+
 ### 1.48 M17 sonraki dilim (kısmi) — workpaper→bulgu/kontrol bağı ✅ (19 Temmuz)
 
 Nihai talimat v3.3 §8.0'ın beş dikeyi bittikten sonra kurucudan yeni belge

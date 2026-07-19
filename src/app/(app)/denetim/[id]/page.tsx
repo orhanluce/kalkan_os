@@ -51,6 +51,16 @@ interface BulguSecenegi {
   id: string;
   baslik: string;
 }
+interface PbcTalep {
+  id: string;
+  talep_metni: string;
+  son_tarih: string | null;
+  durum: string;
+  alinan_kanit: string | null;
+  alindi_tarihi: string | null;
+}
+
+const PBC_DURUM: Record<string, SemantikDurum> = { ACIK: "warning", ALINDI: "info", KAPANDI: "success" };
 
 const WP_DURUM: Record<string, SemantikDurum> = { TASLAK: "neutral", INCELEME: "legal-review", ONAYLANDI: "success" };
 
@@ -74,6 +84,10 @@ export default function DenetimDetayPage() {
   const [bulguSecenekleri, setBulguSecenekleri] = useState<BulguSecenegi[]>([]);
   const [kSecim, setKSecim] = useState<Record<string, string>>({});
   const [bSecim, setBSecim] = useState<Record<string, string>>({});
+  const [pbcTalepler, setPbcTalepler] = useState<PbcTalep[]>([]);
+  const [pbcMetin, setPbcMetin] = useState("");
+  const [pbcSonTarih, setPbcSonTarih] = useState("");
+  const [pbcKanit, setPbcKanit] = useState<Record<string, string>>({});
 
   const yukle = useCallback(async () => {
     const db = createClient();
@@ -105,6 +119,8 @@ export default function DenetimDetayPage() {
     setKontrolSecenekleri((ks ?? []).map((k) => ({ id: k.id, ref: k.madde_ref })));
     const { data: bs } = await db.from("findings").select("id, baslik").order("created_at", { ascending: false }).limit(100);
     setBulguSecenekleri((bs ?? []).map((b) => ({ id: b.id, baslik: b.baslik })));
+    const { data: pbc } = await db.from("audit_pbc_requests").select("id, talep_metni, son_tarih, durum, alinan_kanit, alindi_tarihi").eq("engagement_id", params.id).order("created_at", { ascending: false });
+    setPbcTalepler((pbc ?? []) as PbcTalep[]);
   }, [params.id]);
 
   useEffect(() => {
@@ -195,6 +211,45 @@ export default function DenetimDetayPage() {
       await yukle();
     },
     [bSecim, tenantId, yukle],
+  );
+
+  const pbcEkle = useCallback(async () => {
+    setHata(null);
+    if (!pbcMetin.trim() || !tenantId) return;
+    const db = createClient();
+    const { error } = await db.from("audit_pbc_requests").insert({ tenant_id: tenantId, engagement_id: params.id, talep_metni: pbcMetin.trim(), son_tarih: pbcSonTarih || null });
+    if (error) return setHata(error.message);
+    setPbcMetin("");
+    setPbcSonTarih("");
+    await yukle();
+  }, [pbcMetin, pbcSonTarih, tenantId, params.id, yukle]);
+
+  const pbcAl = useCallback(
+    async (id: string) => {
+      setHata(null);
+      const kanit = (pbcKanit[id] ?? "").trim();
+      if (!kanit) return setHata("PBC talebini almak kanıt ister (kural 14 ruhu).");
+      const db = createClient();
+      const { error } = await db
+        .from("audit_pbc_requests")
+        .update({ durum: "ALINDI", alinan_kanit: kanit, alindi_tarihi: new Date().toISOString().slice(0, 10) })
+        .eq("id", id);
+      if (error) setHata(error.message);
+      setPbcKanit((m) => ({ ...m, [id]: "" }));
+      await yukle();
+    },
+    [pbcKanit, yukle],
+  );
+
+  const pbcKapat = useCallback(
+    async (id: string) => {
+      setHata(null);
+      const db = createClient();
+      const { error } = await db.from("audit_pbc_requests").update({ durum: "KAPANDI" }).eq("id", id);
+      if (error) setHata(error.message.includes("yalniz ALINDI") ? "Kanıtsız kapanış yok — önce talep alınmalı." : error.message);
+      await yukle();
+    },
+    [yukle],
   );
 
   if (!is) return <div className="p-2 text-sm text-muted-foreground">Yükleniyor…</div>;
@@ -339,6 +394,63 @@ export default function DenetimDetayPage() {
             </div>
             <Button size="sm" className="w-fit" onClick={() => void wpEkle()} disabled={!wpBaslik.trim()}>
               Çalışma Kağıdı Ekle
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* PBC talepleri (M17 sonraki dilim): kanıtsız "geldi/kapandı" iddiası yok */}
+      <Card>
+        <CardHeader>
+          <CardTitle>PBC Talepleri ({pbcTalepler.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 text-sm">
+          <p className="text-xs text-muted-foreground">
+            Denetlenen birimden istenen belge/kanıt listesi. &quot;Alındı&quot; kanıt+tarih ister; &quot;Kapandı&quot;
+            yalnız alınmış talepten (kanıtsız kapanış yok).
+          </p>
+          {pbcTalepler.map((p) => (
+            <div key={p.id} className="flex flex-col gap-1 border-b pb-2 last:border-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span>{p.talep_metni}</span>
+                {p.son_tarih ? <span className="text-xs text-muted-foreground">[son tarih: {p.son_tarih}]</span> : null}
+                <StatusBadge durum={PBC_DURUM[p.durum] ?? "neutral"}>{p.durum}</StatusBadge>
+                {p.alinan_kanit ? <span className="text-xs text-muted-foreground">[kanıt: {p.alinan_kanit}]</span> : null}
+              </div>
+              {p.durum === "ACIK" ? (
+                <div className="flex flex-wrap items-center gap-2 pl-1">
+                  <Input
+                    value={pbcKanit[p.id] ?? ""}
+                    onChange={(e) => setPbcKanit((m) => ({ ...m, [p.id]: e.target.value }))}
+                    placeholder="alınan kanıt (zorunlu)"
+                    aria-label={`${p.id} pbc kanıtı`}
+                    className="h-7 w-56 text-xs"
+                  />
+                  <Button size="sm" variant="outline" onClick={() => void pbcAl(p.id)} disabled={!(pbcKanit[p.id] ?? "").trim()}>
+                    Alındı İşaretle
+                  </Button>
+                </div>
+              ) : null}
+              {p.durum === "ALINDI" ? (
+                <div className="pl-1">
+                  <Button size="sm" variant="outline" onClick={() => void pbcKapat(p.id)}>
+                    Kapat
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          ))}
+          <div className="flex flex-wrap items-end gap-2 border-t pt-2">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="pbc-metin">Talep</Label>
+              <Input id="pbc-metin" value={pbcMetin} onChange={(e) => setPbcMetin(e.target.value)} placeholder="IAM erişim listesi" className="w-64" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="pbc-son-tarih">Son tarih (opsiyonel)</Label>
+              <Input id="pbc-son-tarih" type="date" value={pbcSonTarih} onChange={(e) => setPbcSonTarih(e.target.value)} className="w-40" />
+            </div>
+            <Button size="sm" onClick={() => void pbcEkle()} disabled={!pbcMetin.trim()}>
+              Talep Ekle
             </Button>
           </div>
         </CardContent>
