@@ -41,34 +41,33 @@ offline verifier zincirine taşınmış). **BU DİKEY BİTTİ** (commit `7c548e6
 aşağıda). §8.0 sonu, bu dikeyden SONRAKİ öncelik sırasını da veriyor (aşağıda
 "Sonraki" altında).
 
-## 0c. GERÇEK DURUM (19 Temmuz, en son ölçüm — nihai v3.2 §8.0 + öncelik #1-3 TAM)
-- **Remote (origin/main) HEAD:** `65767b7` (M35 doğrulanmış anket şablonu,
-  nihai v3.2 §8.0 sonu öncelik #3). Öncesi `2e5efea` (öncelik #2: AI eval
-  soyağacı), `4007aad` (öncelik #1: AI olay bildirim saati), `7c548e6`
-  (transactional outbox → SCITT defteri, §8.0 ana dikey), `88df93e` (M37 AI
-  olay/eval), `be073f3` (M35 değerlendirme), `2a40eca` (M36 DSAR paketi),
-  `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40). Push
-  edilmemiş commit YOK.
+## 0c. GERÇEK DURUM (19 Temmuz, en son ölçüm — NİHAİ v3.2 §8.0 TAMAMEN BİTTİ)
+- **Remote (origin/main) HEAD:** `b6283bc` (M38 regülatör toplantı kaydı,
+  nihai v3.2 §8.0 sonu öncelik #4 — SON madde). Öncesi `65767b7` (öncelik #3:
+  M35 anket şablonu), `2e5efea` (öncelik #2: AI eval soyağacı), `4007aad`
+  (öncelik #1: AI olay bildirim saati), `7c548e6` (transactional outbox →
+  SCITT defteri, §8.0 ana dikey), `88df93e` (M37 AI olay/eval), `be073f3` (M35
+  değerlendirme), `2a40eca` (M36 DSAR paketi), `94e4748` (G3 tutarlılık),
+  `ed62f49` (G3 SCITT), `64d9a35` (G8/M40). Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı:** 959 birim (93 dosya) + 53 e2e, 0 skip; build exit 0.
-- Migration sırası son: `20260719150000_tpr_questionnaire_template` (canlıda).
+- **Test tabanı:** 962 birim (94 dosya) + 53 e2e, 0 skip; build exit 0.
+- Migration sırası son: `20260719160000_regulatory_meeting` (canlıda).
 - **§8.0 ana dikeyi TAM (ilk kapsam madde 1-2):** kontrol testi koşusu
   (`test_runs`, otomatik, Proof Room'a bağlı) + DSAR kanıt paketi (senkrondan
   asenkrona geçirildi). Genel mekanizma (`ledger_outbox`+`artifact_ledger_links`
   +claim/mark RPC'leri+`ledger-outbox.ts` dispatch) HAZIR — madde 3-5 (M35
   sign-off, M37 eval/olay kapanışı, M40 risk/board kararı) bilinçli SONRAKİ
   dilim (dispatch registry'ye birer satır, mekanik genişleme; ROADMAP §1.37).
-- **§8.0 sonu öncelik #1 TAM:** AI ciddi olay bildirim süre saati
-  (`ai_incidents.bildirim_esik_saat`, ROADMAP §1.38). Eşik SAYISI koda
-  sabitlenmedi (kural 3) — kurum kendi hukuk ekibiyle girer.
-- **§8.0 sonu öncelik #2 TAM:** AI eval veri-soyağacı (`ai_data_lineage`,
-  ROADMAP §1.39) — hangi veri kümesi/model sürümüne karşı ölçüldüğü izlenir;
-  ham veri girmez (kural 22), içerik uydurulmaz (kural 3).
-- **§8.0 sonu öncelik #3 TAM:** M35 doğrulanmış anket şablonu
-  (`assessment_question_templates`, ROADMAP §1.40) — bir kez yazılır, her
-  değerlendirmede kopyalanır; şablon değişse geçmiş kopya etkilenmez.
-- **Sonraki (nihai v3.2 §8.0 sonu sırası, kalan):** (4) M38 regülatör toplantı
-  kaydı.
+- **§8.0 sonu öncelik sırası TAMAMEN BİTTİ (madde 1-4, ROADMAP §1.38-1.41):**
+  (1) AI ciddi olay bildirim süre saati — eşik SAYISI koda sabitlenmedi (kural
+  3), kurum kendi hukuk ekibiyle girer. (2) AI eval veri-soyağacı — ham veri
+  girmez (kural 22). (3) M35 doğrulanmış anket şablonu — bir kez yazılır, her
+  değerlendirmede kopyalanır. (4) M38 regülatör toplantı kaydı — matter
+  zincirine eklendi.
+- **NİHAİ TALİMAT v3.2'DE AÇIKÇA SIRALANMIŞ TÜM İŞ BİTTİ.** Sıradaki iş için
+  ya kurucudan yeni yön beklenmeli ya da §8.0 dışındaki gate'lerin (G0 kalanı,
+  G9 M42, bilinçli sonraki-dilim borçları — ROADMAP §1.24-1.30, §1.37 madde
+  3-5) arasından mantıklı bir sonraki adım seçilmeli.
 - **GATE G8 TAM** (M13+M17+M18+M40). **GATE G3 dış-karardan bağımsız kısım TAM**
   (SCITT şeffaflık defteri + TSA adaptör arayüzü; connector pilot yığını + nitelikli
   TSA sağlayıcı OPEN_DECISION #7 bekliyor — UYDURULMADI).
