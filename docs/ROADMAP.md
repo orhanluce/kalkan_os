@@ -823,6 +823,21 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.39 Nihai v3.2 §8.0 sonu, öncelik #2 — AI eval veri-soyağacı ✅ (19 Temmuz)
+
+Migration `20260719140000` — `ai_data_lineage` (G5 veri modelinde adı geçen
+`AIDataLineage`). Bir değerlendirme (`ai_evaluations`) "PASSED" dediğinde
+denetçinin sorabileceği soruyu yanıtlar: HANGİ veri kümesi/model sürümüne karşı
+ölçüldü? Tür: EĞİTİM_VERİSİ/DEĞERLENDİRME_VERİSİ/MODEL_SÜRÜMÜ/REFERANS_KIYAS.
+**Veri minimizasyonu (kural 22):** ham veri girmez — yalnız ad/referans +
+opsiyonel içerik-adresli sha256 hash. **İçerik uydurulmaz (kural 3):** tenant
+kendi metodoloji/veri kümesini adlandırır. Guard: soyağacı kaydı işaret ettiği
+eval ile AYNI kiracıya ait olmalı (third_party_assessments/assessment_findings
+tutarlılık deseniyle aynı). UI: eval satırına soyağacı listesi + ekleme formu
+("yok" dürüstçe gösterilir, uydurma girdi yok). Testler: rls-ai-data-lineage 4
+(birim) + `ai-olay-eval.spec.ts` genişletildi (eval→"yok"→ekle→görünür) +
+canlı smoke 3/3.
+
 ### 1.38 Nihai v3.2 §8.0 sonu, öncelik #1 — AI ciddi olayı otorite-bildirim süre saati ✅ (19 Temmuz)
 
 Migration `20260719130000` — `ai_incidents.bildirim_esik_saat` (nullable int,

@@ -78,8 +78,22 @@ test("ai: olay kanıtla kapanır (kural 14) + eval UNKNOWN dürüstlüğü (kura
     const { data: incSon } = await db.from("ai_incidents").select("durum, kapatan, kapanis_kanit").eq("id", inc!.id).single();
     expect(incSon!.durum).toBe("KAPANDI");
     expect(incSon!.kapatan).not.toBeNull();
-    const { data: ev } = await db.from("ai_evaluations").select("sonuc").eq("ai_system_id", sysId).single();
+    const { data: ev } = await db.from("ai_evaluations").select("id, sonuc").eq("ai_system_id", sysId).single();
     expect(ev!.sonuc).toBe("UNKNOWN");
+
+    // Veri soyağacı (§8.0 sonu öncelik #2): eval önce "yok" der (uydurulmaz).
+    await expect(page.getByText("yok")).toBeVisible();
+    await page.getByLabel(`${ev!.id} soyağacı türü`).selectOption("MODEL_SURUMU");
+    await page.getByLabel(`${ev!.id} soyağacı adı`).fill("model-v3-2026-07");
+    await page.getByRole("button", { name: "Soyağacı Ekle" }).click();
+    await expect(page.getByText("MODEL_SURUMU: model-v3-2026-07")).toBeVisible();
+    const { data: soyagaci } = await db
+      .from("ai_data_lineage")
+      .select("tur, ad")
+      .eq("ai_evaluation_id", ev!.id)
+      .single();
+    expect(soyagaci!.tur).toBe("MODEL_SURUMU");
+    expect(soyagaci!.ad).toBe("model-v3-2026-07");
   } finally {
     await temizle(db, kurum!.id);
   }

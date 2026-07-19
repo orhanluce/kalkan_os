@@ -52,6 +52,12 @@ interface Eval {
   tur: string;
   sonuc: string;
 }
+interface Soyagaci {
+  id: string;
+  ai_evaluation_id: string;
+  tur: string;
+  ad: string;
+}
 
 const RISK: Record<string, SemantikDurum> = { PROHIBITED: "danger", HIGH: "warning", LIMITED: "info", MINIMAL: "neutral" };
 const KARAR_SEM: Record<string, SemantikDurum> = { SUGGESTED: "legal-review", ACCEPTED: "success", REJECTED: "danger" };
@@ -75,6 +81,9 @@ export default function AiGuvencePage() {
   const [oEsik, setOEsik] = useState<Record<string, string>>({});
   const [eTur, setETur] = useState("BIAS");
   const [eSonuc, setESonuc] = useState("UNKNOWN");
+  const [soyagaclar, setSoyagaclar] = useState<Soyagaci[]>([]);
+  const [sgTur, setSgTur] = useState<Record<string, string>>({});
+  const [sgAd, setSgAd] = useState<Record<string, string>>({});
   const simdi = useMemo(() => new Date(), []);
 
   const tenantCoz = useCallback(async (): Promise<string | null> => {
@@ -89,18 +98,20 @@ export default function AiGuvencePage() {
 
   const yukle = useCallback(async () => {
     const db = createClient();
-    const [{ data: ss }, { data: as }, { data: rs }, { data: os }, { data: es }] = await Promise.all([
+    const [{ data: ss }, { data: as }, { data: rs }, { data: os }, { data: es }, { data: sg }] = await Promise.all([
       db.from("ai_systems").select("id, ad, rol, risk_sinifi, durum").order("ad"),
       db.from("ai_agents").select("id, ad, yazma_yetkisi, insan_onay_gerekli, durum").order("ad"),
       db.from("ai_execution_receipts").select("id, amac, karar, model_saglayici").order("created_at", { ascending: false }),
       db.from("ai_incidents").select("id, ai_system_id, ozet, ciddiyet, durum, tespit_at, otorite_bildirildi_at, bildirim_esik_saat").order("tespit_at", { ascending: false }),
       db.from("ai_evaluations").select("id, ai_system_id, tur, sonuc").order("degerlendirme_at", { ascending: false }),
+      db.from("ai_data_lineage").select("id, ai_evaluation_id, tur, ad").order("created_at", { ascending: false }),
     ]);
     setSistemler((ss ?? []) as Sistem[]);
     setAjanlar((as ?? []) as Ajan[]);
     setReceiptler((rs ?? []) as Receipt[]);
     setOlaylar((os ?? []) as Olay[]);
     setEvaller((es ?? []) as Eval[]);
+    setSoyagaclar((sg ?? []) as Soyagaci[]);
     if (!aSistem && (ss ?? []).length > 0) setASistem((ss as Sistem[])[0].id);
   }, [aSistem]);
 
@@ -205,6 +216,29 @@ export default function AiGuvencePage() {
     if (error) setHata(error.message);
     await yukle();
   }, [aSistem, eTur, eSonuc, tenantCoz, yukle]);
+
+  // Soyağacı: eval sonucunun HANGİ veri kümesi/model sürümüne karşı ölçüldüğü
+  // (ISO 42001/NIST AI RMF izlenebilirliği). Ham veri değil, yalnız referans.
+  const soyagaciEkle = useCallback(
+    async (evalId: string) => {
+      setHata(null);
+      const ad = (sgAd[evalId] ?? "").trim();
+      if (!ad) return;
+      const tid = await tenantCoz();
+      if (!tid) return setHata("Kurum bağlamı çözülemedi.");
+      const db = createClient();
+      const { error } = await db.from("ai_data_lineage").insert({
+        tenant_id: tid,
+        ai_evaluation_id: evalId,
+        tur: sgTur[evalId] ?? "DEGERLENDIRME_VERISI",
+        ad,
+      });
+      if (error) setHata(error.message);
+      setSgAd((m) => ({ ...m, [evalId]: "" }));
+      await yukle();
+    },
+    [sgAd, sgTur, tenantCoz, yukle],
+  );
 
   const ajanEkle = useCallback(async () => {
     setHata(null);
@@ -587,12 +621,52 @@ export default function AiGuvencePage() {
                   <span className="font-medium">Değerlendirmeler (eval)</span>
                   <span className="text-xs text-muted-foreground">UNKNOWN = ölçülmedi (kural 13: başarısız değil)</span>
                 </div>
-                {evaller.filter((e) => e.ai_system_id === aSistem).map((e) => (
-                  <div key={e.id} className="flex flex-wrap items-center gap-2 text-xs">
-                    <span>{e.tur}</span>
-                    <StatusBadge durum={e.sonuc === "PASSED" ? "success" : e.sonuc === "FAILED" ? "danger" : "unknown"}>{e.sonuc}</StatusBadge>
-                  </div>
-                ))}
+                {evaller.filter((e) => e.ai_system_id === aSistem).map((e) => {
+                  const evalSoyagaclari = soyagaclar.filter((s) => s.ai_evaluation_id === e.id);
+                  return (
+                    <div key={e.id} className="flex flex-col gap-1 border-t pt-2 text-xs first:border-t-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span>{e.tur}</span>
+                        <StatusBadge durum={e.sonuc === "PASSED" ? "success" : e.sonuc === "FAILED" ? "danger" : "unknown"}>{e.sonuc}</StatusBadge>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 pl-1 text-muted-foreground">
+                        <span>Soyağacı:</span>
+                        {evalSoyagaclari.length === 0 ? (
+                          <span>yok</span>
+                        ) : (
+                          evalSoyagaclari.map((s) => (
+                            <StatusBadge key={s.id} durum="info">
+                              {s.tur}: {s.ad}
+                            </StatusBadge>
+                          ))
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-end gap-2 pl-1">
+                        <select
+                          value={sgTur[e.id] ?? "DEGERLENDIRME_VERISI"}
+                          onChange={(ev) => setSgTur((m) => ({ ...m, [e.id]: ev.target.value }))}
+                          aria-label={`${e.id} soyağacı türü`}
+                          className="h-7 rounded-md border bg-background px-2 text-xs"
+                        >
+                          <option value="EGITIM_VERISI">Eğitim verisi</option>
+                          <option value="DEGERLENDIRME_VERISI">Değerlendirme verisi</option>
+                          <option value="MODEL_SURUMU">Model sürümü</option>
+                          <option value="REFERANS_KIYAS">Referans kıyas</option>
+                        </select>
+                        <Input
+                          value={sgAd[e.id] ?? ""}
+                          onChange={(ev) => setSgAd((m) => ({ ...m, [e.id]: ev.target.value }))}
+                          placeholder="ad/referans (örn. 2026-Q2 seti, model-v3)"
+                          aria-label={`${e.id} soyağacı adı`}
+                          className="h-7 w-56 text-xs"
+                        />
+                        <Button size="sm" variant="outline" onClick={() => void soyagaciEkle(e.id)} disabled={!(sgAd[e.id] ?? "").trim()}>
+                          Soyağacı Ekle
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
                 <div className="flex flex-wrap items-end gap-2">
                   <select value={eTur} onChange={(ev) => setETur(ev.target.value)} aria-label="Eval türü" className="h-9 rounded-md border bg-background px-2 text-sm">
                     <option value="BIAS">Bias</option>

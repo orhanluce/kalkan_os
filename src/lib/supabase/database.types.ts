@@ -134,6 +134,57 @@ export type Database = {
           },
         ]
       }
+      ai_data_lineage: {
+        Row: {
+          aciklama: string | null
+          ad: string
+          ai_evaluation_id: string
+          created_at: string
+          id: string
+          kaynak_ref: string | null
+          tenant_id: string
+          tur: string
+          veri_hash: string | null
+        }
+        Insert: {
+          aciklama?: string | null
+          ad: string
+          ai_evaluation_id: string
+          created_at?: string
+          id?: string
+          kaynak_ref?: string | null
+          tenant_id: string
+          tur: string
+          veri_hash?: string | null
+        }
+        Update: {
+          aciklama?: string | null
+          ad?: string
+          ai_evaluation_id?: string
+          created_at?: string
+          id?: string
+          kaynak_ref?: string | null
+          tenant_id?: string
+          tur?: string
+          veri_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_data_lineage_ai_evaluation_id_fkey"
+            columns: ["ai_evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_evaluations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_data_lineage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_evaluations: {
         Row: {
           ai_system_id: string
