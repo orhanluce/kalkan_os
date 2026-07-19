@@ -10,6 +10,7 @@ import {
   Bot,
   Boxes,
   ClipboardCheck,
+  FileCheck2,
   FileWarning,
   FlaskConical,
   Gavel,
@@ -81,6 +82,7 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
         { href: "/simulasyonlar", etiket: "Tatbikatlar", Ikon: FlaskConical },
         { href: "/denetim-izi", etiket: "Denetim İzi", Ikon: ScrollText },
         { href: "/seffaflik", etiket: "Şeffaflık Defteri", Ikon: ListTree },
+        { href: "/guvence", etiket: "İddia Güvencesi", Ikon: FileCheck2 },
       ],
     },
     {

@@ -823,6 +823,81 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.59 37 Tez Dikey C — Model/Compliance Claim Guard ✅ (20 Temmuz)
+
+Kurucunun 20 Temmuz talimatı: AI/kural motorunun ürettiği hiçbir uyum/risk/
+kontrol/mevzuat iddiası kaynak+kapsam+tarih+güven+kanıt olmadan "kesin"
+gösterilmemeli. **Yeni bir dört-göz ya da yeni bir dayanak motoru İCAT
+EDİLMEDİ** (talimat kural 1): `assurance_claims`, `obligations.dogrulama_
+durumu`nun dört-göz durum makinesi + `src/lib/legal-basis.ts`'in (M23) saf
+motor mimarisinin BİRLEŞİMİ — bkz. `docs/adr/PR0-37-tez-dikeyC-claim-guard-
+2026-07-20.md`.
+
+**Canlı geliştirme sırasında bir bug yakalandı ve İKİ tabloda düzeltildi
+(dürüstçe kayıtlı, ADR §0):** `assurance_claims`'in ilk taslağı ve dünkü
+(§1.58) `roi_kaynak_kayitlari` migration'ı ikisi de `obligations`'ın ESKİ
+(20260718160000, tek-kişili) dört-göz sürümünü kopyalamıştı — oysa
+`20260718210000_dogrulama_dort_goz.sql` bunu M21'in gerçek şartına
+(`incelemeye_alan ≠ dogrulayan`, inceleyen kendi sunumunu doğrulayamaz)
+yükseltmişti. Kendi PGlite testleri bunu yakaladı (`error: LEGAL_REVIEW
+gecisi incelemeye_alan ve zaman olmadan yapilamaz`). Düzeltme: `assurance_
+claims` (henüz şiplenmemiş) yerinde düzeltildi; `roi_kaynak_kayitlari` (dün
+şiplenmiş) için forward-fix migration `20260720000001_roi_kaynak_dort_goz_
+duzelt.sql` yazıldı (şiplenmiş migration'lar DEĞİŞTİRİLMEZ). Ders: "önce
+mevcut yapıyı oku" bir desenin İLK örneğini değil GÜNCEL (en son forward-fix
+edilmiş) tanımını grep'lemeyi gerektiriyor.
+
+**Şema (`20260720000000_assurance_claims.sql`, tenant-scoped, İÇERİK SEED'İ
+YOK):** `iddia_turu` (UYUM/RİSK/KONTROL/MEVZUAT), polimorfik `hedef_tablo`/
+`hedef_id` (opsiyonel), `iddia_metni`, kapalı-küme `sonuc` (OLUMLU/OLUMSUZ/
+KOŞULLU — NLP/AI ile YORUMLANMAZ, yazan açıkça beyan eder, kural 11), `guven_
+seviyesi` (DÜŞÜK/ORTA/YÜKSEK, **sayısal DEĞİL** — talimat kapsam dışı "yapay
+kesinlik puanı") + zorunlu `guven_gerekcesi`, `kaynak_obligation_id` +
+`kaynak_durumu_anlik` (execution_legal_snapshots deseni: değerlendirme
+anındaki kaynak durumunun donmuş fotoğrafı), `kanit_referanslari` (jsonb,
+ham içerik YOK), GERÇEK dört-göz (`incelemeye_alan`/`dogrulayan` ayrı
+kişiler), `olusturan_tur`/`olusturan` (AI taslak üretebilir, VERIFIED'e
+AI/servis GEÇEMEZ — kimlik atfı guard'ı), `yeniden_inceleme_gerekli` (kural
+9: süre-dolumu/kaynak-geçersizleşme kuyruğu, idempotent pg_cron `kalkan-
+iddia-yeniden-inceleme`, durumu GERİYE DÖNÜK DEĞİŞTİRMEZ — yalnız işaretler).
+
+**Guard'lar (dört-göz'e ek, ADR §2):** VERIFIED'e geçiş kaynak yükümlülük
+`VERIFIED` DEĞİLSE reddedilir; kanıt referansı boşsa reddedilir. **Çatışma
+görünürlüğü DB kısıtı DEĞİL, saf fonksiyon** (`catismaTespitEt`, kural 8):
+aynı (hedef, tür) için farklı `sonuc` bildiren aktif iddialar varsa görünür
+grup döner, otomatik uzlaştırma YAPILMAZ.
+
+**`src/lib/claim-guard.ts`** (mimari `legal-basis.ts`'ten BİREBİR, 19 birim
+test): `iddiaGosterimDurumuHesapla` (staleness sinyalleri VERIFIED'i bile
+geçersiz GÖSTERİR — DB guard geçmişi değiştirmez, gösterim katmanı dürüst
+kalır), `verifiedOnKosulDegerlendir` (DB guard'ın İKİ şartının TS'te BİREBİR
+önizlemesi — UI round-trip beklemeden "şu an uygun değil çünkü..." diyebilir),
+`catismaTespitEt`.
+
+**UI (`/guvence`, dar kapsam — talimat kural 10):** oluştur formu + liste +
+gösterim-durumu rozeti + dört-göz aksiyonları (İncelemeye Al/Doğrula/Reddet,
+"Doğrula" hem aynı-kişi hem eksik-önkoşul durumunda devre dışı + gerekçe
+metni) + çatışan iddialar kartı. Nav: Güvence grubuna "İddia Güvencesi".
+
+**Doğrulama:** 40 yeni PGlite testi (21 `rls-assurance-claims.test.ts` — iki
+kişili dört-göz akışı + Dikey-C-özel VERIFIED önkoşulları + kaynak-fotoğrafı
+immutability + cross-tenant + süre-dolumu cron idempotency; 19 `claim-guard.
+test.ts`) + canlı smoke (8 adım: VERIFIED doğrudan doğamaz, aynı-kişi dört-göz
+reddi, farklı-kişi VERIFIED, süre-dolumu cron işaretleme, roi_kaynak_
+kayitlari forward-fix'in CANLIDA doğrulanması) + gerçek Chromium e2e
+(`guvence.spec.ts`: kaynaksız iddia VERIFIED önizlemesi reddeder, dört-göz
+VERIFIED, çatışma kartı, ret akışı). **1183 birim (114 dosya) + 62 e2e, 0
+skip; build yeşil.**
+
+**Bilinçli kapsam dışı (ADR §4):** hukuki içerik seed etmek, doğrulanmamış
+DORA alanlarını (Dikey B) VERIFIED yapmak, yapay kesinlik puanı, LLM
+sağlayıcı seçimi (`olusturan_tur='ai_taslak'` alanı TAŞINIYOR ama hiçbir
+LLM entegrasyonu KURULMADI), otomatik çatışma çözümü, var olan `obligations`/
+`applicability_decisions`/`legal-basis` akışlarının yeniden yazılması (hepsi
+AYNEN kalıyor). **Açık kurucu kararı (ADR §5):** `guven_seviyesi` üç
+kademesinin somut kriterleri; `yargi_alani` alanının `regulatory_sources.
+jurisdiction` ile DB-seviyesi tutarlılığı zorlanacak mı.
+
 ### 1.58 37 Tez Dikey B — ilk migration dilimi: kurum yasal kimlik + RoI kaynak kataloğu ✅ (19 Temmuz)
 
 Kurucunun 19 Temmuz ikinci talimatı §1.57'nin mapping ADR'sini kabul edilmiş

@@ -78,12 +78,12 @@ Durum sözlüğü: **TAM** (kullanıcı sonucu uçtan uca teslim + test edilmiş
 
 ## KOS-7 — Model Claim Guard ve Eval Sicili
 
-- **Modül/Gate:** M37 AI eval/veri-soyağacı (§1.39) kısmen temel taşıyor; Claim Guard'ın kendisi yok.
-- **Durum: YOK** (`grep`: `claim.guard`/`model.claim` hiçbir dosyada yok).
-- **Eksik kullanıcı sonucu:** manifest (amaç/split/ablation/kalibrasyon/dış doğrulama) yok; 11 otomatik guard (look-ahead sızıntısı, split-öncesi SMOTE, vb.) yok.
-- **Gerekli şema/RLS/invariant:** `ai_eval_manifests` (yeni, M37'nin mevcut eval tablosunu GENİŞLETİR — ayrı paralel motor kurulmaz, talimat açıkça uyarıyor) + `claim_guard_results` (PASSED/FAILED/UNKNOWN/NOT_APPLICABLE, kural 13 desenin aynısı).
-- **Önerilen dikey:** talimatın Dikey C'si — bu oturumda YAPILMIYOR.
-- **Kabul testi:** yeni birim (11 guard kuralı, deterministik) + e2e.
+- **Modül/Gate:** M37 AI eval/veri-soyağacı (§1.39) kısmen temel taşıyor; **§1.59 (20 Temmuz) genel amaçlı bir Claim Guard TESLİM ETTİ** — `assurance_claims` + `src/lib/claim-guard.ts` + `/guvence`.
+- **Durum: KISMİ (genel iddia güvencesi VAR; ML-eval'e ÖZGÜ dar kapsam HÂLÂ YOK — dürüst not aşağıda).**
+- **Kapsam notu (dürüstçe):** kurucunun 20 Temmuz talimatı Dikey C'yi bu bölümün ORİJİNAL tarifinden (M37 AI eval sicili + 11 ML-spesifik otomatik guard) daha GENİŞ bir soruya yöneltti — "AI/kural motorunun ürettiği HERHANGİ BİR uyum/risk/kontrol/mevzuat iddiası" (yalnız ML eval değil). `assurance_claims` bu genel soruyu çözer: kaynak+kanıt+dört-göz+staleness+çatışma görünürlüğü. **Bu bölümün orijinal dar hedefi (manifest amaç/split/ablation/kalibrasyon/dış doğrulama + 11 otomatik guard: look-ahead sızıntısı, split-öncesi SMOTE, vb.) HÂLÂ YOK** — `ai_eval_manifests`/`claim_guard_results` (PASSED/FAILED/UNKNOWN/NOT_APPLICABLE, kural 13) inşa edilmedi. Kurucu isterse bu ayrı, dar bir dilim olarak açılabilir; `assurance_claims`'in `kaynak_obligation_id`/`hedef_tablo`/`hedef_id` polimorfik yapısı gerekirse bir `ai_evaluations` satırını da hedef alabilir (yeniden kullanılabilir), ama ML-spesifik 11 guard kuralı KENDİ motorunu ister.
+- **Gerekli şema/RLS/invariant (kalan dar kapsam için):** `ai_eval_manifests` (M37'nin mevcut eval tablosunu GENİŞLETİR) + `claim_guard_results`.
+- **Önerilen dikey:** genel Claim Guard ✅ TAMAMLANDI (§1.59, 20 Temmuz) → ML-eval-özgü dar dilim kurucu onayı beklerse ayrı bir dikey.
+- **Kabul testi:** `claim-guard.test.ts` (19) + `rls-assurance-claims.test.ts` (21) + `guvence.spec.ts` e2e (mevcut, §1.59) — ML-özgü 11 guard kuralı testi HÂLÂ YOK.
 
 ## KOS-8 — Üçüncü taraf, bulut ve AI tedarik zinciri
 
@@ -108,9 +108,9 @@ Durum sözlüğü: **TAM** (kullanıcı sonucu uçtan uca teslim + test edilmiş
 
 - **Modül/Gate:** yok.
 - **Durum: YOK** (`grep`: `esg`/`emisyon`/`karbon` sıfır eşleşme).
-- **Eksik kullanıcı sonucu:** baz çizgi/ölçüm yöntemi/bağımsız onay şeması yok; Claim Guard'a (KOS-7) bağlı olması gerekiyor — KOS-7'den önce anlamlı başlanamaz.
-- **Gerekli şema/RLS/invariant:** yeni `esg_claims` (baz çizgi, dönem, yöntem, belirsizlik, bağımsız onay) — KOS-7'nin guard motoru üzerine.
-- **Önerilen dikey:** talimatın Dikey J'si — KOS-7 (Dikey C) TAMAMLANMADAN anlamlı değil; bu oturumda YAPILMIYOR.
+- **Eksik kullanıcı sonucu:** baz çizgi/ölçüm yöntemi/bağımsız onay şeması yok. **KOS-7'nin genel guard motoru artık VAR** (§1.59, `assurance_claims`+`claim-guard.ts`) — bu blokör kalktı; kalan iş yalnız ESG'ye özgü alanlar (baz çizgi/dönem/yöntem/belirsizlik).
+- **Gerekli şema/RLS/invariant:** yeni `esg_claims` (baz çizgi, dönem, yöntem, belirsizlik) — `assurance_claims`'in polimorfik `hedef_tablo`/`hedef_id` + dört-göz + çatışma-görünürlüğü altyapısını YENİDEN KULLANABİLİR (kural 1), tamamen yeni bir guard gerekmeyebilir.
+- **Önerilen dikey:** talimatın Dikey J'si — KOS-7 (Dikey C) TAMAMLANDI (§1.59), bu artık başlanabilir durumda; bu oturumda YAPILMIYOR.
 - **Kabul testi:** yeni birim+e2e.
 
 ## KOS-11 — Mahremiyet-koruyucu hesaplama laboratuvarı
@@ -134,7 +134,7 @@ Durum sözlüğü: **TAM** (kullanıcı sonucu uçtan uca teslim + test edilmiş
 | 4 | Yönetişim/politika | KISMİ | Yok (M10 UI, backlog'ta) |
 | 5 | AI Assurance | KISMİ | Yok (Dikey E, sonraki) |
 | 6 | Açıklama/adalet/itiraz | YOK | Yok (Dikey D, DIŞ KARAR bekliyor) |
-| 7 | Model Claim Guard | YOK | Yok (Dikey C, sonraki) |
+| 7 | Model Claim Guard | KISMİ | **Dikey C ✅ TAMAMLANDI (§1.59 — genel iddia güvencesi: kaynak+kanıt+dört-göz+staleness+çatışma); ML-eval'e özgü dar kapsam (manifest+11 guard) hâlâ yok** |
 | 8 | 3.taraf/bulut/AI tedarik | KISMİ | **Dikey A ✅ TAMAMLANDI (§1.56); Dikey B keşif ✅ (§1.57) + ilk migration dilimi ✅ (§1.58 — kurum kimlik+kaynak kataloğu, içerik seed'i yok)** |
 | 9 | Harici sinyal/tehdit | YOK | Yok (Dikey I, sonraki) |
 | 10 | AI/ESG fayda iddiası | YOK | Yok (Dikey J, KOS-7 sonrası) |

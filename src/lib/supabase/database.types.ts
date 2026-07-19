@@ -1222,6 +1222,129 @@ export type Database = {
           },
         ]
       }
+      assurance_claims: {
+        Row: {
+          created_at: string
+          dogrulama_durumu: string
+          dogrulama_zamani: string | null
+          dogrulayan: string | null
+          guven_gerekcesi: string
+          guven_seviyesi: string
+          hedef_id: string | null
+          hedef_tablo: string | null
+          id: string
+          iddia_metni: string
+          iddia_turu: string
+          incelemeye_alan: string | null
+          incelemeye_alinma_zamani: string | null
+          kanit_referanslari: Json
+          kapsam: string | null
+          kaynak_durumu_anlik: string | null
+          kaynak_obligation_id: string | null
+          olusturan: string | null
+          olusturan_tur: string
+          sonuc: string
+          tenant_id: string
+          updated_at: string
+          yargi_alani: string | null
+          yeniden_inceleme_gerekli: boolean
+          yeniden_inceleme_nedeni: string | null
+          yururluk_tarihi: string | null
+        }
+        Insert: {
+          created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          guven_gerekcesi: string
+          guven_seviyesi?: string
+          hedef_id?: string | null
+          hedef_tablo?: string | null
+          id?: string
+          iddia_metni: string
+          iddia_turu: string
+          incelemeye_alan?: string | null
+          incelemeye_alinma_zamani?: string | null
+          kanit_referanslari?: Json
+          kapsam?: string | null
+          kaynak_durumu_anlik?: string | null
+          kaynak_obligation_id?: string | null
+          olusturan?: string | null
+          olusturan_tur?: string
+          sonuc: string
+          tenant_id: string
+          updated_at?: string
+          yargi_alani?: string | null
+          yeniden_inceleme_gerekli?: boolean
+          yeniden_inceleme_nedeni?: string | null
+          yururluk_tarihi?: string | null
+        }
+        Update: {
+          created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          guven_gerekcesi?: string
+          guven_seviyesi?: string
+          hedef_id?: string | null
+          hedef_tablo?: string | null
+          id?: string
+          iddia_metni?: string
+          iddia_turu?: string
+          incelemeye_alan?: string | null
+          incelemeye_alinma_zamani?: string | null
+          kanit_referanslari?: Json
+          kapsam?: string | null
+          kaynak_durumu_anlik?: string | null
+          kaynak_obligation_id?: string | null
+          olusturan?: string | null
+          olusturan_tur?: string
+          sonuc?: string
+          tenant_id?: string
+          updated_at?: string
+          yargi_alani?: string | null
+          yeniden_inceleme_gerekli?: boolean
+          yeniden_inceleme_nedeni?: string | null
+          yururluk_tarihi?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assurance_claims_dogrulayan_fkey"
+            columns: ["dogrulayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assurance_claims_incelemeye_alan_fkey"
+            columns: ["incelemeye_alan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assurance_claims_kaynak_obligation_id_fkey"
+            columns: ["kaynak_obligation_id"]
+            isOneToOne: false
+            referencedRelation: "obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assurance_claims_olusturan_fkey"
+            columns: ["olusturan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assurance_claims_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_engagements: {
         Row: {
           ad: string
@@ -4952,6 +5075,8 @@ export type Database = {
           dogrulayan: string | null
           eklenme_kaynagi: string
           id: string
+          incelemeye_alan: string | null
+          incelemeye_alinma_zamani: string | null
           kapali_kume_degerleri: Json | null
           kaynak_alintisi: string | null
           kaynak_url: string
@@ -4970,6 +5095,8 @@ export type Database = {
           dogrulayan?: string | null
           eklenme_kaynagi?: string
           id?: string
+          incelemeye_alan?: string | null
+          incelemeye_alinma_zamani?: string | null
           kapali_kume_degerleri?: Json | null
           kaynak_alintisi?: string | null
           kaynak_url: string
@@ -4988,6 +5115,8 @@ export type Database = {
           dogrulayan?: string | null
           eklenme_kaynagi?: string
           id?: string
+          incelemeye_alan?: string | null
+          incelemeye_alinma_zamani?: string | null
           kapali_kume_degerleri?: Json | null
           kaynak_alintisi?: string | null
           kaynak_url?: string
@@ -5001,6 +5130,13 @@ export type Database = {
           {
             foreignKeyName: "roi_kaynak_kayitlari_dogrulayan_fkey"
             columns: ["dogrulayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roi_kaynak_kayitlari_incelemeye_alan_fkey"
+            columns: ["incelemeye_alan"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -7940,6 +8076,10 @@ export type Database = {
       artifact_ledger_durumu: {
         Args: { p_artifact_id: string; p_artifact_table: string }
         Returns: string
+      }
+      assurance_claims_yeniden_inceleme_isle: {
+        Args: never
+        Returns: undefined
       }
       audit_log_canonical: {
         Args: {
