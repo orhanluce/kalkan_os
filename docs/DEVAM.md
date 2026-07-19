@@ -64,9 +64,10 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (19 Temmuz — Dikey 5 + Dikey 4 kalanı + M17 sonraki dilim (kısmi) BİTTİ)
-- **Remote (origin/main) HEAD:** `b73f51d` (§1.48: M17 sonraki dilim kısmi —
-  workpaper→bulgu/kontrol bağı) + DEVAM SHA commit'i. Öncesi
+## 0c. GERÇEK DURUM (19 Temmuz — Dikey 5 + Dikey 4 kalanı + M17 sonraki dilim (2/4) BİTTİ)
+- **Remote (origin/main) HEAD:** `8618a64` (§1.49: M17 sonraki dilim madde 2/4 —
+  PBC/request) + DEVAM SHA commit'i. Öncesi `b73f51d`
+  (§1.48: M17 sonraki dilim madde 1/4 — workpaper→bulgu/kontrol bağı),
   `c3320aa`/`4200c75` (§1.47: Dikey 4 kalanı — segment drift + insan override +
   model rollback + ISO 42001↔27001 crosswalk), `c44a954`/`b074bbc` (Dikey 5:
   M21/M42 dayanıklılık taksonomisi + etki grafiği, §1.46), `91efb68`
@@ -78,15 +79,15 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı: 1042 birim (102 dosya) + 58 e2e, 0 skip; build exit 0.**
-  (Bu oturumda tam takım ÜÇ kez uçtan uca yeşil koşuldu — `tema.spec` dahil
+- **Test tabanı: 1048 birim (103 dosya) + 58 e2e, 0 skip; build exit 0.**
+  (Bu oturumda tam takım DÖRT kez uçtan uca yeşil koşuldu — `tema.spec` dahil
   hiçbir izole-flake tekrarlamadı. Yol boyunca bir gerçek e2e çakışması
   yakalandı ve düzeltildi: "Model rollback" yardım metnindeki "yok" kelimesi
   `ai-olay-eval.spec.ts`'in `getByText("yok")` strict-mode locator'ıyla
   çakıştı — metin yeniden yazıldı, regresyon giderildi.)
-- Migration sırası son: `20260719230000_audit_workpaper_control_finding_links.sql`
-  (canlıda, guard'lar gerçek Supabase'e karşı smoke ile doğrulandı — PGlite≠
-  Supabase disiplini korundu).
+- Migration sırası son: `20260719240000_audit_pbc_requests.sql` (canlıda,
+  guard'lar gerçek Supabase'e karşı smoke ile doğrulandı — PGlite≠Supabase
+  disiplini korundu).
 - **E2E LEDGER TEMİZLİK KURALI (kayıt için):** kontrol testleri artık auto-anchor
   ediyor → `artifact_ledger_links` entries'e ON DELETE RESTRICT'li. Ledger'a
   dokunan HER e2e spec temizliğinde links+outbox ÖNCE silinmeli (yoksa toplu
@@ -120,12 +121,18 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   bağları da DONUK (mevcut icerik-donukluğunun kenarlara genişlemesi). UI
   `/denetim/[id]` çalışma kağıdı satırına bağ seçici + rozetler eklendi.
   Testler: rls-audit-workpaper-links 7 + mevcut `denetim.spec.ts` genişletildi
-  (bağla→sign-off→donukluk+DB reddi) + canlı guard smoke. **§1.29'un KALAN ÜÇ
-  maddesi bilinçli BEKLİYOR:** PBC/request tablosu, formal independence_
-  declarations bağı, WORM export.
+  (bağla→sign-off→donukluk+DB reddi) + canlı guard smoke.
+- **M17 sonraki dilim madde 2/4 BİTTİ** (ROADMAP §1.49): PBC/request —
+  `audit_pbc_requests`, `regulatory_requests`'in (M38) sadeleştirilmiş yeniden
+  kullanımı: ACIK→ALINDI (kanıt+tarih zorunlu)→KAPANDI (yalnız ALINDI'dan,
+  kural 14 ruhu), ALINDI/KAPANDI'da kanıt DONUK. UI `/denetim/[id]`'ye "PBC
+  Talepleri" kartı eklendi. Testler: rls-audit-pbc-requests 6 + mevcut
+  `denetim.spec.ts` genişletildi (aynı testte talep→alındı→kapat) + canlı
+  guard smoke. **§1.29'un KALAN İKİ maddesi bilinçli BEKLİYOR:** formal
+  independence_declarations bağı, WORM export.
 - **Sıradaki (bilinçli sonraki dilim, bu oturumda YAPILMADI):** tezin 29 alt
   kategorisi + kaynak künyesi/tez sayfa referansı (Dikey 5 kalanı); M17'nin
-  kalan üç maddesi (yukarıda); ROADMAP §1.24-1.30'un diğer "sonraki dilim"
+  kalan iki maddesi (yukarıda); ROADMAP §1.24-1.30'un diğer "sonraki dilim"
   borçları (M35/M36/M38/M13). Nihai talimat v3.3 §8.0'ın BEŞ dikeyi BİTTİ —
   kurucudan yeni belge gelene kadar bu borç listesinden mantıklı bir sonraki
   madde seçilerek devam edilebilir (v3.2 tamamlandığında izlenen desenin
