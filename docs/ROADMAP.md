@@ -823,6 +823,23 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.36 M37 sonraki dilim — AI olay (incident) + değerlendirme (eval) ✅ (19 Temmuz)
+
+Migration `20260719110000` — mevcut M37 grafına (ai_systems) EKLEMELİ 2 tablo:
+`ai_incidents` (EU AI Act Art. 73 ciddi-olay; ciddiyet + durum + otorite
+bildirim zamanı) ve `ai_evaluations` (bias/robustluk/doğruluk/güvenlik/
+açıklanabilirlik). ai_systems tablosu/guard'ı DEĞİŞMEDİ. **Anahtar invariant'lar
+(canlı smoke 4/4):** (kural 14) olay kapanışı KANIT + kapatan + zaman ister;
+(kural 13) eval sonucu BİRLEŞTİRİLMEZ — `sonuc` varsayılan **UNKNOWN** (ölçülmedi
+≠ FAILED), enum PASSED/FAILED/UNKNOWN; kimlik atfı (kapatan oturum sahibi). İçerik
+uydurulmaz (kural 3). Saf `ai-olay.ts`: `evalOzeti` (tür başına en son sonuç,
+FAILED/UNKNOWN ayrı raporlanır — tek güvence puanı YOK) + `aiOlayOzeti` (açık
+ciddi olay sinyali). UI AI Güvence hub'ına "Olaylar & Değerlendirmeler" kartı
+(seçili sistem: olay ekle/kanıtla-kapat + eval ekle; UNKNOWN dürüstçe etiketli).
+Testler: ai-olay 4 + rls-ai-incident-eval 4 (birim) + `ai-olay-eval.spec.ts` e2e
++ smoke 4/4. Sonraki dilim: eval veri-soyağacı, ciddi olayda otorite-bildirim
+süre saati (M36 ihlal deseni), sistem-AKTIF ↔ açık kritik olay çapraz guard'ı.
+
 ### 1.35 M35 sonraki dilim — Tedarikçi değerlendirme / anket / bulgu ✅ (19 Temmuz)
 
 Migration `20260719100000` — mevcut M35 grafına (third_parties) EKLEMELİ 3 tablo:

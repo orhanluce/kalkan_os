@@ -134,6 +134,67 @@ export type Database = {
           },
         ]
       }
+      ai_evaluations: {
+        Row: {
+          ai_system_id: string
+          created_at: string
+          degerlendiren: string | null
+          degerlendirme_at: string
+          gecerlilik_bitis: string | null
+          id: string
+          olcum: string | null
+          sonuc: string
+          tenant_id: string
+          tur: string
+        }
+        Insert: {
+          ai_system_id: string
+          created_at?: string
+          degerlendiren?: string | null
+          degerlendirme_at?: string
+          gecerlilik_bitis?: string | null
+          id?: string
+          olcum?: string | null
+          sonuc?: string
+          tenant_id: string
+          tur: string
+        }
+        Update: {
+          ai_system_id?: string
+          created_at?: string
+          degerlendiren?: string | null
+          degerlendirme_at?: string
+          gecerlilik_bitis?: string | null
+          id?: string
+          olcum?: string | null
+          sonuc?: string
+          tenant_id?: string
+          tur?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_evaluations_ai_system_id_fkey"
+            columns: ["ai_system_id"]
+            isOneToOne: false
+            referencedRelation: "ai_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_evaluations_degerlendiren_fkey"
+            columns: ["degerlendiren"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_evaluations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_execution_receipts: {
         Row: {
           ai_agent_id: string | null
@@ -213,6 +274,76 @@ export type Database = {
           },
           {
             foreignKeyName: "ai_execution_receipts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_incidents: {
+        Row: {
+          ai_system_id: string
+          ciddiyet: string
+          created_at: string
+          durum: string
+          id: string
+          kapanis_kanit: string | null
+          kapanis_zamani: string | null
+          kapatan: string | null
+          otorite_bildirildi_at: string | null
+          ozet: string
+          tenant_id: string
+          tespit_at: string
+          updated_at: string
+        }
+        Insert: {
+          ai_system_id: string
+          ciddiyet?: string
+          created_at?: string
+          durum?: string
+          id?: string
+          kapanis_kanit?: string | null
+          kapanis_zamani?: string | null
+          kapatan?: string | null
+          otorite_bildirildi_at?: string | null
+          ozet: string
+          tenant_id: string
+          tespit_at?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_system_id?: string
+          ciddiyet?: string
+          created_at?: string
+          durum?: string
+          id?: string
+          kapanis_kanit?: string | null
+          kapanis_zamani?: string | null
+          kapatan?: string | null
+          otorite_bildirildi_at?: string | null
+          ozet?: string
+          tenant_id?: string
+          tespit_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_incidents_ai_system_id_fkey"
+            columns: ["ai_system_id"]
+            isOneToOne: false
+            referencedRelation: "ai_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_incidents_kapatan_fkey"
+            columns: ["kapatan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_incidents_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

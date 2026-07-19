@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { aiReceiptFingerprint } from "@/lib/ai-receipt";
+import { aiOlayOzeti, type OlayKayit } from "@/lib/ai-olay";
 import { createClient } from "@/lib/supabase/client";
 
 interface Sistem {
@@ -34,6 +35,19 @@ interface Receipt {
   karar: string;
   model_saglayici: string | null;
 }
+interface Olay {
+  id: string;
+  ai_system_id: string;
+  ozet: string;
+  ciddiyet: string;
+  durum: string;
+}
+interface Eval {
+  id: string;
+  ai_system_id: string;
+  tur: string;
+  sonuc: string;
+}
 
 const RISK: Record<string, SemantikDurum> = { PROHIBITED: "danger", HIGH: "warning", LIMITED: "info", MINIMAL: "neutral" };
 const KARAR_SEM: Record<string, SemantikDurum> = { SUGGESTED: "legal-review", ACCEPTED: "success", REJECTED: "danger" };
@@ -49,6 +63,13 @@ export default function AiGuvencePage() {
   const [aAd, setAAd] = useState("");
   const [aSistem, setASistem] = useState("");
   const [aYazma, setAYazma] = useState(false);
+  const [olaylar, setOlaylar] = useState<Olay[]>([]);
+  const [evaller, setEvaller] = useState<Eval[]>([]);
+  const [oOzet, setOOzet] = useState("");
+  const [oCiddiyet, setOCiddiyet] = useState("KRITIK");
+  const [oKanit, setOKanit] = useState<Record<string, string>>({});
+  const [eTur, setETur] = useState("BIAS");
+  const [eSonuc, setESonuc] = useState("UNKNOWN");
 
   const tenantCoz = useCallback(async (): Promise<string | null> => {
     const db = createClient();
@@ -62,14 +83,18 @@ export default function AiGuvencePage() {
 
   const yukle = useCallback(async () => {
     const db = createClient();
-    const [{ data: ss }, { data: as }, { data: rs }] = await Promise.all([
+    const [{ data: ss }, { data: as }, { data: rs }, { data: os }, { data: es }] = await Promise.all([
       db.from("ai_systems").select("id, ad, rol, risk_sinifi, durum").order("ad"),
       db.from("ai_agents").select("id, ad, yazma_yetkisi, insan_onay_gerekli, durum").order("ad"),
       db.from("ai_execution_receipts").select("id, amac, karar, model_saglayici").order("created_at", { ascending: false }),
+      db.from("ai_incidents").select("id, ai_system_id, ozet, ciddiyet, durum").order("tespit_at", { ascending: false }),
+      db.from("ai_evaluations").select("id, ai_system_id, tur, sonuc").order("degerlendirme_at", { ascending: false }),
     ]);
     setSistemler((ss ?? []) as Sistem[]);
     setAjanlar((as ?? []) as Ajan[]);
     setReceiptler((rs ?? []) as Receipt[]);
+    setOlaylar((os ?? []) as Olay[]);
+    setEvaller((es ?? []) as Eval[]);
     if (!aSistem && (ss ?? []).length > 0) setASistem((ss as Sistem[])[0].id);
   }, [aSistem]);
 
@@ -102,6 +127,50 @@ export default function AiGuvencePage() {
     },
     [yukle],
   );
+
+  const olayEkle = useCallback(async () => {
+    setHata(null);
+    if (!oOzet.trim() || !aSistem) return;
+    const tid = await tenantCoz();
+    if (!tid) return setHata("Kurum bağlamı çözülemedi.");
+    const db = createClient();
+    const { error } = await db.from("ai_incidents").insert({ tenant_id: tid, ai_system_id: aSistem, ozet: oOzet.trim(), ciddiyet: oCiddiyet });
+    if (error) return setHata(error.message);
+    setOOzet("");
+    await yukle();
+  }, [oOzet, oCiddiyet, aSistem, tenantCoz, yukle]);
+
+  const olayKapat = useCallback(
+    async (id: string) => {
+      setHata(null);
+      const kanit = (oKanit[id] ?? "").trim();
+      if (!kanit) return setHata("Olay kapanışı kanıt ister (kural 14).");
+      const db = createClient();
+      const {
+        data: { user },
+      } = await db.auth.getUser();
+      if (!user) return;
+      const { error } = await db
+        .from("ai_incidents")
+        .update({ durum: "KAPANDI", kapanis_kanit: kanit, kapatan: user.id, kapanis_zamani: new Date().toISOString() })
+        .eq("id", id);
+      if (error) setHata(error.message);
+      setOKanit((m) => ({ ...m, [id]: "" }));
+      await yukle();
+    },
+    [oKanit, yukle],
+  );
+
+  const evalEkle = useCallback(async () => {
+    setHata(null);
+    if (!aSistem) return;
+    const tid = await tenantCoz();
+    if (!tid) return setHata("Kurum bağlamı çözülemedi.");
+    const db = createClient();
+    const { error } = await db.from("ai_evaluations").insert({ tenant_id: tid, ai_system_id: aSistem, tur: eTur, sonuc: eSonuc });
+    if (error) setHata(error.message);
+    await yukle();
+  }, [aSistem, eTur, eSonuc, tenantCoz, yukle]);
 
   const ajanEkle = useCallback(async () => {
     setHata(null);
@@ -368,6 +437,108 @@ export default function AiGuvencePage() {
               </Table>
             </div>
           ) : null}
+        </CardContent>
+      </Card>
+
+      {/* Olaylar & Değerlendirmeler */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Olaylar &amp; Değerlendirmeler</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 text-sm">
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="oe-sistem">Sistem</Label>
+            <select
+              id="oe-sistem"
+              value={aSistem}
+              onChange={(e) => setASistem(e.target.value)}
+              aria-label="Olay/eval sistemi"
+              className="h-9 w-64 rounded-md border bg-background px-2 text-sm"
+            >
+              {sistemler.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.ad}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {(() => {
+            const sistemOlaylari = olaylar.filter((o) => o.ai_system_id === aSistem);
+            const ozet = aiOlayOzeti(sistemOlaylari as unknown as OlayKayit[]);
+            return (
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium">Olaylar ({sistemOlaylari.length})</span>
+                  {ozet.acikCiddiVar ? <StatusBadge durum="danger">Açık ciddi olay</StatusBadge> : null}
+                </div>
+                {sistemOlaylari.map((o) => (
+                  <div key={o.id} className="flex flex-wrap items-center gap-2 border-t pt-2 text-xs">
+                    <span>{o.ozet}</span>
+                    <StatusBadge durum={o.ciddiyet === "KRITIK" || o.ciddiyet === "YUKSEK" ? "danger" : "neutral"}>{o.ciddiyet}</StatusBadge>
+                    <StatusBadge durum={o.durum === "KAPANDI" ? "success" : "warning"}>{o.durum}</StatusBadge>
+                    {o.durum !== "KAPANDI" ? (
+                      <>
+                        <Input
+                          value={oKanit[o.id] ?? ""}
+                          onChange={(e) => setOKanit((m) => ({ ...m, [o.id]: e.target.value }))}
+                          placeholder="kapanış kanıtı"
+                          aria-label={`${o.id} olay kanıtı`}
+                          className="h-7 w-44 text-xs"
+                        />
+                        <Button size="sm" variant="outline" onClick={() => void olayKapat(o.id)}>
+                          Kapat
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
+                ))}
+                <div className="flex flex-wrap items-end gap-2 border-t pt-2">
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="o-ozet">Olay özeti</Label>
+                    <Input id="o-ozet" value={oOzet} onChange={(e) => setOOzet(e.target.value)} className="w-56" />
+                  </div>
+                  <select value={oCiddiyet} onChange={(e) => setOCiddiyet(e.target.value)} aria-label="Olay ciddiyeti" className="h-9 rounded-md border bg-background px-2 text-sm">
+                    <option value="DUSUK">Düşük</option>
+                    <option value="ORTA">Orta</option>
+                    <option value="YUKSEK">Yüksek</option>
+                    <option value="KRITIK">Kritik</option>
+                  </select>
+                  <Button size="sm" onClick={() => void olayEkle()} disabled={!oOzet.trim() || !aSistem}>
+                    Olay Ekle
+                  </Button>
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-2 border-t pt-2">
+                  <span className="font-medium">Değerlendirmeler (eval)</span>
+                  <span className="text-xs text-muted-foreground">UNKNOWN = ölçülmedi (kural 13: başarısız değil)</span>
+                </div>
+                {evaller.filter((e) => e.ai_system_id === aSistem).map((e) => (
+                  <div key={e.id} className="flex flex-wrap items-center gap-2 text-xs">
+                    <span>{e.tur}</span>
+                    <StatusBadge durum={e.sonuc === "PASSED" ? "success" : e.sonuc === "FAILED" ? "danger" : "unknown"}>{e.sonuc}</StatusBadge>
+                  </div>
+                ))}
+                <div className="flex flex-wrap items-end gap-2">
+                  <select value={eTur} onChange={(ev) => setETur(ev.target.value)} aria-label="Eval türü" className="h-9 rounded-md border bg-background px-2 text-sm">
+                    <option value="BIAS">Bias</option>
+                    <option value="ROBUSTLUK">Robustluk</option>
+                    <option value="DOGRULUK">Doğruluk</option>
+                    <option value="GUVENLIK">Güvenlik</option>
+                    <option value="ACIKLANABILIRLIK">Açıklanabilirlik</option>
+                  </select>
+                  <select value={eSonuc} onChange={(ev) => setESonuc(ev.target.value)} aria-label="Eval sonucu" className="h-9 rounded-md border bg-background px-2 text-sm">
+                    <option value="UNKNOWN">Ölçülmedi (UNKNOWN)</option>
+                    <option value="PASSED">Geçti</option>
+                    <option value="FAILED">Kaldı</option>
+                  </select>
+                  <Button size="sm" variant="outline" onClick={() => void evalEkle()} disabled={!aSistem}>
+                    Eval Ekle
+                  </Button>
+                </div>
+              </>
+            );
+          })()}
         </CardContent>
       </Card>
     </div>
