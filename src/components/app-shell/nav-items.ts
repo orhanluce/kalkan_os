@@ -19,6 +19,7 @@ import {
   Library,
   ListTree,
   Lock,
+  Network,
   ScrollText,
   Share2,
   ShieldCheck,
@@ -96,6 +97,7 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
       ogeler: [
         { href: "/kritik-hizmetler", etiket: "Kritik Hizmetler", Ikon: Activity },
         { href: "/tedarikciler", etiket: "Tedarikçiler", Ikon: Boxes },
+        { href: "/dayaniklilik", etiket: "Dayanıklılık Etki Grafiği", Ikon: Network },
       ],
     },
     {

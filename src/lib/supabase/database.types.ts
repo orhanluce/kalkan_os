@@ -1662,6 +1662,73 @@ export type Database = {
         }
         Relationships: []
       }
+      control_resilience_domains: {
+        Row: {
+          control_id: string
+          created_at: string
+          dogrulama_durumu: string
+          dogrulama_zamani: string | null
+          dogrulayan: string | null
+          eklenme_kaynagi: string
+          gerekce: string | null
+          id: string
+          incelemeye_alan: string | null
+          incelemeye_alinma_zamani: string | null
+          kategori: string
+          updated_at: string
+        }
+        Insert: {
+          control_id: string
+          created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          eklenme_kaynagi?: string
+          gerekce?: string | null
+          id?: string
+          incelemeye_alan?: string | null
+          incelemeye_alinma_zamani?: string | null
+          kategori: string
+          updated_at?: string
+        }
+        Update: {
+          control_id?: string
+          created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          eklenme_kaynagi?: string
+          gerekce?: string | null
+          id?: string
+          incelemeye_alan?: string | null
+          incelemeye_alinma_zamani?: string | null
+          kategori?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "control_resilience_domains_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "control_resilience_domains_dogrulayan_fkey"
+            columns: ["dogrulayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "control_resilience_domains_incelemeye_alan_fkey"
+            columns: ["incelemeye_alan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       control_test_definitions: {
         Row: {
           aciklama: string | null
@@ -1919,6 +1986,55 @@ export type Database = {
           },
           {
             foreignKeyName: "critical_business_services_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      critical_service_controls: {
+        Row: {
+          control_id: string
+          created_at: string
+          critical_service_id: string
+          gerekce: string | null
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          control_id: string
+          created_at?: string
+          critical_service_id: string
+          gerekce?: string | null
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          control_id?: string
+          created_at?: string
+          critical_service_id?: string
+          gerekce?: string | null
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "critical_service_controls_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "critical_service_controls_critical_service_id_fkey"
+            columns: ["critical_service_id"]
+            isOneToOne: false
+            referencedRelation: "critical_business_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "critical_service_controls_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

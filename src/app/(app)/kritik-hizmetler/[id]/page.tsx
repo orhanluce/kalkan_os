@@ -25,6 +25,16 @@ interface Bagimlilik {
   ad: string;
   tekil_nokta: boolean;
 }
+interface KontrolBagi {
+  id: string;
+  control_id: string;
+  gerekce: string | null;
+  controls: { madde_ref: string; baslik: string } | null;
+}
+interface KontrolSecenegi {
+  id: string;
+  ref: string;
+}
 
 const TOL_DURUM: Record<string, SemantikDurum> = { TASLAK: "neutral", YURURLUKTE: "success", SUPERSEDED: "neutral" };
 
@@ -40,6 +50,10 @@ export default function KritikHizmetDetayPage() {
   const [bTur, setBTur] = useState("SISTEM");
   const [bAd, setBAd] = useState("");
   const [bTekil, setBTekil] = useState(false);
+  const [kontrolBaglari, setKontrolBaglari] = useState<KontrolBagi[]>([]);
+  const [kontrolSecenekleri, setKontrolSecenekleri] = useState<KontrolSecenegi[]>([]);
+  const [kSecim, setKSecim] = useState("");
+  const [kGerekce, setKGerekce] = useState("");
 
   const yukle = useCallback(async () => {
     const db = createClient();
@@ -57,6 +71,13 @@ export default function KritikHizmetDetayPage() {
     setToleranslar((ts ?? []) as Tolerans[]);
     const { data: bs } = await db.from("service_dependencies").select("id, bagimlilik_turu, ad, tekil_nokta").eq("critical_service_id", params.id);
     setBagimliliklar((bs ?? []) as Bagimlilik[]);
+    const { data: kb } = await db
+      .from("critical_service_controls")
+      .select("id, control_id, gerekce, controls (madde_ref, baslik)")
+      .eq("critical_service_id", params.id);
+    setKontrolBaglari((kb ?? []) as unknown as KontrolBagi[]);
+    const { data: ks } = await db.from("controls").select("id, madde_ref").order("madde_ref").limit(100);
+    setKontrolSecenekleri((ks ?? []).map((c) => ({ id: c.id, ref: c.madde_ref })));
   }, [params.id]);
 
   useEffect(() => {
@@ -104,6 +125,19 @@ export default function KritikHizmetDetayPage() {
     setBTekil(false);
     await yukle();
   }, [bAd, bTur, bTekil, tenantId, params.id, yukle]);
+
+  const kontrolBagla = useCallback(async () => {
+    setHata(null);
+    if (!kSecim || !tenantId) return;
+    const db = createClient();
+    const { error } = await db
+      .from("critical_service_controls")
+      .insert({ tenant_id: tenantId, critical_service_id: params.id, control_id: kSecim, gerekce: kGerekce.trim() || null });
+    if (error) setHata(error.message);
+    setKSecim("");
+    setKGerekce("");
+    await yukle();
+  }, [kSecim, kGerekce, tenantId, params.id, yukle]);
 
   if (!hizmet) return <div className="p-2 text-sm text-muted-foreground">Yükleniyor…</div>;
 
@@ -185,6 +219,46 @@ export default function KritikHizmetDetayPage() {
             </label>
             <Button size="sm" onClick={() => void bagimlilikEkle()} disabled={!bAd.trim()}>
               Bağımlılık Ekle
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Etki grafiği kenarı: bu hizmeti koruyan kontroller (Dikey 5) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Koruyan kontroller ({kontrolBaglari.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 text-sm">
+          <p className="text-xs text-muted-foreground">
+            Bu kenar M13&apos;ün kritik hizmet grafını genişletir: hangi kontrol bu hizmeti koruyor. &quot;En çok kritik
+            hizmet etkileyen kontroller&quot; ve iyileştirme önceliği bu bağdan türetilir (bkz. Dayanıklılık Etki Grafiği).
+          </p>
+          {kontrolBaglari.map((k) => (
+            <div key={k.id} className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-xs">{k.controls?.madde_ref ?? k.control_id}</span>
+              <span>{k.controls?.baslik}</span>
+              {k.gerekce ? <span className="text-xs text-muted-foreground">— {k.gerekce}</span> : null}
+            </div>
+          ))}
+          <div className="flex flex-wrap items-end gap-2 border-t pt-2">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="k-secim">Kontrol</Label>
+              <select id="k-secim" value={kSecim} onChange={(e) => setKSecim(e.target.value)} className="h-9 w-56 rounded-md border bg-background px-2 text-sm">
+                <option value="">Seçiniz…</option>
+                {kontrolSecenekleri.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.ref}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="k-gerekce">Gerekçe (opsiyonel)</Label>
+              <Input id="k-gerekce" value={kGerekce} onChange={(e) => setKGerekce(e.target.value)} className="w-56" />
+            </div>
+            <Button size="sm" onClick={() => void kontrolBagla()} disabled={!kSecim}>
+              Kontrol Bağla
             </Button>
           </div>
         </CardContent>

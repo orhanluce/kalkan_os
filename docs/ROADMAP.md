@@ -823,6 +823,49 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.46 Nihai v3.3 §8.0 Dikey 5 (ilk yarı) — M21/M42 dayanıklılık taksonomisi + etki grafiği ✅ (19 Temmuz)
+
+Migration `20260719210000` — YENİ graf DB kurulmadı; M13'ün mevcut kritik hizmet
+grafı (`critical_business_services`/`service_dependencies`, §1.28) yeni bir kenar
+türüyle GENİŞLETİLDİ. İki tablo: `control_resilience_domains` (GLOBAL katalog,
+obligations dört-göz deseninin AYNISI — 20260718210000: TODO_DOGRULA doğar,
+VERIFIED yalnız LEGAL_REVIEW'den + dogrulayan ≠ incelemeye_alan + kimlik atfı,
+VERIFIED içerik donuk; `kategori` **8 üst alanla** sınırlı check — tezin 29 alt
+kategorisi bu dilimde DOĞRUDAN BAĞLANMAZ, kural 3 bilinçli dar kapsam) +
+`critical_service_controls` (TENANT'A ÖZGÜ yeni kenar: kritik hizmet → kontrol,
+service_dependencies RLS deseninin aynısı).
+
+**8 üst alan** (nihai talimat v3.3 §8.0'dan, THESIS_DERIVED): yönetişim, öngörü/
+hazırlık/tanımlama, önleme/koruma, izleme/tespit, müdahale, kurtarma, tehdit
+istihbaratı/paylaşım, üçüncü taraf yönetimi. VERIFIED seed YOK.
+
+Saf motor `src/lib/etki-analizi.ts` (kural 11; M13'ün `tekilNoktaAnalizi` ve
+M35'in `konsantrasyonAnalizi`si TEKRAR EDİLMEDİ, import edilip birleştirildi):
+`zincirlemeEtkiYollari` (kritik hizmet→tedarikçi→dördüncü-taraf zinciri,
+bilinmeyen dördüncü taraf DÜŞÜK RİSK VARSAYILMAZ), `enCokKritikHizmetEtkileyenKontroller`
+(yeni kenardan türer, açık sayım), `dayaniklilikKapsamOzeti` (8 alan HER ZAMAN
+görünür — kapsamsız alan da dürüstçe listelenir), `iyilestirmeOnceligiSirala`
+(**TEK SAHTE SKOR YOK** — nihai talimat v3.3 §8.0 açık talimatı: faktör listesi
+AÇIKLANABİLİR döner — sistemik tekil nokta/etkilenen hizmet sayısı/tedarikçi
+yoğunlaşma noktası/açık kritik bulgu — faktörsüz hedef sonuçtan çıkarılır, opak
+birleşik puan üretilmez).
+
+Rota `/api/dayaniklilik/siniflandirma` (regulasyon/dogrulama deseninin AYNISI:
+service_role yazar, rol kapısı route'ta — incelemeye alma admin/uyum, karar
+bugün yalnız admin, K8 açık karar). UI `/dayaniklilik` (8-alan kapsam tablosu +
+sınıflandırma dört-göz kuyruğu + zincirleme etki + en çok etkileyen kontroller +
+iyileştirme önceliği) + `/kritik-hizmetler/[id]`'ye "Koruyan kontroller" kartı
+(yeni kenarı ekler). Canlı smoke: guard'lar (VERIFIED doğamaz/LEGAL_REVIEW
+atıfsız red/dört-göz aynı-kişi red) gerçek Supabase'e karşı doğrulandı (PGlite≠
+Supabase disiplini). Testler: rls-resilience 12 + etki-analizi 10 saf +
+`dayaniklilik.spec.ts` e2e (iki-kullanıcı dört-göz + rol-kapısı reddi + DB
+guard reddi, regulasyon-dogrulama.spec.ts deseniyle) + canlı smoke. **1015 birim
+(100 dosya) + 57 e2e, 0 skip; build yeşil.** **BİLİNÇLİ SONRAKİ DİLİM (Dikey 5
+kalanı):** tezin 29 alt kategorisi, kontrol→domain sınıflandırmasının kaynak
+künyesi/tez sayfa referansı; Dikey 4 kalan dilimi (segment-bazlı sonuç, insan
+override gerekçesi, rollback modeli/son test, ISO 42001↔27001 crosswalk) ayrı,
+bağımsız iş olarak kalır.
+
 ### 1.45 Nihai v3.3 §8.0 Dikey 4 — M37 AI veri/model güvence genişlemesi ✅ (19 Temmuz)
 
 Teslim edilen eval veri-soyağacı (§1.39) YENİDEN YAZILMADAN zenginleştirildi +
