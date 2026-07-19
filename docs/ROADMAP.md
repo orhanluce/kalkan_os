@@ -823,6 +823,23 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.38 Nihai v3.2 §8.0 sonu, öncelik #1 — AI ciddi olayı otorite-bildirim süre saati ✅ (19 Temmuz)
+
+Migration `20260719130000` — `ai_incidents.bildirim_esik_saat` (nullable int,
+`check > 0`). **KURAL 3 (mevzuat içeriği uydurulmaz):** AB AI Act madde 73'ün
+ciddi-olay bildirim süresi TEK bir sabit sayı DEĞİLDİR (olay türüne göre
+değişir) ve bu repo lisanslı/doğrulanmış hukuk içeriği olmadan bunu SABİT KOD
+olarak iddia ETMEZ — M36 ihlal deseninin aksine (KVKK'nın 72 saati iyi bilinen,
+güvenilir bir sayı; `IHLAL_OTORITE_SAAT` kod sabiti) burada eşik KOD'da
+SABİTLENMEDİ. Kurumun kendi hukuk/uyum ekibi her ciddi olay için AÇIKÇA girer;
+girilmeden ekran dürüstçe "belirlenmedi" der, hiçbir sayı varsayılmaz. Saat
+türetimi YENİ yazılmadı — `src/lib/gizlilik.ts`'teki `ihlalBildirimSaati`
+(M36) BİREBİR yeniden kullanıldı (eşik parametre olarak alır, tek motor).
+UI (`/ai-guvence` "Olaylar" kartı): eşik girişi + "Otoriteye Bildirildi
+İşaretle" + saat rozeti (gecikti/süresinde/kalan). Testler: rls-ai-incident-eval
++1 (NULL doğar + pozitif check) + `ai-olay-eval.spec.ts` genişletildi (eşik
+belirlenmedi → gir → bildir → "Süresinde bildirildi") + canlı smoke 2/2.
+
 ### 1.37 Nihai talimat v3.2 §8.0 — transactional outbox → SCITT defterine OTOMATİK bağlama ✅ (19 Temmuz)
 
 **Sürüm 3.2'nin tek sıradaki dikeyi.** Gerçek domain artefaktı oluştuğunda

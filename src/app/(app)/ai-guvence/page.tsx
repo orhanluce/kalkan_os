@@ -4,7 +4,7 @@
 // uygulama aktif edilemez), ajanlar (yazma yetkisi insan onayı ister; kill/
 // disable), AI Decision Receipt'ler (SUGGESTED doğar; kabul/red İNSANA ait —
 // AI karar veremez). Karar sınırı DB guard'ında; bu ekran akışı sürer.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusBadge, type SemantikDurum } from "@/components/durum/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { aiReceiptFingerprint } from "@/lib/ai-receipt";
 import { aiOlayOzeti, type OlayKayit } from "@/lib/ai-olay";
+import { ihlalBildirimSaati } from "@/lib/gizlilik";
 import { createClient } from "@/lib/supabase/client";
 
 interface Sistem {
@@ -41,6 +42,9 @@ interface Olay {
   ozet: string;
   ciddiyet: string;
   durum: string;
+  tespit_at: string;
+  otorite_bildirildi_at: string | null;
+  bildirim_esik_saat: number | null;
 }
 interface Eval {
   id: string;
@@ -68,8 +72,10 @@ export default function AiGuvencePage() {
   const [oOzet, setOOzet] = useState("");
   const [oCiddiyet, setOCiddiyet] = useState("KRITIK");
   const [oKanit, setOKanit] = useState<Record<string, string>>({});
+  const [oEsik, setOEsik] = useState<Record<string, string>>({});
   const [eTur, setETur] = useState("BIAS");
   const [eSonuc, setESonuc] = useState("UNKNOWN");
+  const simdi = useMemo(() => new Date(), []);
 
   const tenantCoz = useCallback(async (): Promise<string | null> => {
     const db = createClient();
@@ -87,7 +93,7 @@ export default function AiGuvencePage() {
       db.from("ai_systems").select("id, ad, rol, risk_sinifi, durum").order("ad"),
       db.from("ai_agents").select("id, ad, yazma_yetkisi, insan_onay_gerekli, durum").order("ad"),
       db.from("ai_execution_receipts").select("id, amac, karar, model_saglayici").order("created_at", { ascending: false }),
-      db.from("ai_incidents").select("id, ai_system_id, ozet, ciddiyet, durum").order("tespit_at", { ascending: false }),
+      db.from("ai_incidents").select("id, ai_system_id, ozet, ciddiyet, durum, tespit_at, otorite_bildirildi_at, bildirim_esik_saat").order("tespit_at", { ascending: false }),
       db.from("ai_evaluations").select("id, ai_system_id, tur, sonuc").order("degerlendirme_at", { ascending: false }),
     ]);
     setSistemler((ss ?? []) as Sistem[]);
@@ -159,6 +165,34 @@ export default function AiGuvencePage() {
       await yukle();
     },
     [oKanit, yukle],
+  );
+
+  // Bildirim eşiği (saat) — KALKAN_OS bir sabit sayı UYDURMAZ (kural 3): AB AI
+  // Act madde 73 eşiği olay türüne göre değişir; kurum kendi hukuk danışmanlığıyla
+  // belirler. Saat türetimi src/lib/gizlilik.ts'ten YENİDEN KULLANILIR.
+  const esikKaydet = useCallback(
+    async (id: string) => {
+      setHata(null);
+      const saat = Number(oEsik[id]);
+      if (!saat || saat <= 0) return;
+      const db = createClient();
+      const { error } = await db.from("ai_incidents").update({ bildirim_esik_saat: saat }).eq("id", id);
+      if (error) setHata(error.message);
+      setOEsik((m) => ({ ...m, [id]: "" }));
+      await yukle();
+    },
+    [oEsik, yukle],
+  );
+
+  const otoriteyeBildir = useCallback(
+    async (id: string) => {
+      setHata(null);
+      const db = createClient();
+      const { error } = await db.from("ai_incidents").update({ otorite_bildirildi_at: new Date().toISOString() }).eq("id", id);
+      if (error) setHata(error.message);
+      await yukle();
+    },
+    [yukle],
   );
 
   const evalEkle = useCallback(async () => {
@@ -472,27 +506,67 @@ export default function AiGuvencePage() {
                   <span className="font-medium">Olaylar ({sistemOlaylari.length})</span>
                   {ozet.acikCiddiVar ? <StatusBadge durum="danger">Açık ciddi olay</StatusBadge> : null}
                 </div>
-                {sistemOlaylari.map((o) => (
-                  <div key={o.id} className="flex flex-wrap items-center gap-2 border-t pt-2 text-xs">
-                    <span>{o.ozet}</span>
-                    <StatusBadge durum={o.ciddiyet === "KRITIK" || o.ciddiyet === "YUKSEK" ? "danger" : "neutral"}>{o.ciddiyet}</StatusBadge>
-                    <StatusBadge durum={o.durum === "KAPANDI" ? "success" : "warning"}>{o.durum}</StatusBadge>
-                    {o.durum !== "KAPANDI" ? (
-                      <>
-                        <Input
-                          value={oKanit[o.id] ?? ""}
-                          onChange={(e) => setOKanit((m) => ({ ...m, [o.id]: e.target.value }))}
-                          placeholder="kapanış kanıtı"
-                          aria-label={`${o.id} olay kanıtı`}
-                          className="h-7 w-44 text-xs"
-                        />
-                        <Button size="sm" variant="outline" onClick={() => void olayKapat(o.id)}>
-                          Kapat
-                        </Button>
-                      </>
-                    ) : null}
-                  </div>
-                ))}
+                {sistemOlaylari.map((o) => {
+                  const ciddi = o.ciddiyet === "KRITIK" || o.ciddiyet === "YUKSEK";
+                  const saat = o.bildirim_esik_saat
+                    ? ihlalBildirimSaati(o.tespit_at, simdi, o.otorite_bildirildi_at, o.bildirim_esik_saat)
+                    : null;
+                  return (
+                    <div key={o.id} className="flex flex-col gap-1 border-t pt-2 text-xs">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span>{o.ozet}</span>
+                        <StatusBadge durum={ciddi ? "danger" : "neutral"}>{o.ciddiyet}</StatusBadge>
+                        <StatusBadge durum={o.durum === "KAPANDI" ? "success" : "warning"}>{o.durum}</StatusBadge>
+                        {o.durum !== "KAPANDI" ? (
+                          <>
+                            <Input
+                              value={oKanit[o.id] ?? ""}
+                              onChange={(e) => setOKanit((m) => ({ ...m, [o.id]: e.target.value }))}
+                              placeholder="kapanış kanıtı"
+                              aria-label={`${o.id} olay kanıtı`}
+                              className="h-7 w-44 text-xs"
+                            />
+                            <Button size="sm" variant="outline" onClick={() => void olayKapat(o.id)}>
+                              Kapat
+                            </Button>
+                          </>
+                        ) : null}
+                      </div>
+                      {ciddi && o.durum !== "KAPANDI" ? (
+                        <div className="flex flex-wrap items-center gap-2 pl-1">
+                          {saat ? (
+                            <StatusBadge durum={saat.gecikti ? "danger" : "warning"}>{saat.mesaj}</StatusBadge>
+                          ) : (
+                            <StatusBadge durum="unknown">Bildirim eşiği belirlenmedi</StatusBadge>
+                          )}
+                          {!o.bildirim_esik_saat ? (
+                            <>
+                              <Input
+                                type="number"
+                                value={oEsik[o.id] ?? ""}
+                                onChange={(e) => setOEsik((m) => ({ ...m, [o.id]: e.target.value }))}
+                                placeholder="eşik (saat) — hukuk danışmanınızla belirleyin"
+                                aria-label={`${o.id} bildirim eşiği saat`}
+                                className="h-7 w-64 text-xs"
+                              />
+                              <Button size="sm" variant="outline" onClick={() => void esikKaydet(o.id)} disabled={!(oEsik[o.id] ?? "").trim()}>
+                                Eşiği Kaydet
+                              </Button>
+                            </>
+                          ) : !o.otorite_bildirildi_at ? (
+                            <Button size="sm" variant="outline" onClick={() => void otoriteyeBildir(o.id)}>
+                              Otoriteye Bildirildi İşaretle
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground">
+                              Bildirildi: {new Date(o.otorite_bildirildi_at).toLocaleString("tr-TR")}
+                            </span>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
                 <div className="flex flex-wrap items-end gap-2 border-t pt-2">
                   <div className="flex flex-col gap-1">
                     <Label htmlFor="o-ozet">Olay özeti</Label>

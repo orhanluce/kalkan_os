@@ -67,6 +67,19 @@ describe("AI olay + eval — RLS + guard (M37 sonraki dilim)", () => {
     expect(rows[0].sonuc).toBe("UNKNOWN");
   });
 
+  it("bildirim_esik_saat NULL doğar (kural 3: sabit süre uydurulmaz) + pozitif olmalı check'i", async () => {
+    const s = await aiSistem(seed.A.tenantId, "S");
+    const o = await olay(seed.A.tenantId, s, "KRITIK");
+    const { rows } = await db.sql(`select bildirim_esik_saat from public.ai_incidents where id = $1`, [o]);
+    expect(rows[0].bildirim_esik_saat).toBeNull();
+    await expect(
+      db.sql(`update public.ai_incidents set bildirim_esik_saat = -5 where id = $1`, [o]),
+    ).rejects.toThrow();
+    await db.sql(`update public.ai_incidents set bildirim_esik_saat = 360 where id = $1`, [o]);
+    const { rows: sonra } = await db.sql(`select bildirim_esik_saat from public.ai_incidents where id = $1`, [o]);
+    expect(Number(sonra[0].bildirim_esik_saat)).toBe(360);
+  });
+
   it("eval sonucu yalnız PASSED/FAILED/UNKNOWN olabilir", async () => {
     const s = await aiSistem(seed.A.tenantId, "S");
     await expect(

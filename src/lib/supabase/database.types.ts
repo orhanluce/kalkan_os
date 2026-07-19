@@ -284,6 +284,7 @@ export type Database = {
       ai_incidents: {
         Row: {
           ai_system_id: string
+          bildirim_esik_saat: number | null
           ciddiyet: string
           created_at: string
           durum: string
@@ -299,6 +300,7 @@ export type Database = {
         }
         Insert: {
           ai_system_id: string
+          bildirim_esik_saat?: number | null
           ciddiyet?: string
           created_at?: string
           durum?: string
@@ -314,6 +316,7 @@ export type Database = {
         }
         Update: {
           ai_system_id?: string
+          bildirim_esik_saat?: number | null
           ciddiyet?: string
           created_at?: string
           durum?: string

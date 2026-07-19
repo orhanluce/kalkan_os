@@ -40,8 +40,29 @@ test("ai: olay kanıtla kapanır (kural 14) + eval UNKNOWN dürüstlüğü (kura
     await page.getByRole("button", { name: "Olay Ekle" }).click();
     await expect(page.getByText("Açık ciddi olay")).toBeVisible();
 
-    // Olayı kanıtla kapat (kural 14).
-    const { data: inc } = await db.from("ai_incidents").select("id").eq("ai_system_id", sysId).single();
+    // Bildirim eşiği: KALKAN_OS bir sayı UYDURMAZ (kural 3) — belirlenmeden
+    // dürüstçe "belirlenmedi" der.
+    await expect(page.getByText("Bildirim eşiği belirlenmedi")).toBeVisible();
+    const { data: inc } = await db.from("ai_incidents").select("id, bildirim_esik_saat").eq("ai_system_id", sysId).single();
+    expect(inc!.bildirim_esik_saat).toBeNull();
+
+    // Eşiği kurum kendi hukuk danışmanlığıyla belirler (360 saat = 15 gün örneği).
+    await page.getByLabel(`${inc!.id} bildirim eşiği saat`).fill("360");
+    await page.getByRole("button", { name: "Eşiği Kaydet" }).click();
+    await expect(page.getByText(/Otorite bildirimine \d+ saat/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Otoriteye Bildirildi İşaretle" })).toBeVisible();
+
+    // Otoriteye bildir → saat "süresinde bildirildi" der; sonra olayı kanıtla kapat (kural 14).
+    await page.getByRole("button", { name: "Otoriteye Bildirildi İşaretle" }).click();
+    await expect(page.getByText("Süresinde bildirildi")).toBeVisible();
+    const { data: incBildirim } = await db
+      .from("ai_incidents")
+      .select("bildirim_esik_saat, otorite_bildirildi_at")
+      .eq("id", inc!.id)
+      .single();
+    expect(Number(incBildirim!.bildirim_esik_saat)).toBe(360);
+    expect(incBildirim!.otorite_bildirildi_at).not.toBeNull();
+
     await page.getByLabel(`${inc!.id} olay kanıtı`).fill("Model yeniden eğitildi, doğrulama #77");
     await page.getByRole("button", { name: "Kapat" }).click();
     await expect(page.getByText("KAPANDI")).toBeVisible();
