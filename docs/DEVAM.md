@@ -64,10 +64,11 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (19 Temmuz — v3.3 §8.0 Dikey 5 ilk yarı BİTTİ)
-- **Remote (origin/main) HEAD:** `b074bbc` (v3.3 §8.0 Dikey 5 ilk yarı: M21/M42
-  dayanıklılık taksonomisi + etki grafiği, ROADMAP §1.46) + DEVAM SHA commit'i.
-  Öncesi `91efb68`
+## 0c. GERÇEK DURUM (19 Temmuz — Dikey 5 ilk yarı + Dikey 4 kalan dilimi BİTTİ)
+- **Remote (origin/main) HEAD:** `4200c75` (§1.47: Dikey 4 kalanı — segment
+  drift + insan override + model rollback + ISO 42001↔27001 crosswalk) +
+  DEVAM SHA commit'i. Öncesi `c44a954`/`b074bbc` (Dikey 5 ilk yarı:
+  M21/M42 dayanıklılık taksonomisi + etki grafiği, §1.46), `91efb68`
   (Dikey 4: AI veri/model güvence), `15831b9` (Dikey 3: bulut paketi), `e73fd20`
   (Dikey 2: M12 V2 manifest), `5df9176` (Dikey 1: G3 defter kapsamı), `b6283bc`
   (M38 toplantı), `65767b7` (M35 anket şablonu), `2e5efea` (AI eval soyağacı),
@@ -76,12 +77,15 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı: 1015 birim (100 dosya) + 57 e2e, 0 skip; build exit 0.**
-  (Bu oturumda `tema.spec` DAHİL tam takım tek koşuda yeşil geçti — önceki
-  oturumun izole-yük-flake kaydı CLAUDE.md'de duruyor, bu koşuda tekrarlamadı.)
-- Migration sırası son: `20260719210000_resilience_taxonomy.sql` (canlıda,
-  guard'lar gerçek Supabase'e karşı smoke ile doğrulandı — PGlite≠Supabase
-  disiplini korundu).
+- **Test tabanı: 1035 birim (101 dosya) + 58 e2e, 0 skip; build exit 0.**
+  (Bu oturumda tam takım İKİ kez uçtan uca yeşil koşuldu — `tema.spec` dahil
+  hiçbir izole-flake tekrarlamadı. Yol boyunca bir gerçek e2e çakışması
+  yakalandı ve düzeltildi: yeni "Model rollback" yardım metnindeki "yok"
+  kelimesi `ai-olay-eval.spec.ts`'in `getByText("yok")` strict-mode
+  locator'ıyla çakıştı — metin yeniden yazıldı, regresyon giderildi.)
+- Migration sırası son: `20260719220000_ai_drift_segment_override_rollback_crosswalk.sql`
+  (canlıda, guard'lar gerçek Supabase'e karşı smoke ile doğrulandı — PGlite≠
+  Supabase disiplini korundu).
 - **E2E LEDGER TEMİZLİK KURALI (kayıt için):** kontrol testleri artık auto-anchor
   ediyor → `artifact_ledger_links` entries'e ON DELETE RESTRICT'li. Ledger'a
   dokunan HER e2e spec temizliğinde links+outbox ÖNCE silinmeli (yoksa toplu
@@ -98,11 +102,23 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   "Koruyan kontroller" kartı. Testler: rls-resilience 12 + etki-analizi 10 saf +
   `dayaniklilik.spec.ts` e2e (iki-kullanıcı dört-göz, regulasyon-dogrulama
   deseniyle) + canlı guard smoke.
-- **Sıradaki (Dikey 5 kalanı — bilinçli sonraki dilim, bu oturumda YAPILMADI):**
-  tezin 29 alt kategorisi + kaynak künyesi/tez sayfa referansı; ayrıca Dikey 4
-  kalan dilimi (segment-bazlı sonuç, insan override gerekçesi, rollback modeli/
-  son test, ISO 42001↔27001 crosswalk) — bağımsız, ayrı iş olarak kalır. Bu
-  ikisinden biri seçilerek devam edilebilir; ya da kurucudan yeni yön beklenir.
+- **Dikey 4 kalan dilimi BİTTİ** (ROADMAP §1.47): segment-bazlı drift sonucu
+  (`ai_drift_readings.segment`, saf `driftSegmentGrupla` — segmentler
+  birleştirilmez) + insan override gerekçesi (guard: gerekçesiz/kimliksiz red,
+  bir kez override edilince donuk) + `ai_model_rollbacks` (M35 exit_plans
+  deseni — kanıtsız "tamamlandı" yok) + `iso_42001_27001_crosswalk` (GLOBAL,
+  dört-göz, standart METNİ seed EDİLMEZ — yalnız kısa madde kodu + küratör
+  gerekçesi). UI `/ai-guvence` genişledi (segment durumu + override aksiyonu +
+  Model rollback + ISO Crosswalk kartı), rota `/api/ai-guvence/crosswalk`.
+  Testler: rls-ai-drift-rollback-crosswalk 16 + ai-olay 4 yeni saf +
+  `ai-drift-rollback-crosswalk.spec.ts` e2e (iki-kullanıcı dört-göz) + canlı
+  guard smoke.
+- **Sıradaki (bilinçli sonraki dilim, bu oturumda YAPILMADI):** tezin 29 alt
+  kategorisi + kaynak künyesi/tez sayfa referansı (Dikey 5 kalanı). Nihai
+  talimat v3.3 §8.0'ın BEŞ dikeyi de artık BİTTİ — bundan sonrası için ya
+  kurucudan yeni yön beklenmeli ya da §8.0 dışındaki gate'lerin (G0 kalanı,
+  G9 M42, ROADMAP §1.24-1.30 "sonraki dilim" borçları) arasından mantıklı bir
+  sonraki adım seçilmeli (v3.2 tamamlandığında izlenen desenin aynısı).
 - **§8.0 ana dikeyi TAM (ilk kapsam madde 1-2):** kontrol testi koşusu
   (`test_runs`, otomatik, Proof Room'a bağlı) + DSAR kanıt paketi (senkrondan
   asenkrona geçirildi). Genel mekanizma (`ledger_outbox`+`artifact_ledger_links`
