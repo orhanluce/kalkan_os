@@ -32,6 +32,12 @@ interface Tedarikci {
   karar: string;
   durum: string;
 }
+interface Sablon {
+  id: string;
+  tur: string;
+  soru: string;
+  aktif: boolean;
+}
 
 export default function TedariklerPage() {
   const [liste, setListe] = useState<Tedarikci[]>([]);
@@ -40,6 +46,9 @@ export default function TedariklerPage() {
   const [hata, setHata] = useState<string | null>(null);
   const [yeniAd, setYeniAd] = useState("");
   const [yeniTier, setYeniTier] = useState("DUSUK");
+  const [sablonlar, setSablonlar] = useState<Sablon[]>([]);
+  const [sTur, setSTur] = useState("DORA");
+  const [sSoru, setSSoru] = useState("");
 
   const yukle = useCallback(async () => {
     const db = createClient();
@@ -60,6 +69,12 @@ export default function TedariklerPage() {
       dorduncuTaraflar: (t.fourth_parties ?? []).map((f) => ({ id: f.id, ad: f.ad, bilinmiyor: f.bilinmiyor })),
     }));
     setKonsantrasyon(konsantrasyonAnalizi(graf));
+    const { data: sb } = await db
+      .from("assessment_question_templates")
+      .select("id, tur, soru, aktif")
+      .order("tur")
+      .order("sira");
+    setSablonlar((sb ?? []) as Sablon[]);
     setYukleniyor(false);
   }, []);
 
@@ -91,6 +106,36 @@ export default function TedariklerPage() {
     setYeniAd("");
     await yukle();
   }, [yeniAd, yeniTier, yukle]);
+
+  // Doğrulanmış anket şablonu (M35 sonraki dilim, §8.0 sonu öncelik #3): tenant
+  // kendi soru bankasını yazar (KALKAN_OS soru İÇERİĞİ uydurmaz, kural 3/12
+  // ruhu) — bir kez yazılır, her yeni değerlendirmede tekrar yazılmadan kopyalanır.
+  const sablonEkle = useCallback(async () => {
+    setHata(null);
+    if (!sSoru.trim()) return;
+    const db = createClient();
+    const {
+      data: { user },
+    } = await db.auth.getUser();
+    if (!user) return;
+    const { data: profil } = await db.from("profiles").select("tenant_id").eq("id", user.id).maybeSingle();
+    if (!profil?.tenant_id) return setHata("Kurum bağlamı çözülemedi.");
+    const { error } = await db.from("assessment_question_templates").insert({ tenant_id: profil.tenant_id, tur: sTur, soru: sSoru.trim() });
+    if (error) return setHata(error.message);
+    setSSoru("");
+    await yukle();
+  }, [sTur, sSoru, yukle]);
+
+  const sablonPasifYap = useCallback(
+    async (id: string) => {
+      setHata(null);
+      const db = createClient();
+      const { error } = await db.from("assessment_question_templates").update({ aktif: false }).eq("id", id);
+      if (error) setHata(error.message);
+      await yukle();
+    },
+    [yukle],
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -199,6 +244,60 @@ export default function TedariklerPage() {
               </Table>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Anket şablonları ({sablonlar.filter((s) => s.aktif).length} aktif)</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 text-sm">
+          <p className="text-muted-foreground">
+            Kendi due-diligence soru bankanız — bir kez yazılır, her tedarikçi değerlendirmesinde
+            tekrar yazılmadan kopyalanır. Bu ekran soru İÇERİĞİ üretmez; sorular kurumunuzun uyum
+            ekibi tarafından girilir.
+          </p>
+          {Object.entries(
+            sablonlar.reduce<Record<string, Sablon[]>>((acc, s) => {
+              (acc[s.tur] ??= []).push(s);
+              return acc;
+            }, {}),
+          ).map(([tur, sorular]) => (
+            <div key={tur} className="flex flex-col gap-1 border-t pt-2">
+              <span className="font-medium">{tur}</span>
+              {sorular.map((s) => (
+                <div key={s.id} className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className={s.aktif ? "" : "text-muted-foreground line-through"}>{s.soru}</span>
+                  {!s.aktif ? (
+                    <StatusBadge durum="neutral">Pasif</StatusBadge>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={() => void sablonPasifYap(s.id)}>
+                      Pasif Yap
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+          <div className="flex flex-wrap items-end gap-2 border-t pt-2">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="sb-tur">Değerlendirme türü</Label>
+              <select id="sb-tur" value={sTur} onChange={(e) => setSTur(e.target.value)} className="h-9 rounded-md border bg-background px-2 text-sm">
+                <option value="GUVENLIK">Güvenlik</option>
+                <option value="GIZLILIK">Gizlilik</option>
+                <option value="FINANSAL">Finansal</option>
+                <option value="OPERASYONEL">Operasyonel</option>
+                <option value="DORA">DORA</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="sb-soru">Soru</Label>
+              <Input id="sb-soru" value={sSoru} onChange={(e) => setSSoru(e.target.value)} className="w-72" />
+            </div>
+            <Button size="sm" onClick={() => void sablonEkle()} disabled={!sSoru.trim()}>
+              Şablona Ekle
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -800,6 +800,44 @@ export type Database = {
           },
         ]
       }
+      assessment_question_templates: {
+        Row: {
+          aktif: boolean
+          created_at: string
+          id: string
+          sira: number
+          soru: string
+          tenant_id: string
+          tur: string
+        }
+        Insert: {
+          aktif?: boolean
+          created_at?: string
+          id?: string
+          sira?: number
+          soru: string
+          tenant_id: string
+          tur?: string
+        }
+        Update: {
+          aktif?: boolean
+          created_at?: string
+          id?: string
+          sira?: number
+          soru?: string
+          tenant_id?: string
+          tur?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_question_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessment_questions: {
         Row: {
           assessment_id: string

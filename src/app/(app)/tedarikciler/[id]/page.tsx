@@ -66,6 +66,11 @@ interface BulguRow {
   ciddiyet: string;
   durum: string;
 }
+interface SoruRow {
+  id: string;
+  assessment_id: string;
+  soru: string;
+}
 
 export default function TedarikciDetayPage() {
   const params = useParams<{ id: string }>();
@@ -76,6 +81,7 @@ export default function TedarikciDetayPage() {
   const [cikis, setCikis] = useState<CikisPlani[]>([]);
   const [degerlendirmeler, setDegerlendirmeler] = useState<Degerlendirme[]>([]);
   const [bulgular, setBulgular] = useState<BulguRow[]>([]);
+  const [sorular, setSorular] = useState<SoruRow[]>([]);
   const [bBaslik, setBBaslik] = useState<Record<string, string>>({});
   const [bCiddiyet, setBCiddiyet] = useState<Record<string, string>>({});
   const [bKanit, setBKanit] = useState<Record<string, string>>({});
@@ -128,6 +134,13 @@ export default function TedarikciDetayPage() {
     ]);
     setDegerlendirmeler((as_ ?? []) as Degerlendirme[]);
     setBulgular((fs ?? []) as BulguRow[]);
+    const assessmentIds = (as_ ?? []).map((a) => a.id);
+    if (assessmentIds.length > 0) {
+      const { data: qs } = await db.from("assessment_questions").select("id, assessment_id, soru").in("assessment_id", assessmentIds);
+      setSorular((qs ?? []) as SoruRow[]);
+    } else {
+      setSorular([]);
+    }
   }, [params.id]);
 
   useEffect(() => {
@@ -160,6 +173,34 @@ export default function TedarikciDetayPage() {
     if (error) setHata(error.message);
     await yukle();
   }, [tenantId, params.id, yukle]);
+
+  // Doğrulanmış anket şablonu (M35 sonraki dilim, §8.0 sonu öncelik #3): aktif
+  // şablon sorularını bu değerlendirmeye KOPYALAR (assessment_questions'a düz
+  // insert) — şablonun kendisi değişmez, kopyalanan soru artık bağımsız kayıt.
+  const sablondanKopyala = useCallback(
+    async (assessmentId: string, tur: string) => {
+      setHata(null);
+      if (!tenantId) return;
+      const db = createClient();
+      const { data: sablonlar, error: selErr } = await db
+        .from("assessment_question_templates")
+        .select("soru, sira")
+        .eq("tenant_id", tenantId)
+        .eq("tur", tur)
+        .eq("aktif", true)
+        .order("sira");
+      if (selErr) return setHata(selErr.message);
+      if (!sablonlar || sablonlar.length === 0) {
+        return setHata(`"${tur}" türü için aktif şablon sorusu yok (Tedarikçiler ana sayfasında ekleyin).`);
+      }
+      const { error } = await db.from("assessment_questions").insert(
+        sablonlar.map((s) => ({ tenant_id: tenantId, assessment_id: assessmentId, soru: s.soru, sira: s.sira })),
+      );
+      if (error) setHata(error.message);
+      await yukle();
+    },
+    [tenantId, yukle],
+  );
 
   const bulguEkle = useCallback(
     async (assessmentId: string) => {
@@ -493,7 +534,23 @@ export default function TedarikciDetayPage() {
                       Değerlendirmeyi Tamamla
                     </Button>
                   ) : null}
+                  {a.durum !== "TAMAMLANDI" ? (
+                    <Button size="sm" variant="outline" onClick={() => void sablondanKopyala(a.id, a.tur)}>
+                      Şablondan Soru Kopyala
+                    </Button>
+                  ) : null}
                 </div>
+
+                {sorular.filter((s) => s.assessment_id === a.id).length > 0 ? (
+                  <div className="flex flex-col gap-1 border-t pt-2 text-xs">
+                    <span className="font-medium">Anket soruları</span>
+                    {sorular
+                      .filter((s) => s.assessment_id === a.id)
+                      .map((s) => (
+                        <span key={s.id}>• {s.soru}</span>
+                      ))}
+                  </div>
+                ) : null}
 
                 {aBulgular.map((f) => (
                   <div key={f.id} className="flex flex-wrap items-center gap-2 border-t pt-2 text-xs">

@@ -823,6 +823,24 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.40 Nihai v3.2 §8.0 sonu, öncelik #3 — M35 doğrulanmış anket şablonu ✅ (19 Temmuz)
+
+Migration `20260719150000` — `assessment_question_templates` (G4 veri
+modelinde adı geçen `ThirdPartyQuestionnaire`). Mevcut `assessment_questions`
+(bir DEĞERLENDİRMEYE bağlı, tek kullanımlık) üstüne, tenant'ın kendi
+doğruladığı bir soru BANKASI: bir kez yazılır, her yeni tedarikçi
+değerlendirmesinde düz bir `insert...select` ile KOPYALANIR — aynı standart
+sorular her vendor'a sorulur (karşılaştırılabilir, denetlenebilir). **İçerik
+uydurulmaz (kural 3/12 ruhu):** bu "resmî DORA anketi" DEĞİLDİR, KALKAN_OS
+hiçbir soru metni seed etmez — tamamen tenant girdisi. Soft-disable
+(`aktif=false`): geçmiş kopyalar silinmez, yalnız yeni kopyalamalarda
+önerilmez (kural 2 ruhu). Kopyalanan soru şablona BAĞLI DEĞİL — şablon
+sonradan değişse geçmiş değerlendirme etkilenmez (bağımsız kayıt, PGlite
+testli). UI: `/tedarikciler` ana sayfasına şablon yönetim kartı, vendor detay
+sayfasına "Şablondan Soru Kopyala" butonu + kopyalanan soruların listesi.
+Testler: rls-tpr-questionnaire-template 4 (birim, kopyalama sonrası
+bağımsızlık dahil) + `tedarikci-anket-sablonu.spec.ts` e2e + canlı smoke 3/3.
+
 ### 1.39 Nihai v3.2 §8.0 sonu, öncelik #2 — AI eval veri-soyağacı ✅ (19 Temmuz)
 
 Migration `20260719140000` — `ai_data_lineage` (G5 veri modelinde adı geçen
