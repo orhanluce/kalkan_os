@@ -3847,6 +3847,67 @@ export type Database = {
           },
         ]
       }
+      regulatory_meetings: {
+        Row: {
+          created_at: string
+          id: string
+          katilimcilar: string[]
+          kayit_eden: string | null
+          konu: string
+          matter_id: string
+          notlar: string | null
+          tarih: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          katilimcilar?: string[]
+          kayit_eden?: string | null
+          konu: string
+          matter_id: string
+          notlar?: string | null
+          tarih?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          katilimcilar?: string[]
+          kayit_eden?: string | null
+          konu?: string
+          matter_id?: string
+          notlar?: string | null
+          tarih?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_meetings_kayit_eden_fkey"
+            columns: ["kayit_eden"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_meetings_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_matters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_meetings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regulatory_requests: {
         Row: {
           created_at: string

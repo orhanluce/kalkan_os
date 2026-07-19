@@ -42,8 +42,23 @@ test("regülatör: talep → yanıt → dört-göz onay → gönder(makbuz) → 
     const { data: m } = await db.from("regulatory_matters").select("id").eq("tenant_id", kurum!.id).eq("konu", "E2E-BS incelemesi").single();
     const detay = `/regulator/${m!.id}`;
 
-    // 2) Talep + yanıt taslağı.
+    // 1b) Toplantı kaydı (M38 sonraki dilim, §8.0 sonu öncelik #4).
     await adminPage.goto(detay);
+    await adminPage.getByLabel("Konu").fill("E2E-Saha ziyareti");
+    await adminPage.getByLabel("Katılımcılar (virgülle)").fill("A. Yılmaz (SPK), B. Demir (Uyum)");
+    await adminPage.getByLabel("Notlar").fill("Erişim listesi talebi sözlü olarak da iletildi.");
+    await adminPage.getByRole("button", { name: "Toplantı Kaydet" }).click();
+    await expect(adminPage.getByText("E2E-Saha ziyareti")).toBeVisible();
+    await expect(adminPage.getByText("A. Yılmaz (SPK), B. Demir (Uyum)", { exact: false })).toBeVisible();
+    const { data: toplanti } = await db
+      .from("regulatory_meetings")
+      .select("kayit_eden, katilimcilar")
+      .eq("matter_id", m!.id)
+      .single();
+    expect(toplanti!.kayit_eden).not.toBeNull();
+    expect(toplanti!.katilimcilar).toContain("A. Yılmaz (SPK)");
+
+    // 2) Talep + yanıt taslağı.
     await adminPage.getByLabel("Talep").fill("Erişim listesi");
     await adminPage.getByLabel("Son tarih").fill("2026-12-31");
     await adminPage.getByRole("button", { name: "Talep Ekle" }).click();

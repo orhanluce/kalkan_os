@@ -823,6 +823,23 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.41 Nihai v3.2 §8.0 sonu, öncelik #4 (SON) — M38 regülatör toplantı kaydı ✅ (19 Temmuz)
+
+Migration `20260719160000` — `regulatory_meetings` (G7 veri modelinde adı
+geçen `RegulatoryMeeting`). Mevcut matter/request/response zincirine
+EKLEMELİ: yalnız YAZIŞMA değil, bir matter kapsamında yapılan TOPLANTININ
+(saha ziyareti, görüşme) kaydı da izlenir — "bu konu ne zaman, kimlerle
+görüşüldü" sorusu yanıtlanır. **İçerik uydurulmaz (kural 3):** katılımcı/notlar
+tamamen tenant girdisi. Kimlik atfı (kayıt eden oturum sahibi, M16 #9 deseni).
+regulatory_matters/requests ile AYNI mutable stil (durum makinesi/immutable
+DEĞİL — bu bir kayıt defteri, kanıt zinciri response'un `gonderim_receipt`'inde
+zaten var). UI: matter detayına "Toplantılar" kartı. Testler:
+rls-regulatory-meeting 3 (birim) + `regulator.spec.ts` genişletildi (toplantı
+kaydı adımı eklendi) + canlı smoke 3/3 (cascade silme dahil).
+
+**NİHAİ TALİMAT v3.2 §8.0 SONU ÖNCELİK SIRASI TAMAMLANDI** (madde 1-4): AI olay
+bildirim saati + AI eval soyağacı + M35 anket şablonu + M38 toplantı kaydı.
+
 ### 1.40 Nihai v3.2 §8.0 sonu, öncelik #3 — M35 doğrulanmış anket şablonu ✅ (19 Temmuz)
 
 Migration `20260719150000` — `assessment_question_templates` (G4 veri

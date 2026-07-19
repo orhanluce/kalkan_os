@@ -30,6 +30,13 @@ interface Talep {
   durum: string;
   yanitlar: Yanit[];
 }
+interface Toplanti {
+  id: string;
+  konu: string;
+  tarih: string;
+  katilimcilar: string[];
+  notlar: string | null;
+}
 
 const YANIT_DURUM: Record<string, SemantikDurum> = {
   TASLAK: "neutral",
@@ -50,6 +57,10 @@ export default function RegulatorDetayPage() {
   const [tSon, setTSon] = useState("");
   const [yMetin, setYMetin] = useState<Record<string, string>>({});
   const [disEmail, setDisEmail] = useState("");
+  const [toplantilar, setToplantilar] = useState<Toplanti[]>([]);
+  const [tpKonu, setTpKonu] = useState("");
+  const [tpKatilimcilar, setTpKatilimcilar] = useState("");
+  const [tpNotlar, setTpNotlar] = useState("");
 
   const simdi = useMemo(() => new Date(), []);
 
@@ -79,6 +90,12 @@ export default function RegulatorDetayPage() {
         yanitlar: [...(r.regulatory_responses ?? [])].sort((a, b) => b.surum - a.surum),
       })),
     );
+    const { data: tps } = await db
+      .from("regulatory_meetings")
+      .select("id, konu, tarih, katilimcilar, notlar")
+      .eq("matter_id", params.id)
+      .order("tarih", { ascending: false });
+    setToplantilar((tps ?? []) as Toplanti[]);
   }, [params.id]);
 
   useEffect(() => {
@@ -98,6 +115,31 @@ export default function RegulatorDetayPage() {
     setTSon("");
     await yukle();
   }, [tMetin, tSon, tenantId, params.id, yukle]);
+
+  // Regülatör toplantı kaydı (M38 sonraki dilim, §8.0 sonu öncelik #4):
+  // içerik uydurulmaz — katılımcı/notlar tamamen kurumun kendi girdisi.
+  const toplantiEkle = useCallback(async () => {
+    setHata(null);
+    if (!tpKonu.trim() || !tenantId || !kullaniciId) return;
+    const db = createClient();
+    const katilimcilar = tpKatilimcilar
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const { error } = await db.from("regulatory_meetings").insert({
+      tenant_id: tenantId,
+      matter_id: params.id,
+      konu: tpKonu.trim(),
+      katilimcilar,
+      notlar: tpNotlar.trim() || null,
+      kayit_eden: kullaniciId,
+    });
+    if (error) setHata(error.message);
+    setTpKonu("");
+    setTpKatilimcilar("");
+    setTpNotlar("");
+    await yukle();
+  }, [tpKonu, tpKatilimcilar, tpNotlar, tenantId, kullaniciId, params.id, yukle]);
 
   const yanitEkle = useCallback(
     async (talep: Talep) => {
@@ -252,6 +294,46 @@ export default function RegulatorDetayPage() {
             </div>
             <Button size="sm" onClick={() => void talepEkle()} disabled={!tMetin.trim()}>
               Talep Ekle
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Toplantılar */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Toplantılar ({toplantilar.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 text-sm">
+          {toplantilar.map((tp) => (
+            <div key={tp.id} className="rounded-md border p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">{tp.konu}</span>
+                <span className="text-xs text-muted-foreground">{new Date(tp.tarih).toLocaleString("tr-TR")}</span>
+              </div>
+              {tp.katilimcilar.length > 0 ? (
+                <p className="mt-1 text-xs text-muted-foreground">Katılımcılar: {tp.katilimcilar.join(", ")}</p>
+              ) : null}
+              {tp.notlar ? <p className="mt-1 text-xs">{tp.notlar}</p> : null}
+            </div>
+          ))}
+          <div className="flex flex-col gap-2 rounded-md border border-dashed p-3">
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="tp-konu">Konu</Label>
+                <Input id="tp-konu" value={tpKonu} onChange={(e) => setTpKonu(e.target.value)} placeholder="Saha ziyareti" className="w-56" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="tp-katilimcilar">Katılımcılar (virgülle)</Label>
+                <Input id="tp-katilimcilar" value={tpKatilimcilar} onChange={(e) => setTpKatilimcilar(e.target.value)} placeholder="A. Yılmaz (SPK), B. Demir (Uyum)" className="w-72" />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="tp-notlar">Notlar</Label>
+              <Textarea id="tp-notlar" value={tpNotlar} onChange={(e) => setTpNotlar(e.target.value)} rows={2} />
+            </div>
+            <Button size="sm" className="w-fit" onClick={() => void toplantiEkle()} disabled={!tpKonu.trim()}>
+              Toplantı Kaydet
             </Button>
           </div>
         </CardContent>
