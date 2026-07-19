@@ -69,15 +69,25 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   KALKAN_OS_37_Tez_Nihai_Uygulama_Talimati_2026.md` kabul edildi (ADR
   `docs/adr/PR0-37-tez-kesif-2026-07-19.md` + envanter `docs/GAP_MAP_37_TEZ.md`
   — KOS-1..11, ölçülmüş durumlar). Talimat §10: önce Gap Map, sonra YALNIZ
-  **Dikey A**. Dikey A BİTTİ (§1.56) — Dikey B..K bu oturumda BAŞLANMADI,
-  hepsi Gap Map'te sırayla kayıtlı. **BİR SONRAKİ OTURUM ÖNCE `docs/GAP_MAP_
-  37_TEZ.md`'Yİ OKUMALI** — Dikey B (DORA RoI, resmi şema KAYNAK BEKLİYOR),
-  Dikey C (Model Claim Guard), Dikey D (açıklama/adalet, DIŞ KARAR bekliyor)
-  vb. sıradaki adaylar.
-- **Remote (origin/main) HEAD:** `25e817a` (§1.56: 37 Tez Dikey A — tedarikçi
-  anket yanıtlama) + DEVAM SHA commit'i. Öncesi `91d39ce` (§1.55: PR-0 keşif +
-  Gap Map, kod yok), `c894ac5` (§1.54: M35 sonraki dilim — vendor-portal dış
-  erişim), `6ba5a25`
+  **Dikey A**. Dikey A BİTTİ (§1.56). Ardından Dikey B'nin KEŞİF adımı da BİTTİ
+  (§1.57, KOD YOK): WebSearch/WebFetch ile gerçek kaynak bulundu — Commission
+  Implementing Regulation (EU) 2024/2956 (DORA Register of Information ITS'i);
+  `docs/arastirma/DORA_RoI_ITS_2024_2956_Kaynak_Ozeti.md` (TODO_DOGRULA
+  işaretli — ikincil kaynaklardan derlendi, EUR-Lex birebir metinle
+  karşılaştırılmadı) + mapping ADR `docs/adr/PR0-37-tez-dikeyB-roi-mapping-
+  2026-07-19.md` (en büyük boşluk: `tenants`'ta LEI/EUID/yasal kimlik hiç
+  yok). **Dikey B'nin MİGRATİONU bu turda YAZILMADI** — talimatın kendi şartı
+  ("mapping/ADR önce, migration'ı gerekçesiz büyütme") + hukuk doğrulayıcı
+  onayı bekleniyor. Dikey C..K hâlâ BAŞLANMADI. **BİR SONRAKİ OTURUM ÖNCE
+  `docs/GAP_MAP_37_TEZ.md` + Dikey B mapping ADR'sini OKUMALI** — sıradaki
+  mantıklı adım: (a) kurucu/hukuk mapping ADR'sini onaylarsa Dikey B'nin
+  migration'ına geç, (b) onaylamazsa/beklerse Dikey C (Model Claim Guard,
+  M37 eval'ı genişletir) gibi bağımsız bir sıradaki dikeye geç.
+- **Remote (origin/main) HEAD:** `faeb103` (§1.57: 37 Tez Dikey B keşfi —
+  DORA RoI kaynak özeti + mapping ADR, KOD YOK) + DEVAM SHA commit'i. Öncesi
+  `25e817a` (§1.56: 37 Tez Dikey A — tedarikçi anket yanıtlama), `91d39ce`
+  (§1.55: PR-0 keşif + Gap Map, kod yok), `c894ac5` (§1.54: M35 sonraki
+  dilim — vendor-portal dış erişim), `6ba5a25`
   (DEVAM SHA), `c084723` (§1.53: M18 sonraki dilim madde 2/2 — tatbikat →
   eğitim tamamlama gerçek bağı), `7de81b4` (DEVAM SHA), `11460cd` (§1.52: M18
   sonraki dilim madde 1/2 — retraining otomasyonu). Öncesi `ec73851` (§1.51:
