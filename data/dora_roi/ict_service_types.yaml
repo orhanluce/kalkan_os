@@ -1,0 +1,101 @@
+# DİKKAT — DOĞRULANMAMIŞ (CLAUDE.md kural 3)
+#
+# Kaynak: Commission Implementing Regulation (EU) 2024/2956, Annex III
+# ("Type of ICT services"). Bu dosya iki katmanlı doğruluk taşır (bkz.
+# `kaynak_turu` alanı):
+#   - EUR_LEX_BIREBIR (S01-S16): EUR-Lex'in alternatif HTML render'ından
+#     (https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202402956)
+#     WebFetch ile BİREBİR alıntılandı (20 Temmuz 2026). WebFetch bir AI
+#     özetleme katmanından geçtiği için satır satır insan karşılaştırması
+#     YERİNE GEÇMEZ — transkripsiyon hatası riski sıfır değildir.
+#   - IKINCIL (S17-S19): yalnız ikincil kaynaktan (springlex.eu özeti).
+#     EUR-Lex birincil metni üç WebFetch + iki PDF denemesinde de
+#     ULAŞILAMADI (EUR-Lex render'ı S16'da kesiliyor; JC 2023 85 PDF'leri
+#     metne çevrilemez biçimde döndü veya erişim reddetti).
+#
+# Bu dosya `pnpm seed:dora-roi` ile TODO_DOGRULA olarak yüklenir — HİÇBİR
+# satır VERIFIED SEED EDİLMEZ (guard zaten engeller). VERIFIED'e geçiş
+# yalnız bir hukuk/uyum doğrulayıcısının EUR-Lex'in resmi PDF/HTML
+# baskısıyla birebir karşılaştırıp dört-göz ile onaylamasıyla olur.
+#
+# durum: eur-lex-kismen-dogrulanmis (16/19 birebir, 3/19 ikincil kaynak)
+
+kaynak_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=OJ:L_202402956"
+
+hizmet_turleri:
+  - kod: S01
+    ad: "ICT project management"
+    aciklama: "Provision of services related to Project Management Officer (PMO)."
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S02
+    ad: "ICT Development"
+    aciklama: "Provision of services related to: business analysis, software design and development, testing."
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S03
+    ad: "ICT help desk and first level support"
+    aciklama: "Provision of services related to: helpdesk support and first level support on ICT incident"
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S04
+    ad: "ICT security management services"
+    aciklama: "Provision of services related to: ICT security (protection, detection, response and recovering), including security incident handling and forensics."
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S05
+    ad: "Provision of data"
+    aciklama: "Subscription to the services of data providers. (digital data service)"
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S06
+    ad: "Data analysis"
+    aciklama: "Provision of services related to the support for data analysis. (digital data service)"
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S07
+    ad: "ICT, facilities and hosting services (excluding Cloud services)"
+    aciklama: "Provision of ICT infrastructure, facilities and hosting services, including the provision of utilities (energy, heat management etc.), telecom access and physical security (excluding cloud services), payment-processing activities, or operating payment infrastructures"
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S08
+    ad: "Computation"
+    aciklama: "Provision of digital processing capabilities (including data computation), excluding the computation services performed in the context of a cloud environment."
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S09
+    ad: "Non-Cloud Data storage"
+    aciklama: "Provision of data storage platform (excluding cloud services)."
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S10
+    ad: "Telecom carrier"
+    aciklama: "Operations for telecommunication systems and flow management."
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S11
+    ad: "Network infrastructure"
+    aciklama: "Provision of network infrastructure"
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S12
+    ad: "Hardware and physical devices"
+    aciklama: "Provision of workstations, phones, servers, data storage devices, appliances, etc. in a form of a service"
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S13
+    ad: "Software licencing (excluding SaaS)"
+    aciklama: "Provision of software run on premises."
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S14
+    ad: "ICT operation management (including maintenance)"
+    aciklama: "Provision of services related to: infrastructure (systems and hardware except network) configuration, maintenance, installing, capacity management, business continuity management, etc."
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S15
+    ad: "ICT Consulting"
+    aciklama: "Provision of intellectual / ICT expertise services."
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S16
+    ad: "ICT Risk management"
+    aciklama: "Verification of compliance with ICT risk management requirements in accordance with Article 6(10) of Regulation (EU) 2022/2554"
+    kaynak_turu: EUR_LEX_BIREBIR
+  - kod: S17
+    ad: "Cloud services: IaaS (TODO_DOGRULA — ikincil kaynak)"
+    aciklama: "EUR-Lex birebir metni ulaşılamadı; yalnız ikincil kaynaktan (springlex.eu) — Infrastructure-as-a-Service bulut hizmeti olarak özetlendi. Doğrulanmadan içerik olarak KULLANILMAMALI."
+    kaynak_turu: IKINCIL
+  - kod: S18
+    ad: "Cloud services: PaaS (TODO_DOGRULA — ikincil kaynak)"
+    aciklama: "EUR-Lex birebir metni ulaşılamadı; yalnız ikincil kaynaktan (springlex.eu) — Platform-as-a-Service bulut hizmeti olarak özetlendi. Doğrulanmadan içerik olarak KULLANILMAMALI."
+    kaynak_turu: IKINCIL
+  - kod: S19
+    ad: "Cloud services: SaaS (TODO_DOGRULA — ikincil kaynak)"
+    aciklama: "EUR-Lex birebir metni ulaşılamadı; yalnız ikincil kaynaktan (springlex.eu) — Software-as-a-Service bulut hizmeti olarak özetlendi. Doğrulanmadan içerik olarak KULLANILMAMALI."
+    kaynak_turu: IKINCIL

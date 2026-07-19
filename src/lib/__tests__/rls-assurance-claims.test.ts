@@ -93,6 +93,17 @@ describe("assurance_claims — dört-göz (20260718210000'in gerçek sürümü, 
     await expect(db.sql(`update public.assurance_claims set dogrulama_durumu = 'LEGAL_REVIEW' where id = $1`, [id])).rejects.toThrow(/incelemeye_alan/i);
   });
 
+  it("INSERT-anında LEGAL_REVIEW için de incelemeye_alan/zaman zorunlu (dört-göz INSERT-bypass forward-fix'i)", async () => {
+    // 20260720110000: bir iddia DOĞRUDAN LEGAL_REVIEW olarak (incelemeye_alan
+    // NULL) insert edilip ardından TEK KİŞİ kendini dogrulayan yaparak
+    // VERIFIED'e taşıyabiliyordu (NULL eşitliği guard'ı sessizce atlatıyordu).
+    await expect(claimEkle(seed.A.tenantId, { dogrulama_durumu: "LEGAL_REVIEW" })).rejects.toThrow(/incelemeye_alan/i);
+  });
+
+  it("INSERT-anında REJECTED doğrudan doğamaz", async () => {
+    await expect(claimEkle(seed.A.tenantId, { dogrulama_durumu: "REJECTED" })).rejects.toThrow(/dogamaz/i);
+  });
+
   it("incelemeye alan kişi KENDİ sunumunu doğrulayamaz (dört göz)", async () => {
     const oid = await yukumluluk("VERIFIED");
     const id = await claimEkle(seed.A.tenantId, { kaynak_obligation_id: oid, kanit_referanslari: [{ tablo: "evidences", id: "e1" }] });

@@ -3156,6 +3156,69 @@ export type Database = {
         }
         Relationships: []
       }
+      ict_service_types: {
+        Row: {
+          aciklama: string | null
+          ad: string
+          created_at: string
+          dogrulama_durumu: string
+          dogrulama_zamani: string | null
+          dogrulayan: string | null
+          id: string
+          incelemeye_alan: string | null
+          incelemeye_alinma_zamani: string | null
+          kaynak_turu: string
+          kaynak_url: string | null
+          kod: string
+          updated_at: string
+        }
+        Insert: {
+          aciklama?: string | null
+          ad: string
+          created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          id?: string
+          incelemeye_alan?: string | null
+          incelemeye_alinma_zamani?: string | null
+          kaynak_turu?: string
+          kaynak_url?: string | null
+          kod: string
+          updated_at?: string
+        }
+        Update: {
+          aciklama?: string | null
+          ad?: string
+          created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          id?: string
+          incelemeye_alan?: string | null
+          incelemeye_alinma_zamani?: string | null
+          kaynak_turu?: string
+          kaynak_url?: string | null
+          kod?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ict_service_types_dogrulayan_fkey"
+            columns: ["dogrulayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ict_service_types_incelemeye_alan_fkey"
+            columns: ["incelemeye_alan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       impact_tolerances: {
         Row: {
           created_at: string

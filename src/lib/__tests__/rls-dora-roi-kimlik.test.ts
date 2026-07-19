@@ -127,6 +127,17 @@ describe("roi_kaynak_kayitlari — global referans + kural 3 dört-göz guard'ı
     await expect(roiKaydiEkle({ dogrulama_durumu: "VERIFIED" })).rejects.toThrow(/dogamaz/i);
   });
 
+  it("REJECTED doğrudan doğamaz (yalnız LEGAL_REVIEW'den karar verilebilir)", async () => {
+    await expect(roiKaydiEkle({ dogrulama_durumu: "REJECTED" })).rejects.toThrow(/dogamaz/i);
+  });
+
+  it("INSERT-anında LEGAL_REVIEW için de incelemeye_alan/zaman zorunlu (dört-göz INSERT-bypass forward-fix'i)", async () => {
+    // 20260720110000: bir kayıt DOĞRUDAN LEGAL_REVIEW olarak (incelemeye_alan
+    // NULL) insert edilip ardından TEK KİŞİ kendini dogrulayan yaparak
+    // VERIFIED'e taşıyabiliyordu (NULL eşitliği guard'ı sessizce atlatıyordu).
+    await expect(roiKaydiEkle({ dogrulama_durumu: "LEGAL_REVIEW" })).rejects.toThrow(/incelemeye_alan/i);
+  });
+
   it("VERIFIED'e geçiş yalnız LEGAL_REVIEW'den olabilir", async () => {
     const id = await roiKaydiEkle({ dogrulama_durumu: "TODO_DOGRULA" });
     await expect(
@@ -135,22 +146,34 @@ describe("roi_kaynak_kayitlari — global referans + kural 3 dört-göz guard'ı
   });
 
   it("VERIFIED geçişi dogrulayan + zaman ister", async () => {
-    const id = await roiKaydiEkle({ dogrulama_durumu: "LEGAL_REVIEW" });
+    const id = await roiKaydiEkle({ dogrulama_durumu: "TODO_DOGRULA" });
+    await db.sql(`update public.roi_kaynak_kayitlari set dogrulama_durumu = 'LEGAL_REVIEW', incelemeye_alan = $2, incelemeye_alinma_zamani = now() where id = $1`, [id, seed.B.userId]);
     await expect(
       db.sql(`update public.roi_kaynak_kayitlari set dogrulama_durumu = 'VERIFIED' where id = $1`, [id]),
     ).rejects.toThrow(/dogrulayan/i);
   });
 
-  it("LEGAL_REVIEW -> VERIFIED atıfla geçer", async () => {
-    const id = await roiKaydiEkle({ dogrulama_durumu: "LEGAL_REVIEW" });
+  it("DÖRT GÖZ: incelemeye alan kendi sunumunu DOĞRULAYAMAZ", async () => {
+    const id = await roiKaydiEkle({ dogrulama_durumu: "TODO_DOGRULA" });
+    await db.sql(`update public.roi_kaynak_kayitlari set dogrulama_durumu = 'LEGAL_REVIEW', incelemeye_alan = $2, incelemeye_alinma_zamani = now() where id = $1`, [id, seed.A.userId]);
+    await expect(
+      db.sql(`update public.roi_kaynak_kayitlari set dogrulama_durumu = 'VERIFIED', dogrulayan = $2, dogrulama_zamani = now() where id = $1`, [id, seed.A.userId]),
+    ).rejects.toThrow(/dort goz/i);
+  });
+
+  it("LEGAL_REVIEW -> VERIFIED, FARKLI kişi atıfla geçer", async () => {
+    const id = await roiKaydiEkle({ dogrulama_durumu: "TODO_DOGRULA" });
+    await db.sql(`update public.roi_kaynak_kayitlari set dogrulama_durumu = 'LEGAL_REVIEW', incelemeye_alan = $2, incelemeye_alinma_zamani = now() where id = $1`, [id, seed.B.userId]);
     await db.sql(`update public.roi_kaynak_kayitlari set dogrulama_durumu = 'VERIFIED', dogrulayan = $2, dogrulama_zamani = now() where id = $1`, [id, seed.A.userId]);
-    const { rows } = await db.sql(`select dogrulama_durumu, dogrulayan from public.roi_kaynak_kayitlari where id = $1`, [id]);
+    const { rows } = await db.sql(`select dogrulama_durumu, dogrulayan, incelemeye_alan from public.roi_kaynak_kayitlari where id = $1`, [id]);
     expect(rows[0].dogrulama_durumu).toBe("VERIFIED");
     expect(rows[0].dogrulayan).toBe(seed.A.userId);
+    expect(rows[0].incelemeye_alan).toBe(seed.B.userId);
   });
 
   it("VERIFIED kaydın içeriği (alan_adi) değiştirilemez", async () => {
-    const id = await roiKaydiEkle({ dogrulama_durumu: "LEGAL_REVIEW" });
+    const id = await roiKaydiEkle({ dogrulama_durumu: "TODO_DOGRULA" });
+    await db.sql(`update public.roi_kaynak_kayitlari set dogrulama_durumu = 'LEGAL_REVIEW', incelemeye_alan = $2, incelemeye_alinma_zamani = now() where id = $1`, [id, seed.B.userId]);
     await db.sql(`update public.roi_kaynak_kayitlari set dogrulama_durumu = 'VERIFIED', dogrulayan = $2, dogrulama_zamani = now() where id = $1`, [id, seed.A.userId]);
     await expect(
       db.sql(`update public.roi_kaynak_kayitlari set alan_adi = 'Değiştirilmiş ad' where id = $1`, [id]),

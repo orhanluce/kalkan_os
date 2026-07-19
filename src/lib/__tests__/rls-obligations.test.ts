@@ -110,6 +110,17 @@ describe("obligations + mappings — global referans + kural 3 guard'ları (M21)
     ).rejects.toThrow(/incelemeye_alan/);
   });
 
+  it("INSERT-anında LEGAL_REVIEW için de incelemeye_alan/zaman zorunlu (dört-göz INSERT-bypass forward-fix'i)", async () => {
+    // 20260720110000: bir kayıt DOĞRUDAN LEGAL_REVIEW olarak (incelemeye_alan
+    // NULL) insert edilip ardından TEK KİŞİ kendini dogrulayan yaparak
+    // VERIFIED'e taşıyabiliyordu (NULL eşitliği guard'ı sessizce atlatıyordu).
+    await expect(yukumlulukEkle(await hukumEkle(), { dogrulama_durumu: "LEGAL_REVIEW" })).rejects.toThrow(/incelemeye_alan/i);
+  });
+
+  it("INSERT-anında REJECTED doğrudan doğamaz", async () => {
+    await expect(yukumlulukEkle(await hukumEkle(), { dogrulama_durumu: "REJECTED" })).rejects.toThrow(/dogamaz/i);
+  });
+
   it("VERIFIED geçişi dogrulayan/dogrulama_zamani olmadan REDDEDİLİR", async () => {
     const oid = await yukumlulukEkle(await hukumEkle());
     await db.sql(

@@ -61,6 +61,14 @@ describe("control_resilience_domains — global katalog + dört-göz (Dikey 5, M
     ).rejects.toThrow(/incelemeye_alan/);
   });
 
+  it("INSERT-anında LEGAL_REVIEW için de incelemeye_alan/zaman zorunlu (dört-göz INSERT-bypass forward-fix'i)", async () => {
+    await expect(siniflandirmaEkle({ dogrulama_durumu: "LEGAL_REVIEW" })).rejects.toThrow(/incelemeye_alan/i);
+  });
+
+  it("INSERT-anında REJECTED doğrudan doğamaz", async () => {
+    await expect(siniflandirmaEkle({ dogrulama_durumu: "REJECTED" })).rejects.toThrow(/dogamaz/i);
+  });
+
   it("DÖRT GÖZ: incelemeye alan kendi sunumunu DOĞRULAYAMAZ", async () => {
     const id = await siniflandirmaEkle();
     await db.sql(

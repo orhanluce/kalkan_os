@@ -823,6 +823,66 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.60 37 Tez Dikey B, Faz 1+2 ilk dilim — hukuk/kaynak kilidi + ICT hizmet türü kataloğu (S01-S19) ✅ (20 Temmuz, ÖNCELİK SIFIRLAMASI)
+
+Kurucunun 20 Temmuz İKİNCİ talimatı: Dikey C bitti, artık **tek öncelik**
+Dikey B'nin DORA RoI export dilimi (5 faz: hukuk/kaynak kilidi → veri
+modeli → export motoru → kanıt zinciri → kurumsal arayüz); ML-eval'e özgü
+dar kapsam ve ileri AI özellikleri BEKLETİLDİ. ADR
+`docs/adr/PR0-37-tez-dikeyB-export-2026-07-20.md`: kurucunun yeni Dikey D-H
+sıralaması Gap Map'in MEVCUT Dikey D-K harfleriyle ÇAKIŞIYOR — harfler
+KORUNDU, kurucunun sıralaması KOS referanslarıyla takip edilecek (dürüstçe
+kayıt, ADR §0).
+
+**Faz 1 (hukuk ve kaynak kilidi) — ÜÇÜNCÜ EUR-Lex geçişi:** alternatif
+EUR-Lex HTML render'ı (`.../TXT/HTML/?uri=OJ:L_202402956`) farklı sayfalama
+sınırına sahip olduğundan önceki SOURCE_PENDING alanların ÇOĞU artık
+LEGAL_REVIEW_REQUIRED (birebir, hâlâ VERIFIED değil): B_01.02.0050/
+B_02.02.0090 kapalı kümeleri, B_02.03/B_03.01-03/B_04.01/B_06.01/B_07.01 TAM
+alan listeleri, Annex III S01-S16 (16/19 — S17-S19 bulut IaaS/PaaS/SaaS üç
+WebFetch + iki JC 2023 85 PDF denemesinde de ulaşılamadı, dürüstçe TODO_
+DOGRULA kaldı). `guven_seviyesi`/`jurisdiction` için v1 taslak metodoloji
+rubriği ADR'ye yazıldı (hukuki içerik DEĞİL, kural 3 dışı).
+
+**Faz 2 ilk dilim: `ict_service_types`** (migration `20260720100000`) — DORA
+RoI Annex III kapalı kümesi, GLOBAL referans, `roi_kaynak_kayitlari`nın
+GÜNCEL dört-göz deseninin aynısı. `data/dora_roi/ict_service_types.yaml` +
+`pnpm seed:dora-roi` (data/controls/*.yaml + seed-controls.ts deseninin
+aynısı) — 19 satır TODO_DOGRULA seed edildi (16 EUR_LEX_BIREBIR kaynaklı, 3
+IKINCIL), **hiçbiri VERIFIED değil**.
+
+**KRİTİK BULGU (bu dilimde yakalandı, SİSTEMİK): dört-göz'ün kendisinde
+INSERT-anı bypass'ı.** `ict_service_types` için beşinci bir kopya
+yazılırken fark edildi: guard'ın INSERT dalı yalnız `dogrulama_durumu=
+'VERIFIED'`yi reddediyordu. Bir kayıt DOĞRUDAN `LEGAL_REVIEW` ile INSERT
+edilirse (`incelemeye_alan` NULL bırakılarak), UPDATE-yolundaki "incelemeye_
+alan zorunlu" kontrolü hiç ÇALIŞMIYORDU — sonra TEK KİŞİ kendini dogrulayan
+yaparak VERIFIED'e taşıyabiliyordu (`dogrulayan = incelemeye_alan` karşılaş­
+tırması `x = NULL` olduğundan SQL'de NULL/FALSE-değil döner, guard'ı sessizce
+atlatır). **Beş fonksiyon birden etkileniyordu** (hepsi aynı kopyalanan
+desenden): `obligation_dogrulama_guard` (obligations + obligation_control_
+mappings), `roi_kaynak_dogrulama_guard`, `assurance_claim_dogrulama_guard`,
+`resilience_dogrulama_guard`, `crosswalk_dogrulama_guard`. Forward-fix
+migration `20260720110000` beşini de `CREATE OR REPLACE` ile düzeltti (INSERT
+dalı artık LEGAL_REVIEW için de incelemeye_alan/zaman ister, REJECTED
+doğrudan INSERT'i de reddeder); `ict_service_types`'ın kendi (henüz
+şiplenmemiş) migration'ı baştan doğru yazıldı. Beş PGlite test dosyasına
+regresyon testi eklendi (`rls-obligations`/`rls-assurance-claims`/`rls-
+resilience`/`rls-ai-drift-rollback-crosswalk`/`rls-dora-roi-kimlik`) +
+`rls-ict-service-types.test.ts` (14 test) yeni. Canlı smoke: forward-fix'in
+gerçekten Supabase'e gittiği hem `ict_service_types` hem `obligations`
+üzerinde ayrı ayrı kanıtlandı, normal iki-kişili akış hâlâ çalışıyor.
+
+**Ders:** kural 1'in "önce mevcut yapıyı oku" ilkesi yalnızca kopyalama
+hedefini değil, kopyalanan MEKANİZMANIN KENDİSİNİ de sorgulamayı gerektiriyor
+— beşinci bir kopya yazmak, dördünün de paylaştığı bir açığı ortaya çıkardı.
+
+**1208 birim (117 dosya) + 62 e2e (değişmedi — bu dilimde UI yok), 0 skip;
+build yeşil.** Bilinçli kapsam dışı: Faz 2'nin kalanı (kurum kimliği
+genişletmesi, sözleşme/üçüncü taraf/alt yüklenici şeması, kritik fonksiyon
+eşlemesi — third_parties/fourth_parties'ın GENİŞLETİLMESİ tercih edilecek),
+Faz 3-5 (export motoru, kanıt zinciri, kurumsal arayüz).
+
 ### 1.59 37 Tez Dikey C — Model/Compliance Claim Guard ✅ (20 Temmuz)
 
 Kurucunun 20 Temmuz talimatı: AI/kural motorunun ürettiği hiçbir uyum/risk/

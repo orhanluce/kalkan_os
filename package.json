@@ -15,6 +15,7 @@
     "db:link": "tsx scripts/db-link.ts",
     "db:push": "tsx scripts/db-push.ts",
     "seed:controls": "tsx scripts/seed-controls.ts",
+    "seed:dora-roi": "tsx scripts/seed-ict-service-types.ts",
     "generate:yk-beyani": "tsx scripts/generate-yk-beyani.ts",
     "db:verify": "tsx scripts/db-verify.ts",
     "db:types": "tsx scripts/db-types.ts",

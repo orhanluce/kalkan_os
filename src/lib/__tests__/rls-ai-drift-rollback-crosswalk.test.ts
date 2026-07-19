@@ -170,6 +170,14 @@ describe("ISO 42001↔27001 crosswalk — global katalog + dört-göz (Dikey 4 k
     await expect(crosswalkEkle({ dogrulama_durumu: "VERIFIED" })).rejects.toThrow(/VERIFIED dogamaz/);
   });
 
+  it("INSERT-anında LEGAL_REVIEW için de incelemeye_alan/zaman zorunlu (dört-göz INSERT-bypass forward-fix'i)", async () => {
+    await expect(crosswalkEkle({ dogrulama_durumu: "LEGAL_REVIEW" })).rejects.toThrow(/incelemeye_alan/i);
+  });
+
+  it("INSERT-anında REJECTED doğrudan doğamaz", async () => {
+    await expect(crosswalkEkle({ dogrulama_durumu: "REJECTED" })).rejects.toThrow(/dogamaz/i);
+  });
+
   it("DÖRT GÖZ: incelemeye alan kendi sunumunu DOĞRULAYAMAZ", async () => {
     const id = await crosswalkEkle();
     await db.sql(
