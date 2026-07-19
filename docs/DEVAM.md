@@ -64,28 +64,32 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (19 Temmuz — 37 Tez Dikey A TAMAM + Dikey 5 + Dikey 4 kalanı + M17/M18 TAM + M35 dış erişim/yanıtlama)
+## 0c. GERÇEK DURUM (19 Temmuz — 37 Tez Dikey A TAMAM + Dikey B ilk dilim TAMAM + Dikey 5 + Dikey 4 kalanı + M17/M18 TAM + M35 dış erişim/yanıtlama)
 - **YENİ BAĞLAYICI BELGE (19 Temmuz, dokuzuncu belge):** `docs/arastirma/
   KALKAN_OS_37_Tez_Nihai_Uygulama_Talimati_2026.md` kabul edildi (ADR
   `docs/adr/PR0-37-tez-kesif-2026-07-19.md` + envanter `docs/GAP_MAP_37_TEZ.md`
   — KOS-1..11, ölçülmüş durumlar). Talimat §10: önce Gap Map, sonra YALNIZ
-  **Dikey A**. Dikey A BİTTİ (§1.56). Ardından Dikey B'nin KEŞİF adımı da BİTTİ
-  (§1.57, KOD YOK): WebSearch/WebFetch ile gerçek kaynak bulundu — Commission
-  Implementing Regulation (EU) 2024/2956 (DORA Register of Information ITS'i);
-  `docs/arastirma/DORA_RoI_ITS_2024_2956_Kaynak_Ozeti.md` (TODO_DOGRULA
-  işaretli — ikincil kaynaklardan derlendi, EUR-Lex birebir metinle
-  karşılaştırılmadı) + mapping ADR `docs/adr/PR0-37-tez-dikeyB-roi-mapping-
-  2026-07-19.md` (en büyük boşluk: `tenants`'ta LEI/EUID/yasal kimlik hiç
-  yok). **Dikey B'nin MİGRATİONU bu turda YAZILMADI** — talimatın kendi şartı
-  ("mapping/ADR önce, migration'ı gerekçesiz büyütme") + hukuk doğrulayıcı
-  onayı bekleniyor. Dikey C..K hâlâ BAŞLANMADI. **BİR SONRAKİ OTURUM ÖNCE
-  `docs/GAP_MAP_37_TEZ.md` + Dikey B mapping ADR'sini OKUMALI** — sıradaki
-  mantıklı adım: (a) kurucu/hukuk mapping ADR'sini onaylarsa Dikey B'nin
-  migration'ına geç, (b) onaylamazsa/beklerse Dikey C (Model Claim Guard,
-  M37 eval'ı genişletir) gibi bağımsız bir sıradaki dikeye geç.
-- **Remote (origin/main) HEAD:** `faeb103` (§1.57: 37 Tez Dikey B keşfi —
-  DORA RoI kaynak özeti + mapping ADR, KOD YOK) + DEVAM SHA commit'i. Öncesi
-  `25e817a` (§1.56: 37 Tez Dikey A — tedarikçi anket yanıtlama), `91d39ce`
+  **Dikey A**. Dikey A BİTTİ (§1.56). Dikey B'nin KEŞİF adımı BİTTİ (§1.57).
+  Kurucunun 19 Temmuz İKİNCİ talimatıyla Dikey B'nin **İLK MİGRATİON DİLİMİ
+  DE BİTTİ** (§1.58): önce kaynak özeti İKİNCİ kez gözden geçirildi (EUR-Lex
+  birincil sayfası WebFetch ile doğrudan okundu, B_01.01/01.02/01.03/02.01/
+  02.02 için birebir alıntı toplandı — **LEGAL_REVIEW_REQUIRED**'a
+  yükseltildi, hâlâ VERIFIED değil), sonra `tenant_legal_identity` (kurum
+  LEI/EUID/ülke/para birimi/hiyerarşi, format guard + kimlik atfı + audit) +
+  `roi_kaynak_kayitlari` (GLOBAL referans, `obligations` dört-göz guard'ının
+  BİREBİR AYNISI — yeni bir doğrulama mekanizması icat edilmedi) migration'ı
+  (`20260719310000`) yazıldı. **İÇERİK SEED'İ YOK** — tablo hazır, hiçbir RoI
+  alan/kod satırı yazılmadı. Dikey B'nin kalanı (S01-S19 genişletmesi, export
+  mekanizması, dört-göz yayın onayı, impact queue) ADR §3'te ertelendi. Dikey
+  C..K hâlâ BAŞLANMADI. **BİR SONRAKİ OTURUM ÖNCE `docs/GAP_MAP_37_TEZ.md` +
+  Dikey B mapping ADR'sini OKUMALI** — sıradaki mantıklı adım: (a) kurucu
+  Dikey B'nin bir sonraki dilimini (export mekanizması veya S01-S19
+  genişletmesi) isterse devam et, (b) istemezse Dikey C (Model Claim Guard)
+  gibi bağımsız bir sıradaki dikeye geç.
+- **Remote (origin/main) HEAD:** `ddd2fef` (§1.58: 37 Tez Dikey B ilk
+  migration dilimi — kurum yasal kimlik + RoI kaynak kataloğu) + DEVAM SHA
+  commit'i. Öncesi `faeb103` (§1.57: Dikey B keşfi, kod yok), `25e817a`
+  (§1.56: 37 Tez Dikey A — tedarikçi anket yanıtlama), `91d39ce`
   (§1.55: PR-0 keşif + Gap Map, kod yok), `c894ac5` (§1.54: M35 sonraki
   dilim — vendor-portal dış erişim), `6ba5a25`
   (DEVAM SHA), `c084723` (§1.53: M18 sonraki dilim madde 2/2 — tatbikat →
@@ -106,8 +110,9 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı: 1126 birim (111 dosya) + 61 e2e, 0 skip; build exit 0.**
-  (Bu oturumda tam takım ON BİR kez uçtan uca yeşil koşuldu — `tema.spec`
+- **Test tabanı: 1144 birim (112 dosya) + 61 e2e, 0 skip; build exit 0.**
+  (§1.58'de UI yok — e2e sayısı değişmedi, yalnız 18 yeni PGlite testi. Bu
+  oturumda tam takım ON İKİ kez uçtan uca yeşil koşuldu — `tema.spec`
   dahil hiçbir izole-flake tekrarlamadı. Yol boyunca üç gerçek e2e çakışması
   yakalandı ve düzeltildi (bkz. §1.49/§1.50/§1.53 detayları — ROADMAP'te);
   §1.56'da DÖRDÜNCÜSÜ: e2e'de misafir context yanlış-token URL'inde kalıp
