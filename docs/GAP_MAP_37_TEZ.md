@@ -87,8 +87,8 @@ Durum sözlüğü: **TAM** (kullanıcı sonucu uçtan uca teslim + test edilmiş
 
 ## KOS-8 — Üçüncü taraf, bulut ve AI tedarik zinciri
 
-- **Modül/Gate:** M35 (`third_parties`/services/fourth_parties/contracts/exit_plans`) + M35 sonraki dilim (anket/değerlendirme/bulgu, §1.35) + Cloud Assurance Pack (§1.44 — **anket şablonu** biçiminde 11 bulut kategorisi) + **vendor-portal dış erişim (§1.54, salt-okur) + Dikey A (bu oturum, yanıtlama)**.
-- **Durum: KISMİ (çekirdek + anket + portal TAM; yapılandırılmış envanter alanları anket-metni seviyesinde, ayrı structured tablo değil).**
+- **Modül/Gate:** M35 (`third_parties`/services/fourth_parties/contracts/exit_plans`) + M35 sonraki dilim (anket/değerlendirme/bulgu, §1.35) + Cloud Assurance Pack (§1.44 — **anket şablonu** biçiminde 11 bulut kategorisi) + **vendor-portal dış erişim (§1.54, salt-okur) + Dikey A (§1.56 ✅ TAMAMLANDI 19 Temmuz — anket YANITLAMA, token sertleştirme, durum makinesi, kurum incelemesi)**.
+- **Durum: KISMİ (çekirdek + anket + portal + yanıtlama TAM; yapılandırılmış envanter alanları anket-metni seviyesinde, ayrı structured tablo değil — Dikey B'nin resmi şeması bekliyor).**
 - **Eksik kullanıcı sonucu:** talimatın istediği bulut hizmet envanteri/ortak sorumluluk matrisi/IAM/merkezi log/DDoS testi bugün **serbest metin anket sorusu** olarak var (kategori etiketli), YAPILANDIRILMIŞ alan (ör. `rto_saat integer`, `ddos_test_tarihi date`) değil — bu bilinçli bir tasarım (kural 3: soru/cevap içeriği tenant girdisi, KALKAN_OS şema uydurmaz), talimat bunu yapılandırılmış istiyor ama hangi alanların "resmî" olduğu (DORA RoI şemasına bakılmadan) UYDURULAMAZ → **kısmen KAYNAK BEKLİYOR** (Dikey B'nin resmî şeması gelince yapılandırılabilir).
 - **Gerekli şema/RLS/invariant:** Dikey A (bu oturum) mevcut. Dikey B (DORA RoI) resmi şema geldiğinde yapılandırılmış alanları ekler.
 - **Önerilen dikey:** Dikey A (BU OTURUM) → Dikey B (resmi şema DIŞ KARAR/KAYNAK BEKLİYOR) → Dikey H (KOS-8 kalanı, bu oturumda YAPILMIYOR).
@@ -135,7 +135,7 @@ Durum sözlüğü: **TAM** (kullanıcı sonucu uçtan uca teslim + test edilmiş
 | 5 | AI Assurance | KISMİ | Yok (Dikey E, sonraki) |
 | 6 | Açıklama/adalet/itiraz | YOK | Yok (Dikey D, DIŞ KARAR bekliyor) |
 | 7 | Model Claim Guard | YOK | Yok (Dikey C, sonraki) |
-| 8 | 3.taraf/bulut/AI tedarik | KISMİ | **Dikey A — BU OTURUM** |
+| 8 | 3.taraf/bulut/AI tedarik | KISMİ | **Dikey A ✅ TAMAMLANDI (§1.56)** — Dikey B (RoI şeması) hâlâ sonraki |
 | 9 | Harici sinyal/tehdit | YOK | Yok (Dikey I, sonraki) |
 | 10 | AI/ESG fayda iddiası | YOK | Yok (Dikey J, KOS-7 sonrası) |
 | 11 | Gizlilik-koruyucu hesaplama | YOK | Yok (Dikey K, en son + kapı) |

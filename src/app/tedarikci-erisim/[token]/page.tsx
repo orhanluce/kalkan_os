@@ -4,9 +4,11 @@
 // tedarikçi hesapsız, süreli token ile kendi kaydının özetini görür.
 // Kapsam/süre/iptal tedarikci_goruntule RPC'sinde (matter_goruntule
 // disiplini); bu sayfa görüntüleyici.
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { StatusBadge } from "@/components/durum/status-badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/client";
@@ -22,6 +24,11 @@ interface Degerlendirme {
   durum: string;
   tamamlandiAt: string | null;
 }
+interface AnketOzeti {
+  id: string;
+  tur: string;
+  durum: string;
+}
 interface TedarikciVeri {
   ad: string;
   tier: string;
@@ -29,6 +36,7 @@ interface TedarikciVeri {
   sonGecerlilik: string;
   degerlendirme: Degerlendirme | null;
   acikBulgular: Bulgu[];
+  anketler: AnketOzeti[];
 }
 
 const CIDDIYET_SEM: Record<string, "neutral" | "warning" | "danger"> = {
@@ -95,6 +103,31 @@ export default function TedarikciGorunumPage() {
             </StatusBadge>
           ) : (
             <span className="text-xs text-muted-foreground">Açık değerlendirme yok.</span>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Anketler ({veri.anketler.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {veri.anketler.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Yayınlanmış anket yok.</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {veri.anketler.map((a) => (
+                <div key={a.id} className="flex flex-wrap items-center gap-2 rounded-md border p-2 text-sm">
+                  <StatusBadge durum="neutral">{a.tur}</StatusBadge>
+                  <StatusBadge durum={a.durum === "TAMAMLANDI" ? "success" : "warning"}>{a.durum}</StatusBadge>
+                  <Link href={`/tedarikci-erisim/${params.token}/anket/${a.id}`} className="ml-auto">
+                    <Button size="sm" variant="outline">
+                      Anketi Aç
+                    </Button>
+                  </Link>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>

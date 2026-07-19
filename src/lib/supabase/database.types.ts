@@ -1100,6 +1100,128 @@ export type Database = {
           },
         ]
       }
+      assessment_response_answers: {
+        Row: {
+          cevap: string | null
+          created_at: string
+          id: string
+          kanit_metni: string | null
+          question_id: string
+          revizyon_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          cevap?: string | null
+          created_at?: string
+          id?: string
+          kanit_metni?: string | null
+          question_id: string
+          revizyon_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          cevap?: string | null
+          created_at?: string
+          id?: string
+          kanit_metni?: string | null
+          question_id?: string
+          revizyon_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_response_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_response_answers_revizyon_id_fkey"
+            columns: ["revizyon_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_response_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_response_answers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_response_revisions: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          durum: string
+          gonderen_email: string | null
+          gonderildi_at: string | null
+          id: string
+          inceleme_gerekcesi: string | null
+          inceleme_zamani: string | null
+          inceleyen: string | null
+          surum: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          durum?: string
+          gonderen_email?: string | null
+          gonderildi_at?: string | null
+          id?: string
+          inceleme_gerekcesi?: string | null
+          inceleme_zamani?: string | null
+          inceleyen?: string | null
+          surum: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          durum?: string
+          gonderen_email?: string | null
+          gonderildi_at?: string | null
+          id?: string
+          inceleme_gerekcesi?: string | null
+          inceleme_zamani?: string | null
+          inceleyen?: string | null
+          surum?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_response_revisions_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "third_party_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_response_revisions_inceleyen_fkey"
+            columns: ["inceleyen"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_response_revisions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_engagements: {
         Row: {
           ad: string
@@ -7198,7 +7320,7 @@ export type Database = {
           son_gecerlilik: string
           tenant_id: string
           third_party_id: string
-          token: string
+          token_hash: string
         }
         Insert: {
           created_at?: string
@@ -7209,7 +7331,7 @@ export type Database = {
           son_gecerlilik: string
           tenant_id: string
           third_party_id: string
-          token?: string
+          token_hash: string
         }
         Update: {
           created_at?: string
@@ -7220,7 +7342,7 @@ export type Database = {
           son_gecerlilik?: string
           tenant_id?: string
           third_party_id?: string
-          token?: string
+          token_hash?: string
         }
         Relationships: [
           {
@@ -7817,6 +7939,19 @@ export type Database = {
         Returns: Json
       }
       sod_istisna_suresi_dolanlari_isle: { Args: never; Returns: number }
+      tedarikci_anket_getir: {
+        Args: { p_assessment_id: string; p_token: string }
+        Returns: Json
+      }
+      tedarikci_anket_gonder: {
+        Args: { p_assessment_id: string; p_token: string }
+        Returns: Json
+      }
+      tedarikci_anket_suresi_dolanlari_isle: { Args: never; Returns: undefined }
+      tedarikci_anket_taslak_kaydet: {
+        Args: { p_assessment_id: string; p_cevaplar: Json; p_token: string }
+        Returns: Json
+      }
       tedarikci_goruntule: { Args: { p_token: string }; Returns: Json }
       tenant_has_profiles: {
         Args: { target_tenant_id: string }

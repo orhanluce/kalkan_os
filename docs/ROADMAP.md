@@ -823,6 +823,98 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.56 37 Tez Dikey A — KOS-8 tamamlama: tedarikçi portalında anket YANITLAMA ✅ (19 Temmuz)
+
+§1.55'in Gap Map'inde işaretlenen tek dikey teslim edildi: `docs/GAP_MAP_37_TEZ.md`
+KOS-8 satırı KISMİ'den TAM'a (Dikey A kapsamında) yükseltildi. §1.54'ün
+salt-okur vendor-portal'ı BOZULMADAN aynı grant/token/audit deseni genişletildi
+— ikinci bir dış-erişim mekanizması kurulmadı.
+
+**Token sertleştirme (talimatın kendi asgari invariant'ı):**
+`third_party_access_grants.token` (düz metin) kaldırıldı, yerine `token_hash`
+(sha256 hex) geldi — token TAMAMEN istemcide üretilir (`crypto.getRandomValues`,
+256 bit), yalnız hash'i DB'ye yazılır; düz değer hiçbir tabloya/audit'e girmez.
+İstemci tarafı `src/lib/dis-erisim-token.ts` (mevcut `sha256Hex` yeniden
+kullanıldı). `matter_access_grants` (M41/regülatör) bu turda BİLİNÇLİ
+DOKUNULMADI — Dikey A yalnız M35'i kapsıyor, Gap Map'te borç olarak kayıtlı.
+
+**Durum makinesi (talimat §4 Dikey A, repo adlandırmasına uyarlandı):**
+`TASLAK → GONDERILDI → (kurum incelemesi) → DEGISIKLIK_ISTENDI → [yeni
+revizyon] → ... → KABUL_EDILDI | REDDEDILDI | SURESI_DOLDU`. İki yeni tablo:
+`assessment_response_revisions` (append-only revizyon + inceleme kararı) +
+`assessment_response_answers` (revizyon içi cevap+kanıt metni). Migration
+`20260719300000`.
+
+**Anahtar invariant'lar (DB guard'ları — canlı smoke + 28 PGlite testiyle
+kanıtlı):**
+- Yayın kapısı: `third_party_assessments.durum` (mevcut TASLAK/DEVAM/
+  TAMAMLANDI, YENİ KOLON AÇILMADI) — sorusuz anket DEVAM'a geçemez, tedarikçi
+  TASLAK anketi hiç göremez/erişemez.
+- GONDERILDI olmuş bir revizyonun cevapları DONUK — değişiklik YENİ revizyon
+  açar (`assessment_response_answer_guard`), eskisi silinmez/değişmez.
+- Durum geçiş guard'ı (`assessment_response_revision_guard`): TASLAK yalnız
+  GONDERILDI/SURESI_DOLDU olabilir; GONDERILDI yalnız inceleme kararına/süre-
+  dolumuna geçebilir; terminal durumlardan (KABUL_EDILDI/REDDEDILDI/
+  SURESI_DOLDU) çıkış yok; DEGISIKLIK_ISTENDI/REDDEDILDI gerekçesiz olamaz;
+  inceleme kararı inceleyen+zaman ister, kimlik atfı oturum sahibine sabit.
+- **RLS'te kilitli "kurum tedarikçi adına cevap üretemez":**
+  `assessment_response_revisions`'a UPDATE politikası yalnız `durum =
+  'GONDERILDI'` satırlara izin verir — kurum bir TASLAK revizyona ASLA
+  dokunamaz (satır eşleşmez). `assessment_response_answers`'a authenticated/
+  anon'dan TÜM yazma REVOKE — yalnız RPC (tedarikçinin kendi cevabı) yazar,
+  kurum cevap METNİNİ asla düzenleyemez.
+- Çift-submit idempotent: RPC zaten-GONDERILDI durumunu sessizce döner, yeni
+  kayıt/audit oluşturmaz.
+- Süre-dolumu: `tedarikci_anket_suresi_dolanlari_isle()` pg_cron (SoD/TPR/
+  eğitim deseninin aynısı, `*/5`) — grant'ı süresi dolmuş/iptal tedarikçinin
+  açık revizyonlarını SURESI_DOLDU'ya düşürür.
+
+**Canlı e2e gerçek bir bug yakaladı ve düzeltti (migration `20260719301000`):**
+`assessment_response_answers.question_id` ilk halinde `ON DELETE RESTRICT`'ti
+— `third_parties` silinirken cascade zinciri (`third_party_assessments` →
+`assessment_questions` VE ayrı bir dalda → `assessment_response_revisions` →
+`assessment_response_answers`) aynı işlemde çakışıyordu: Postgres henüz
+silinmemiş `assessment_response_answers` satırı `question_id` üzerinden
+RESTRICT ile `assessment_questions`'ın cascade silinmesini engelliyor, TÜM
+işlem FK ihlaliyle sessizce başarısız oluyordu (herhangi bir tedarikçi ankete
+yanıt aldıysa, o tedarikçiyi silmeye çalışan her akış — testler dahil —
+sessizce çöküyordu). Düzeltme: `CASCADE` (soru silinirse ona verilen cevap da
+anlamsızdır — şema zaten third_party_id/assessment_id için CASCADE
+kullanıyor). PGlite regresyon testi eklendi.
+
+**RPC'ler** (`tedarikci_goruntule` genişletildi — `anketler` alanı eklendi,
+geriye uyumlu — + üç yeni: `tedarikci_anket_getir`/`taslak_kaydet`/`gonder`,
+hepsi `matter_goruntule` disiplininde: geçersiz/dolmuş/iptal/yanlış-kapsam
+token AYNI null, her görüntüleme/gönderim aktörsüz audit).
+
+**UI:** `/tedarikci-erisim/[token]` özet sayfasına "Anketler" kartı +
+`/tedarikci-erisim/[token]/anket/[assessmentId]` (yeni nested route, oturumsuz
+— taslak kaydet/gönder/onay adımı/durum rozetleri/DEGISIKLIK_ISTENDI gerekçe
+banner'ı/salt-okur terminal durumlar). `/tedarikciler/[id]`'ye "Tedarikçiye
+Yayınla" butonu + "Tedarikçi yanıtı" inceleme bloğu (Kabul Et/Değişiklik İste/
+Reddet, gerekçe girişi). Kabul edilen cevap kontrolü/tedarikçiyi otomatik
+"uyumlu" YAPMAZ — bu ayrım hem UI metninde hem invariant'ta açık.
+
+**Kapsam dışı (bilinçli, talimatın kendi izniyle):** dosya/kanıt yükleme YOK
+(anonim token sahibi için güvenli imzalı-upload/Storage RLS varyantı bu
+dilimde kurulmadı — mevcut `evidence` bucket'ı yalnız authenticated tenant
+kullanıcısı içindir); kanıt bu turda METİN/URL. Bildirim/e-posta gönderimi
+YOK (repo'da hiçbir e-posta sağlayıcısı yok). `matter_access_grants` token
+sertleştirmesi ayrı bir iştir.
+
+Testler: 28 PGlite (RLS/RPC/guard/cascade, `rls-tedarikci-anket-yanitlama.
+test.ts`) + genişletilmiş `tedarikciler.spec.ts` e2e (iki-context: kurum davet
+açar → misafir cevaplar/gönderir → kurum değişiklik ister → tedarikçi revize
+eder → kurum kabul eder → yanlış token aynı reddi verir) + canlı smoke
+(tam akış: yayın kapısı → taslak → gönder(idempotent) → değişiklik iste →
+yeni revizyon → kabul). **1126 birim (111 dosya) + 61 e2e, 0 skip, 0 flake;
+build yeşil.**
+
+**Bilinçli sonraki dilim (bu turda YOK, talimat §10 gereği burada durulur):**
+Dikey B (DORA RoI resmi şema, KAYNAK BEKLİYOR/DIŞ KARAR), tedarikçinin kendi
+anket sorularını yanıtlamasının ötesindeki KOS-8 kalanı (yapılandırılmış
+bulut/IAM/DDoS alanları — Dikey B'nin şeması gelmeden uydurulmaz).
+
 ### 1.55 Mimari karar kaydı — 19 Temmuz 2026 (37 Tez Nihai Uygulama Talimatı — PR-0 KEŞİF + Gap Map, KOD YOK BU BÖLÜMDE)
 
 Kurucunun sekizinci vizyon belgesi `docs/arastirma/KALKAN_OS_37_Tez_Nihai_

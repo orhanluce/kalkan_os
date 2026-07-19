@@ -164,3 +164,127 @@ test("vendor-portal dış erişim: tedarikçi hesapsız kendi durumunu/açık bu
     await temizle(db, kurum!.id);
   }
 });
+
+// 37 Tez Nihai Uygulama Talimatı — Dikey A (KOS-8 tamamlama): tedarikçi
+// portalında anket YANITLAMA. Kurum davet açar → misafir tedarikçi cevaplar/
+// gönderir → kurum inceler/değişiklik ister → tedarikçi revizyon gönderir →
+// kurum kabul eder → yanlış token aynı reddi verir. Gerçek Chromium, iki
+// context (kurum + misafir tedarikçi).
+test("vendor-portal anket yanıtlama: cevapla → gönder → kurum değişiklik ister → revize → kabul", async ({ page, browser }) => {
+  test.setTimeout(120_000);
+  const db = admin();
+  const { data: kurum } = await db.from("tenants").select("id").eq("name", E2E_KURUM_ADI).single();
+  await temizle(db, kurum!.id);
+
+  const misafirCtx = await browser.newContext();
+  const misafirPage = await misafirCtx.newPage();
+
+  try {
+    await girisYap(page);
+    await page.goto("/tedarikciler");
+    await page.getByLabel("Ad").fill("E2E-TP Anket");
+    await page.getByLabel("Kritiklik").selectOption("KRITIK");
+    await page.getByRole("button", { name: "Oluştur" }).click();
+    await page.getByRole("link", { name: "E2E-TP Anket" }).click();
+    await expect(page.getByRole("heading", { name: "E2E-TP Anket" })).toBeVisible();
+
+    // 1) Değerlendirme oluştur (TASLAK) + soru (bu ekranda manuel soru formu
+    // yok — anket şablonu ayrı bir teste ait; burada tek soruyu DB'den ekliyoruz).
+    await page.getByRole("button", { name: "Yeni Değerlendirme (DORA)" }).click();
+    const { data: tp } = await db.from("third_parties").select("id").eq("tenant_id", kurum!.id).eq("ad", "E2E-TP Anket").single();
+    const { data: assessment } = await db
+      .from("third_party_assessments")
+      .select("id")
+      .eq("third_party_id", tp!.id)
+      .eq("durum", "TASLAK")
+      .single();
+    await db.from("assessment_questions").insert({ tenant_id: kurum!.id, assessment_id: assessment!.id, soru: "E2E: Verileriniz şifreleniyor mu?", sira: 1 });
+
+    // 2) Yayınla (TASLAK -> DEVAM, yayın kapısı guard'ı en az 1 soru ister).
+    await page.reload();
+    await page.getByRole("button", { name: "Tedarikçiye Yayınla" }).click();
+    await expect(page.getByText("DEVAM", { exact: true }).first()).toBeVisible({ timeout: 10_000 });
+
+    // 3) Dış erişim aç.
+    await page.getByLabel("Dış e-posta").fill("vendor-anket@example.com");
+    await page.getByRole("button", { name: "Erişim Aç" }).click();
+    const link = page.getByRole("link", { name: /\/tedarikci-erisim\// });
+    await expect(link).toBeVisible();
+    const href = (await link.getAttribute("href")) as string;
+
+    // 4) OTURUMSUZ tedarikçi görünümü -> Anketi Aç.
+    await misafirPage.goto(href);
+    await expect(misafirPage.getByText("Anketler (1)")).toBeVisible({ timeout: 10_000 });
+    await misafirPage.getByRole("button", { name: "Anketi Aç" }).click();
+    await expect(misafirPage).toHaveURL(/\/tedarikci-erisim\/.+\/anket\/.+/);
+    await expect(misafirPage.getByText("E2E: Verileriniz şifreleniyor mu?")).toBeVisible();
+    const anketUrl = misafirPage.url();
+
+    // 5) Cevapla + taslak kaydet.
+    await misafirPage.getByLabel("E2E: Verileriniz şifreleniyor mu?").fill("Evet, AES-256 kullanıyoruz.");
+    await misafirPage.getByRole("button", { name: "Taslak Kaydet" }).click();
+    await expect(misafirPage.getByText(/Son kaydedildi:/)).toBeVisible({ timeout: 10_000 });
+
+    // 6) Gönder (onay adımıyla).
+    await misafirPage.getByRole("button", { name: "Gönder", exact: true }).click();
+    await misafirPage.getByRole("button", { name: "Evet, Gönder" }).click();
+    await expect(misafirPage.getByText(/GONDERILDI · revizyon 1/)).toBeVisible({ timeout: 10_000 });
+    await expect(misafirPage.getByLabel("E2E: Verileriniz şifreleniyor mu?")).toBeDisabled();
+
+    // 7) DB kanıtı: revizyon 1 GONDERILDI + cevap doğru + audit.
+    const { data: rev1 } = await db.from("assessment_response_revisions").select("id, durum, gonderen_email").eq("assessment_id", assessment!.id).eq("surum", 1).single();
+    expect(rev1!.durum).toBe("GONDERILDI");
+    expect(rev1!.gonderen_email).toBe("vendor-anket@example.com");
+    const { data: audit1 } = await db.from("audit_log").select("id").eq("tenant_id", kurum!.id).eq("eylem", "tedarikci_anket_gonderildi");
+    expect((audit1 ?? []).length).toBeGreaterThan(0);
+
+    // 8) Yanlış token aynı reddi verir (kapsam/token karışıklığı sızdırmaz).
+    const yanlisUrl = href.replace(/\/tedarikci-erisim\/[0-9a-f]+/, "/tedarikci-erisim/0000000000000000000000000000000000000000000000000000000000000000") + `/anket/${assessment!.id}`;
+    await misafirPage.goto(yanlisUrl);
+    await expect(misafirPage.getByText(/Link geçersiz/)).toBeVisible({ timeout: 10_000 });
+
+    // 9) Kurum inceler: GÖNDERİLDİ yanıtı görür, gerekçesiz reddedilir davranışını
+    // UI zaten gerekçe olmadan buton aktif bırakır ama DB guard'ı reddeder — burada
+    // doğrudan mutlu yolu izliyoruz: gerekçeyle Değişiklik İste.
+    await page.reload();
+    await expect(page.getByText(/Tedarikçi yanıtı · revizyon 1/)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("Evet, AES-256 kullanıyoruz.")).toBeVisible();
+    await page.getByLabel(`${assessment!.id} inceleme gerekçesi`).fill("Şifreleme algoritması versiyonunu da belirtin.");
+    await page.getByRole("button", { name: "Değişiklik İste" }).click();
+    await expect(page.getByText("DEGISIKLIK_ISTENDI").first()).toBeVisible({ timeout: 10_000 });
+
+    // 10) Tedarikçi: gerekçeyi görür, revize eder, tekrar gönderir (revizyon 2).
+    // (misafirPage şu an 8. adımın YANLIŞ token URL'inde — gerçek ankete geri dön.)
+    await misafirPage.goto(anketUrl);
+    await expect(misafirPage.getByText(/Kurum değişiklik istedi: Şifreleme algoritması versiyonunu da belirtin\./)).toBeVisible({ timeout: 10_000 });
+    const cevapKutusu = misafirPage.getByLabel("E2E: Verileriniz şifreleniyor mu?");
+    await expect(cevapKutusu).toBeEnabled();
+    await expect(cevapKutusu).toHaveValue("Evet, AES-256 kullanıyoruz.");
+    await cevapKutusu.fill("Evet, AES-256-GCM kullanıyoruz, anahtarlar 90 günde bir rotasyona giriyor.");
+    // Kaydetmeden önce DOM'un gerçekten güncellendiğini doğrula — React state
+    // henüz commit olmadan tıklamak, RPC'ye eski cevabı gönderirdi.
+    await expect(cevapKutusu).toHaveValue("Evet, AES-256-GCM kullanıyoruz, anahtarlar 90 günde bir rotasyona giriyor.");
+    await misafirPage.getByRole("button", { name: "Taslak Kaydet" }).click();
+    await expect(misafirPage.getByText(/Son kaydedildi:/)).toBeVisible({ timeout: 10_000 });
+    await misafirPage.getByRole("button", { name: "Gönder", exact: true }).click();
+    await misafirPage.getByRole("button", { name: "Evet, Gönder" }).click();
+    await expect(misafirPage.getByText(/GONDERILDI · revizyon 2/)).toBeVisible({ timeout: 10_000 });
+
+    // 11) Kurum kabul eder (gerekçesiz).
+    await page.reload();
+    await expect(page.getByText(/Tedarikçi yanıtı · revizyon 2/)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/anahtarlar 90 günde bir rotasyona giriyor/)).toBeVisible();
+    await page.getByRole("button", { name: "Kabul Et" }).click();
+    await expect(page.getByText("KABUL_EDILDI").first()).toBeVisible({ timeout: 10_000 });
+
+    // DB kanıtı: v1 DONUK (DEGISIKLIK_ISTENDI kaldı), v2 KABUL_EDILDI + inceleyen dolu.
+    const { data: rev1Final } = await db.from("assessment_response_revisions").select("durum").eq("assessment_id", assessment!.id).eq("surum", 1).single();
+    expect(rev1Final!.durum).toBe("DEGISIKLIK_ISTENDI");
+    const { data: rev2Final } = await db.from("assessment_response_revisions").select("durum, inceleyen").eq("assessment_id", assessment!.id).eq("surum", 2).single();
+    expect(rev2Final!.durum).toBe("KABUL_EDILDI");
+    expect(rev2Final!.inceleyen).not.toBeNull();
+  } finally {
+    await misafirCtx.close();
+    await temizle(db, kurum!.id);
+  }
+});

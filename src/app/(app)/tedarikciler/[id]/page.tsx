@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { disErisimTokenUret } from "@/lib/dis-erisim-token";
 import { bulguOzeti, roiKaydiUret, sozlesmeYakinligi, type Bulgu } from "@/lib/tedarikci";
 import { createClient } from "@/lib/supabase/client";
 import { KARAR, TIER } from "../page";
@@ -71,6 +72,22 @@ interface SoruRow {
   assessment_id: string;
   soru: string;
 }
+interface RevizyonRow {
+  id: string;
+  assessment_id: string;
+  surum: number;
+  durum: string;
+  gonderen_email: string | null;
+  gonderildi_at: string | null;
+  inceleme_gerekcesi: string | null;
+  inceleme_zamani: string | null;
+}
+interface RevizyonCevapRow {
+  revizyon_id: string;
+  question_id: string;
+  cevap: string | null;
+  kanit_metni: string | null;
+}
 
 export default function TedarikciDetayPage() {
   const params = useParams<{ id: string }>();
@@ -82,6 +99,9 @@ export default function TedarikciDetayPage() {
   const [degerlendirmeler, setDegerlendirmeler] = useState<Degerlendirme[]>([]);
   const [bulgular, setBulgular] = useState<BulguRow[]>([]);
   const [sorular, setSorular] = useState<SoruRow[]>([]);
+  const [sonRevizyon, setSonRevizyon] = useState<Record<string, RevizyonRow>>({});
+  const [revizyonCevaplari, setRevizyonCevaplari] = useState<Record<string, RevizyonCevapRow[]>>({});
+  const [incelemeGerekce, setIncelemeGerekce] = useState<Record<string, string>>({});
   const [ledgerDurum, setLedgerDurum] = useState<Record<string, string>>({});
   const [bBaslik, setBBaslik] = useState<Record<string, string>>({});
   const [bCiddiyet, setBCiddiyet] = useState<Record<string, string>>({});
@@ -141,8 +161,39 @@ export default function TedarikciDetayPage() {
     if (assessmentIds.length > 0) {
       const { data: qs } = await db.from("assessment_questions").select("id, assessment_id, soru").in("assessment_id", assessmentIds);
       setSorular((qs ?? []) as SoruRow[]);
+
+      // 37 Tez Dikey A: tedarikçi yanıt revizyonları — assessment başına EN
+      // SON (surum en yüksek) satır gösterilir; geçmiş revizyonlar donuk
+      // append-only kayıttır, burada yalnız "güncel durum" gösteriliyor.
+      const { data: revs } = await db
+        .from("assessment_response_revisions")
+        .select("id, assessment_id, surum, durum, gonderen_email, gonderildi_at, inceleme_gerekcesi, inceleme_zamani")
+        .in("assessment_id", assessmentIds)
+        .order("surum", { ascending: false });
+      const sonRev: Record<string, RevizyonRow> = {};
+      for (const r of (revs ?? []) as RevizyonRow[]) {
+        if (!sonRev[r.assessment_id]) sonRev[r.assessment_id] = r;
+      }
+      setSonRevizyon(sonRev);
+
+      const revizyonIds = Object.values(sonRev).map((r) => r.id);
+      if (revizyonIds.length > 0) {
+        const { data: cevaplar } = await db
+          .from("assessment_response_answers")
+          .select("revizyon_id, question_id, cevap, kanit_metni")
+          .in("revizyon_id", revizyonIds);
+        const grouped: Record<string, RevizyonCevapRow[]> = {};
+        for (const c of (cevaplar ?? []) as RevizyonCevapRow[]) {
+          grouped[c.revizyon_id] = [...(grouped[c.revizyon_id] ?? []), c];
+        }
+        setRevizyonCevaplari(grouped);
+      } else {
+        setRevizyonCevaplari({});
+      }
     } else {
       setSorular([]);
+      setSonRevizyon({});
+      setRevizyonCevaplari({});
     }
     // TAMAMLANDI değerlendirmelerin defter mühür durumu (§8.0 Dikey 1).
     const tamamlandiIds = (as_ ?? []).filter((a) => a.durum === "TAMAMLANDI").map((a) => a.id);
@@ -260,21 +311,23 @@ export default function TedarikciDetayPage() {
   // Vendor-portal dış erişim (M35 sonraki dilim, G7 M41 partner modeli):
   // matter_access_grants/matter_goruntule deseninin AYNISI, bağımsızlık beyanı
   // ön koşulu olmadan (o kavram regülatör bağlamına özgüydü).
+  //
+  // TOKEN SERTLEŞTİRME (37 Tez Dikey A): token tamamen İSTEMCİDE üretilir,
+  // yalnız hash'i insert edilir — DB düz token'ı HİÇ görmez.
   const disErisimAc = useCallback(async () => {
     setHata(null);
     if (!disEmail.trim() || !tenantId) return;
     const db = createClient();
     const son = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: grant, error } = await db
+    const { token, tokenHash } = await disErisimTokenUret();
+    const { error } = await db
       .from("third_party_access_grants")
-      .insert({ tenant_id: tenantId, third_party_id: params.id, external_email: disEmail.trim(), son_gecerlilik: son, olusturan: kullaniciId })
-      .select("token")
-      .single();
-    if (error || !grant) {
-      setHata(error?.message ?? "Erişim oluşturulamadı.");
+      .insert({ tenant_id: tenantId, third_party_id: params.id, external_email: disEmail.trim(), token_hash: tokenHash, son_gecerlilik: son, olusturan: kullaniciId });
+    if (error) {
+      setHata(error.message);
       return;
     }
-    setGrantUrl(`/tedarikci-erisim/${grant.token}`);
+    setGrantUrl(`/tedarikci-erisim/${token}`);
     setDisEmail("");
   }, [disEmail, tenantId, kullaniciId, params.id]);
 
@@ -293,6 +346,42 @@ export default function TedarikciDetayPage() {
       await yukle();
     },
     [kullaniciId, yukle],
+  );
+
+  // 37 Tez Dikey A: TASLAK -> DEVAM (yayın kapısı guard'ı en az 1 soru ister).
+  const tedarikciyeYayinla = useCallback(
+    async (assessmentId: string) => {
+      setHata(null);
+      const db = createClient();
+      const { error } = await db.from("third_party_assessments").update({ durum: "DEVAM" }).eq("id", assessmentId);
+      if (error) setHata(error.message.includes("en az bir soru") ? "Yayınlamadan önce en az bir soru ekleyin." : error.message);
+      await yukle();
+    },
+    [yukle],
+  );
+
+  // İnceleme kararı: RLS yalnız durum='GONDERILDI' satırlarına UPDATE izni
+  // verir; DB guard'ı (assessment_response_revision_guard) gerekçe/kimlik
+  // atfını zorunlu kılar — burada yalnız isteği yolluyoruz.
+  const incelemeKarariVer = useCallback(
+    async (revizyonId: string, durum: "DEGISIKLIK_ISTENDI" | "KABUL_EDILDI" | "REDDEDILDI") => {
+      setHata(null);
+      if (!kullaniciId) return;
+      const gerekce = (incelemeGerekce[revizyonId] ?? "").trim();
+      if ((durum === "DEGISIKLIK_ISTENDI" || durum === "REDDEDILDI") && !gerekce) {
+        setHata("Değişiklik isteği/red gerekçe ister.");
+        return;
+      }
+      const db = createClient();
+      const { error } = await db
+        .from("assessment_response_revisions")
+        .update({ durum, inceleyen: kullaniciId, inceleme_gerekcesi: gerekce || null, inceleme_zamani: new Date().toISOString() })
+        .eq("id", revizyonId);
+      if (error) setHata(error.message);
+      setIncelemeGerekce((m) => ({ ...m, [revizyonId]: "" }));
+      await yukle();
+    },
+    [kullaniciId, incelemeGerekce, yukle],
   );
 
   const hizmetEkle = useCallback(async () => {
@@ -570,6 +659,11 @@ export default function TedarikciDetayPage() {
                     {a.durum}
                   </StatusBadge>
                   {ozet.acikKritikVar ? <StatusBadge durum="danger">Açık KRİTİK bulgu</StatusBadge> : null}
+                  {a.durum === "TASLAK" ? (
+                    <Button size="sm" onClick={() => void tedarikciyeYayinla(a.id)}>
+                      Tedarikçiye Yayınla
+                    </Button>
+                  ) : null}
                   {a.durum !== "TAMAMLANDI" ? (
                     <Button size="sm" onClick={() => void degerlendirmeTamamla(a.id)} disabled={!ozet.tamamlanabilir}>
                       Değerlendirmeyi Tamamla
@@ -599,6 +693,63 @@ export default function TedarikciDetayPage() {
                       .map((s) => (
                         <span key={s.id}>• {s.soru}</span>
                       ))}
+                  </div>
+                ) : null}
+
+                {/* 37 Tez Dikey A: tedarikçi yanıtı — en son revizyon. Kabul
+                    edilen cevap otomatik olarak kontrolü/tedarikçiyi "uyumlu"
+                    yapmaz; bu yalnızca bir inceleme kararıdır. */}
+                {sonRevizyon[a.id] ? (
+                  <div className="flex flex-col gap-2 border-t pt-2 text-xs">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">
+                        Tedarikçi yanıtı · revizyon {sonRevizyon[a.id].surum} · {sonRevizyon[a.id].gonderen_email ?? "—"}
+                      </span>
+                      <StatusBadge
+                        durum={
+                          sonRevizyon[a.id].durum === "KABUL_EDILDI"
+                            ? "success"
+                            : sonRevizyon[a.id].durum === "REDDEDILDI" || sonRevizyon[a.id].durum === "SURESI_DOLDU"
+                              ? "danger"
+                              : "warning"
+                        }
+                      >
+                        {sonRevizyon[a.id].durum}
+                      </StatusBadge>
+                    </div>
+                    {(revizyonCevaplari[sonRevizyon[a.id].id] ?? []).map((c) => {
+                      const s = sorular.find((sr) => sr.id === c.question_id);
+                      return (
+                        <div key={c.question_id} className="rounded border p-1.5">
+                          <div className="text-muted-foreground">{s?.soru ?? c.question_id}</div>
+                          <div>{c.cevap || "—"}</div>
+                          {c.kanit_metni ? <div className="text-muted-foreground">Kanıt: {c.kanit_metni}</div> : null}
+                        </div>
+                      );
+                    })}
+                    {sonRevizyon[a.id].inceleme_gerekcesi ? (
+                      <div className="text-muted-foreground">İnceleme notu: {sonRevizyon[a.id].inceleme_gerekcesi}</div>
+                    ) : null}
+                    {sonRevizyon[a.id].durum === "GONDERILDI" ? (
+                      <div className="flex flex-wrap items-end gap-2">
+                        <Input
+                          value={incelemeGerekce[sonRevizyon[a.id].id] ?? ""}
+                          onChange={(e) => setIncelemeGerekce((m) => ({ ...m, [sonRevizyon[a.id].id]: e.target.value }))}
+                          placeholder="Gerekçe (değişiklik/red için zorunlu)"
+                          aria-label={`${a.id} inceleme gerekçesi`}
+                          className="h-7 w-56 text-xs"
+                        />
+                        <Button size="sm" onClick={() => void incelemeKarariVer(sonRevizyon[a.id].id, "KABUL_EDILDI")}>
+                          Kabul Et
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => void incelemeKarariVer(sonRevizyon[a.id].id, "DEGISIKLIK_ISTENDI")}>
+                          Değişiklik İste
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => void incelemeKarariVer(sonRevizyon[a.id].id, "REDDEDILDI")}>
+                          Reddet
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
 

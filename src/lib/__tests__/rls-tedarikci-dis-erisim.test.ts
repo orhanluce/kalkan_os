@@ -15,13 +15,20 @@ async function tedarikci(tenantId: string, ad: string) {
   return rows[0].id as string;
 }
 
+async function tokenHash(token: string): Promise<string> {
+  const { rows } = await db.sql(`select encode(digest($1, 'sha256'), 'hex') as h`, [token]);
+  return rows[0].h as string;
+}
+
 async function grant(tenantId: string, thirdPartyId: string, sonGecerlilik: string, iptal = false) {
-  const { rows } = await db.sql(
-    `insert into public.third_party_access_grants (tenant_id, third_party_id, external_email, son_gecerlilik, iptal_edildi)
-     values ($1, $2, 'vendor@example.com', $3, $4) returning token`,
-    [tenantId, thirdPartyId, sonGecerlilik, iptal],
+  const token = `test-token-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+  const hash = await tokenHash(token);
+  await db.sql(
+    `insert into public.third_party_access_grants (tenant_id, third_party_id, external_email, token_hash, son_gecerlilik, iptal_edildi)
+     values ($1, $2, 'vendor@example.com', $3, $4, $5)`,
+    [tenantId, thirdPartyId, hash, sonGecerlilik, iptal],
   );
-  return rows[0].token as string;
+  return token;
 }
 
 async function goruntule(token: string) {
@@ -108,12 +115,8 @@ describe("tedarikci_goruntule (M35 sonraki dilim: vendor-portal dış erişim)",
     // A kiracısı adına, B'nin tedarikçisine grant yazılmaya çalışılırsa FK
     // third_party_id B'ye ait ama tenant_id A — RPC ikisini birlikte arar,
     // eşleşmez → null.
-    const { rows } = await db.sql(
-      `insert into public.third_party_access_grants (tenant_id, third_party_id, external_email, son_gecerlilik)
-       values ($1, $2, 'vendor@example.com', $3) returning token`,
-      [seed.A.tenantId, tpB, YARIN],
-    );
-    expect(await goruntule(rows[0].token as string)).toBeNull();
+    const token = await grant(seed.A.tenantId, tpB, YARIN);
+    expect(await goruntule(token)).toBeNull();
   });
 });
 
