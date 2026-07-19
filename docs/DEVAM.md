@@ -64,11 +64,12 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (19 Temmuz — Dikey 5 + Dikey 4 kalanı + M17 §1.29 TAM + M18 TAM)
-- **Remote (origin/main) HEAD:** `c084723` (§1.53: M18 sonraki dilim madde
-  2/2 — tatbikat → eğitim tamamlama gerçek bağı) + DEVAM SHA commit'i. Öncesi
-  `7de81b4` (DEVAM SHA), `11460cd` (§1.52: M18 sonraki dilim madde 1/2 —
-  retraining otomasyonu). Öncesi `ec73851` (§1.51:
+## 0c. GERÇEK DURUM (19 Temmuz — Dikey 5 + Dikey 4 kalanı + M17 §1.29 TAM + M18 TAM + M35 dış erişim)
+- **Remote (origin/main) HEAD:** `c894ac5` (§1.54: M35 sonraki dilim —
+  vendor-portal dış erişim) + DEVAM SHA commit'i. Öncesi `6ba5a25`
+  (DEVAM SHA), `c084723` (§1.53: M18 sonraki dilim madde 2/2 — tatbikat →
+  eğitim tamamlama gerçek bağı), `7de81b4` (DEVAM SHA), `11460cd` (§1.52: M18
+  sonraki dilim madde 1/2 — retraining otomasyonu). Öncesi `ec73851` (§1.51:
   M17 sonraki dilim madde 4/4 SON — WORM export → §1.29 KAPANDI), `8eb3517`
   (§1.50: madde 3/4 — formal independence bağı), `8618a64` (§1.49: madde 2/4 —
   PBC/request), `b73f51d` (§1.48: madde 1/4 — workpaper→bulgu/kontrol bağı),
@@ -84,19 +85,19 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı: 1090 birim (109 dosya) + 59 e2e, 0 skip; build exit 0.**
-  (Bu oturumda tam takım SEKİZ kez uçtan uca yeşil koşuldu — `tema.spec` dahil
+- **Test tabanı: 1098 birim (110 dosya) + 60 e2e, 0 skip; build exit 0.**
+  (Bu oturumda tam takım DOKUZ kez uçtan uca yeşil koşuldu — `tema.spec` dahil
   hiçbir izole-flake tekrarlamadı. Yol boyunca üç gerçek e2e çakışması
   yakalandı ve düzeltildi (bkz. §1.49/§1.50/§1.53 detayları — ROADMAP'te).
   §1.53'te bir tam-takım koşusunda PDF/ZIP paket testi 90sn timeout'la
   düştü, İZOLE koşuda temiz geçti — kaynak çekişmesi (Chromium PDF render'ı
-  ağır), kod DEĞİL; kayıt için, bu test sınıfı tam takımda zaman zaman
-  yeniden koşulmayı gerektirebilir. AYRICA: `.next` dizini bir noktada
-  bozuldu (`pnpm check`/`pnpm build` tsc'de anlamsız hata verdi — kod DEĞİL,
-  dev sunucusunun eşzamanlı yazdığı stale bir type-validator dosyası);
-  `rm -rf .next` ile temizlenip yeniden koşuldu, temiz geçti — kayıt için:
-  bu sınıf hata görülürse önce `.next`'i temizle.)
-- Migration sırası son: `20260719280000_egitim_simulasyon_bagi.sql` (canlıda,
+  ağır), kod DEĞİL; §1.54'ün tam-takım koşusu 0 flake ile geçti. AYRICA:
+  `.next` dizini bir noktada bozuldu (`pnpm check`/`pnpm build` tsc'de
+  anlamsız hata verdi — kod DEĞİL, dev sunucusunun eşzamanlı yazdığı stale
+  bir type-validator dosyası); `rm -rf .next` ile temizlenip yeniden
+  koşuldu, temiz geçti — kayıt için: bu sınıf hata görülürse önce `.next`'i
+  temizle.)
+- Migration sırası son: `20260719290000_tedarikci_dis_erisim.sql` (canlıda,
   guard'lar gerçek Supabase'e karşı smoke ile doğrulandı — PGlite≠Supabase
   disiplini korundu).
 - **E2E LEDGER TEMİZLİK KURALI (kayıt için):** kontrol testleri artık auto-anchor
@@ -121,16 +122,25 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   tatbikatı puanlanınca katılımcı-rolündeki kullanıcıların eşleşen aktif
   eğitim ataması otomatik tamamlanır, skor mühürlenen puandan UYDURULMADAN
   kopyalanır; mevcut S01-S05'in HİÇBİRİ etiketlenmedi — kural 12, mekanizma
-  hazır ama içerik kararı kurucuda kalıyor). Her dilim: kendi migration +
-  RLS/guard testleri + canlı guard smoke + UI + gerçek Chromium e2e + commit
-  + push + deploy health doğrulaması ile teslim edildi.
+  hazır ama içerik kararı kurucuda kalıyor). M35'in bir sonraki-dilim maddesi
+  de TAMAM — **vendor-portal dış erişim** (§1.54 — `third_party_access_
+  grants`/`tedarikci_goruntule`, matter_access_grants/matter_goruntule
+  deseninin AYNISI; tedarikçi hesapsız süreli/iptal edilebilir token'la kendi
+  kaydının özetini + açık bulgularını görür, `/tedarikci-erisim/[token]`
+  oturumsuz rota). Her dilim: kendi migration + RLS/guard testleri + canlı
+  guard smoke + UI + gerçek Chromium e2e + commit + push + deploy health
+  doğrulaması ile teslim edildi.
 - **Sıradaki (bilinçli sonraki dilim, bu oturumda YAPILMADI):** tezin 29 alt
-  kategorisi + kaynak künyesi/tez sayfa referansı (Dikey 5 kalanı); ROADMAP
-  §1.24-1.28'in diğer "sonraki dilim" borçları (M13/M35/M36/M38). Nihai talimat
-  v3.3 §8.0'ın BEŞ dikeyi + M17'nin TÜM sonraki-dilim borcu + M18'in TÜM
-  sonraki-dilim borcu bitti — kurucudan yeni belge gelene kadar bu borç
-  listesinden mantıklı bir sonraki madde seçilerek devam edilebilir (v3.2
-  tamamlandığında izlenen desenin aynısı), ya da kurucudan yeni yön beklenir.
+  kategorisi + kaynak künyesi/tez sayfa referansı (Dikey 5 kalanı); tedarikçi
+  kendi anket sorularını YANITLAMASI (yazma yolu — §1.54 salt-okur), resmi
+  DORA RoI RTS şeması (M35 kalanı); ROADMAP §1.25-1.28'in M36/M37/M38/M13
+  "sonraki dilim" borçları (sınır-ötesi TransferAssessment, AI literacy bağı,
+  ExternalOrganization/Professional sicili, vb — ROADMAP'te tek tek listeli).
+  Nihai talimat v3.3 §8.0'ın BEŞ dikeyi + M17/M18'in TÜM sonraki-dilim borcu +
+  M35'in vendor-portal maddesi bitti — kurucudan yeni belge gelene kadar bu
+  borç listesinden mantıklı bir sonraki madde seçilerek devam edilebilir
+  (v3.2 tamamlandığında izlenen desenin aynısı), ya da kurucudan yeni yön
+  beklenir.
 - **§8.0 ana dikeyi TAM (ilk kapsam madde 1-2):** kontrol testi koşusu
   (`test_runs`, otomatik, Proof Room'a bağlı) + DSAR kanıt paketi (senkrondan
   asenkrona geçirildi). Genel mekanizma (`ledger_outbox`+`artifact_ledger_links`
