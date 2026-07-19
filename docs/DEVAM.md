@@ -31,12 +31,12 @@ UYDURMA — adapter/OPEN_DECISION + interface ile ilerle, dış gönderim/gerçe
 para/credential yapma. Her gate sonunda §15 raporu.
 
 ## 0c. GERÇEK DURUM (19 Temmuz, en son ölçüm — G8 TAM)
-- **Remote (origin/main) HEAD:** `94e4748` (G3 append-only tutarlılık dilimi).
-  Öncesi `ed62f49` (G3 SCITT defter), `64d9a35` (G8/M40). Push edilmemiş commit YOK.
+- **Remote (origin/main) HEAD:** `2a40eca` (M36 DSAR kanıt paketi, G3 defterine
+  bağlı). Öncesi `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
+  Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı:** 912 birim (83 dosya) + 49 e2e, 0 skip; build exit 0.
-- Migration sırası son: `20260719080000_transparency_ledger` (canlıda; tutarlılık
-  dilimi salt kod, migration yok).
+- **Test tabanı:** 922 birim (85 dosya) + 50 e2e, 0 skip; build exit 0.
+- Migration sırası son: `20260719090000_dsar_fulfillment_package` (canlıda).
 - **GATE G8 TAM** (M13+M17+M18+M40). **GATE G3 dış-karardan bağımsız kısım TAM**
   (SCITT şeffaflık defteri + TSA adaptör arayüzü; connector pilot yığını + nitelikli
   TSA sağlayıcı OPEN_DECISION #7 bekliyor — UYDURULMADI). Sonraki: nihai §8 kalan
