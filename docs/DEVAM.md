@@ -64,9 +64,11 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (19 Temmuz — Dikey 5 + Dikey 4 kalanı + M17 §1.29 TAM + M18 retraining)
-- **Remote (origin/main) HEAD:** `11460cd` (§1.52: M18 sonraki dilim —
-  retraining otomasyonu) + DEVAM SHA commit'i. Öncesi `ec73851` (§1.51:
+## 0c. GERÇEK DURUM (19 Temmuz — Dikey 5 + Dikey 4 kalanı + M17 §1.29 TAM + M18 TAM)
+- **Remote (origin/main) HEAD:** `c084723` (§1.53: M18 sonraki dilim madde
+  2/2 — tatbikat → eğitim tamamlama gerçek bağı) + DEVAM SHA commit'i. Öncesi
+  `7de81b4` (DEVAM SHA), `11460cd` (§1.52: M18 sonraki dilim madde 1/2 —
+  retraining otomasyonu). Öncesi `ec73851` (§1.51:
   M17 sonraki dilim madde 4/4 SON — WORM export → §1.29 KAPANDI), `8eb3517`
   (§1.50: madde 3/4 — formal independence bağı), `8618a64` (§1.49: madde 2/4 —
   PBC/request), `b73f51d` (§1.48: madde 1/4 — workpaper→bulgu/kontrol bağı),
@@ -82,17 +84,21 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı: 1077 birim (107 dosya) + 58 e2e, 0 skip; build exit 0.**
-  (Bu oturumda tam takım YEDİ kez uçtan uca yeşil koşuldu — `tema.spec` dahil
-  hiçbir izole-flake tekrarlamadı. Yol boyunca iki gerçek e2e çakışması
-  yakalandı ve düzeltildi (bkz. §1.49/§1.50 detayları — ROADMAP'te). AYRICA:
-  `.next` dizini bir noktada bozuldu (`pnpm check`/`pnpm build` tsc'de anlamsız
-  hata verdi — kod DEĞİL, dev sunucusunun eşzamanlı yazdığı stale bir type-
-  validator dosyası); `rm -rf .next` ile temizlenip yeniden koşuldu, temiz
-  geçti — kayıt için: bu sınıf hata görülürse önce `.next`'i temizle.)
-- Migration sırası son: `20260719270000_egitim_retraining_otomasyonu.sql`
-  (canlıda, guard'lar gerçek Supabase'e karşı smoke ile doğrulandı — PGlite≠
-  Supabase disiplini korundu).
+- **Test tabanı: 1090 birim (109 dosya) + 59 e2e, 0 skip; build exit 0.**
+  (Bu oturumda tam takım SEKİZ kez uçtan uca yeşil koşuldu — `tema.spec` dahil
+  hiçbir izole-flake tekrarlamadı. Yol boyunca üç gerçek e2e çakışması
+  yakalandı ve düzeltildi (bkz. §1.49/§1.50/§1.53 detayları — ROADMAP'te).
+  §1.53'te bir tam-takım koşusunda PDF/ZIP paket testi 90sn timeout'la
+  düştü, İZOLE koşuda temiz geçti — kaynak çekişmesi (Chromium PDF render'ı
+  ağır), kod DEĞİL; kayıt için, bu test sınıfı tam takımda zaman zaman
+  yeniden koşulmayı gerektirebilir. AYRICA: `.next` dizini bir noktada
+  bozuldu (`pnpm check`/`pnpm build` tsc'de anlamsız hata verdi — kod DEĞİL,
+  dev sunucusunun eşzamanlı yazdığı stale bir type-validator dosyası);
+  `rm -rf .next` ile temizlenip yeniden koşuldu, temiz geçti — kayıt için:
+  bu sınıf hata görülürse önce `.next`'i temizle.)
+- Migration sırası son: `20260719280000_egitim_simulasyon_bagi.sql` (canlıda,
+  guard'lar gerçek Supabase'e karşı smoke ile doğrulandı — PGlite≠Supabase
+  disiplini korundu).
 - **E2E LEDGER TEMİZLİK KURALI (kayıt için):** kontrol testleri artık auto-anchor
   ediyor → `artifact_ledger_links` entries'e ON DELETE RESTRICT'li. Ledger'a
   dokunan HER e2e spec temizliğinde links+outbox ÖNCE silinmeli (yoksa toplu
@@ -107,19 +113,24 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   bulgu/kontrol bağı, PBC/request, formal independence bağı (mevcut G7 tablosu
   genelleştirildi, YENİ tablo AÇILMADI), WORM export (`audit_worm_exports` —
   simulation_result_manifests mühür deseni + `scripts/verify-audit-worm.ts`
-  bağımsız CLI'sı, canlıda uçtan uca doğrulandı); M18 retraining otomasyonu
-  (§1.52 — `training_assignments` unique kısıtı partial hale geldi + `egitim_
-  periyot_yenile()` pg_cron işi, SoD/TPR süre-dolumu deseninin aynısı). Her
-  dilim: kendi migration + RLS/guard testleri + canlı guard smoke + UI + gerçek
-  Chromium e2e + commit + push + deploy health doğrulaması ile teslim edildi.
+  bağımsız CLI'sı, canlıda uçtan uca doğrulandı); M18'in İKİ sonraki-dilim
+  maddesi de TAMAM — retraining otomasyonu (§1.52 — `training_assignments`
+  unique kısıtı partial hale geldi + `egitim_periyot_yenile()` pg_cron işi,
+  SoD/TPR süre-dolumu deseninin aynısı) ve tatbikat→eğitim tamamlama gerçek
+  bağı (§1.53 — `scenario_templates.egitim_konusu` etiketli bir şablonun
+  tatbikatı puanlanınca katılımcı-rolündeki kullanıcıların eşleşen aktif
+  eğitim ataması otomatik tamamlanır, skor mühürlenen puandan UYDURULMADAN
+  kopyalanır; mevcut S01-S05'in HİÇBİRİ etiketlenmedi — kural 12, mekanizma
+  hazır ama içerik kararı kurucuda kalıyor). Her dilim: kendi migration +
+  RLS/guard testleri + canlı guard smoke + UI + gerçek Chromium e2e + commit
+  + push + deploy health doğrulaması ile teslim edildi.
 - **Sıradaki (bilinçli sonraki dilim, bu oturumda YAPILMADI):** tezin 29 alt
-  kategorisi + kaynak künyesi/tez sayfa referansı (Dikey 5 kalanı); phishing/
-  tabletop = simülasyon sonucuna gerçek bağ (M18 §1.30 kalanı); ROADMAP
+  kategorisi + kaynak künyesi/tez sayfa referansı (Dikey 5 kalanı); ROADMAP
   §1.24-1.28'in diğer "sonraki dilim" borçları (M13/M35/M36/M38). Nihai talimat
-  v3.3 §8.0'ın BEŞ dikeyi + M17'nin TÜM sonraki-dilim borcu bitti — kurucudan
-  yeni belge gelene kadar bu borç listesinden mantıklı bir sonraki madde
-  seçilerek devam edilebilir (v3.2 tamamlandığında izlenen desenin aynısı),
-  ya da kurucudan yeni yön beklenir.
+  v3.3 §8.0'ın BEŞ dikeyi + M17'nin TÜM sonraki-dilim borcu + M18'in TÜM
+  sonraki-dilim borcu bitti — kurucudan yeni belge gelene kadar bu borç
+  listesinden mantıklı bir sonraki madde seçilerek devam edilebilir (v3.2
+  tamamlandığında izlenen desenin aynısı), ya da kurucudan yeni yön beklenir.
 - **§8.0 ana dikeyi TAM (ilk kapsam madde 1-2):** kontrol testi koşusu
   (`test_runs`, otomatik, Proof Room'a bağlı) + DSAR kanıt paketi (senkrondan
   asenkrona geçirildi). Genel mekanizma (`ledger_outbox`+`artifact_ledger_links`
