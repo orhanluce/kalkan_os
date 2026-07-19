@@ -31,6 +31,26 @@ interface Workpaper {
   durum: string;
   hazirlayan: string | null;
 }
+interface KontrolBagi {
+  id: string;
+  workpaper_id: string;
+  control_id: string;
+  controls: { madde_ref: string } | null;
+}
+interface BulguBagi {
+  id: string;
+  workpaper_id: string;
+  finding_id: string;
+  findings: { baslik: string } | null;
+}
+interface KontrolSecenegi {
+  id: string;
+  ref: string;
+}
+interface BulguSecenegi {
+  id: string;
+  baslik: string;
+}
 
 const WP_DURUM: Record<string, SemantikDurum> = { TASLAK: "neutral", INCELEME: "legal-review", ONAYLANDI: "success" };
 
@@ -48,6 +68,12 @@ export default function DenetimDetayPage() {
   const [seed, setSeed] = useState("");
   const [wpBaslik, setWpBaslik] = useState("");
   const [wpIcerik, setWpIcerik] = useState("");
+  const [kontrolBaglari, setKontrolBaglari] = useState<KontrolBagi[]>([]);
+  const [bulguBaglari, setBulguBaglari] = useState<BulguBagi[]>([]);
+  const [kontrolSecenekleri, setKontrolSecenekleri] = useState<KontrolSecenegi[]>([]);
+  const [bulguSecenekleri, setBulguSecenekleri] = useState<BulguSecenegi[]>([]);
+  const [kSecim, setKSecim] = useState<Record<string, string>>({});
+  const [bSecim, setBSecim] = useState<Record<string, string>>({});
 
   const yukle = useCallback(async () => {
     const db = createClient();
@@ -65,6 +91,20 @@ export default function DenetimDetayPage() {
     setOrnekler((os ?? []) as Ornek[]);
     const { data: ws } = await db.from("audit_workpapers").select("id, baslik, icerik, durum, hazirlayan").eq("engagement_id", params.id).order("created_at");
     setWorkpaperlar((ws ?? []) as Workpaper[]);
+    const wpIds = (ws ?? []).map((w) => w.id);
+    if (wpIds.length > 0) {
+      const { data: kb } = await db.from("audit_workpaper_controls").select("id, workpaper_id, control_id, controls (madde_ref)").in("workpaper_id", wpIds);
+      setKontrolBaglari((kb ?? []) as unknown as KontrolBagi[]);
+      const { data: bb } = await db.from("audit_workpaper_findings").select("id, workpaper_id, finding_id, findings (baslik)").in("workpaper_id", wpIds);
+      setBulguBaglari((bb ?? []) as unknown as BulguBagi[]);
+    } else {
+      setKontrolBaglari([]);
+      setBulguBaglari([]);
+    }
+    const { data: ks } = await db.from("controls").select("id, madde_ref").order("madde_ref").limit(100);
+    setKontrolSecenekleri((ks ?? []).map((k) => ({ id: k.id, ref: k.madde_ref })));
+    const { data: bs } = await db.from("findings").select("id, baslik").order("created_at", { ascending: false }).limit(100);
+    setBulguSecenekleri((bs ?? []).map((b) => ({ id: b.id, baslik: b.baslik })));
   }, [params.id]);
 
   useEffect(() => {
@@ -127,6 +167,34 @@ export default function DenetimDetayPage() {
       await yukle();
     },
     [kullaniciId, yukle],
+  );
+
+  const kontrolBagla = useCallback(
+    async (workpaperId: string) => {
+      setHata(null);
+      const controlId = kSecim[workpaperId];
+      if (!controlId || !tenantId) return;
+      const db = createClient();
+      const { error } = await db.from("audit_workpaper_controls").insert({ tenant_id: tenantId, workpaper_id: workpaperId, control_id: controlId });
+      if (error) setHata(error.message.includes("donuk") ? "Onaylanmış çalışma kağıdının bağ listesi değiştirilemez (sign-off sonrası donuk)." : error.message);
+      setKSecim((m) => ({ ...m, [workpaperId]: "" }));
+      await yukle();
+    },
+    [kSecim, tenantId, yukle],
+  );
+
+  const bulguBagla = useCallback(
+    async (workpaperId: string) => {
+      setHata(null);
+      const findingId = bSecim[workpaperId];
+      if (!findingId || !tenantId) return;
+      const db = createClient();
+      const { error } = await db.from("audit_workpaper_findings").insert({ tenant_id: tenantId, workpaper_id: workpaperId, finding_id: findingId });
+      if (error) setHata(error.message.includes("donuk") ? "Onaylanmış çalışma kağıdının bağ listesi değiştirilemez (sign-off sonrası donuk)." : error.message);
+      setBSecim((m) => ({ ...m, [workpaperId]: "" }));
+      await yukle();
+    },
+    [bSecim, tenantId, yukle],
   );
 
   if (!is) return <div className="p-2 text-sm text-muted-foreground">Yükleniyor…</div>;
@@ -194,17 +262,72 @@ export default function DenetimDetayPage() {
           <CardTitle>Çalışma kağıtları ({workpaperlar.length})</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2 text-sm">
-          {workpaperlar.map((w) => (
-            <div key={w.id} className="flex flex-wrap items-center gap-2">
-              <span className="font-medium">{w.baslik}</span>
-              <StatusBadge durum={WP_DURUM[w.durum] ?? "neutral"}>{w.durum}</StatusBadge>
-              {w.durum !== "ONAYLANDI" ? (
-                <Button size="sm" onClick={() => void wpOnayla(w.id)}>
-                  Sign-off (onayla)
-                </Button>
-              ) : null}
-            </div>
-          ))}
+          {workpaperlar.map((w) => {
+            const wKontroller = kontrolBaglari.filter((k) => k.workpaper_id === w.id);
+            const wBulgular = bulguBaglari.filter((b) => b.workpaper_id === w.id);
+            const donuk = w.durum === "ONAYLANDI";
+            return (
+              <div key={w.id} className="flex flex-col gap-1 border-b pb-2 last:border-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{w.baslik}</span>
+                  <StatusBadge durum={WP_DURUM[w.durum] ?? "neutral"}>{w.durum}</StatusBadge>
+                  {w.durum !== "ONAYLANDI" ? (
+                    <Button size="sm" onClick={() => void wpOnayla(w.id)}>
+                      Sign-off (onayla)
+                    </Button>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-1 pl-1 text-xs text-muted-foreground">
+                  <span>Kontrol bağı:</span>
+                  {wKontroller.length === 0 ? <span>yok</span> : wKontroller.map((k) => <StatusBadge key={k.id} durum="info">{k.controls?.madde_ref ?? k.control_id}</StatusBadge>)}
+                  {!donuk ? (
+                    <>
+                      <select
+                        value={kSecim[w.id] ?? ""}
+                        onChange={(e) => setKSecim((m) => ({ ...m, [w.id]: e.target.value }))}
+                        aria-label={`${w.id} kontrol seç`}
+                        className="h-7 rounded-md border bg-background px-1 text-xs"
+                      >
+                        <option value="">Seçiniz…</option>
+                        {kontrolSecenekleri.map((k) => (
+                          <option key={k.id} value={k.id}>
+                            {k.ref}
+                          </option>
+                        ))}
+                      </select>
+                      <Button size="sm" variant="outline" onClick={() => void kontrolBagla(w.id)} disabled={!kSecim[w.id]}>
+                        Kontrol Bağla
+                      </Button>
+                    </>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-1 pl-1 text-xs text-muted-foreground">
+                  <span>Bulgu bağı:</span>
+                  {wBulgular.length === 0 ? <span>yok</span> : wBulgular.map((b) => <StatusBadge key={b.id} durum="warning">{b.findings?.baslik ?? b.finding_id}</StatusBadge>)}
+                  {!donuk ? (
+                    <>
+                      <select
+                        value={bSecim[w.id] ?? ""}
+                        onChange={(e) => setBSecim((m) => ({ ...m, [w.id]: e.target.value }))}
+                        aria-label={`${w.id} bulgu seç`}
+                        className="h-7 rounded-md border bg-background px-1 text-xs"
+                      >
+                        <option value="">Seçiniz…</option>
+                        {bulguSecenekleri.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.baslik}
+                          </option>
+                        ))}
+                      </select>
+                      <Button size="sm" variant="outline" onClick={() => void bulguBagla(w.id)} disabled={!bSecim[w.id]}>
+                        Bulgu Bağla
+                      </Button>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
           <div className="flex flex-col gap-2 rounded-md border border-dashed p-3">
             <div className="flex flex-col gap-1">
               <Label htmlFor="wp-baslik">Başlık</Label>

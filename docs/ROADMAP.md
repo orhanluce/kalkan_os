@@ -823,6 +823,30 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.48 M17 sonraki dilim (kısmi) — workpaper→bulgu/kontrol bağı ✅ (19 Temmuz)
+
+Nihai talimat v3.3 §8.0'ın beş dikeyi bittikten sonra kurucudan yeni belge
+gelmeden, §1.29'da ("BİLİNÇLİ SONRAKİ DİLİM") kaydedilen dört maddeden dış
+çerçeve içeriği uydurma riski TAŞIMAYAN tek madde seçildi: workpaper→bulgu/
+kontrol bağı (PBC/request, formal independence bağı ve WORM export hâlâ
+BEKLİYOR — bilinçli, ayrı iş). Migration `20260719230000` — Dikey 5'teki
+`critical_service_controls` deseninin AYNISI: iki yeni tenant'a özgü kenar
+tablosu, `audit_workpaper_controls` + `audit_workpaper_findings`.
+
+**İNVARYANT (mevcut "onaylanmış içerik donuk" ilkesinin kenarlara genişlemesi):**
+ONAYLANDI çalışma kağıdına yeni bağ eklenemez / mevcut bağ silinemez — sign-off
+sonrası kanıt izi sessizce değişemez (guard `before insert or delete`, workpaper
+`durum`'una bakar). TASLAK/İNCELEME'de bağlar serbestçe eklenir/silinir. RLS
+`audit_workspace` deseninin aynısı (tenant kilitli, yazma admin/uyum).
+
+UI `/denetim/[id]` çalışma kağıdı satırına kontrol/bulgu seçici + bağ rozetleri
+eklendi; ONAYLANDI olunca seçiciler kaybolur (sunucu tarafı zaten reddediyor,
+istemci de göstermez). Canlı guard smoke'u (TASLAK'ta serbest, ONAYLANDI'da
+red) gerçek Supabase'e karşı doğrulandı. Testler: rls-audit-workpaper-links 7 +
+mevcut `denetim.spec.ts` genişletildi (bağla → sign-off → donukluk + DB reddi
+doğrulaması, aynı iki-kullanıcı akışında). **1042 birim (102 dosya) + 58 e2e,
+0 skip; build yeşil.**
+
 ### 1.47 Dikey 4 kalan dilimi — segment drift + insan override + model rollback + ISO 42001↔27001 crosswalk ✅ (19 Temmuz)
 
 §1.45'te "bilinçli sonraki dilim" olarak kaydedilen dört madde teslim edildi.

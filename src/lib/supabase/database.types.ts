@@ -1304,6 +1304,101 @@ export type Database = {
           },
         ]
       }
+      audit_workpaper_controls: {
+        Row: {
+          control_id: string
+          created_at: string
+          gerekce: string | null
+          id: string
+          tenant_id: string
+          workpaper_id: string
+        }
+        Insert: {
+          control_id: string
+          created_at?: string
+          gerekce?: string | null
+          id?: string
+          tenant_id: string
+          workpaper_id: string
+        }
+        Update: {
+          control_id?: string
+          created_at?: string
+          gerekce?: string | null
+          id?: string
+          tenant_id?: string
+          workpaper_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_workpaper_controls_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_workpaper_controls_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_workpaper_controls_workpaper_id_fkey"
+            columns: ["workpaper_id"]
+            isOneToOne: false
+            referencedRelation: "audit_workpapers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_workpaper_findings: {
+        Row: {
+          created_at: string
+          finding_id: string
+          id: string
+          tenant_id: string
+          workpaper_id: string
+        }
+        Insert: {
+          created_at?: string
+          finding_id: string
+          id?: string
+          tenant_id: string
+          workpaper_id: string
+        }
+        Update: {
+          created_at?: string
+          finding_id?: string
+          id?: string
+          tenant_id?: string
+          workpaper_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_workpaper_findings_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "findings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_workpaper_findings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_workpaper_findings_workpaper_id_fkey"
+            columns: ["workpaper_id"]
+            isOneToOne: false
+            referencedRelation: "audit_workpapers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_workpapers: {
         Row: {
           baslik: string

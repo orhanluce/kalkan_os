@@ -14,6 +14,7 @@ function admin() {
 
 async function temizle(db: ReturnType<typeof admin>, tenantId: string) {
   await db.from("audit_engagements").delete().eq("tenant_id", tenantId).like("ad", "E2E-DN%");
+  await db.from("findings").delete().eq("tenant_id", tenantId).like("baslik", "E2E-DN%");
 }
 
 test("denetim: tekrarlanabilir örnekleme + çalışma kağıdı bağımsızlık sign-off", async ({ browser }) => {
@@ -53,12 +54,30 @@ test("denetim: tekrarlanabilir örnekleme + çalışma kağıdı bağımsızlık
     await adminPage.getByRole("button", { name: "Sign-off (onayla)" }).click();
     await expect(adminPage.getByRole("alert").filter({ hasText: "bağımsızlık" })).toBeVisible();
 
+    // 3b) Workpaper→kontrol/bulgu bağı (M17 sonraki dilim, ROADMAP §1.29):
+    // M13/Dikey5 desenindeki graf-genişletme — sign-off ÖNCESİ serbestçe eklenir.
+    const { data: eng0 } = await db.from("audit_engagements").select("id").eq("tenant_id", kurum!.id).eq("ad", "E2E-DN BS denetimi").single();
+    const { data: control } = await db.from("controls").select("id, madde_ref").limit(1).single();
+    const { data: finding } = await db.from("findings").insert({ tenant_id: kurum!.id, kaynak: "denetim", onem: "orta", baslik: "E2E-DN test bulgusu" }).select("id, baslik").single();
+
+    await adminPage.getByLabel("kontrol seç", { exact: false }).selectOption({ label: control!.madde_ref });
+    await adminPage.getByRole("button", { name: "Kontrol Bağla" }).click();
+    await expect(adminPage.getByText(control!.madde_ref, { exact: true }).first()).toBeVisible();
+
+    await adminPage.getByLabel("bulgu seç", { exact: false }).selectOption({ label: finding!.baslik });
+    await adminPage.getByRole("button", { name: "Bulgu Bağla" }).click();
+    await expect(adminPage.getByText(finding!.baslik).first()).toBeVisible();
+
     // 4) UYUM (farklı reviewer) sign-off → ONAYLANDI.
-    const { data: eng } = await db.from("audit_engagements").select("id").eq("tenant_id", kurum!.id).eq("ad", "E2E-DN BS denetimi").single();
+    const eng = eng0;
     await ikinciKullaniciGirisYap(uyumPage);
     await uyumPage.goto(`/denetim/${eng!.id}`);
     await uyumPage.getByRole("button", { name: "Sign-off (onayla)" }).click();
     await expect(uyumPage.getByText("ONAYLANDI")).toBeVisible();
+
+    // 4b) Sign-off SONRASI bağ listesi DONUK: yeni bir kontrol seçici artık yok.
+    await expect(uyumPage.getByLabel("kontrol seç", { exact: false })).toHaveCount(0);
+    await expect(uyumPage.getByText(control!.madde_ref, { exact: true }).first()).toBeVisible();
 
     // DB: workpaper ONAYLANDI + reviewer≠hazırlayan; örnek seed'li seçim saklı.
     const { data: wp } = await db.from("audit_workpapers").select("durum, hazirlayan, reviewer").eq("engagement_id", eng!.id).single();
@@ -67,6 +86,13 @@ test("denetim: tekrarlanabilir örnekleme + çalışma kağıdı bağımsızlık
     const { data: s } = await db.from("audit_samples").select("seed, secilen_indeksler").eq("engagement_id", eng!.id).single();
     expect(s!.seed).toBe("e2e-seed-1");
     expect((s!.secilen_indeksler as number[]).length).toBe(10);
+
+    // DB: bağların ikisi de kayıtlı, ONAYLANDI sonrası yeni bağ eklenemez.
+    const { data: wp2 } = await db.from("audit_workpapers").select("id").eq("engagement_id", eng!.id).single();
+    const { data: kBaglar } = await db.from("audit_workpaper_controls").select("id").eq("workpaper_id", wp2!.id);
+    expect(kBaglar).toHaveLength(1);
+    const { error: donukHata } = await db.from("audit_workpaper_controls").insert({ tenant_id: kurum!.id, workpaper_id: wp2!.id, control_id: control!.id });
+    expect(donukHata?.message).toMatch(/donuk/);
   } finally {
     await adminCtx.close();
     await uyumCtx.close();
