@@ -946,7 +946,7 @@ function KatilimciEkleFormu({
         <div className="flex flex-col gap-1.5">
           <Label>Kullanıcı</Label>
           <Select value={seciliUserId} onValueChange={(v) => setSeciliUserId(v ?? "")}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-48" aria-label="Katılımcı kullanıcı seç">
               <SelectValue placeholder="Seçin" />
             </SelectTrigger>
             <SelectContent>

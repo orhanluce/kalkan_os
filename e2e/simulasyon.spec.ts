@@ -1,5 +1,13 @@
+import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
-import { girisYap } from "./helpers";
+import { E2E_IKINCI_KULLANICI_ADI, E2E_KURUM_ADI, girisYap } from "./helpers";
+
+function admin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase env eksik (.env.local).");
+  return createClient(url, key, { auth: { persistSession: false } });
+}
 
 // M8 kabul kriteri: tatbikat baştan sona oynanabilir, tamamlandığında
 // puanlanabilir, ve kabul edilen bulgu önerisi gerçek bir bulguya dönüşür
@@ -249,5 +257,128 @@ test("puanlanan tatbikat mühürlenir, PDF raporu üretilir ve QR doğrulaması 
     expect(kurcaCikti).toContain("FAILED");
   } finally {
     rmSync(klasor, { recursive: true, force: true });
+  }
+});
+
+// M18 sonraki dilim (ROADMAP §1.30/§1.52 sonu): tatbikat sonucu eğitim
+// tamamlamasına GERÇEK BAĞLA — katılımcı rolündeki bir kullanıcının o
+// konudaki aktif eğitim ataması, tatbikat puanlanınca otomatik tamamlanır
+// (elle skor girilmez). S05'i GEÇİCİ olarak etiketliyoruz (kural 12: gerçek
+// seed içeriği hiç değişmiyor, yalnız bu testin ömrü boyunca; finally'de
+// geri alınıyor).
+test("tatbikat puanlanınca katılımcının eşleşen eğitim ataması otomatik tamamlanır (M18 bağı)", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const db = admin();
+
+  const { data: tenant } = await db.from("tenants").select("id").eq("name", E2E_KURUM_ADI).single();
+  const { data: sablon } = await db.from("scenario_templates").select("id").eq("kod", "S05").single();
+  if (!tenant || !sablon) throw new Error("E2E fikstürü eksik.");
+
+  const { data: ikinciProfil } = await db
+    .from("profiles")
+    .select("id")
+    .eq("tenant_id", tenant.id)
+    .eq("full_name", E2E_IKINCI_KULLANICI_ADI)
+    .single();
+  if (!ikinciProfil) throw new Error("İkinci e2e kullanıcısı bulunamadı.");
+
+  await db.from("scenario_templates").update({ egitim_konusu: "GUVENLIK" }).eq("id", sablon.id);
+
+  const damga = Date.now();
+  const { data: gereksinim } = await db
+    .from("training_requirements")
+    .insert({ tenant_id: tenant.id, ad: `_E2E_ Güvenlik Farkındalık ${damga}`, konu: "GUVENLIK", gecme_esigi: 70 })
+    .select("id")
+    .single();
+  if (!gereksinim) throw new Error("Eğitim gereksinimi oluşturulamadı.");
+  const { data: atama } = await db
+    .from("training_assignments")
+    .insert({ tenant_id: tenant.id, requirement_id: gereksinim.id, kullanici: ikinciProfil.id })
+    .select("id")
+    .single();
+  if (!atama) throw new Error("Eğitim ataması oluşturulamadı.");
+
+  try {
+    await girisYap(page);
+    await page.goto("/simulasyonlar");
+    await page.getByTestId("senaryo-S05").getByRole("button", { name: "Yeni Tatbikat Başlat" }).click();
+    await expect(page).toHaveURL(/\/simulasyonlar\/[0-9a-f-]+$/, { timeout: 15_000 });
+    const runId = page.url().split("/").pop() as string;
+
+    // İkinci kullanıcıyı KATILIMCI olarak ekle — yönetici/gözlemci eğitim
+    // bağından muaftır (yalnız katılımcı rolü "eğitim aldı" sayılır).
+    await page.getByRole("combobox", { name: "Katılımcı kullanıcı seç" }).click();
+    await page.getByRole("option", { name: E2E_IKINCI_KULLANICI_ADI }).click();
+    await page.getByRole("button", { name: "Ekle" }).click();
+    // UI metin görünürlüğü yerine gerçek yazmayı bekliyoruz — popover
+    // kapanış animasyonu ara sırada "Mehmet Kaya" metnini geçici olarak
+    // gizli (hidden) bir düğümde bırakabiliyor ve metin tabanlı toBeVisible
+    // bunu kararsız (flaky) yapıyordu.
+    await expect
+      .poll(
+        async () => {
+          const { data } = await db
+            .from("simulation_participants")
+            .select("id")
+            .eq("run_id", runId)
+            .eq("user_id", ikinciProfil.id)
+            .maybeSingle();
+          return Boolean(data);
+        },
+        { timeout: 10_000 },
+      )
+      .toBe(true);
+
+    await page.getByRole("button", { name: "Hazırla" }).click();
+    await expect(page.getByText("Hazır", { exact: true })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole("button", { name: "Başlat" }).click();
+    await expect(page.getByText("Çalışıyor")).toBeVisible({ timeout: 10_000 });
+
+    const yayinlaButonu = page.getByRole("button", { name: "Yayınla" });
+    let kalan = await yayinlaButonu.count();
+    while (kalan > 0) {
+      await yayinlaButonu.first().click();
+      await expect(yayinlaButonu).toHaveCount(kalan - 1, { timeout: 15_000 });
+      kalan -= 1;
+    }
+
+    const tamamlandiButonlari = page.getByRole("button", { name: "Tamamlandı" });
+    const aksiyonSayisi = await tamamlandiButonlari.count();
+    for (let i = 0; i < aksiyonSayisi; i++) {
+      const buton = tamamlandiButonlari.nth(i);
+      await buton.click();
+      await expect(buton).toBeDisabled({ timeout: 3_000 }).catch(() => {});
+      await expect(buton).toBeEnabled({ timeout: 15_000 });
+    }
+
+    await page.getByRole("button", { name: "Tamamla", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Puanla" })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole("button", { name: "Puanla" }).click();
+    await expect(page.getByText("/100")).toBeVisible({ timeout: 15_000 });
+
+    // --- DB kanıtı: skor UYDURULMADI, mühürlenen puanla aynı satır geldi ---
+    const { data: tamamlama } = await db
+      .from("training_completions")
+      .select("skor, gecti, kaynak, kaynak_simulasyon_run_id")
+      .eq("assignment_id", atama.id)
+      .single();
+    expect(tamamlama?.kaynak).toBe("SIMULASYON");
+    expect(tamamlama?.kaynak_simulasyon_run_id).toBe(runId);
+
+    const puanMetni = await page.locator("span.text-3xl.font-semibold.tabular-nums").first().textContent();
+    const muhurlenenPuan = Number((puanMetni ?? "").trim());
+    expect(tamamlama?.skor).toBe(muhurlenenPuan);
+
+    // --- UI kanıtı: /egitim sayfasında "Tatbikattan (otomatik)" rozeti ---
+    await page.goto("/egitim");
+    await expect(page.getByText("Tatbikattan (otomatik)").first()).toBeVisible({ timeout: 10_000 });
+  } finally {
+    // Paylaşılan kütüphane verisini (S05) testin ömrü dışına sızdırma.
+    await db.from("scenario_templates").update({ egitim_konusu: null }).eq("id", sablon.id);
+    await db.from("training_completions").delete().eq("assignment_id", atama.id);
+    await db.from("training_assignments").delete().eq("id", atama.id);
+    await db.from("training_requirements").delete().eq("id", gereksinim.id);
   }
 });

@@ -5071,6 +5071,7 @@ export type Database = {
           aciklama: string | null
           ad: string
           created_at: string
+          egitim_konusu: string | null
           icerik_durumu: string
           id: string
           kod: string
@@ -5080,6 +5081,7 @@ export type Database = {
           aciklama?: string | null
           ad: string
           created_at?: string
+          egitim_konusu?: string | null
           icerik_durumu?: string
           id?: string
           kod: string
@@ -5089,6 +5091,7 @@ export type Database = {
           aciklama?: string | null
           ad?: string
           created_at?: string
+          egitim_konusu?: string | null
           icerik_durumu?: string
           id?: string
           kod?: string
@@ -7416,6 +7419,8 @@ export type Database = {
           created_at: string
           gecti: boolean
           id: string
+          kaynak: string
+          kaynak_simulasyon_run_id: string | null
           skor: number
           tamamlandi_at: string
           tenant_id: string
@@ -7426,6 +7431,8 @@ export type Database = {
           created_at?: string
           gecti?: boolean
           id?: string
+          kaynak?: string
+          kaynak_simulasyon_run_id?: string | null
           skor: number
           tamamlandi_at?: string
           tenant_id: string
@@ -7436,6 +7443,8 @@ export type Database = {
           created_at?: string
           gecti?: boolean
           id?: string
+          kaynak?: string
+          kaynak_simulasyon_run_id?: string | null
           skor?: number
           tamamlandi_at?: string
           tenant_id?: string
@@ -7446,6 +7455,13 @@ export type Database = {
             columns: ["assignment_id"]
             isOneToOne: true
             referencedRelation: "training_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_completions_kaynak_simulasyon_run_id_fkey"
+            columns: ["kaynak_simulasyon_run_id"]
+            isOneToOne: false
+            referencedRelation: "simulation_runs"
             referencedColumns: ["id"]
           },
           {

@@ -12,6 +12,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { LocalAppendOnlyAnchorProvider } from "@/lib/anchor";
 import type { CanonicalDeger } from "@/lib/canonical";
+import { simulasyonTamamlamalariniBelirle } from "@/lib/egitim-simulasyon-bagi";
 import { envelopeHash, zarfOlustur, type EvidenceRow } from "@/lib/evidence-envelope";
 import { LocalDevSigner, detachedJwsImzala } from "@/lib/manifest-signature";
 import { bulguOnerileriUret, puanla, type PuanlamaKurali } from "@/lib/scoring";
@@ -38,7 +39,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     // Parçalayıp `+` ile birleştirmek tipi `string`e düşürür ve satır
     // `GenericStringError` olur — alanlar sessizce kaybolmaz, typecheck patlar.
     .select(
-      "id, tenant_id, version_id, durum, ad, mod, zaman_olcegi, basladi_at, bitti_at, tenants(name), scenario_template_versions(surum, scenario_templates(kod, ad))",
+      "id, tenant_id, version_id, durum, ad, mod, zaman_olcegi, basladi_at, bitti_at, tenants(name), scenario_template_versions(surum, scenario_templates(kod, ad, egitim_konusu))",
     )
     .eq("id", runId)
     .maybeSingle();
@@ -192,6 +193,60 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     }
   }
 
+  // Şablon (kod/ad/eğitim konusu) — hem manifest hem eğitim bağı bunu kullanır.
+  const sablonSurum = run.scenario_template_versions;
+  const sablon = sablonSurum?.scenario_templates;
+
+  // --- Eğitim tamamlama bağı (M18 sonraki dilim, ROADMAP §1.30/§1.52 sonu) ---
+  //
+  // Şablon bir eğitim konusuyla etiketliyse, tatbikatın MÜHÜRLENEN puanı
+  // katılımcı-rolündeki kullanıcıların o konudaki aktif atamalarını otomatik
+  // tamamlar. Eşleşme mantığı saf fonksiyonda (egitim-simulasyon-bagi.ts,
+  // kural 11) — burada yalnızca toplama + yazma var. Skor UYDURULMAZ: aynı
+  // `sonuc.puan` az önce mühürlenene bağlanıyor.
+  const egitimKonusu = sablon?.egitim_konusu ?? null;
+  if (egitimKonusu) {
+    const [{ data: katilimcilarRow }, { data: atamalarRow }] = await Promise.all([
+      admin.from("simulation_participants").select("user_id, katilim_tipi").eq("run_id", runId),
+      admin
+        .from("training_assignments")
+        .select("id, kullanici, training_requirements(konu)")
+        .eq("tenant_id", run.tenant_id)
+        .eq("durum", "ATANDI"),
+    ]);
+
+    const tamamlanacaklar = simulasyonTamamlamalariniBelirle({
+      egitimKonusu,
+      katilimcilar: (katilimcilarRow ?? []).map((k) => ({
+        userId: k.user_id,
+        katilimTipi: k.katilim_tipi as "yonetici" | "katilimci" | "gozlemci",
+      })),
+      aktifAtamalar: (atamalarRow ?? [])
+        .map((a) => ({
+          assignmentId: a.id,
+          kullanici: a.kullanici,
+          konu: (a.training_requirements as unknown as { konu: string } | null)?.konu ?? "",
+        }))
+        .filter((a) => a.konu),
+    });
+
+    if (tamamlanacaklar.length > 0) {
+      const { error: tamamlamaErr } = await admin.from("training_completions").insert(
+        tamamlanacaklar.map((t) => ({
+          tenant_id: run.tenant_id,
+          assignment_id: t.assignmentId,
+          skor: sonuc.puan,
+          attestation: true,
+          kaynak: "SIMULASYON" as const,
+          kaynak_simulasyon_run_id: runId,
+        })),
+      );
+      if (tamamlamaErr) {
+        return NextResponse.json({ hata: tamamlamaErr.message }, { status: 500 });
+      }
+    }
+  }
+
   // --- Sonuç manifestini mühürle (M9, belge §11.3) ---
   //
   // NEDEN BURADA: manifest "bu tatbikat şu sonucu verdi" iddiasını dondurur.
@@ -202,8 +257,6 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
   // TEKRAR MÜHÜRLEME YOK: run_id unique. Zaten durum makinesi de ikinci bir
   // puanlamayı 409'la reddediyor (yukarıdaki durum kontrolü) — bir tatbikatın
   // iki resmi sonucu olamaz.
-  const sablonSurum = run.scenario_template_versions;
-  const sablon = sablonSurum?.scenario_templates;
 
   // Kararlara bağlı kanıtlar. Hash'i olmayan kanıt (link/beyan tipi) manifeste
   // girmez: null'ı "hash" diye mühürlemek, olmayan bir bütünlük iddiası

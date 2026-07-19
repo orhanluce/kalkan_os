@@ -30,6 +30,8 @@ interface Atama {
   skor: number | null;
   periyotGun: number | null;
   tamamlandiAt: string | null;
+  kaynak: string | null;
+  kaynakRunId: string | null;
 }
 
 const KONU_SEM: Record<string, SemantikDurum> = {
@@ -81,14 +83,19 @@ export default function EgitimPage() {
     setGereksinimler((gs ?? []) as Gereksinim[]);
     const { data: as } = await db
       .from("training_assignments")
-      .select("id, requirement_id, durum, son_tarih, training_requirements (ad, periyot_gun), training_completions (gecti, skor, tamamlandi_at)")
+      .select(
+        "id, requirement_id, durum, son_tarih, training_requirements (ad, periyot_gun), training_completions (gecti, skor, tamamlandi_at, kaynak, kaynak_simulasyon_run_id)",
+      )
       .order("created_at");
     setAtamalar(
-      ((as ?? []) as unknown as (Omit<Atama, "gereksinimAd" | "gecti" | "skor" | "periyotGun" | "tamamlandiAt"> & {
+      ((as ?? []) as unknown as (Omit<Atama, "gereksinimAd" | "gecti" | "skor" | "periyotGun" | "tamamlandiAt" | "kaynak" | "kaynakRunId"> & {
         training_requirements: { ad: string; periyot_gun: number | null };
         // assignment_id unique → PostgREST tekil obje döndürür (dizi değil);
         // yine de her iki biçimi de güvenle normalize et.
-        training_completions: { gecti: boolean; skor: number; tamamlandi_at: string } | { gecti: boolean; skor: number; tamamlandi_at: string }[] | null;
+        training_completions:
+          | { gecti: boolean; skor: number; tamamlandi_at: string; kaynak: string; kaynak_simulasyon_run_id: string | null }
+          | { gecti: boolean; skor: number; tamamlandi_at: string; kaynak: string; kaynak_simulasyon_run_id: string | null }[]
+          | null;
       })[]).map((a) => {
         const comp = Array.isArray(a.training_completions) ? a.training_completions[0] : a.training_completions;
         return {
@@ -101,6 +108,8 @@ export default function EgitimPage() {
           skor: comp?.skor ?? null,
           periyotGun: a.training_requirements?.periyot_gun ?? null,
           tamamlandiAt: comp?.tamamlandi_at ?? null,
+          kaynak: comp?.kaynak ?? null,
+          kaynakRunId: comp?.kaynak_simulasyon_run_id ?? null,
         };
       }),
     );
@@ -288,6 +297,15 @@ export default function EgitimPage() {
                             <StatusBadge durum={a.gecti ? "success" : "danger"}>
                               {a.gecti ? "Geçti" : "Kaldı"} ({a.skor})
                             </StatusBadge>
+                            {a.kaynak === "SIMULASYON" ? (
+                              a.kaynakRunId ? (
+                                <a href={`/simulasyonlar/${a.kaynakRunId}`} className="underline">
+                                  <StatusBadge durum="info">Tatbikattan (otomatik)</StatusBadge>
+                                </a>
+                              ) : (
+                                <StatusBadge durum="info">Tatbikattan (otomatik)</StatusBadge>
+                              )
+                            ) : null}
                             {a.gecti && a.periyotGun && a.tamamlandiAt
                               ? (() => {
                                   const yenileme = periyotYenilemeDurumu(a.tamamlandiAt!, a.periyotGun!, simdi);

@@ -823,6 +823,61 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.53 M18 sonraki dilim (madde 2/2) — tatbikat → eğitim tamamlama gerçek bağı ✅ (19 Temmuz)
+
+§1.31'de bırakılan ve §1.52'nin sonunda yinelenen borç kapandı: "phishing/
+tabletop = simülasyon (M7-M9) sonucuna gerçek bağ". Migration `20260719280000`.
+
+**ÖNCESİ:** bir kullanıcının tatbikata katılması "eğitim tamamlama" sayılması
+için bir uyum görevlisinin `training_completions`'a ELLE skor girmesi
+gerekiyordu — sistem "tespit etti" diyemezdi, sadece insan beyanı vardı.
+**SONRASI:** bir senaryo şablonu bir eğitim konusuyla etiketliyse
+(`scenario_templates.egitim_konusu`, training_requirements.konu ile aynı
+sözlük), o şablonun tatbikatı `/api/simulasyon/[id]/puanla`'da mühürlenince,
+katılımcı-rolündeki (yönetici/gözlemci HARİÇ) her kullanıcının o konudaki
+AKTİF (ATANDI) ataması otomatik `training_completions` alır — **skor
+UYDURULMAZ, az önce mühürlenen `sonuc.puan` aynen kopyalanır.**
+
+Eşleştirme mantığı saf fonksiyonda (`src/lib/egitim-simulasyon-bagi.ts`,
+`simulasyonTamamlamalariniBelirle`, kural 11) — rota yalnızca toplar+yazar, 7
+birim test kapsıyor. `training_completion_guard` (M18'in mevcut trigger'ı)
+DEĞİŞMEDİ: gecti skor/eşikten hesaplanmaya devam ediyor, attestation zorunlu
+kalıyor (katılım = attestation).
+
+**BİLİNÇLİ BASİTLEŞTİRME:** puanlama motoru (M8) RUN bazlı, katılımcı bazlı
+değil — bir tatbikatın tek puanı var, aynı run'daki tüm katılımcı-rolündeki
+kullanıcılar AYNI puanı alır (kurumun kolektif tepkisi). Kişi bazlı puanlama
+scoring.ts'in kapsamlı yeniden tasarımını ister — ERTELENDİ.
+
+**ETİKETLEME UYDURULMADI (kural 12):** mevcut S01-S05 şablonlarının HİÇBİRİ
+gerçekte phishing/tabletop içeriği değil (fidye/hesap ele geçirme/veri
+sızıntısı/yedekten dönüş/tedarikçi kesintisi) — bu migration hiçbirini kalıcı
+etiketlemedi, `egitim_konusu` hepsinde NULL kaldı. Gerçek bir phishing/
+tabletop şablonu yazılınca (data/scenarios/*.yaml, kurucu onayı) o şablonun
+seed'i `egitim_konusu`'nu doldurur; mekanizma o günü BEKLEMEDEN bugün kurulup
+canlıda uçtan uca kanıtlandı (aşağıda).
+
+Şema: `scenario_templates.egitim_konusu` (nullable, aynı sözlük check'i) +
+`training_completions.kaynak` ('MANUEL'|'SIMULASYON') + `kaynak_simulasyon_
+run_id` (izlenebilirlik — hangi tatbikattan geldiği). UI `/egitim`: kaynak=
+SIMULASYON olan tamamlamalarda "Tatbikattan (otomatik)" rozeti, ilgili tatbikat
+koşusuna link.
+
+Canlı smoke: S05'i GEÇİCİ etiketleyip (test sonunda geri null) tam akışı
+(şablon+run+katılımcı+gereksinim+atama→insert) service-role'le doğrudan
+doğruladı — guard skor→gecti hesapladı, atama TAMAMLANDI oldu, kaynak
+izlenebilir çıktı. **Gerçek Chromium e2e** (`simulasyon.spec.ts`'e eklendi):
+S05'i aynı GEÇİCİ desenle etiketler, ikinci e2e kullanıcısını KATILIMCI olarak
+UI'dan ekler ("Katılımcı ekle" formunun "Kullanıcı" seçicisine test-kararlılığı
+için `aria-label` eklendi), tam tatbikat akışını oynar, puanlar, DB'de
+kaynak=SIMULASYON + doğru run_id + mühürlenen puanla BİREBİR aynı skor
+doğrular, `/egitim`'de rozeti görür — `finally` bloğunda S05'i null'a geri
+alır (paylaşılan kütüphane verisi test ömrü dışına sızmaz). Testler: 7 saf
+birim (`egitim-simulasyon-bagi.test.ts`) + 6 şema/RLS (`rls-egitim-simulasyon-
+bagi.test.ts`) + genişletilmiş e2e. **1090 birim (109 dosya) + 59 e2e, 0 skip;
+build yeşil.** M18'in §1.31/§1.52'de bırakılan İKİ sonraki-dilim maddesi de
+(retraining + tatbikat bağı) TAMAMLANDI.
+
 ### 1.52 M18 sonraki dilim (kısmi) — retraining otomasyonu ✅ (19 Temmuz)
 
 M17'nin dört maddesi de bittikten sonra kurucudan yeni belge gelmeden, ROADMAP
