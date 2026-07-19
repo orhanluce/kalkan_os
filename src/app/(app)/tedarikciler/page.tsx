@@ -37,7 +37,26 @@ interface Sablon {
   tur: string;
   soru: string;
   aktif: boolean;
+  kategori: string | null;
+  kaynak_citation: string | null;
+  kaynak_surumu: string | null;
+  dogrulama_durumu: string;
 }
+
+// 11 bulut alanı (Dikey 3).
+const BULUT_KATEGORI: Record<string, string> = {
+  BULUT_ENVANTERI: "Bulut envanteri",
+  SHARED_RESPONSIBILITY: "Shared responsibility",
+  SLA_GUVENLIK: "SLA / güvenlik",
+  DORDUNCU_TARAF: "Dördüncü taraf",
+  VERI_LOKASYON: "Veri lokasyonu",
+  IAM_LOG: "IAM / merkezi log",
+  OLAY_BILDIRIM: "Olay bildirim süresi",
+  YEDEKLEME_KURTARMA: "Yedekleme / kurtarma",
+  VERI_IMHA: "Güvenli imha",
+  CIKIS_PLANI: "Çıkış / ikame",
+  DDOS_KAPASITE: "DDoS / kapasite",
+};
 
 export default function TedariklerPage() {
   const [liste, setListe] = useState<Tedarikci[]>([]);
@@ -49,6 +68,9 @@ export default function TedariklerPage() {
   const [sablonlar, setSablonlar] = useState<Sablon[]>([]);
   const [sTur, setSTur] = useState("DORA");
   const [sSoru, setSSoru] = useState("");
+  const [sKategori, setSKategori] = useState("");
+  const [sCitation, setSCitation] = useState("");
+  const [sSurum, setSSurum] = useState("");
 
   const yukle = useCallback(async () => {
     const db = createClient();
@@ -71,7 +93,7 @@ export default function TedariklerPage() {
     setKonsantrasyon(konsantrasyonAnalizi(graf));
     const { data: sb } = await db
       .from("assessment_question_templates")
-      .select("id, tur, soru, aktif")
+      .select("id, tur, soru, aktif, kategori, kaynak_citation, kaynak_surumu, dogrulama_durumu")
       .order("tur")
       .order("sira");
     setSablonlar((sb ?? []) as Sablon[]);
@@ -120,11 +142,40 @@ export default function TedariklerPage() {
     if (!user) return;
     const { data: profil } = await db.from("profiles").select("tenant_id").eq("id", user.id).maybeSingle();
     if (!profil?.tenant_id) return setHata("Kurum bağlamı çözülemedi.");
-    const { error } = await db.from("assessment_question_templates").insert({ tenant_id: profil.tenant_id, tur: sTur, soru: sSoru.trim() });
+    // Pak maddesi TODO_DOGRULA doğar (kural 6) — içerik/kaynak tenant girdisi.
+    const { error } = await db.from("assessment_question_templates").insert({
+      tenant_id: profil.tenant_id,
+      tur: sTur,
+      soru: sSoru.trim(),
+      kategori: sKategori || null,
+      kaynak_citation: sCitation.trim() || null,
+      kaynak_surumu: sSurum.trim() || null,
+    });
     if (error) return setHata(error.message);
     setSSoru("");
+    setSCitation("");
+    setSSurum("");
     await yukle();
-  }, [sTur, sSoru, yukle]);
+  }, [sTur, sSoru, sKategori, sCitation, sSurum, yukle]);
+
+  // Doğrulama (kural 6): pak maddesini İNSAN doğrulayıcı olarak VERIFIED yap.
+  const sablonDogrula = useCallback(
+    async (id: string) => {
+      setHata(null);
+      const db = createClient();
+      const {
+        data: { user },
+      } = await db.auth.getUser();
+      if (!user) return;
+      const { error } = await db
+        .from("assessment_question_templates")
+        .update({ dogrulama_durumu: "VERIFIED", dogrulayan: user.id, dogrulama_zamani: new Date().toISOString() })
+        .eq("id", id);
+      if (error) setHata(error.message);
+      await yukle();
+    },
+    [yukle],
+  );
 
   const sablonPasifYap = useCallback(
     async (id: string) => {
@@ -268,6 +319,21 @@ export default function TedariklerPage() {
               {sorular.map((s) => (
                 <div key={s.id} className="flex flex-wrap items-center gap-2 text-xs">
                   <span className={s.aktif ? "" : "text-muted-foreground line-through"}>{s.soru}</span>
+                  {s.kategori ? <StatusBadge durum="info">{BULUT_KATEGORI[s.kategori] ?? s.kategori}</StatusBadge> : null}
+                  {s.kaynak_citation ? (
+                    <span className="text-muted-foreground">
+                      [{s.kaynak_citation}
+                      {s.kaynak_surumu ? ` · ${s.kaynak_surumu}` : ""}]
+                    </span>
+                  ) : null}
+                  <StatusBadge durum={s.dogrulama_durumu === "VERIFIED" ? "success" : s.dogrulama_durumu === "YURURLUKTEN_KALKTI" ? "neutral" : "warning"}>
+                    {s.dogrulama_durumu === "VERIFIED" ? "Doğrulandı" : s.dogrulama_durumu === "YURURLUKTEN_KALKTI" ? "Yürürlükten kalktı" : "Doğrulanmadı"}
+                  </StatusBadge>
+                  {s.dogrulama_durumu === "TODO_DOGRULA" ? (
+                    <Button size="sm" variant="outline" onClick={() => void sablonDogrula(s.id)}>
+                      Doğrula (VERIFIED)
+                    </Button>
+                  ) : null}
                   {!s.aktif ? (
                     <StatusBadge durum="neutral">Pasif</StatusBadge>
                   ) : (
@@ -293,6 +359,25 @@ export default function TedariklerPage() {
             <div className="flex flex-col gap-1">
               <Label htmlFor="sb-soru">Soru</Label>
               <Input id="sb-soru" value={sSoru} onChange={(e) => setSSoru(e.target.value)} className="w-72" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="sb-kategori">Bulut alanı (opsiyonel)</Label>
+              <select id="sb-kategori" value={sKategori} onChange={(e) => setSKategori(e.target.value)} className="h-9 rounded-md border bg-background px-2 text-sm">
+                <option value="">—</option>
+                {Object.entries(BULUT_KATEGORI).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="sb-citation">Kaynak künyesi (opsiyonel)</Label>
+              <Input id="sb-citation" value={sCitation} onChange={(e) => setSCitation(e.target.value)} placeholder="ör. DORA md.28" className="w-44" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="sb-surum">Kaynak sürümü (opsiyonel)</Label>
+              <Input id="sb-surum" value={sSurum} onChange={(e) => setSSurum(e.target.value)} placeholder="ör. RTS-2024" className="w-32" />
             </div>
             <Button size="sm" onClick={() => void sablonEkle()} disabled={!sSoru.trim()}>
               Şablona Ekle

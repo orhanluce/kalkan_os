@@ -804,7 +804,13 @@ export type Database = {
         Row: {
           aktif: boolean
           created_at: string
+          dogrulama_durumu: string
+          dogrulama_zamani: string | null
+          dogrulayan: string | null
           id: string
+          kategori: string | null
+          kaynak_citation: string | null
+          kaynak_surumu: string | null
           sira: number
           soru: string
           tenant_id: string
@@ -813,7 +819,13 @@ export type Database = {
         Insert: {
           aktif?: boolean
           created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
           id?: string
+          kategori?: string | null
+          kaynak_citation?: string | null
+          kaynak_surumu?: string | null
           sira?: number
           soru: string
           tenant_id: string
@@ -822,13 +834,26 @@ export type Database = {
         Update: {
           aktif?: boolean
           created_at?: string
+          dogrulama_durumu?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
           id?: string
+          kategori?: string | null
+          kaynak_citation?: string | null
+          kaynak_surumu?: string | null
           sira?: number
           soru?: string
           tenant_id?: string
           tur?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "assessment_question_templates_dogrulayan_fkey"
+            columns: ["dogrulayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "assessment_question_templates_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -844,30 +869,36 @@ export type Database = {
           cevap: string | null
           created_at: string
           id: string
+          kaynak_citation: string | null
           risk_seviyesi: string | null
           sira: number
           soru: string
           tenant_id: string
+          uygulanabilirlik: string
         }
         Insert: {
           assessment_id: string
           cevap?: string | null
           created_at?: string
           id?: string
+          kaynak_citation?: string | null
           risk_seviyesi?: string | null
           sira?: number
           soru: string
           tenant_id: string
+          uygulanabilirlik?: string
         }
         Update: {
           assessment_id?: string
           cevap?: string | null
           created_at?: string
           id?: string
+          kaynak_citation?: string | null
           risk_seviyesi?: string | null
           sira?: number
           soru?: string
           tenant_id?: string
+          uygulanabilirlik?: string
         }
         Relationships: [
           {

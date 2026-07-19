@@ -823,6 +823,28 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.44 Nihai v3.3 §8.0 Dikey 3 — M35 Cloud & Critical Third-Party Assurance Pack ✅ (19 Temmuz)
+
+Mevcut doğrulanmış şablon motoru (§1.40) ZENGİNLEŞTİRİLDİ — ilk satılabilir
+bulut paketi. Migration `20260719190000` — `assessment_question_templates`'e:
+**11 bulut alanı** (`kategori`: bulut envanteri/shared-responsibility/SLA-güvenlik/
+dördüncü-taraf/veri lokasyonu/IAM-log/olay bildirim/yedekleme-kurtarma/imha/
+çıkış planı/DDoS-kapasite), `kaynak_citation`, `kaynak_surumu`, `dogrulama_durumu`
+(default TODO_DOGRULA), `dogrulayan`, `dogrulama_zamani`. **DOĞRULAMA DİSİPLİNİ
+(kural 6, obligations VERIFIED deseni):** pak maddesi TODO_DOGRULA DOĞAR; VERIFIED
+doğrudan doğamaz + VERIFIED geçişi İNSAN doğrulayıcı (dogrulayan) + zaman ister +
+kimlik atfı — AI/service atlayamaz (guard). **İÇERİK UYDURULMAZ (kural 3):**
+soru+kaynak künyesi tamamen tenant girdisi, KALKAN_OS "resmî" standart iddiası
+seed etmez. `assessment_questions`'a `kaynak_citation` (kopyaya taşınır) +
+`uygulanabilirlik` (default UNKNOWN — UNKNOWN≠NOT_APPLICABLE, kural 7). Açık
+kritik bulguyla sign-off yasağı zaten §1.35'te; şablondan bağımsız sürümleme
+zaten §1.40'ta. UI (`/tedarikciler` şablon kartı): kategori seçimi + kaynak
+künyesi/sürümü girişi + doğrulama rozeti + "Doğrula (VERIFIED)" aksiyonu; detay
+sayfasında kopyalanan soru künyeyi taşır. Testler: rls-cloud-assurance-pack 5 +
+`bulut-pak.spec.ts` e2e (madde→TODO_DOGRULA→VERIFIED→değerlendirmeye künyeli
+kopya) + canlı smoke 4/4. Sonraki dilim: madde bazlı applicability kararı UI'ı +
+pak template önizleme/paylaşım.
+
 ### 1.43 Nihai v3.3 §8.0 Dikey 2 — M12 standart test/tatbikat manifesti ✅ (19 Temmuz)
 
 Mevcut M12 test motoru BÜYÜTÜLDÜ (yeni paralel motor kurulmadı). Migration

@@ -195,7 +195,7 @@ export default function TedarikciDetayPage() {
       const db = createClient();
       const { data: sablonlar, error: selErr } = await db
         .from("assessment_question_templates")
-        .select("soru, sira")
+        .select("soru, sira, kaynak_citation")
         .eq("tenant_id", tenantId)
         .eq("tur", tur)
         .eq("aktif", true)
@@ -204,8 +204,10 @@ export default function TedarikciDetayPage() {
       if (!sablonlar || sablonlar.length === 0) {
         return setHata(`"${tur}" türü için aktif şablon sorusu yok (Tedarikçiler ana sayfasında ekleyin).`);
       }
+      // Kopyalanan soru kaynak künyesini de taşır (kopya şablondan bağımsız,
+      // uygulanabilirlik UNKNOWN doğar — kural 7).
       const { error } = await db.from("assessment_questions").insert(
-        sablonlar.map((s) => ({ tenant_id: tenantId, assessment_id: assessmentId, soru: s.soru, sira: s.sira })),
+        sablonlar.map((s) => ({ tenant_id: tenantId, assessment_id: assessmentId, soru: s.soru, sira: s.sira, kaynak_citation: s.kaynak_citation })),
       );
       if (error) setHata(error.message);
       await yukle();
