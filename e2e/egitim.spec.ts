@@ -64,6 +64,36 @@ test("eğitim: gereksinim → ata → skor<eşik kalır, skor≥eşik geçer (at
     const { data: kvkkComp } = await db.from("training_completions").select("gecti, attestation").eq("assignment_id", kvkkAsg!.id).single();
     expect(kvkkComp!.gecti).toBe(false);
     expect(kvkkComp!.attestation).toBe(true);
+
+    // 5) Retraining otomasyonu (M18 sonraki dilim, ROADMAP §1.30): periyodik
+    // gereksinim + eski tamamlanma → cron çağrısı YENİ bir ATANDI doğurur.
+    const { data: periyotReq } = await db
+      .from("training_requirements")
+      .insert({ tenant_id: kurum!.id, ad: "E2E-EG Periyodik", gecme_esigi: 70, periyot_gun: 30 })
+      .select("id")
+      .single();
+    const { data: periyotAsg } = await db
+      .from("training_assignments")
+      .insert({ tenant_id: kurum!.id, requirement_id: periyotReq!.id, kullanici: prof!.id })
+      .select("id")
+      .single();
+    await db.from("training_completions").insert({ tenant_id: kurum!.id, assignment_id: periyotAsg!.id, skor: 90, attestation: true });
+    await db.from("training_completions").update({ tamamlandi_at: "2020-01-01T00:00:00Z" }).eq("assignment_id", periyotAsg!.id);
+
+    await page.reload();
+    const periyotSatirOnce = page.getByRole("row").filter({ hasText: "E2E-EG Periyodik" });
+    await expect(periyotSatirOnce.getByText(/Yenileme gecikti/)).toBeVisible();
+
+    const { error: rpcHata } = await db.rpc("egitim_periyot_yenile");
+    expect(rpcHata).toBeNull();
+
+    const { data: yenilenmisAtamalar } = await db.from("training_assignments").select("durum").eq("requirement_id", periyotReq!.id);
+    expect(yenilenmisAtamalar!.map((a) => a.durum).sort()).toEqual(["ATANDI", "TAMAMLANDI"]);
+
+    await page.reload();
+    const periyotSatirlar = page.getByRole("row").filter({ hasText: "E2E-EG Periyodik" });
+    await expect(periyotSatirlar).toHaveCount(2);
+    await expect(page.getByText("ATANDI").first()).toBeVisible();
   } finally {
     await temizle(db, kurum!.id);
   }

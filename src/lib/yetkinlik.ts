@@ -20,6 +20,26 @@ export interface YetkinlikBoslugu {
   tamamlanmaOrani: number;
 }
 
+export interface YenilemeDurumu {
+  /** Bir sonraki yenileme tarihi (ISO YYYY-MM-DD). */
+  sonrakiTarih: string;
+  gecikti: boolean;
+  kalanGun: number;
+}
+
+/**
+ * Periyodik eğitimin bir sonraki yenileme tarihi (ROADMAP §1.30 retraining
+ * otomasyonu — bu SAF türetim yalnız EKRAN gösterimi içindir; gerçek yeniden
+ * atama `egitim_periyot_yenile()` DB cron'unda olur, burada uydurulmaz).
+ * Deterministik; `simdi` parametre.
+ */
+export function periyotYenilemeDurumu(tamamlandiAt: string, periyotGun: number, simdi: string | Date): YenilemeDurumu {
+  const simdiMs = (typeof simdi === "string" ? new Date(simdi) : simdi).getTime();
+  const sonrakiMs = new Date(tamamlandiAt).getTime() + periyotGun * 24 * 60 * 60 * 1000;
+  const kalanGun = Math.ceil((sonrakiMs - simdiMs) / (24 * 60 * 60 * 1000));
+  return { sonrakiTarih: new Date(sonrakiMs).toISOString().slice(0, 10), gecikti: kalanGun < 0, kalanGun };
+}
+
 /**
  * Yetkinlik boşluğu: atanmış ama tamamlanmamış/kalınmış (özellikle süresi
  * geçmiş) eğitimler. Deterministik; `simdi` parametre.

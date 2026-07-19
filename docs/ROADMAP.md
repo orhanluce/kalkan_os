@@ -823,6 +823,37 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.52 M18 sonraki dilim (kısmi) — retraining otomasyonu ✅ (19 Temmuz)
+
+M17'nin dört maddesi de bittikten sonra kurucudan yeni belge gelmeden, ROADMAP
+§1.24-1.30 taramasından bağımsız/az riskli bir sonraki madde seçildi: §1.30'un
+notu "retraining otomasyonu (periyot dolunca yeniden atama cron)". SoD süre-
+dolumu (20260718010000) ve TPR sözleşme süre-dolumu (20260719000000) ile AYNI
+pg_cron deseni — yeni bir zamanlayıcı altyapısı kurulmadı (kural 4).
+
+**Şema önkoşulu:** `training_assignments (requirement_id, kullanici)` TAM
+unique'ti — bir kullanıcı bir gereksinimi YALNIZ BİR KEZ tamamlayabiliyordu,
+periyodik eğitim (`periyot_gun` dolu) süresi dolunca yeniden atanamıyordu.
+Migration `20260719270000` — unique kısıt PARTIAL hale getirildi (impact_
+tolerances "tek yürürlükte" deseninin aynısı — 20260719040000): yalnız ATANDI
+durumunda tekil; TAMAMLANDI satırlar TARİHSEL kalır (istisna uzatma deseni: yeni
+kayıt, geçmiş silinmez). `egitim_periyot_yenile()` pg_cron işi: TAMAMLANDI +
+periyot_gun dolu + hâlâ AKTİF (ATANDI) ataması OLMAYAN kullanıcılar için YENİ bir
+ATANDI ataması doğurur + audit (idempotent — `for update skip locked`, ikinci
+koşu tekrar atamaz).
+
+Saf yardımcı `periyotYenilemeDurumu` (`src/lib/yetkinlik.ts`, kural 11) EKRAN
+gösterimi içindir — gerçek yeniden atama yalnız DB cron'unda olur, ekranda
+uydurulmaz. UI `/egitim`: gereksinim formuna "Periyot (gün)" alanı + tamamlanmış
+atamalarda "Yenileme: TARİH" / "Yenileme gecikti (otomatik atanacak)" rozeti.
+Canlı smoke uçtan uca: RPC çağrısı → yeni ATANDI satırı + audit kaydı →
+ikinci çağrı idempotent (tekrar atamadı). Testler: rls-egitim-retraining 6 +
+yetkinlik 3 yeni saf + mevcut `egitim.spec.ts` genişletildi (periyodik
+gereksinim → eski tamamlanma → RPC → yeni ATANDI, aynı testte) + mevcut
+rls-training-competency 5 regresyonsuz geçti. **1077 birim (107 dosya) + 58
+e2e, 0 skip; build yeşil.** **BİLİNÇLİ SONRAKİ DİLİM (§1.30'un kalanı):**
+phishing/tabletop = simülasyon (M7-M9) sonucuna gerçek bağ.
+
 ### 1.51 M17 sonraki dilim (madde 4/4, SON) — WORM export → §1.29 KAPANDI ✅ (19 Temmuz)
 
 §1.29'un dördüncü ve SON maddesi: "WORM export". 20260719050000'de kaydedilen

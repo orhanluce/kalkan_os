@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { yetkinlikBoslugu, type AtamaDurumu } from "@/lib/yetkinlik";
+import { periyotYenilemeDurumu, yetkinlikBoslugu, type AtamaDurumu } from "@/lib/yetkinlik";
 import { createClient } from "@/lib/supabase/client";
 
 interface Gereksinim {
@@ -18,6 +18,7 @@ interface Gereksinim {
   ad: string;
   konu: string;
   gecme_esigi: number;
+  periyot_gun: number | null;
 }
 interface Atama {
   id: string;
@@ -27,6 +28,8 @@ interface Atama {
   gereksinimAd: string;
   gecti: boolean | null;
   skor: number | null;
+  periyotGun: number | null;
+  tamamlandiAt: string | null;
 }
 
 const KONU_SEM: Record<string, SemantikDurum> = {
@@ -47,6 +50,7 @@ export default function EgitimPage() {
   const [gAd, setGAd] = useState("");
   const [gKonu, setGKonu] = useState("GUVENLIK");
   const [gEsik, setGEsik] = useState("70");
+  const [gPeriyot, setGPeriyot] = useState("");
   const [skor, setSkor] = useState<Record<string, string>>({});
 
   const simdi = useMemo(() => new Date(), []);
@@ -73,18 +77,18 @@ export default function EgitimPage() {
       const { data: p } = await db.from("profiles").select("tenant_id").eq("id", user.id).maybeSingle();
       setTenantId(p?.tenant_id ?? null);
     }
-    const { data: gs } = await db.from("training_requirements").select("id, ad, konu, gecme_esigi").order("ad");
+    const { data: gs } = await db.from("training_requirements").select("id, ad, konu, gecme_esigi, periyot_gun").order("ad");
     setGereksinimler((gs ?? []) as Gereksinim[]);
     const { data: as } = await db
       .from("training_assignments")
-      .select("id, requirement_id, durum, son_tarih, training_requirements (ad), training_completions (gecti, skor)")
+      .select("id, requirement_id, durum, son_tarih, training_requirements (ad, periyot_gun), training_completions (gecti, skor, tamamlandi_at)")
       .order("created_at");
     setAtamalar(
-      ((as ?? []) as unknown as (Omit<Atama, "gereksinimAd" | "gecti" | "skor"> & {
-        training_requirements: { ad: string };
+      ((as ?? []) as unknown as (Omit<Atama, "gereksinimAd" | "gecti" | "skor" | "periyotGun" | "tamamlandiAt"> & {
+        training_requirements: { ad: string; periyot_gun: number | null };
         // assignment_id unique → PostgREST tekil obje döndürür (dizi değil);
         // yine de her iki biçimi de güvenle normalize et.
-        training_completions: { gecti: boolean; skor: number } | { gecti: boolean; skor: number }[] | null;
+        training_completions: { gecti: boolean; skor: number; tamamlandi_at: string } | { gecti: boolean; skor: number; tamamlandi_at: string }[] | null;
       })[]).map((a) => {
         const comp = Array.isArray(a.training_completions) ? a.training_completions[0] : a.training_completions;
         return {
@@ -95,6 +99,8 @@ export default function EgitimPage() {
           gereksinimAd: a.training_requirements?.ad ?? "?",
           gecti: comp?.gecti ?? null,
           skor: comp?.skor ?? null,
+          periyotGun: a.training_requirements?.periyot_gun ?? null,
+          tamamlandiAt: comp?.tamamlandi_at ?? null,
         };
       }),
     );
@@ -113,11 +119,18 @@ export default function EgitimPage() {
     const b = await baglamCoz();
     if (!b) return setHata("Kurum bağlamı çözülemedi.");
     const db = createClient();
-    const { error } = await db.from("training_requirements").insert({ tenant_id: b.tid, ad: gAd.trim(), konu: gKonu, gecme_esigi: Number(gEsik) || 70 });
+    const { error } = await db.from("training_requirements").insert({
+      tenant_id: b.tid,
+      ad: gAd.trim(),
+      konu: gKonu,
+      gecme_esigi: Number(gEsik) || 70,
+      periyot_gun: gPeriyot.trim() ? Number(gPeriyot) : null,
+    });
     if (error) return setHata(error.message);
     setGAd("");
+    setGPeriyot("");
     await yukle();
-  }, [gAd, gKonu, gEsik, baglamCoz, yukle]);
+  }, [gAd, gKonu, gEsik, gPeriyot, baglamCoz, yukle]);
 
   const ataBana = useCallback(
     async (requirementId: string) => {
@@ -220,6 +233,10 @@ export default function EgitimPage() {
               <Label htmlFor="g-esik">Geçme eşiği</Label>
               <Input id="g-esik" type="number" value={gEsik} onChange={(e) => setGEsik(e.target.value)} className="w-24" />
             </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="g-periyot">Periyot (gün, opsiyonel)</Label>
+              <Input id="g-periyot" type="number" value={gPeriyot} onChange={(e) => setGPeriyot(e.target.value)} placeholder="ör. 365" className="w-32" />
+            </div>
             <Button size="sm" onClick={() => void gereksinimEkle()} disabled={!gAd.trim()}>
               Gereksinim Ekle
             </Button>
@@ -229,6 +246,7 @@ export default function EgitimPage() {
               <StatusBadge durum={KONU_SEM[g.konu] ?? "neutral"}>{g.konu}</StatusBadge>
               <span>{g.ad}</span>
               <span className="text-xs text-muted-foreground">eşik {g.gecme_esigi}</span>
+              {g.periyot_gun ? <span className="text-xs text-muted-foreground">· periyodik: {g.periyot_gun} gün</span> : null}
               <Button size="sm" variant="outline" onClick={() => void ataBana(g.id)}>
                 Bana Ata
               </Button>
@@ -266,9 +284,21 @@ export default function EgitimPage() {
                         {a.gecti === null ? (
                           <span className="text-xs text-muted-foreground">—</span>
                         ) : (
-                          <StatusBadge durum={a.gecti ? "success" : "danger"}>
-                            {a.gecti ? "Geçti" : "Kaldı"} ({a.skor})
-                          </StatusBadge>
+                          <div className="flex flex-wrap items-center gap-1">
+                            <StatusBadge durum={a.gecti ? "success" : "danger"}>
+                              {a.gecti ? "Geçti" : "Kaldı"} ({a.skor})
+                            </StatusBadge>
+                            {a.gecti && a.periyotGun && a.tamamlandiAt
+                              ? (() => {
+                                  const yenileme = periyotYenilemeDurumu(a.tamamlandiAt!, a.periyotGun!, simdi);
+                                  return (
+                                    <StatusBadge durum={yenileme.gecikti ? "warning" : "neutral"}>
+                                      {yenileme.gecikti ? "Yenileme gecikti (otomatik atanacak)" : `Yenileme: ${yenileme.sonrakiTarih}`}
+                                    </StatusBadge>
+                                  );
+                                })()
+                              : null}
+                          </div>
                         )}
                       </TableCell>
                       <TableCell>

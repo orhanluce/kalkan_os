@@ -7633,6 +7633,7 @@ export type Database = {
       current_role: { Args: never; Returns: string }
       current_tenant_id: { Args: never; Returns: string }
       current_user_role: { Args: never; Returns: string }
+      egitim_periyot_yenile: { Args: never; Returns: undefined }
       evidence_anchor_bilgisi: {
         Args: { target_evidence_id: string }
         Returns: {
