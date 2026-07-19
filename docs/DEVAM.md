@@ -30,19 +30,38 @@ build+canlı guard smoke+deploy health, commit+push. Kurucu kararı gerektiren
 UYDURMA — adapter/OPEN_DECISION + interface ile ilerle, dış gönderim/gerçek
 para/credential yapma. Her gate sonunda §15 raporu.
 
-## 0c. GERÇEK DURUM (19 Temmuz, en son ölçüm — G8 TAM)
-- **Remote (origin/main) HEAD:** `88df93e` (M37 AI olay/eval). Öncesi `be073f3`
-  (M35 değerlendirme), `2a40eca` (M36 DSAR paketi), `94e4748` (G3 tutarlılık),
-  `ed62f49` (G3 SCITT), `64d9a35` (G8/M40). Push edilmemiş commit YOK.
+## 0a3. NİHAİ TALİMAT v3.2 (19 Temmuz, "CLAUDE_CODE_KALKAN_OS_NIHAI_TEK_TALIMAT.md")
+Kurucu yeni bir sürüm (3.2) yükledi ve "bu talimatlara göre devam et" dedi —
+**tek bağlayıcı kurucu talimat budur** (çelişki sırası: güvenlik/bütünlük
+invaryantları > repo ADR+testler > bu talimat > diğer belgeler). Milestone
+numaraları DEĞİŞMEDİ. §8.0 "Güncel devam mandası" TEK sıradaki dikeyi net
+tanımlıyordu: **gerçek domain artefaktlarının transactional outbox ile SCITT
+şeffaflık defterine OTOMATİK+idempotent bağlanması** (receipt Proof Room +
+offline verifier zincirine taşınmış). **BU DİKEY BİTTİ** (commit `7c548e6`,
+aşağıda). §8.0 sonu, bu dikeyden SONRAKİ öncelik sırasını da veriyor (aşağıda
+"Sonraki" altında).
+
+## 0c. GERÇEK DURUM (19 Temmuz, en son ölçüm — nihai v3.2 §8.0 dikeyi TAM)
+- **Remote (origin/main) HEAD:** `7c548e6` (transactional outbox → SCITT
+  defterine otomatik bağlama, nihai v3.2 §8.0). Öncesi `88df93e` (M37 AI olay/
+  eval), `be073f3` (M35 değerlendirme), `2a40eca` (M36 DSAR paketi), `94e4748`
+  (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40). Push edilmemiş
+  commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı:** 939 birim (89 dosya) + 52 e2e, 0 skip; build exit 0.
-- Migration sırası son: `20260719110000_ai_incident_eval` (canlıda).
-- **Bu oturumda biten sonraki-dilimler:** G3 SCITT defter + tutarlılık, M36 DSAR
-  kanıt paketi, M35 tedarikçi değerlendirme/bulgu, M37 AI olay/eval, G8/M40 risk.
+- **Test tabanı:** 950 birim (91 dosya) + 52 e2e, 0 skip; build exit 0.
+- Migration sırası son: `20260719120000_ledger_outbox` (canlıda).
+- **§8.0 dikeyi TAM (ilk kapsam madde 1-2):** kontrol testi koşusu (`test_runs`,
+  otomatik, Proof Room'a bağlı) + DSAR kanıt paketi (senkrondan asenkrona
+  geçirildi). Genel mekanizma (`ledger_outbox`+`artifact_ledger_links`+claim/
+  mark RPC'leri+`ledger-outbox.ts` dispatch) HAZIR — madde 3-5 (M35 sign-off,
+  M37 eval/olay kapanışı, M40 risk/board kararı) bilinçli SONRAKİ dilim
+  (dispatch registry'ye birer satır, mekanik genişleme; ROADMAP §1.37).
+- **Sonraki (nihai v3.2 §8.0 sonu sırası):** (1) ciddi olay otorite-bildirim
+  süre saati; (2) AI eval veri-soyağacı; (3) M35 doğrulanmış anket şablonu;
+  (4) M38 regülatör toplantı kaydı.
 - **GATE G8 TAM** (M13+M17+M18+M40). **GATE G3 dış-karardan bağımsız kısım TAM**
   (SCITT şeffaflık defteri + TSA adaptör arayüzü; connector pilot yığını + nitelikli
-  TSA sağlayıcı OPEN_DECISION #7 bekliyor — UYDURULMADI). Sonraki: nihai §8 kalan
-  gate + sonraki-dilim borçları (ROADMAP §1.24-1.32).
+  TSA sağlayıcı OPEN_DECISION #7 bekliyor — UYDURULMADI).
 - **G1 durumu:** *Proof Room engineering slice complete; K8 content validation
   pending.* G1 source-to-proof dikeyinin KOD tarafı bitti (artifact ingest,
   temporal provision, dört-göz obligations, applicability, legal-basis guard,
