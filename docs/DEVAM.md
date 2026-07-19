@@ -57,25 +57,28 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    §1.44). Sonraki dilim: madde bazlı applicability UI + pak önizleme/paylaşım.
 4. **M37 AI veri/model güvence genişlemesi** (soyağacına lisans/izin/sürüm/hash+
    sentetik oran+poisoning[BİLİNMİYOR default]+label-noise; drift izleme eşik-
-   KAYNAĞI zorunlu — koda gömülmez) — **BİTTİ** (`<Dikey4 SHA>`, §1.45). Bilinçli
+   KAYNAĞI zorunlu — koda gömülmez) — **BİTTİ** (`91efb68`, §1.45). Bilinçli
    sonraki dilim: segment sonuç, override gerekçe, rollback/son test, ISO
    42001↔27001 crosswalk (kaynak+VERIFIED disiplini). Ham veri LLM'e gitmez.
 5. M21/M42 dayanıklılık taksonomisi (8 üst alan, THESIS_DERIVED/TODO_DOGRULA,
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (19 Temmuz — v3.3 §8.0 Dikey 1-3 BİTTİ; sırada Dikey 4)
-- **Remote (origin/main) HEAD:** `15831b9` (v3.3 §8.0 Dikey 3: bulut güvence
-  paketi). Öncesi `e73fd20` (Dikey 2: M12 V2 manifest), `5df9176` (Dikey 1: G3
-  defter kapsamı), `b6283bc` (M38
+## 0c. GERÇEK DURUM (19 Temmuz — v3.3 §8.0 Dikey 1-4 BİTTİ; sırada Dikey 5)
+- **Remote (origin/main) HEAD:** `91efb68` (v3.3 §8.0 Dikey 4: AI veri/model
+  güvence — soyağacı zenginleştirme + drift) + DEVAM SHA commit'i. Öncesi
+  `15831b9` (Dikey 3: bulut paketi), `e73fd20` (Dikey 2: M12 V2 manifest),
+  `5df9176` (Dikey 1: G3 defter kapsamı), `b6283bc` (M38
   toplantı), `65767b7` (M35 anket şablonu), `2e5efea` (AI eval soyağacı),
   `4007aad` (AI olay bildirim saati), `7c548e6` (transactional outbox → SCITT),
   `88df93e` (M37 AI olay/eval), `be073f3` (M35 değerlendirme), `2a40eca` (M36
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı:** 985 birim (97 dosya) + 56 e2e, 0 skip; build exit 0.
-- Migration sırası son: `20260719190000_cloud_assurance_pack` (canlıda).
+- **Test tabanı:** 993 birim (98 dosya) + 56 e2e, 0 skip; build exit 0.
+  (Dikey 4 tam kapısında `tema.spec` yük-flake'i düştü, İZOLE GEÇTİ — CLAUDE.md'de
+  bilinen sınıf; kod regresyonu değil. Etkin durum: 993 birim + 55/56 e2e yeşil.)
+- Migration sırası son: `20260719200000_ai_data_model_assurance` (canlıda).
 - **E2E LEDGER TEMİZLİK KURALI (kayıt için):** kontrol testleri artık auto-anchor
   ediyor → `artifact_ledger_links` entries'e ON DELETE RESTRICT'li. Ledger'a
   dokunan HER e2e spec temizliğinde links+outbox ÖNCE silinmeli (yoksa toplu
