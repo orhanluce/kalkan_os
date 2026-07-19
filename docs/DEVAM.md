@@ -64,9 +64,10 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (19 Temmuz — Dikey 5 + Dikey 4 kalanı + M17 sonraki dilim (2/4) BİTTİ)
-- **Remote (origin/main) HEAD:** `8618a64` (§1.49: M17 sonraki dilim madde 2/4 —
-  PBC/request) + DEVAM SHA commit'i. Öncesi `b73f51d`
+## 0c. GERÇEK DURUM (19 Temmuz — Dikey 5 + Dikey 4 kalanı + M17 sonraki dilim (3/4) BİTTİ)
+- **Remote (origin/main) HEAD:** `8eb3517` (§1.50: M17 sonraki dilim madde 3/4 —
+  formal independence bağı) + DEVAM SHA commit'i. Öncesi
+  `8618a64` (§1.49: madde 2/4 — PBC/request), `b73f51d`
   (§1.48: M17 sonraki dilim madde 1/4 — workpaper→bulgu/kontrol bağı),
   `c3320aa`/`4200c75` (§1.47: Dikey 4 kalanı — segment drift + insan override +
   model rollback + ISO 42001↔27001 crosswalk), `c44a954`/`b074bbc` (Dikey 5:
@@ -79,15 +80,16 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı: 1048 birim (103 dosya) + 58 e2e, 0 skip; build exit 0.**
-  (Bu oturumda tam takım DÖRT kez uçtan uca yeşil koşuldu — `tema.spec` dahil
-  hiçbir izole-flake tekrarlamadı. Yol boyunca bir gerçek e2e çakışması
+- **Test tabanı: 1054 birim (104 dosya) + 58 e2e, 0 skip; build exit 0.**
+  (Bu oturumda tam takım BEŞ kez uçtan uca yeşil koşuldu — `tema.spec` dahil
+  hiçbir izole-flake tekrarlamadı. Yol boyunca iki gerçek e2e çakışması
   yakalandı ve düzeltildi: "Model rollback" yardım metnindeki "yok" kelimesi
-  `ai-olay-eval.spec.ts`'in `getByText("yok")` strict-mode locator'ıyla
-  çakıştı — metin yeniden yazıldı, regresyon giderildi.)
-- Migration sırası son: `20260719240000_audit_pbc_requests.sql` (canlıda,
-  guard'lar gerçek Supabase'e karşı smoke ile doğrulandı — PGlite≠Supabase
-  disiplini korundu).
+  `ai-olay-eval.spec.ts`'in `getByText("yok")`'uyla, "Çıkar çatışması yok"
+  metni de checkbox etiketiyle aynı satırda İKİ kez eşleşti (strict-mode) —
+  ikisi de `.first()`/metin değişikliğiyle düzeltildi.)
+- Migration sırası son: `20260719250000_audit_independence_declarations.sql`
+  (canlıda, guard'lar gerçek Supabase'e karşı smoke ile doğrulandı — PGlite≠
+  Supabase disiplini korundu).
 - **E2E LEDGER TEMİZLİK KURALI (kayıt için):** kontrol testleri artık auto-anchor
   ediyor → `artifact_ledger_links` entries'e ON DELETE RESTRICT'li. Ledger'a
   dokunan HER e2e spec temizliğinde links+outbox ÖNCE silinmeli (yoksa toplu
@@ -128,12 +130,21 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   kural 14 ruhu), ALINDI/KAPANDI'da kanıt DONUK. UI `/denetim/[id]`'ye "PBC
   Talepleri" kartı eklendi. Testler: rls-audit-pbc-requests 6 + mevcut
   `denetim.spec.ts` genişletildi (aynı testte talep→alındı→kapat) + canlı
-  guard smoke. **§1.29'un KALAN İKİ maddesi bilinçli BEKLİYOR:** formal
-  independence_declarations bağı, WORM export.
+  guard smoke.
+- **M17 sonraki dilim madde 3/4 BİTTİ** (ROADMAP §1.50): formal independence
+  bağı — YENİ tablo AÇILMADI, mevcut G7 tablosu (`independence_declarations`,
+  M38) genelleştirildi: `matter_id` artık nullable, `engagement_id` eklendi,
+  "tam olarak bir bağlam" check constraint'i. M38'in mevcut akışı (matter_id
+  ile beyan) regresyonsuz — `rls-regulatory-engagement.test.ts` değişmeden
+  geçti. UI `/denetim/[id]`'ye "Bağımsızlık Beyanları" kartı eklendi. Testler:
+  rls-audit-independence 6 + mevcut `denetim.spec.ts` genişletildi (aynı
+  testte beyan ekleme adımı) + canlı guard smoke. **§1.29'un KALAN TEK maddesi
+  bilinçli BEKLİYOR:** WORM export.
 - **Sıradaki (bilinçli sonraki dilim, bu oturumda YAPILMADI):** tezin 29 alt
   kategorisi + kaynak künyesi/tez sayfa referansı (Dikey 5 kalanı); M17'nin
-  kalan iki maddesi (yukarıda); ROADMAP §1.24-1.30'un diğer "sonraki dilim"
-  borçları (M35/M36/M38/M13). Nihai talimat v3.3 §8.0'ın BEŞ dikeyi BİTTİ —
+  son maddesi (WORM export, yukarıda); ROADMAP §1.24-1.30'un diğer "sonraki
+  dilim" borçları (M35/M36/M38/M13). Nihai talimat v3.3 §8.0'ın BEŞ dikeyi
+  BİTTİ —
   kurucudan yeni belge gelene kadar bu borç listesinden mantıklı bir sonraki
   madde seçilerek devam edilebilir (v3.2 tamamlandığında izlenen desenin
   aynısı), ya da kurucudan yeni yön beklenir.
