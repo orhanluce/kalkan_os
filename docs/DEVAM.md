@@ -64,36 +64,45 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (19 Temmuz — v3.3 §8.0 Dikey 1-4 BİTTİ; sırada Dikey 5)
-- **Remote (origin/main) HEAD:** `91efb68` (v3.3 §8.0 Dikey 4: AI veri/model
-  güvence — soyağacı zenginleştirme + drift) + DEVAM SHA commit'i. Öncesi
-  `15831b9` (Dikey 3: bulut paketi), `e73fd20` (Dikey 2: M12 V2 manifest),
-  `5df9176` (Dikey 1: G3 defter kapsamı), `b6283bc` (M38
-  toplantı), `65767b7` (M35 anket şablonu), `2e5efea` (AI eval soyağacı),
+## 0c. GERÇEK DURUM (19 Temmuz — v3.3 §8.0 Dikey 5 ilk yarı BİTTİ)
+- **Remote (origin/main) HEAD:** `b074bbc` (v3.3 §8.0 Dikey 5 ilk yarı: M21/M42
+  dayanıklılık taksonomisi + etki grafiği, ROADMAP §1.46) + DEVAM SHA commit'i.
+  Öncesi `91efb68`
+  (Dikey 4: AI veri/model güvence), `15831b9` (Dikey 3: bulut paketi), `e73fd20`
+  (Dikey 2: M12 V2 manifest), `5df9176` (Dikey 1: G3 defter kapsamı), `b6283bc`
+  (M38 toplantı), `65767b7` (M35 anket şablonu), `2e5efea` (AI eval soyağacı),
   `4007aad` (AI olay bildirim saati), `7c548e6` (transactional outbox → SCITT),
   `88df93e` (M37 AI olay/eval), `be073f3` (M35 değerlendirme), `2a40eca` (M36
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı:** 993 birim (98 dosya) + 56 e2e, 0 skip; build exit 0.
-  (Dikey 4 tam kapısında `tema.spec` yük-flake'i düştü, İZOLE GEÇTİ — CLAUDE.md'de
-  bilinen sınıf; kod regresyonu değil. Etkin durum: 993 birim + 55/56 e2e yeşil.)
-- Migration sırası son: `20260719200000_ai_data_model_assurance` (canlıda).
+- **Test tabanı: 1015 birim (100 dosya) + 57 e2e, 0 skip; build exit 0.**
+  (Bu oturumda `tema.spec` DAHİL tam takım tek koşuda yeşil geçti — önceki
+  oturumun izole-yük-flake kaydı CLAUDE.md'de duruyor, bu koşuda tekrarlamadı.)
+- Migration sırası son: `20260719210000_resilience_taxonomy.sql` (canlıda,
+  guard'lar gerçek Supabase'e karşı smoke ile doğrulandı — PGlite≠Supabase
+  disiplini korundu).
 - **E2E LEDGER TEMİZLİK KURALI (kayıt için):** kontrol testleri artık auto-anchor
   ediyor → `artifact_ledger_links` entries'e ON DELETE RESTRICT'li. Ledger'a
   dokunan HER e2e spec temizliğinde links+outbox ÖNCE silinmeli (yoksa toplu
   entry-delete sessizce başarısız olur, paylaşımlı E2E kiracısında birikir).
   seffaflik/proof-room/dsar/tedarikci-signoff/kontrol-test-manifest hepsi bu
   sıraya uyar.
-- Sıradaki: **Dikey 5** — M21/M42 dayanıklılık taksonomisi (tezden 8 üst alan:
-  yönetişim, öngörü/hazırlık/tanımlama, önleme/koruma, izleme/tespit, müdahale,
-  kurtarma, tehdit istihbaratı/paylaşım, üçüncü taraf yönetimi — THESIS_DERIVED/
-  TODO_DOGRULA doğar, VERIFIED seed YOK; 29 kategori doğrudan bağlanmaz) + etki
-  grafiği (mevcut hukuk/kontrol/kritik hizmet/tedarikçi graph'ını GENİŞLET, yeni
-  bağımsız graph DB kurma: tek hata noktası/zincirleme etki yolu/en çok kritik
-  hizmet etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme etkisi —
-  açıklanabilir öncelik sinyali, TEK SAHTE SKOR YOK, graph snapshot+varsayım taşır).
-  Ayrıca Dikey 4 kalan dilimi (segment/override/rollback/ISO crosswalk).
+- **Dikey 5 ilk yarı BİTTİ** (ROADMAP §1.46): M21/M42 dayanıklılık taksonomisi
+  (`control_resilience_domains`, GLOBAL katalog, 8 üst alan check-kısıtlı,
+  obligations dört-göz deseninin AYNISI — VERIFIED seed YOK) + etki grafiği
+  (`critical_service_controls`, M13 grafının kontrol kenarıyla genişlemesi;
+  saf motor `src/lib/etki-analizi.ts`: zincirleme etki yolu, en çok kritik
+  hizmet etkileyen kontrol, 8-alan kapsam özeti, açıklanabilir iyileştirme
+  önceliği — TEK SAHTE SKOR YOK). UI `/dayaniklilik` + `/kritik-hizmetler/[id]`
+  "Koruyan kontroller" kartı. Testler: rls-resilience 12 + etki-analizi 10 saf +
+  `dayaniklilik.spec.ts` e2e (iki-kullanıcı dört-göz, regulasyon-dogrulama
+  deseniyle) + canlı guard smoke.
+- **Sıradaki (Dikey 5 kalanı — bilinçli sonraki dilim, bu oturumda YAPILMADI):**
+  tezin 29 alt kategorisi + kaynak künyesi/tez sayfa referansı; ayrıca Dikey 4
+  kalan dilimi (segment-bazlı sonuç, insan override gerekçesi, rollback modeli/
+  son test, ISO 42001↔27001 crosswalk) — bağımsız, ayrı iş olarak kalır. Bu
+  ikisinden biri seçilerek devam edilebilir; ya da kurucudan yeni yön beklenir.
 - **§8.0 ana dikeyi TAM (ilk kapsam madde 1-2):** kontrol testi koşusu
   (`test_runs`, otomatik, Proof Room'a bağlı) + DSAR kanıt paketi (senkrondan
   asenkrona geçirildi). Genel mekanizma (`ledger_outbox`+`artifact_ledger_links`
