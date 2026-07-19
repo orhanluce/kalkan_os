@@ -55,9 +55,11 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
 3. **M35 Cloud & Critical Third-Party Assurance Pack** (11 bulut alanı + kaynak
    künyesi + VERIFIED disiplini kural 6; içerik uydurulmaz) — **BİTTİ** (`15831b9`,
    §1.44). Sonraki dilim: madde bazlı applicability UI + pak önizleme/paylaşım.
-4. M37 AI veri/model güvence genişlemesi (eğitim-eval kaynak/lisans/izin/sürüm/
-   hash, sentetik oran, poisoning, label-noise, drift, segment sonuç, override,
-   rollback, ISO 42001↔27001 crosswalk). Ham veri LLM'e gitmez; eşik koda gömülmez.
+4. **M37 AI veri/model güvence genişlemesi** (soyağacına lisans/izin/sürüm/hash+
+   sentetik oran+poisoning[BİLİNMİYOR default]+label-noise; drift izleme eşik-
+   KAYNAĞI zorunlu — koda gömülmez) — **BİTTİ** (`<Dikey4 SHA>`, §1.45). Bilinçli
+   sonraki dilim: segment sonuç, override gerekçe, rollback/son test, ISO
+   42001↔27001 crosswalk (kaynak+VERIFIED disiplini). Ham veri LLM'e gitmez.
 5. M21/M42 dayanıklılık taksonomisi (8 üst alan, THESIS_DERIVED/TODO_DOGRULA,
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
@@ -80,11 +82,15 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   entry-delete sessizce başarısız olur, paylaşımlı E2E kiracısında birikir).
   seffaflik/proof-room/dsar/tedarikci-signoff/kontrol-test-manifest hepsi bu
   sıraya uyar.
-- Sıradaki: **Dikey 4** — M37 AI veri/model güvence genişlemesi (eğitim-eval
-  kaynak/lisans/izin/sürüm/hash, sentetik oran, poisoning, label-noise, drift/
-  baseline/eşik, segment sonuç, override, rollback, ISO 42001↔27001 crosswalk;
-  ham veri LLM'e gitmez, eşik koda gömülmez, AI kendi eval'ini onaylayamaz).
-  Sonra Dikey 5 (M21/M42 dayanıklılık taksonomisi + etki grafiği).
+- Sıradaki: **Dikey 5** — M21/M42 dayanıklılık taksonomisi (tezden 8 üst alan:
+  yönetişim, öngörü/hazırlık/tanımlama, önleme/koruma, izleme/tespit, müdahale,
+  kurtarma, tehdit istihbaratı/paylaşım, üçüncü taraf yönetimi — THESIS_DERIVED/
+  TODO_DOGRULA doğar, VERIFIED seed YOK; 29 kategori doğrudan bağlanmaz) + etki
+  grafiği (mevcut hukuk/kontrol/kritik hizmet/tedarikçi graph'ını GENİŞLET, yeni
+  bağımsız graph DB kurma: tek hata noktası/zincirleme etki yolu/en çok kritik
+  hizmet etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme etkisi —
+  açıklanabilir öncelik sinyali, TEK SAHTE SKOR YOK, graph snapshot+varsayım taşır).
+  Ayrıca Dikey 4 kalan dilimi (segment/override/rollback/ISO crosswalk).
 - **§8.0 ana dikeyi TAM (ilk kapsam madde 1-2):** kontrol testi koşusu
   (`test_runs`, otomatik, Proof Room'a bağlı) + DSAR kanıt paketi (senkrondan
   asenkrona geçirildi). Genel mekanizma (`ledger_outbox`+`artifact_ledger_links`

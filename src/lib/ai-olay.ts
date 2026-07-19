@@ -103,3 +103,33 @@ export function aiIncidentClosureManifestKur(args: {
 export function aiIncidentClosureManifestHash(m: AiIncidentClosureManifest): Promise<string> {
   return canonicalHash(m as unknown as CanonicalDeger);
 }
+
+// --- Drift değerlendirme (nihai v3.3 §8.0 Dikey 4; kural 11) ---
+// Eşik KOD SABİTİ DEĞİLDİR — çağıran (kurumun sürümlü politikası) sağlar.
+// Sonuç: eşik yoksa DEGERLENDIRILEMEDI (UNKNOWN ruhu — eşiksiz "aşıldı" denmez).
+
+export type DriftDurumu = "TOLERANS_ICINDE" | "ESIK_ASILDI" | "DEGERLENDIRILEMEDI";
+
+export interface DriftDegerlendirme {
+  durum: DriftDurumu;
+  /** Baseline'a göre mutlak sapma (baseline verildiyse). */
+  sapma: number | null;
+  mesaj: string;
+}
+
+/**
+ * Bir drift okumasını (metrik değeri) eşiğe göre değerlendirir. Eşik YOKSA
+ * "değerlendirilemedi" döner — koda gömülü bir varsayılan eşik UYDURULMAZ
+ * (nihai §8.0 Dikey 4: eşik sürümlü politika/uzman kararı taşır).
+ */
+export function driftDegerlendir(deger: number, esik: number | null, baseline: number | null): DriftDegerlendirme {
+  const sapma = baseline !== null ? Math.abs(deger - baseline) : null;
+  if (esik === null) {
+    return { durum: "DEGERLENDIRILEMEDI", sapma, mesaj: "Eşik belirlenmedi — drift tolerans kararı verilemez." };
+  }
+  const kiyas = sapma ?? Math.abs(deger);
+  if (kiyas > esik) {
+    return { durum: "ESIK_ASILDI", sapma, mesaj: `Drift eşiği aşıldı (${kiyas} > ${esik}).` };
+  }
+  return { durum: "TOLERANS_ICINDE", sapma, mesaj: `Tolerans içinde (${kiyas} ≤ ${esik}).` };
+}

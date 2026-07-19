@@ -823,6 +823,27 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.45 Nihai v3.3 §8.0 Dikey 4 — M37 AI veri/model güvence genişlemesi ✅ (19 Temmuz)
+
+Teslim edilen eval veri-soyağacı (§1.39) YENİDEN YAZILMADAN zenginleştirildi +
+drift izleme eklendi. Migration `20260719200000`: `ai_data_lineage`'e lisans/
+izin_amaci/surum/sentetik_oran(0-100)/uretim_yontemi/poisoning_riski/poisoning_
+kontrol_kanit/label_noise_olcum; yeni `ai_drift_readings` (metrik/baseline/deger/
+esik/esik_kaynagi/olcum). **ÇEKİRDEK İNVARYANTLAR:** (kural 22) ham eğitim/eval
+verisi girmez — yalnız kaynak referansı+lisans künyesi+sürüm+içerik-adresli hash;
+**drift eşiği KODA GÖMÜLMEZ** — verilirse `esik_kaynagi` (sürümlü politika/uzman
+kararı) ZORUNLU (guard); **poisoning_riski BİLİNMİYOR DOĞAR** (değerlendirilmedi
+≠ düşük, kural 13/7 ruhu); sentetik_oran null = ölçülmedi (0 değil). Saf
+`driftDegerlendir` (ai-olay.ts, kural 11): eşik yoksa DEGERLENDIRILEMEDI —
+koda gömülü varsayılan eşik UYDURULMAZ. UI (AI Güvence): soyağacı formuna lisans/
+sentetik giriş + poisoning rozeti; sistem başına drift bölümü (eşik kaynağı
+zorunlu, tolerans/aşıldı/değerlendirilemedi rozeti). Testler:
+rls-ai-data-model-assurance 8 (3 saf drift + 5 RLS/guard) + `ai-olay-eval.spec.ts`
+genişletildi (soyağacı zengin + drift eşik-kaynak zorunluluğu) + canlı smoke 4/4.
+Bilinçli sonraki dilim (§8.0 Dikey 4 kalanı): segment-bazlı sonuç, insan override
+gerekçesi, rollback modeli/son test, ISO 42001↔27001 crosswalk (kaynak+VERIFIED
+disiplini — bulut pak deseniyle mekanik genişler).
+
 ### 1.44 Nihai v3.3 §8.0 Dikey 3 — M35 Cloud & Critical Third-Party Assurance Pack ✅ (19 Temmuz)
 
 Mevcut doğrulanmış şablon motoru (§1.40) ZENGİNLEŞTİRİLDİ — ilk satılabilir

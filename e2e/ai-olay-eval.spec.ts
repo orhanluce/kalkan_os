@@ -85,15 +85,36 @@ test("ai: olay kanıtla kapanır (kural 14) + eval UNKNOWN dürüstlüğü (kura
     await expect(page.getByText("yok")).toBeVisible();
     await page.getByLabel(`${ev!.id} soyağacı türü`).selectOption("MODEL_SURUMU");
     await page.getByLabel(`${ev!.id} soyağacı adı`).fill("model-v3-2026-07");
+    await page.getByLabel(`${ev!.id} lisans`).fill("CC-BY");
+    await page.getByLabel(`${ev!.id} sentetik oran`).fill("25");
     await page.getByRole("button", { name: "Soyağacı Ekle" }).click();
-    await expect(page.getByText("MODEL_SURUMU: model-v3-2026-07")).toBeVisible();
+    // poisoning BİLİNMİYOR doğar (Dikey 4: değerlendirilmedi ≠ düşük).
+    await expect(page.getByText(/poisoning: BILINMIYOR/)).toBeVisible();
     const { data: soyagaci } = await db
       .from("ai_data_lineage")
-      .select("tur, ad")
+      .select("tur, ad, lisans, sentetik_oran, poisoning_riski")
       .eq("ai_evaluation_id", ev!.id)
       .single();
     expect(soyagaci!.tur).toBe("MODEL_SURUMU");
-    expect(soyagaci!.ad).toBe("model-v3-2026-07");
+    expect(soyagaci!.lisans).toBe("CC-BY");
+    expect(Number(soyagaci!.sentetik_oran)).toBe(25);
+    expect(soyagaci!.poisoning_riski).toBe("BILINMIYOR");
+
+    // Drift (Dikey 4): eşiksiz "Değerlendirilemedi"; eşik kaynaksız kabul edilmez;
+    // eşik+kaynak ile Tolerans/Eşik aşıldı.
+    await page.getByLabel("Drift metriği").fill("accuracy");
+    await page.getByLabel("Drift değeri").fill("0.70");
+    await page.getByLabel("Drift baseline").fill("0.82");
+    await page.getByLabel("Drift eşiği").fill("0.05");
+    // Kaynak boş → guard reddi (hata banner'ı).
+    await page.getByRole("button", { name: "Drift Okuması Ekle" }).click();
+    await expect(page.getByText(/Eşik verildiyse kaynağı zorunlu/)).toBeVisible();
+    // Kaynak ile → eşik aşıldı (|0.70-0.82|=0.12 > 0.05).
+    await page.getByLabel("Drift eşik kaynağı").fill("Model Politikası v2 §4");
+    await page.getByRole("button", { name: "Drift Okuması Ekle" }).click();
+    await expect(page.getByText("Eşik aşıldı")).toBeVisible();
+    const { data: drift } = await db.from("ai_drift_readings").select("esik_kaynagi, metrik").eq("ai_system_id", sysId).single();
+    expect(drift!.esik_kaynagi).toBe("Model Politikası v2 §4");
   } finally {
     await temizle(db, kurum!.id);
   }

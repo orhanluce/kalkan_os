@@ -141,9 +141,17 @@ export type Database = {
           ai_evaluation_id: string
           created_at: string
           id: string
+          izin_amaci: string | null
           kaynak_ref: string | null
+          label_noise_olcum: string | null
+          lisans: string | null
+          poisoning_kontrol_kanit: string | null
+          poisoning_riski: string
+          sentetik_oran: number | null
+          surum: string | null
           tenant_id: string
           tur: string
+          uretim_yontemi: string | null
           veri_hash: string | null
         }
         Insert: {
@@ -152,9 +160,17 @@ export type Database = {
           ai_evaluation_id: string
           created_at?: string
           id?: string
+          izin_amaci?: string | null
           kaynak_ref?: string | null
+          label_noise_olcum?: string | null
+          lisans?: string | null
+          poisoning_kontrol_kanit?: string | null
+          poisoning_riski?: string
+          sentetik_oran?: number | null
+          surum?: string | null
           tenant_id: string
           tur: string
+          uretim_yontemi?: string | null
           veri_hash?: string | null
         }
         Update: {
@@ -163,9 +179,17 @@ export type Database = {
           ai_evaluation_id?: string
           created_at?: string
           id?: string
+          izin_amaci?: string | null
           kaynak_ref?: string | null
+          label_noise_olcum?: string | null
+          lisans?: string | null
+          poisoning_kontrol_kanit?: string | null
+          poisoning_riski?: string
+          sentetik_oran?: number | null
+          surum?: string | null
           tenant_id?: string
           tur?: string
+          uretim_yontemi?: string | null
           veri_hash?: string | null
         }
         Relationships: [
@@ -178,6 +202,63 @@ export type Database = {
           },
           {
             foreignKeyName: "ai_data_lineage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_drift_readings: {
+        Row: {
+          aciklama: string | null
+          ai_system_id: string
+          baseline: number | null
+          created_at: string
+          deger: number
+          esik: number | null
+          esik_kaynagi: string | null
+          id: string
+          metrik: string
+          olcum_tarihi: string
+          tenant_id: string
+        }
+        Insert: {
+          aciklama?: string | null
+          ai_system_id: string
+          baseline?: number | null
+          created_at?: string
+          deger: number
+          esik?: number | null
+          esik_kaynagi?: string | null
+          id?: string
+          metrik: string
+          olcum_tarihi?: string
+          tenant_id: string
+        }
+        Update: {
+          aciklama?: string | null
+          ai_system_id?: string
+          baseline?: number | null
+          created_at?: string
+          deger?: number
+          esik?: number | null
+          esik_kaynagi?: string | null
+          id?: string
+          metrik?: string
+          olcum_tarihi?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_drift_readings_ai_system_id_fkey"
+            columns: ["ai_system_id"]
+            isOneToOne: false
+            referencedRelation: "ai_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_drift_readings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

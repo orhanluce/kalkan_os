@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { aiReceiptFingerprint } from "@/lib/ai-receipt";
-import { aiOlayOzeti, type OlayKayit } from "@/lib/ai-olay";
+import { aiOlayOzeti, driftDegerlendir, type OlayKayit } from "@/lib/ai-olay";
 import { ihlalBildirimSaati } from "@/lib/gizlilik";
 import { createClient } from "@/lib/supabase/client";
 
@@ -57,6 +57,20 @@ interface Soyagaci {
   ai_evaluation_id: string;
   tur: string;
   ad: string;
+  lisans: string | null;
+  surum: string | null;
+  sentetik_oran: number | null;
+  poisoning_riski: string;
+}
+interface Drift {
+  id: string;
+  ai_system_id: string;
+  metrik: string;
+  deger: number;
+  baseline: number | null;
+  esik: number | null;
+  esik_kaynagi: string | null;
+  olcum_tarihi: string;
 }
 
 const RISK: Record<string, SemantikDurum> = { PROHIBITED: "danger", HIGH: "warning", LIMITED: "info", MINIMAL: "neutral" };
@@ -84,6 +98,14 @@ export default function AiGuvencePage() {
   const [soyagaclar, setSoyagaclar] = useState<Soyagaci[]>([]);
   const [sgTur, setSgTur] = useState<Record<string, string>>({});
   const [sgAd, setSgAd] = useState<Record<string, string>>({});
+  const [sgLisans, setSgLisans] = useState<Record<string, string>>({});
+  const [sgSentetik, setSgSentetik] = useState<Record<string, string>>({});
+  const [driftler, setDriftler] = useState<Drift[]>([]);
+  const [dMetrik, setDMetrik] = useState("");
+  const [dDeger, setDDeger] = useState("");
+  const [dBaseline, setDBaseline] = useState("");
+  const [dEsik, setDEsik] = useState("");
+  const [dEsikKaynak, setDEsikKaynak] = useState("");
   const simdi = useMemo(() => new Date(), []);
 
   const tenantCoz = useCallback(async (): Promise<string | null> => {
@@ -104,14 +126,16 @@ export default function AiGuvencePage() {
       db.from("ai_execution_receipts").select("id, amac, karar, model_saglayici").order("created_at", { ascending: false }),
       db.from("ai_incidents").select("id, ai_system_id, ozet, ciddiyet, durum, tespit_at, otorite_bildirildi_at, bildirim_esik_saat").order("tespit_at", { ascending: false }),
       db.from("ai_evaluations").select("id, ai_system_id, tur, sonuc").order("degerlendirme_at", { ascending: false }),
-      db.from("ai_data_lineage").select("id, ai_evaluation_id, tur, ad").order("created_at", { ascending: false }),
+      db.from("ai_data_lineage").select("id, ai_evaluation_id, tur, ad, lisans, surum, sentetik_oran, poisoning_riski").order("created_at", { ascending: false }),
     ]);
+    const { data: dr } = await db.from("ai_drift_readings").select("id, ai_system_id, metrik, deger, baseline, esik, esik_kaynagi, olcum_tarihi").order("olcum_tarihi", { ascending: false });
     setSistemler((ss ?? []) as Sistem[]);
     setAjanlar((as ?? []) as Ajan[]);
     setReceiptler((rs ?? []) as Receipt[]);
     setOlaylar((os ?? []) as Olay[]);
     setEvaller((es ?? []) as Eval[]);
     setSoyagaclar((sg ?? []) as Soyagaci[]);
+    setDriftler((dr ?? []) as Drift[]);
     if (!aSistem && (ss ?? []).length > 0) setASistem((ss as Sistem[])[0].id);
   }, [aSistem]);
 
@@ -229,18 +253,48 @@ export default function AiGuvencePage() {
       const tid = await tenantCoz();
       if (!tid) return setHata("Kurum bağlamı çözülemedi.");
       const db = createClient();
+      const oran = sgSentetik[evalId]?.trim();
       const { error } = await db.from("ai_data_lineage").insert({
         tenant_id: tid,
         ai_evaluation_id: evalId,
         tur: sgTur[evalId] ?? "DEGERLENDIRME_VERISI",
         ad,
+        lisans: sgLisans[evalId]?.trim() || null,
+        sentetik_oran: oran ? Number(oran) : null,
       });
       if (error) setHata(error.message);
       setSgAd((m) => ({ ...m, [evalId]: "" }));
+      setSgLisans((m) => ({ ...m, [evalId]: "" }));
+      setSgSentetik((m) => ({ ...m, [evalId]: "" }));
       await yukle();
     },
-    [sgAd, sgTur, tenantCoz, yukle],
+    [sgAd, sgTur, sgLisans, sgSentetik, tenantCoz, yukle],
   );
+
+  // Drift okuması (Dikey 4): eşik verilince kaynağı ZORUNLU (koda gömülmez).
+  const driftEkle = useCallback(async () => {
+    setHata(null);
+    if (!dMetrik.trim() || !dDeger.trim() || !aSistem) return;
+    const tid = await tenantCoz();
+    if (!tid) return setHata("Kurum bağlamı çözülemedi.");
+    const db = createClient();
+    const { error } = await db.from("ai_drift_readings").insert({
+      tenant_id: tid,
+      ai_system_id: aSistem,
+      metrik: dMetrik.trim(),
+      deger: Number(dDeger),
+      baseline: dBaseline.trim() ? Number(dBaseline) : null,
+      esik: dEsik.trim() ? Number(dEsik) : null,
+      esik_kaynagi: dEsikKaynak.trim() || null,
+    });
+    if (error) return setHata(error.message.includes("esik_kaynagi") ? "Eşik verildiyse kaynağı zorunlu (eşik koda gömülmez)." : error.message);
+    setDMetrik("");
+    setDDeger("");
+    setDBaseline("");
+    setDEsik("");
+    setDEsikKaynak("");
+    await yukle();
+  }, [dMetrik, dDeger, dBaseline, dEsik, dEsikKaynak, aSistem, tenantCoz, yukle]);
 
   const ajanEkle = useCallback(async () => {
     setHata(null);
@@ -639,8 +693,11 @@ export default function AiGuvencePage() {
                           <span>yok</span>
                         ) : (
                           evalSoyagaclari.map((s) => (
-                            <StatusBadge key={s.id} durum="info">
+                            <StatusBadge key={s.id} durum={s.poisoning_riski === "YUKSEK" ? "danger" : "info"}>
                               {s.tur}: {s.ad}
+                              {s.lisans ? ` · ${s.lisans}` : ""}
+                              {s.sentetik_oran !== null ? ` · %${s.sentetik_oran} sentetik` : ""}
+                              {` · poisoning: ${s.poisoning_riski}`}
                             </StatusBadge>
                           ))
                         )}
@@ -660,9 +717,24 @@ export default function AiGuvencePage() {
                         <Input
                           value={sgAd[e.id] ?? ""}
                           onChange={(ev) => setSgAd((m) => ({ ...m, [e.id]: ev.target.value }))}
-                          placeholder="ad/referans (örn. 2026-Q2 seti, model-v3)"
+                          placeholder="ad/referans (örn. 2026-Q2 seti)"
                           aria-label={`${e.id} soyağacı adı`}
-                          className="h-7 w-56 text-xs"
+                          className="h-7 w-44 text-xs"
+                        />
+                        <Input
+                          value={sgLisans[e.id] ?? ""}
+                          onChange={(ev) => setSgLisans((m) => ({ ...m, [e.id]: ev.target.value }))}
+                          placeholder="lisans (örn. CC-BY)"
+                          aria-label={`${e.id} lisans`}
+                          className="h-7 w-32 text-xs"
+                        />
+                        <Input
+                          type="number"
+                          value={sgSentetik[e.id] ?? ""}
+                          onChange={(ev) => setSgSentetik((m) => ({ ...m, [e.id]: ev.target.value }))}
+                          placeholder="sentetik %"
+                          aria-label={`${e.id} sentetik oran`}
+                          className="h-7 w-24 text-xs"
                         />
                         <Button size="sm" variant="outline" onClick={() => void soyagaciEkle(e.id)} disabled={!(sgAd[e.id] ?? "").trim()}>
                           Soyağacı Ekle
@@ -686,6 +758,33 @@ export default function AiGuvencePage() {
                   </select>
                   <Button size="sm" variant="outline" onClick={() => void evalEkle()} disabled={!aSistem}>
                     Eval Ekle
+                  </Button>
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-2 border-t pt-2">
+                  <span className="font-medium">Drift izleme</span>
+                  <span className="text-xs text-muted-foreground">Eşik KODA GÖMÜLMEZ — kaynağı (sürümlü politika/uzman kararı) zorunlu.</span>
+                </div>
+                {driftler.filter((d) => d.ai_system_id === aSistem).map((d) => {
+                  const deg = driftDegerlendir(d.deger, d.esik, d.baseline);
+                  return (
+                    <div key={d.id} className="flex flex-wrap items-center gap-2 text-xs">
+                      <span>{d.metrik}: {d.deger}{d.baseline !== null ? ` (baseline ${d.baseline})` : ""}</span>
+                      <StatusBadge durum={deg.durum === "ESIK_ASILDI" ? "danger" : deg.durum === "TOLERANS_ICINDE" ? "success" : "unknown"}>
+                        {deg.durum === "ESIK_ASILDI" ? "Eşik aşıldı" : deg.durum === "TOLERANS_ICINDE" ? "Tolerans içinde" : "Değerlendirilemedi (eşik yok)"}
+                      </StatusBadge>
+                      {d.esik_kaynagi ? <span className="text-muted-foreground">[eşik: {d.esik_kaynagi}]</span> : null}
+                    </div>
+                  );
+                })}
+                <div className="flex flex-wrap items-end gap-2">
+                  <Input value={dMetrik} onChange={(e) => setDMetrik(e.target.value)} placeholder="metrik (örn. accuracy)" aria-label="Drift metriği" className="h-8 w-40 text-xs" />
+                  <Input type="number" value={dDeger} onChange={(e) => setDDeger(e.target.value)} placeholder="değer" aria-label="Drift değeri" className="h-8 w-24 text-xs" />
+                  <Input type="number" value={dBaseline} onChange={(e) => setDBaseline(e.target.value)} placeholder="baseline" aria-label="Drift baseline" className="h-8 w-24 text-xs" />
+                  <Input type="number" value={dEsik} onChange={(e) => setDEsik(e.target.value)} placeholder="eşik" aria-label="Drift eşiği" className="h-8 w-24 text-xs" />
+                  <Input value={dEsikKaynak} onChange={(e) => setDEsikKaynak(e.target.value)} placeholder="eşik kaynağı (zorunlu)" aria-label="Drift eşik kaynağı" className="h-8 w-48 text-xs" />
+                  <Button size="sm" variant="outline" onClick={() => void driftEkle()} disabled={!dMetrik.trim() || !dDeger.trim() || !aSistem}>
+                    Drift Okuması Ekle
                   </Button>
                 </div>
               </>
