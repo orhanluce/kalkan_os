@@ -91,7 +91,7 @@ Durum sözlüğü: **TAM** (kullanıcı sonucu uçtan uca teslim + test edilmiş
 - **Durum: KISMİ (çekirdek + anket + portal + yanıtlama TAM; yapılandırılmış envanter alanları anket-metni seviyesinde, ayrı structured tablo değil — Dikey B'nin resmi şeması bekliyor).**
 - **Eksik kullanıcı sonucu:** talimatın istediği bulut hizmet envanteri/ortak sorumluluk matrisi/IAM/merkezi log/DDoS testi bugün **serbest metin anket sorusu** olarak var (kategori etiketli), YAPILANDIRILMIŞ alan (ör. `rto_saat integer`, `ddos_test_tarihi date`) değil — bu bilinçli bir tasarım (kural 3: soru/cevap içeriği tenant girdisi, KALKAN_OS şema uydurmaz), talimat bunu yapılandırılmış istiyor ama hangi alanların "resmî" olduğu (DORA RoI şemasına bakılmadan) UYDURULAMAZ → **kısmen KAYNAK BEKLİYOR** (Dikey B'nin resmî şeması gelince yapılandırılabilir).
 - **Gerekli şema/RLS/invariant:** Dikey A (bu oturum) mevcut. Dikey B (DORA RoI) resmi şema geldiğinde yapılandırılmış alanları ekler.
-- **Önerilen dikey:** Dikey A (BU OTURUM) → Dikey B (resmi şema DIŞ KARAR/KAYNAK BEKLİYOR) → Dikey H (KOS-8 kalanı, bu oturumda YAPILMIYOR).
+- **Önerilen dikey:** Dikey A ✅ TAMAMLANDI (§1.56) → **Dikey B keşfi BİTTİ, kod YOK** (§1.57 — kaynak özeti `docs/arastirma/DORA_RoI_ITS_2024_2956_Kaynak_Ozeti.md` + mapping ADR `docs/adr/PR0-37-tez-dikeyB-roi-mapping-2026-07-19.md`; en büyük boşluk: `tenants`'ta LEI/EUID/yasal kimlik hiç yok) → Dikey H (KOS-8 kalanı, bu oturumda YAPILMIYOR).
 - **Kabul testi:** tedarikciler.spec.ts + tedarikci-degerlendirme.spec.ts + tedarikci-anket-sablonu.spec.ts + tedarikci-signoff-ledger.spec.ts (mevcut) + bu oturumun yeni testleri.
 
 ## KOS-9 — Harici sinyal, tehdit, fraud ve AML güvencesi
@@ -135,7 +135,7 @@ Durum sözlüğü: **TAM** (kullanıcı sonucu uçtan uca teslim + test edilmiş
 | 5 | AI Assurance | KISMİ | Yok (Dikey E, sonraki) |
 | 6 | Açıklama/adalet/itiraz | YOK | Yok (Dikey D, DIŞ KARAR bekliyor) |
 | 7 | Model Claim Guard | YOK | Yok (Dikey C, sonraki) |
-| 8 | 3.taraf/bulut/AI tedarik | KISMİ | **Dikey A ✅ TAMAMLANDI (§1.56)** — Dikey B (RoI şeması) hâlâ sonraki |
+| 8 | 3.taraf/bulut/AI tedarik | KISMİ | **Dikey A ✅ TAMAMLANDI (§1.56); Dikey B keşif ✅ BİTTİ, kod YOK (§1.57)** |
 | 9 | Harici sinyal/tehdit | YOK | Yok (Dikey I, sonraki) |
 | 10 | AI/ESG fayda iddiası | YOK | Yok (Dikey J, KOS-7 sonrası) |
 | 11 | Gizlilik-koruyucu hesaplama | YOK | Yok (Dikey K, en son + kapı) |

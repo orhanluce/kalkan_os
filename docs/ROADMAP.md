@@ -823,6 +823,44 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.57 37 Tez Dikey B keşfi — DORA RoI kaynak özeti + mapping ADR (KOD YOK) ✅ (19 Temmuz)
+
+Talimatın kendi şartı (§4 Dikey B): "Önce güncel ve resmi AB kaynaklarını
+repo araştırma alanına al... Tez veya blogdan RoI alanı uydurma." WebSearch +
+WebFetch ile gerçek kaynak bulundu ve kaydedildi: **Commission Implementing
+Regulation (EU) 2024/2956** (29 Kasım 2024, RG 2 Aralık 2024, uygulama 17
+Ocak 2025, EUR-Lex `eli/reg_impl/2024/2956/oj/eng`) — DORA'nın Register of
+Information standart şablonlarını kuran ITS. Kaynak özeti
+`docs/arastirma/DORA_RoI_ITS_2024_2956_Kaynak_Ozeti.md`: 15 şablon envanteri
+(B_01.01-B_99.01), çekirdek alan listesi (B_02.02/B_05.01/B_05.02/B_06.01),
+19 ICT hizmet türü kapalı kümesi (S01-S19, Annex III).
+
+**DÜRÜSTLÜK (kural 3, açıkça işaretli):** bu liste WebFetch ile İKİNCİL
+kaynaklardan (springlex.eu, EBA özet sayfası, ESMA final report) derlendi —
+EUR-Lex'in birebir Annex metniyle satır satır KARŞILAŞTIRILMADI. Belgenin
+kendisi bunu **TODO_DOGRULA** olarak işaretliyor; hukuk doğrulayıcısı
+onayı olmadan hiçbir alan VERIFIED sayılmaz, migration yazılmaz.
+
+Mapping ADR'si (`docs/adr/PR0-37-tez-dikeyB-roi-mapping-2026-07-19.md`):
+mevcut `third_parties`/`third_party_services`/`fourth_parties`/
+`third_party_contracts`/`exit_plans` alanlarının RoI şablon kodlarına
+eşlemesi + **en büyük boşluk**: `tenants` tablosunda kurumun kendi LEI/EUID/
+yasal kimliği hiç modellenmemiş — RoI'nin "kaydı tutan kuruluş" (B_01.01)
+şablonu bu olmadan hiç doldurulamaz. Diğer boşluklar: sağlayıcı kimlik kodu
+(LEI/EUID), RoI'nin "fonksiyon" (F1, F2...) kavramı, S01-S19 kapalı küme
+ataması, veri lokasyonu/bağımlılık seviyesi/fesih bildirim süresi alanları
+— hiçbiri bugün yok. `third_parties.tier` (KRITIK/ONEMLI/DUSUK) ile RoI'nin
+FONKSİYON-seviyesi kritiklik değerlendirmesi (B_06.01.0060) BİLİNÇLİ OLARAK
+BİRLEŞTİRİLMEDİ — farklı kavramlar, uydurma çeviri yapılmadı.
+
+Önerilen sonraki dikey (bu turda YAZILMADI): `tenants`'a RoI kimlik alanları
+→ `third_party_services`/`fourth_parties`'a nullable S01-S19/LEI kolonları →
+export mekanizması (YENİ mühürleme icat edilmez — `citation-bundle.ts`/
+`audit-worm-export.ts` deseninin aynısı, snapshot+delta+bağımsız CLI) →
+eksik/çelişkili alan raporu (saf fonksiyon) → dört-göz yayın (obligations
+deseni) → resmi şema değişince impact queue (mevcut `IMPACT_REVIEW_REQUIRED`
+deseni). **Migration bu ADR kurucu/hukuk onayından ÖNCE yazılmaz.**
+
 ### 1.56 37 Tez Dikey A — KOS-8 tamamlama: tedarikçi portalında anket YANITLAMA ✅ (19 Temmuz)
 
 §1.55'in Gap Map'inde işaretlenen tek dikey teslim edildi: `docs/GAP_MAP_37_TEZ.md`
