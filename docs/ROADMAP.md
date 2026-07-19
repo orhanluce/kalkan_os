@@ -823,6 +823,27 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.55 Mimari karar kaydı — 19 Temmuz 2026 (37 Tez Nihai Uygulama Talimatı — PR-0 KEŞİF + Gap Map, KOD YOK BU BÖLÜMDE)
+
+Kurucunun sekizinci vizyon belgesi `docs/arastirma/KALKAN_OS_37_Tez_Nihai_
+Uygulama_Talimati_2026.md` KABUL EDİLDİ; PR-0 keşfi `docs/adr/PR0-37-tez-
+kesif-2026-07-19.md` + tam kabiliyet envanteri `docs/GAP_MAP_37_TEZ.md`
+(KOS-1..11, her biri için mevcut modül/durum/eksik-kullanıcı-sonucu/kaynak-
+statüsü/önerilen-dikey — ölçülmüş, uydurulmamış). Modül numaraları
+DEĞİŞMEDİ; KOS etiketleri yalnız Gap Map'te mevcut M-numaralarına eşleme
+için kullanılıyor (talimat §0'ın açık şartı).
+
+**Sonuç:** KOS-1 (regülasyon/uygulanabilirlik) ve KOS-3 (kontrol/test/kanıt)
+mühendislik tarafı TAM; KOS-2/4/5/8 KISMİ; KOS-6/7/9/10/11 hiç yok. Talimatın
+kendi sırası (§10): önce Gap Map, sonra YALNIZ **Dikey A** (M35 tedarikçi
+portalında anket yanıtlama, KOS-8 tamamlama) uçtan uca — Dikey B..K bu
+oturumda BAŞLANMADI. Dikey 5'in 29 alt kategorisi ve Dikey K (gizlilik-
+koruyucu hesaplama) gibi kaynak/kapı gerektiren maddeler Gap Map'te
+KAYNAK_BEKLİYOR/DIŞ_KARAR olarak açık bırakıldı — CLAUDE.md'nin mevcut
+kararlarıyla birebir tutarlı, yeniden uydurulmadı.
+
+Dikey A'nın ayrıntılı teslimatı aşağıda (bu bölümün hemen altında, aynı gün).
+
 ### 1.54 M35 sonraki dilim — vendor-portal dış erişim (G7 M41 partner modeli) ✅ (19 Temmuz)
 
 §1.24'te bırakılan borç kapandı: "vendor-portal dış erişim (G7 M41 partner
