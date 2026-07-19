@@ -821,8 +821,23 @@ adapter deseni; gerçek Kamu SM/QTSP + ASN.1 = altyapı, OPEN_DECISION). Üç ro
 UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 (DB'siz; e2e ayrı process VERIFIED/kurcalı-FAILED). Testler: transparency.test
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
-`seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7. Kalan dilim: consistency
-proof (iki STH arası), STH'yi gerçek artefaktlara (manifest/policy) otomatik bağlama.
+`seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
+
+### 1.33 Gate G3 sonraki dilim — append-only tutarlılık doğrulaması ✅ (19 Temmuz)
+
+İki ağaç başı (STH) arası **tutarlılık kanıtı**: eski STH'nin ağacı yeni STH'nin
+ağacının ÖN EKİ mi — yani kütük checkpoint'ler arasında yalnız EKLEDİ mi, geçmişi
+yeniden yazmadı mı? Denetçi bunu **veritabanına GÜVENMEDEN** doğrular; transparency
+log'u sıradan denetim tablosundan ayıran güvence budur. Salt kod (migration YOK,
+mevcut tabloları kullanır). `tutarlilikDogrula` (transparency.ts) test edilmiş
+`merkleRootHex`'i yeniden kullanır — her iki STH imzasını doğrular + iki kökü AYNI
+yaprak dizisinin ön eklerinden yeniden hesaplar. **DÜRÜSTLÜK:** bu tam-yaprak
+(O(n)) doğrulamadır, referanssız el-yazımı kripto sevk etmemek için kompakt
+RFC 6962 §2.1.2 proof'u BİLİNÇLİ sonraki dilim (kod yorumunda + ROADMAP'te yazılı).
+Rota `GET /api/seffaflik/tutarlilik?from&to` (session+RLS), UI'da append-only
+indirme bağı, `verify-seffaflik.ts` şemaya göre dispatch (makbuz|tutarlilik).
+Testler: transparency.test +4 tutarlılık (→18 dosyada) + `seffaflik-tutarlilik.spec.ts`
+e2e (iki STH → kanıt → bağımsız VERIFIED/kurcalı-FAILED).
 
 ### 1.31 Gate G8 (parça 4, SON) — M40 Risk Appetite, KRI & Loss Distribution ✅ (19 Temmuz)
 

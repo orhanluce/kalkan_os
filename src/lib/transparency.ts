@@ -32,6 +32,7 @@ const HEX64 = /^[0-9a-f]{64}$/;
 export const SIGNED_STATEMENT_SCHEMA = "KALKAN_SCITT_STATEMENT_V1" as const;
 export const STH_SCHEMA = "KALKAN_SCITT_STH_V1" as const;
 export const RECEIPT_SCHEMA = "KALKAN_SCITT_RECEIPT_V1" as const;
+export const CONSISTENCY_SCHEMA = "KALKAN_SCITT_CONSISTENCY_V1" as const;
 
 /** İmzalı ifade: bir artefaktın özeti (statementHash) + o özet üzerine imza. */
 export interface SignedStatement {
@@ -215,4 +216,79 @@ export async function makbuzDogrula(m: SeffaflikMakbuzu): Promise<MakbuzSonucu> 
   });
 
   return { gecerli: k.every((x) => x.gecti), kontroller: k };
+}
+
+/**
+ * İki ağaç başı (STH) arası APPEND-ONLY tutarlılık kanıtı.
+ *
+ * NE İSPATLAR: eski STH'nin kapsadığı ağaç, yeni STH'nin kapsadığı ağacın bir
+ * ÖN EKİDİR — yani kütük iki checkpoint arasında yalnız EKLEME yaptı, geçmişi
+ * yeniden yazmadı. Denetçi bunu veritabanına GÜVENMEDEN doğrular; transparency
+ * log'u sıradan bir denetim tablosundan ayıran asıl güvence budur.
+ *
+ * DÜRÜSTLÜK — BU KOMPAKT (O(log n)) DEĞİL: RFC 6962 §2.1.2 kompakt tutarlılık
+ * proof'u yerine, DOĞRULUĞU AŞİKÂR olan tam-yaprak yeniden hesaplama kullanılır
+ * (test edilmiş merkleRootHex'i yeniden kullanır; el yazımı yeni kripto yok).
+ * Uyum kütükleri için yaprak sayısı ölçülüdür, bedeli kabul edilebilir; kompakt
+ * RFC 6962 proof'u bilinçli sonraki dilimdir.
+ */
+export interface TutarlilikKanidi {
+  schema: typeof CONSISTENCY_SCHEMA;
+  eski: { sth: AgacBasi; imza: DetachedImza };
+  yeni: { sth: AgacBasi; imza: DetachedImza };
+  /** yeni.treeSize kadar yaprak, leaf_index sırasıyla. */
+  leaves: string[];
+}
+
+export async function tutarlilikDogrula(k: TutarlilikKanidi): Promise<MakbuzSonucu> {
+  const kontroller: MakbuzKontrol[] = [];
+
+  const eskiSig = await agacBasiDogrula(k.eski.sth, k.eski.imza);
+  kontroller.push({
+    ad: "Eski STH imzası",
+    gecti: eskiSig,
+    aciklama: eskiSig ? "Eski ağaç başı geçerli şekilde imzalı." : "Eski STH imzası tutmadı.",
+  });
+
+  const yeniSig = await agacBasiDogrula(k.yeni.sth, k.yeni.imza);
+  kontroller.push({
+    ad: "Yeni STH imzası",
+    gecti: yeniSig,
+    aciklama: yeniSig ? "Yeni ağaç başı geçerli şekilde imzalı." : "Yeni STH imzası tutmadı.",
+  });
+
+  const m = k.eski.sth.treeSize;
+  const n = k.yeni.sth.treeSize;
+  const boyutOk = m > 0 && m <= n && n <= k.leaves.length;
+  kontroller.push({
+    ad: "Boyut sırası (0 < eski ≤ yeni ≤ yaprak sayısı)",
+    gecti: boyutOk,
+    aciklama: boyutOk
+      ? `Eski boy ${m}, yeni boy ${n}, ${k.leaves.length} yaprak.`
+      : `Boyutlar tutarsız: eski ${m}, yeni ${n}, yaprak ${k.leaves.length}.`,
+  });
+
+  // Kök yeniden hesabı yalnız boyut tutarlıysa anlamlı (aksi halde slice yanıltır).
+  let eskiRootOk = false;
+  let yeniRootOk = false;
+  if (boyutOk) {
+    eskiRootOk = (await merkleRootHex(k.leaves.slice(0, m))) === k.eski.sth.rootHash;
+    yeniRootOk = (await merkleRootHex(k.leaves.slice(0, n))) === k.yeni.sth.rootHash;
+  }
+  kontroller.push({
+    ad: "Eski kök ↔ yaprak ön eki",
+    gecti: eskiRootOk,
+    aciklama: eskiRootOk
+      ? "Eski STH kökü, yaprakların ilk m tanesinden birebir üretiliyor."
+      : "Eski STH kökü yaprak ön ekiyle uyuşmuyor.",
+  });
+  kontroller.push({
+    ad: "Yeni kök ↔ yaprak ön eki (append-only)",
+    gecti: yeniRootOk,
+    aciklama: yeniRootOk
+      ? "Yeni STH kökü AYNI yaprak dizisinin daha uzun ön ekinden üretiliyor — kütük yalnız ekledi."
+      : "Yeni STH kökü yaprak dizisiyle uyuşmuyor (geçmiş yeniden yazılmış olabilir).",
+  });
+
+  return { gecerli: kontroller.every((x) => x.gecti), kontroller };
 }

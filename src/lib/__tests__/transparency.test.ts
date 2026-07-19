@@ -5,12 +5,15 @@ import { describe, expect, it } from "vitest";
 import { LocalDevSigner } from "../manifest-signature";
 import {
   agacBasiImzala,
+  CONSISTENCY_SCHEMA,
   defterKoku,
   ifadeYaprakHash,
   imzaliIfadeDogrula,
   imzaliIfadeOlustur,
   makbuzDogrula,
   makbuzUret,
+  tutarlilikDogrula,
+  type TutarlilikKanidi,
 } from "../transparency";
 import { LocalDevTimestampProvider, nitelikliMi } from "../timestamp";
 
@@ -94,6 +97,55 @@ describe("kapsama makbuzu (inclusion receipt)", () => {
     const makbuz = await makbuzUret([...yapraklar], 1, sth, imza, yabanci);
     makbuz.leafHash = yabanciYaprak; // ifade doğru ama defterde değil
     const sonuc = await makbuzDogrula(makbuz);
+    expect(sonuc.gecerli).toBe(false);
+  });
+});
+
+describe("tutarlılık (append-only) kanıtı", () => {
+  async function kanitKur(m: number, n: number): Promise<TutarlilikKanidi> {
+    const signer = await LocalDevSigner.olustur();
+    const yapraklar: string[] = [];
+    for (let i = 0; i < n; i++) {
+      yapraklar.push(await ifadeYaprakHash(await imzaliIfadeOlustur("X", hash(i + 1), signer)));
+    }
+    const eskiRoot = await defterKoku(yapraklar.slice(0, m));
+    const yeniRoot = await defterKoku(yapraklar.slice(0, n));
+    const eski = await agacBasiImzala(m, eskiRoot, signer);
+    const yeni = await agacBasiImzala(n, yeniRoot, signer);
+    return {
+      schema: CONSISTENCY_SCHEMA,
+      eski: { sth: eski.sth, imza: eski.imza },
+      yeni: { sth: yeni.sth, imza: yeni.imza },
+      leaves: yapraklar,
+    };
+  }
+
+  it("geçerli: eski ağaç yeni ağacın ön eki → tüm kontroller geçer", async () => {
+    const kanit = await kanitKur(2, 5);
+    const sonuc = await tutarlilikDogrula(kanit);
+    expect(sonuc.gecerli).toBe(true);
+  });
+
+  it("yaprak kurcalanırsa (geçmiş yeniden yazılmış) düşer", async () => {
+    const kanit = await kanitKur(2, 5);
+    kanit.leaves[0] = hash(9999); // ön ekteki bir yaprak değişti
+    const sonuc = await tutarlilikDogrula(kanit);
+    expect(sonuc.gecerli).toBe(false);
+  });
+
+  it("boyut sırası bozuksa (eski > yeni) düşer", async () => {
+    const kanit = await kanitKur(2, 5);
+    // Eski boyu yeni boydan büyük yap → sıra kontrolü düşer.
+    kanit.eski.sth.treeSize = 6;
+    const sonuc = await tutarlilikDogrula(kanit);
+    expect(sonuc.gecerli).toBe(false);
+    expect(sonuc.kontroller.find((k) => k.ad.includes("Boyut"))?.gecti).toBe(false);
+  });
+
+  it("eski STH imzası kurcalanırsa düşer", async () => {
+    const kanit = await kanitKur(2, 5);
+    kanit.eski.sth.rootHash = hash(1234); // imza artık tutmaz
+    const sonuc = await tutarlilikDogrula(kanit);
     expect(sonuc.gecerli).toBe(false);
   });
 });

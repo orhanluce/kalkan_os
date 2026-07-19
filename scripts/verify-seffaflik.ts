@@ -11,36 +11,46 @@
 // ÇIKIŞ KODU: hepsi geçerse 0, tek kontrol düşerse 1 (CI'da kullanılabilir).
 
 import { readFileSync } from "node:fs";
-import { makbuzDogrula, type SeffaflikMakbuzu } from "../src/lib/transparency";
+import {
+  CONSISTENCY_SCHEMA,
+  makbuzDogrula,
+  tutarlilikDogrula,
+  type SeffaflikMakbuzu,
+  type TutarlilikKanidi,
+} from "../src/lib/transparency";
 
 async function main() {
   const yol = process.argv[2];
   if (!yol) {
-    console.error("Kullanım: npx tsx scripts/verify-seffaflik.ts <makbuz.json>");
+    console.error("Kullanım: npx tsx scripts/verify-seffaflik.ts <makbuz|tutarlilik.json>");
     process.exit(2);
   }
 
-  let makbuz: SeffaflikMakbuzu;
+  let veri: { schema?: string };
   try {
-    makbuz = JSON.parse(readFileSync(yol, "utf8")) as SeffaflikMakbuzu;
+    veri = JSON.parse(readFileSync(yol, "utf8"));
   } catch (e) {
-    console.error(`HATA: makbuz okunamadı/çözümlenemedi: ${(e as Error).message}`);
+    console.error(`HATA: dosya okunamadı/çözümlenemedi: ${(e as Error).message}`);
     process.exit(2);
   }
 
-  const sonuc = await makbuzDogrula(makbuz);
+  // Şemaya göre dispatch: kapsama makbuzu mu, tutarlılık kanıtı mı?
+  const tutarlilik = veri.schema === CONSISTENCY_SCHEMA;
+  const sonuc = tutarlilik
+    ? await tutarlilikDogrula(veri as TutarlilikKanidi)
+    : await makbuzDogrula(veri as SeffaflikMakbuzu);
 
-  console.log(`\nKALKAN-OS şeffaflık makbuzu doğrulaması — ${yol}\n`);
+  const baslik = tutarlilik ? "tutarlılık (append-only) kanıtı" : "şeffaflık makbuzu";
+  console.log(`\nKALKAN-OS ${baslik} doğrulaması — ${yol}\n`);
   for (const k of sonuc.kontroller) {
     console.log(`${k.gecti ? "  [OK]  " : "  [X]   "}${k.ad}`);
     console.log(`          ${k.aciklama}`);
   }
-  console.log(
-    sonuc.gecerli
-      ? "\n=> VERIFIED — kayıt kütükte ve imzalı ağaç başından beri değişmedi.\n" +
-          "   (Not: bağımsız DUVAR-SAATİ zamanı için nitelikli TSA gerekir; bu makbuz onu iddia etmez.)\n"
-      : "\n=> FAILED — en az bir kontrol düştü; makbuz/kayıt tutarsız olabilir.\n",
-  );
+  const olumlu = tutarlilik
+    ? "VERIFIED — kütük iki ağaç başı arasında yalnız ekledi (geçmiş yeniden yazılmadı)."
+    : "VERIFIED — kayıt kütükte ve imzalı ağaç başından beri değişmedi.\n" +
+      "   (Not: bağımsız DUVAR-SAATİ zamanı için nitelikli TSA gerekir; bu makbuz onu iddia etmez.)";
+  console.log(sonuc.gecerli ? `\n=> ${olumlu}\n` : "\n=> FAILED — en az bir kontrol düştü; kanıt tutarsız olabilir.\n");
   process.exit(sonuc.gecerli ? 0 : 1);
 }
 

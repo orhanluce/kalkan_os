@@ -87,6 +87,11 @@ export default function SeffaflikPage() {
   );
 
   const sonRoot = useMemo(() => checkpointler[0] ?? null, [checkpointler]);
+  // Farklı iki boyutta STH varsa append-only tutarlılık kanıtı indirilebilir.
+  const tutarlilikAraligi = useMemo(() => {
+    const boyutlar = [...new Set(checkpointler.map((c) => c.tree_size))].sort((a, b) => a - b);
+    return boyutlar.length >= 2 ? { from: boyutlar[0], to: boyutlar[boyutlar.length - 1] } : null;
+  }, [checkpointler]);
 
   const kaydet = useCallback(async () => {
     setHata(null);
@@ -184,6 +189,15 @@ export default function SeffaflikPage() {
           <Button size="sm" variant="outline" className="w-fit" onClick={() => void checkpointYayinla()} disabled={girdiler.length === 0}>
             Ağaç Başı Yayınla
           </Button>
+          {tutarlilikAraligi ? (
+            <a
+              href={`/api/seffaflik/tutarlilik?from=${tutarlilikAraligi.from}&to=${tutarlilikAraligi.to}`}
+              download={`tutarlilik-${tutarlilikAraligi.from}-${tutarlilikAraligi.to}.json`}
+              className="text-xs underline underline-offset-2"
+            >
+              Tutarlılık kanıtı indir (append-only: boy {tutarlilikAraligi.from} ↔ {tutarlilikAraligi.to})
+            </a>
+          ) : null}
         </CardContent>
       </Card>
 
