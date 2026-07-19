@@ -64,31 +64,35 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (19 Temmuz — 37 Tez Dikey A TAMAM + Dikey B ilk dilim TAMAM + Dikey 5 + Dikey 4 kalanı + M17/M18 TAM + M35 dış erişim/yanıtlama)
-- **YENİ BAĞLAYICI BELGE (19 Temmuz, dokuzuncu belge):** `docs/arastirma/
-  KALKAN_OS_37_Tez_Nihai_Uygulama_Talimati_2026.md` kabul edildi (ADR
-  `docs/adr/PR0-37-tez-kesif-2026-07-19.md` + envanter `docs/GAP_MAP_37_TEZ.md`
-  — KOS-1..11, ölçülmüş durumlar). Talimat §10: önce Gap Map, sonra YALNIZ
-  **Dikey A**. Dikey A BİTTİ (§1.56). Dikey B'nin KEŞİF adımı BİTTİ (§1.57).
-  Kurucunun 19 Temmuz İKİNCİ talimatıyla Dikey B'nin **İLK MİGRATİON DİLİMİ
-  DE BİTTİ** (§1.58): önce kaynak özeti İKİNCİ kez gözden geçirildi (EUR-Lex
-  birincil sayfası WebFetch ile doğrudan okundu, B_01.01/01.02/01.03/02.01/
-  02.02 için birebir alıntı toplandı — **LEGAL_REVIEW_REQUIRED**'a
-  yükseltildi, hâlâ VERIFIED değil), sonra `tenant_legal_identity` (kurum
-  LEI/EUID/ülke/para birimi/hiyerarşi, format guard + kimlik atfı + audit) +
-  `roi_kaynak_kayitlari` (GLOBAL referans, `obligations` dört-göz guard'ının
-  BİREBİR AYNISI — yeni bir doğrulama mekanizması icat edilmedi) migration'ı
-  (`20260719310000`) yazıldı. **İÇERİK SEED'İ YOK** — tablo hazır, hiçbir RoI
-  alan/kod satırı yazılmadı. Dikey B'nin kalanı (S01-S19 genişletmesi, export
-  mekanizması, dört-göz yayın onayı, impact queue) ADR §3'te ertelendi. Dikey
-  C..K hâlâ BAŞLANMADI. **BİR SONRAKİ OTURUM ÖNCE `docs/GAP_MAP_37_TEZ.md` +
-  Dikey B mapping ADR'sini OKUMALI** — sıradaki mantıklı adım: (a) kurucu
-  Dikey B'nin bir sonraki dilimini (export mekanizması veya S01-S19
-  genişletmesi) isterse devam et, (b) istemezse Dikey C (Model Claim Guard)
-  gibi bağımsız bir sıradaki dikeye geç.
-- **Remote (origin/main) HEAD:** `ddd2fef` (§1.58: 37 Tez Dikey B ilk
-  migration dilimi — kurum yasal kimlik + RoI kaynak kataloğu) + DEVAM SHA
-  commit'i. Öncesi `faeb103` (§1.57: Dikey B keşfi, kod yok), `25e817a`
+## 0c. GERÇEK DURUM (20 Temmuz — 37 Tez Dikey C TAMAM + Dikey A/B TAMAM + Dikey 5 + Dikey 4 kalanı + M17/M18 TAM + M35 dış erişim/yanıtlama)
+- **20 Temmuz talimatı: Dikey C (Model/Compliance Claim Guard) TAMAM (§1.59).**
+  Genel amaçlı iddia güvencesi (`assurance_claims` + `src/lib/claim-guard.ts`
+  + `/guvence`) — kaynak+kanıt+GERÇEK dört-göz+staleness+çatışma görünürlüğü.
+  **Canlı geliştirme sırasında yakalanan bug (dürüstçe kayıtlı):**
+  `assurance_claims`'in ilk taslağı VE dünkü `roi_kaynak_kayitlari` (§1.58)
+  ikisi de `obligations`'ın ESKİ (tek-kişili) dört-göz sürümünü kopyalamıştı;
+  kendi PGlite testleri yakaladı, ikisi de düzeltildi (`roi_kaynak_kayitlari`
+  için forward-fix migration `20260720000001` — şiplenmiş migration
+  DEĞİŞTİRİLMEDİ). Detay ROADMAP §1.59, ADR `docs/adr/PR0-37-tez-dikeyC-
+  claim-guard-2026-07-20.md`. Gap Map KOS-7 satırı güncellendi: genel guard
+  VAR, ML-eval'e özgü dar kapsam (manifest+11 guard kuralı) hâlâ YOK —
+  dürüstçe ayrı bırakıldı.
+- **Öncesi (19 Temmuz):** `docs/arastirma/KALKAN_OS_37_Tez_Nihai_Uygulama_
+  Talimati_2026.md` kabul edildi (ADR `docs/adr/PR0-37-tez-kesif-2026-07-19.
+  md` + envanter `docs/GAP_MAP_37_TEZ.md` — KOS-1..11, ölçülmüş durumlar).
+  Dikey A BİTTİ (§1.56). Dikey B'nin KEŞİF adımı (§1.57) + İLK MİGRATİON
+  DİLİMİ (§1.58 — `tenant_legal_identity` + `roi_kaynak_kayitlari`, İÇERİK
+  SEED'İ YOK) BİTTİ.
+- **BİR SONRAKİ OTURUM ÖNCE `docs/GAP_MAP_37_TEZ.md` OKUMALI** — sıradaki
+  mantıklı adım: (a) Dikey B'nin bir sonraki dilimi (export mekanizması veya
+  S01-S19 genişletmesi), (b) Dikey C'nin ML-eval'e özgü dar kalanı (kurucu
+  isterse), (c) Gap Map'teki bağımsız bir sıradaki dikey (Dikey D/E/F/G/H/I).
+- **Remote (origin/main) HEAD:** `79abaf8` (§1.59: 37 Tez Dikey C —
+  Model/Compliance Claim Guard, `assurance_claims`+`claim-guard.ts`+`/guvence`
+  + `roi_kaynak_kayitlari` dört-göz forward-fix) + DEVAM SHA commit'i. Öncesi
+  `ddd2fef` (§1.58: 37 Tez Dikey B ilk migration dilimi — kurum yasal kimlik +
+  RoI kaynak kataloğu) + DEVAM SHA commit'i. Öncesi `faeb103` (§1.57: Dikey B
+  keşfi, kod yok), `25e817a`
   (§1.56: 37 Tez Dikey A — tedarikçi anket yanıtlama), `91d39ce`
   (§1.55: PR-0 keşif + Gap Map, kod yok), `c894ac5` (§1.54: M35 sonraki
   dilim — vendor-portal dış erişim), `6ba5a25`
@@ -110,7 +114,12 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı: 1144 birim (112 dosya) + 61 e2e, 0 skip; build exit 0.**
+- **Test tabanı: 1183 birim (114 dosya) + 62 e2e, 0 skip; build exit 0.**
+  (§1.59: +40 PGlite birim (21 `rls-assurance-claims.test.ts` + 19 `claim-
+  guard.test.ts`) + 1 yeni e2e (`guvence.spec.ts`). Tam takım koşuldu, sıfır
+  regresyon; tam-suite paralel koşuda 6 spec ortak-kiracı durum kirliliğinden
+  başarısız oldu (fixture reset öncesi state — kod DEĞİL), fixture reset
+  sonrası tekil koşuda hepsi yeşil.)
   (§1.58'de UI yok — e2e sayısı değişmedi, yalnız 18 yeni PGlite testi. Bu
   oturumda tam takım ON İKİ kez uçtan uca yeşil koşuldu — `tema.spec`
   dahil hiçbir izole-flake tekrarlamadı. Yol boyunca üç gerçek e2e çakışması
