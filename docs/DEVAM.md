@@ -64,8 +64,27 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (20 Temmuz — 37 Tez Dikey C TAMAM + Dikey A/B TAMAM + Dikey 5 + Dikey 4 kalanı + M17/M18 TAM + M35 dış erişim/yanıtlama)
-- **20 Temmuz talimatı: Dikey C (Model/Compliance Claim Guard) TAMAM (§1.59).**
+## 0c. GERÇEK DURUM (20 Temmuz — ÖNCELİK SIFIRLAMASI: Dikey B export TEK öncelik + sistemik dört-göz bug'ı bulundu/düzeltildi)
+- **20 Temmuz İKİNCİ talimatı: Dikey C bitti, artık TEK ÖNCELİK Dikey B'nin
+  DORA RoI export dilimi (§1.60).** 5 faz: hukuk/kaynak kilidi → veri modeli
+  → export motoru → kanıt zinciri → kurumsal arayüz. ML-eval'e özgü dar
+  kapsam + ileri AI özellikleri BEKLETİLDİ. ADR `docs/adr/PR0-37-tez-dikeyB-
+  export-2026-07-20.md`: kurucunun yeni Dikey D-H sıralaması Gap Map'in
+  MEVCUT harfleriyle çakışıyor — harfler KORUNDU, kurucunun sırası KOS
+  referanslarıyla takip ediliyor.
+- **Faz 1 (3. EUR-Lex geçişi) + Faz 2 ilk dilim (`ict_service_types`, S01-S19
+  kataloğu) TAMAM (§1.60).** Bu sırada **SİSTEMİK bir dört-göz INSERT-anı
+  bypass'ı** bulundu: BEŞ tablo (obligations/obligation_control_mappings,
+  roi_kaynak_kayitlari, assurance_claims, control_resilience_domains,
+  iso_42001_27001_crosswalk) TEK KİŞİNİN bir kaydı doğrudan LEGAL_REVIEW
+  olarak (incelemeye_alan NULL) insert edip sonra kendini dogrulayan yaparak
+  VERIFIED'e taşımasına izin veriyordu (NULL eşitliği guard'ı atlatıyordu).
+  Forward-fix migration `20260720110000` beş fonksiyonu da düzeltti; 5 PGlite
+  dosyasına regresyon testi + yeni `rls-ict-service-types.test.ts` (14 test)
+  eklendi; canlı smoke iki ayrı tabloda (ict_service_types + obligations)
+  düzeltmeyi kanıtladı. **BU BULGU KAYITLI TUTULMALI** — dört-göz mekanizması
+  kural 14'ün (bulgu kapanışı) ve tüm ürünün güven temelidir.
+- **20 Temmuz İLK talimatı: Dikey C (Model/Compliance Claim Guard) TAMAM (§1.59).**
   Genel amaçlı iddia güvencesi (`assurance_claims` + `src/lib/claim-guard.ts`
   + `/guvence`) — kaynak+kanıt+GERÇEK dört-göz+staleness+çatışma görünürlüğü.
   **Canlı geliştirme sırasında yakalanan bug (dürüstçe kayıtlı):**
@@ -83,11 +102,18 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   Dikey A BİTTİ (§1.56). Dikey B'nin KEŞİF adımı (§1.57) + İLK MİGRATİON
   DİLİMİ (§1.58 — `tenant_legal_identity` + `roi_kaynak_kayitlari`, İÇERİK
   SEED'İ YOK) BİTTİ.
-- **BİR SONRAKİ OTURUM ÖNCE `docs/GAP_MAP_37_TEZ.md` OKUMALI** — sıradaki
-  mantıklı adım: (a) Dikey B'nin bir sonraki dilimi (export mekanizması veya
-  S01-S19 genişletmesi), (b) Dikey C'nin ML-eval'e özgü dar kalanı (kurucu
-  isterse), (c) Gap Map'teki bağımsız bir sıradaki dikey (Dikey D/E/F/G/H/I).
-- **Remote (origin/main) HEAD:** `79abaf8` (§1.59: 37 Tez Dikey C —
+- **BİR SONRAKİ OTURUM ÖNCE `docs/GAP_MAP_37_TEZ.md` + `docs/adr/PR0-37-tez-
+  dikeyB-export-2026-07-20.md` OKUMALI** — kurucunun 20 Temmuz İKİNCİ
+  talimatı Dikey B export'u BİTENE KADAR tek öncelik ilan etti; Dikey C'nin
+  ML-eval kalanı, Dikey D/E/F/G/H ve diğer her şey BEKLİYOR. Sıradaki adım
+  Faz 2'nin kalanı: kurum kimliği genişletmesi + sözleşme/üçüncü taraf/alt
+  yüklenici şeması (third_parties/fourth_parties GENİŞLETİLECEK, yeni paralel
+  tablo değil) + kritik fonksiyon eşlemesi — küçük, test edilebilir dilimlere
+  bölünmeli (kurucunun kendi talimatı).
+- **Remote (origin/main) HEAD:** `61a2a5d` (§1.60: Dikey B Faz 1
+  hukuk/kaynak kilidi + Faz 2 ilk dilim `ict_service_types` + SİSTEMİK
+  dört-göz INSERT-bypass forward-fix'i, 5 tablo) + DEVAM SHA commit'i. Öncesi
+  `79abaf8` (§1.59: 37 Tez Dikey C —
   Model/Compliance Claim Guard, `assurance_claims`+`claim-guard.ts`+`/guvence`
   + `roi_kaynak_kayitlari` dört-göz forward-fix) + DEVAM SHA commit'i. Öncesi
   `ddd2fef` (§1.58: 37 Tez Dikey B ilk migration dilimi — kurum yasal kimlik +
@@ -114,7 +140,11 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı: 1183 birim (114 dosya) + 62 e2e, 0 skip; build exit 0.**
+- **Test tabanı: 1208 birim (117 dosya) + 62 e2e (değişmedi — §1.60'ta UI
+  yok), 0 skip; build exit 0.** (§1.60: +25 PGlite birim — yeni `rls-ict-
+  service-types.test.ts` 14 test + sistemik INSERT-bypass regresyon testi
+  5 dosyaya birer/ikişer eklendi: obligations, assurance-claims, resilience,
+  ai-drift-crosswalk, dora-roi-kimlik. Tam takım koşuldu, sıfır regresyon.)
   (§1.59: +40 PGlite birim (21 `rls-assurance-claims.test.ts` + 19 `claim-
   guard.test.ts`) + 1 yeni e2e (`guvence.spec.ts`). Tam takım koşuldu, sıfır
   regresyon; tam-suite paralel koşuda 6 spec ortak-kiracı durum kirliliğinden
