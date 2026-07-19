@@ -823,6 +823,24 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.35 M35 sonraki dilim — Tedarikçi değerlendirme / anket / bulgu ✅ (19 Temmuz)
+
+Migration `20260719100000` — mevcut M35 grafına (third_parties) EKLEMELİ 3 tablo:
+`third_party_assessments` (DORA due-diligence, durum makinesi), `assessment_
+questions` (anket; risk_seviyesi null = değerlendirilmedi ≠ DÜŞÜK), `assessment_
+findings` (ciddiyet + durum). third_parties tablosu/guard'ı DEĞİŞMEDİ. **Anahtar
+invariant'lar (canlı smoke 5/5):** (kural 14) bulgu kapanışı KANIT + kapatan +
+zaman ister — ticket kapatmak bulgu kapatmaz; **açık KRİTİK bulgu varken
+değerlendirme TAMAMLANDI OLAMAZ** (çözülmemiş kritik riskle vendor sign-off yok);
+kimlik atfı (degerlendiren/kapatan oturum sahibi, M16 #9 deseni); bulgu-tedarikçi
+tutarlılığı guard'da. İçerik uydurulmaz (kural 3): anket/bulgu tenant tarafından
+girilir, dış rating otomatik bulgu üretmez (invariant #25). Saf `tedarikci.ts`
+`bulguOzeti` (dağılım + tamamlanabilirlik, DB guard'ıyla aynı kural). UI
+tedarikçi detayına "Değerlendirmeler" kartı (aç → bulgu → kanıtla kapat →
+tamamla; Tamamla açık KRİTİK'te disabled). Testler: tedarikci-bulgu 4 +
+rls-tpr-assessment 5 (birim) + `tedarikci-degerlendirme.spec.ts` e2e + smoke 5/5.
+Sonraki dilim: anket şablonu/soru bankası, bulgu→aksiyon planı takibi.
+
 ### 1.34 M36 sonraki dilim — DSAR karşılanma kanıt paketi (G3 defterine bağlı) ✅ (19 Temmuz)
 
 Migration `20260719090000` — `dsar_fulfillment_packages` (append-only). Bir DSAR

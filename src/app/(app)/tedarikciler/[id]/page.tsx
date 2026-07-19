@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { roiKaydiUret, sozlesmeYakinligi } from "@/lib/tedarikci";
+import { bulguOzeti, roiKaydiUret, sozlesmeYakinligi, type Bulgu } from "@/lib/tedarikci";
 import { createClient } from "@/lib/supabase/client";
 import { KARAR, TIER } from "../page";
 
@@ -53,6 +53,20 @@ interface CikisPlani {
   test_kaniti: string | null;
 }
 
+interface Degerlendirme {
+  id: string;
+  tur: string;
+  durum: string;
+  tamamlandi_at: string | null;
+}
+interface BulguRow {
+  id: string;
+  assessment_id: string;
+  baslik: string;
+  ciddiyet: string;
+  durum: string;
+}
+
 export default function TedarikciDetayPage() {
   const params = useParams<{ id: string }>();
   const [t, setT] = useState<Tedarikci | null>(null);
@@ -60,6 +74,11 @@ export default function TedarikciDetayPage() {
   const [dorduncular, setDorduncular] = useState<Dorduncu[]>([]);
   const [sozlesmeler, setSozlesmeler] = useState<Sozlesme[]>([]);
   const [cikis, setCikis] = useState<CikisPlani[]>([]);
+  const [degerlendirmeler, setDegerlendirmeler] = useState<Degerlendirme[]>([]);
+  const [bulgular, setBulgular] = useState<BulguRow[]>([]);
+  const [bBaslik, setBBaslik] = useState<Record<string, string>>({});
+  const [bCiddiyet, setBCiddiyet] = useState<Record<string, string>>({});
+  const [bKanit, setBKanit] = useState<Record<string, string>>({});
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [kullaniciId, setKullaniciId] = useState<string | null>(null);
   const [hata, setHata] = useState<string | null>(null);
@@ -103,6 +122,12 @@ export default function TedarikciDetayPage() {
     setDorduncular((ds ?? []) as Dorduncu[]);
     setSozlesmeler((ss ?? []) as Sozlesme[]);
     setCikis((cs ?? []) as CikisPlani[]);
+    const [{ data: as_ }, { data: fs }] = await Promise.all([
+      db.from("third_party_assessments").select("id, tur, durum, tamamlandi_at").eq("third_party_id", params.id).order("baslangic_at", { ascending: false }),
+      db.from("assessment_findings").select("id, assessment_id, baslik, ciddiyet, durum").eq("third_party_id", params.id),
+    ]);
+    setDegerlendirmeler((as_ ?? []) as Degerlendirme[]);
+    setBulgular((fs ?? []) as BulguRow[]);
   }, [params.id]);
 
   useEffect(() => {
@@ -125,6 +150,67 @@ export default function TedarikciDetayPage() {
       await yukle();
     },
     [kullaniciId, params.id, yukle],
+  );
+
+  const degerlendirmeOlustur = useCallback(async () => {
+    setHata(null);
+    if (!tenantId) return;
+    const db = createClient();
+    const { error } = await db.from("third_party_assessments").insert({ tenant_id: tenantId, third_party_id: params.id, tur: "DORA" });
+    if (error) setHata(error.message);
+    await yukle();
+  }, [tenantId, params.id, yukle]);
+
+  const bulguEkle = useCallback(
+    async (assessmentId: string) => {
+      setHata(null);
+      const baslik = (bBaslik[assessmentId] ?? "").trim();
+      if (!baslik || !tenantId) return;
+      const db = createClient();
+      const { error } = await db.from("assessment_findings").insert({
+        tenant_id: tenantId,
+        assessment_id: assessmentId,
+        third_party_id: params.id,
+        baslik,
+        ciddiyet: bCiddiyet[assessmentId] ?? "ORTA",
+      });
+      if (error) setHata(error.message);
+      setBBaslik((m) => ({ ...m, [assessmentId]: "" }));
+      await yukle();
+    },
+    [bBaslik, bCiddiyet, tenantId, params.id, yukle],
+  );
+
+  const bulguKapat = useCallback(
+    async (findingId: string) => {
+      setHata(null);
+      const kanit = (bKanit[findingId] ?? "").trim();
+      if (!kanit || !kullaniciId) return setHata("Kapanış kanıtı zorunlu (kural 14).");
+      const db = createClient();
+      const { error } = await db
+        .from("assessment_findings")
+        .update({ durum: "KAPANDI", kapanis_kanit: kanit, kapatan: kullaniciId, kapanis_zamani: new Date().toISOString() })
+        .eq("id", findingId);
+      if (error) setHata(error.message);
+      setBKanit((m) => ({ ...m, [findingId]: "" }));
+      await yukle();
+    },
+    [bKanit, kullaniciId, yukle],
+  );
+
+  const degerlendirmeTamamla = useCallback(
+    async (assessmentId: string) => {
+      setHata(null);
+      if (!kullaniciId) return;
+      const db = createClient();
+      const { error } = await db
+        .from("third_party_assessments")
+        .update({ durum: "TAMAMLANDI", degerlendiren: kullaniciId })
+        .eq("id", assessmentId);
+      if (error) setHata(error.message.includes("KRITIK") ? "Açık KRİTİK bulgu varken tamamlanamaz." : error.message);
+      await yukle();
+    },
+    [kullaniciId, yukle],
   );
 
   const hizmetEkle = useCallback(async () => {
@@ -379,6 +465,86 @@ export default function TedarikciDetayPage() {
               RoI kaydını indir (JSON)
             </a>
           ) : null}
+        </CardContent>
+      </Card>
+
+      {/* Değerlendirmeler (DORA due-diligence) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Değerlendirmeler ({degerlendirmeler.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 text-sm">
+          <Button size="sm" variant="outline" className="w-fit" onClick={() => void degerlendirmeOlustur()}>
+            Yeni Değerlendirme (DORA)
+          </Button>
+          {degerlendirmeler.map((a) => {
+            const aBulgular = bulgular.filter((b) => b.assessment_id === a.id);
+            const ozet = bulguOzeti(aBulgular as unknown as Bulgu[]);
+            return (
+              <div key={a.id} className="flex flex-col gap-2 rounded-md border p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{a.tur}</span>
+                  <StatusBadge durum={a.durum === "TAMAMLANDI" ? "success" : a.durum === "DEVAM" ? "legal-review" : "neutral"}>
+                    {a.durum}
+                  </StatusBadge>
+                  {ozet.acikKritikVar ? <StatusBadge durum="danger">Açık KRİTİK bulgu</StatusBadge> : null}
+                  {a.durum !== "TAMAMLANDI" ? (
+                    <Button size="sm" onClick={() => void degerlendirmeTamamla(a.id)} disabled={!ozet.tamamlanabilir}>
+                      Değerlendirmeyi Tamamla
+                    </Button>
+                  ) : null}
+                </div>
+
+                {aBulgular.map((f) => (
+                  <div key={f.id} className="flex flex-wrap items-center gap-2 border-t pt-2 text-xs">
+                    <span>{f.baslik}</span>
+                    <StatusBadge durum={f.ciddiyet === "KRITIK" ? "danger" : f.ciddiyet === "YUKSEK" ? "warning" : "neutral"}>{f.ciddiyet}</StatusBadge>
+                    <StatusBadge durum={f.durum === "KAPANDI" ? "success" : "warning"}>{f.durum}</StatusBadge>
+                    {f.durum !== "KAPANDI" ? (
+                      <>
+                        <Input
+                          value={bKanit[f.id] ?? ""}
+                          onChange={(e) => setBKanit((m) => ({ ...m, [f.id]: e.target.value }))}
+                          placeholder="kapanış kanıtı"
+                          aria-label={`${f.id} kapanış kanıtı`}
+                          className="h-7 w-44 text-xs"
+                        />
+                        <Button size="sm" variant="outline" onClick={() => void bulguKapat(f.id)}>
+                          Kapat
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
+                ))}
+
+                {a.durum !== "TAMAMLANDI" ? (
+                  <div className="flex flex-wrap items-end gap-2 border-t pt-2">
+                    <Input
+                      value={bBaslik[a.id] ?? ""}
+                      onChange={(e) => setBBaslik((m) => ({ ...m, [a.id]: e.target.value }))}
+                      placeholder="Bulgu başlığı"
+                      aria-label={`${a.id} bulgu başlık`}
+                      className="h-8 w-56 text-xs"
+                    />
+                    <select
+                      value={bCiddiyet[a.id] ?? "ORTA"}
+                      onChange={(e) => setBCiddiyet((m) => ({ ...m, [a.id]: e.target.value }))}
+                      aria-label={`${a.id} ciddiyet`}
+                      className="h-8 rounded-md border bg-background px-2 text-xs"
+                    >
+                      <option value="DUSUK">Düşük</option>
+                      <option value="ORTA">Orta</option>
+                      <option value="YUKSEK">Yüksek</option>
+                      <option value="KRITIK">Kritik</option>
+                    </select>
+                    <Button size="sm" variant="outline" onClick={() => void bulguEkle(a.id)} disabled={!(bBaslik[a.id] ?? "").trim()}>
+                      Bulgu Ekle
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
     </div>

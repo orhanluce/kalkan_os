@@ -483,6 +483,144 @@ export type Database = {
           },
         ]
       }
+      assessment_findings: {
+        Row: {
+          aciklama: string | null
+          assessment_id: string
+          baslik: string
+          ciddiyet: string
+          created_at: string
+          durum: string
+          hedef_tarih: string | null
+          id: string
+          kapanis_kanit: string | null
+          kapanis_zamani: string | null
+          kapatan: string | null
+          sahibi: string | null
+          tenant_id: string
+          third_party_id: string
+          updated_at: string
+        }
+        Insert: {
+          aciklama?: string | null
+          assessment_id: string
+          baslik: string
+          ciddiyet?: string
+          created_at?: string
+          durum?: string
+          hedef_tarih?: string | null
+          id?: string
+          kapanis_kanit?: string | null
+          kapanis_zamani?: string | null
+          kapatan?: string | null
+          sahibi?: string | null
+          tenant_id: string
+          third_party_id: string
+          updated_at?: string
+        }
+        Update: {
+          aciklama?: string | null
+          assessment_id?: string
+          baslik?: string
+          ciddiyet?: string
+          created_at?: string
+          durum?: string
+          hedef_tarih?: string | null
+          id?: string
+          kapanis_kanit?: string | null
+          kapanis_zamani?: string | null
+          kapatan?: string | null
+          sahibi?: string | null
+          tenant_id?: string
+          third_party_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_findings_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "third_party_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_findings_kapatan_fkey"
+            columns: ["kapatan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_findings_sahibi_fkey"
+            columns: ["sahibi"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_findings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_findings_third_party_id_fkey"
+            columns: ["third_party_id"]
+            isOneToOne: false
+            referencedRelation: "third_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_questions: {
+        Row: {
+          assessment_id: string
+          cevap: string | null
+          created_at: string
+          id: string
+          risk_seviyesi: string | null
+          sira: number
+          soru: string
+          tenant_id: string
+        }
+        Insert: {
+          assessment_id: string
+          cevap?: string | null
+          created_at?: string
+          id?: string
+          risk_seviyesi?: string | null
+          sira?: number
+          soru: string
+          tenant_id: string
+        }
+        Update: {
+          assessment_id?: string
+          cevap?: string | null
+          created_at?: string
+          id?: string
+          risk_seviyesi?: string | null
+          sira?: number
+          soru?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_questions_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "third_party_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_questions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_engagements: {
         Row: {
           ad: string
@@ -6000,6 +6138,70 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      third_party_assessments: {
+        Row: {
+          baslangic_at: string
+          created_at: string
+          degerlendiren: string | null
+          durum: string
+          id: string
+          ozet: string | null
+          tamamlandi_at: string | null
+          tenant_id: string
+          third_party_id: string
+          tur: string
+          updated_at: string
+        }
+        Insert: {
+          baslangic_at?: string
+          created_at?: string
+          degerlendiren?: string | null
+          durum?: string
+          id?: string
+          ozet?: string | null
+          tamamlandi_at?: string | null
+          tenant_id: string
+          third_party_id: string
+          tur?: string
+          updated_at?: string
+        }
+        Update: {
+          baslangic_at?: string
+          created_at?: string
+          degerlendiren?: string | null
+          durum?: string
+          id?: string
+          ozet?: string | null
+          tamamlandi_at?: string | null
+          tenant_id?: string
+          third_party_id?: string
+          tur?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "third_party_assessments_degerlendiren_fkey"
+            columns: ["degerlendiren"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "third_party_assessments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "third_party_assessments_third_party_id_fkey"
+            columns: ["third_party_id"]
+            isOneToOne: false
+            referencedRelation: "third_parties"
             referencedColumns: ["id"]
           },
         ]
