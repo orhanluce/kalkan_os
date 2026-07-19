@@ -64,9 +64,20 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (19 Temmuz — Dikey 5 + Dikey 4 kalanı + M17 §1.29 TAM + M18 TAM + M35 dış erişim)
-- **Remote (origin/main) HEAD:** `c894ac5` (§1.54: M35 sonraki dilim —
-  vendor-portal dış erişim) + DEVAM SHA commit'i. Öncesi `6ba5a25`
+## 0c. GERÇEK DURUM (19 Temmuz — 37 Tez Dikey A TAMAM + Dikey 5 + Dikey 4 kalanı + M17/M18 TAM + M35 dış erişim/yanıtlama)
+- **YENİ BAĞLAYICI BELGE (19 Temmuz, dokuzuncu belge):** `docs/arastirma/
+  KALKAN_OS_37_Tez_Nihai_Uygulama_Talimati_2026.md` kabul edildi (ADR
+  `docs/adr/PR0-37-tez-kesif-2026-07-19.md` + envanter `docs/GAP_MAP_37_TEZ.md`
+  — KOS-1..11, ölçülmüş durumlar). Talimat §10: önce Gap Map, sonra YALNIZ
+  **Dikey A**. Dikey A BİTTİ (§1.56) — Dikey B..K bu oturumda BAŞLANMADI,
+  hepsi Gap Map'te sırayla kayıtlı. **BİR SONRAKİ OTURUM ÖNCE `docs/GAP_MAP_
+  37_TEZ.md`'Yİ OKUMALI** — Dikey B (DORA RoI, resmi şema KAYNAK BEKLİYOR),
+  Dikey C (Model Claim Guard), Dikey D (açıklama/adalet, DIŞ KARAR bekliyor)
+  vb. sıradaki adaylar.
+- **Remote (origin/main) HEAD:** `25e817a` (§1.56: 37 Tez Dikey A — tedarikçi
+  anket yanıtlama) + DEVAM SHA commit'i. Öncesi `91d39ce` (§1.55: PR-0 keşif +
+  Gap Map, kod yok), `c894ac5` (§1.54: M35 sonraki dilim — vendor-portal dış
+  erişim), `6ba5a25`
   (DEVAM SHA), `c084723` (§1.53: M18 sonraki dilim madde 2/2 — tatbikat →
   eğitim tamamlama gerçek bağı), `7de81b4` (DEVAM SHA), `11460cd` (§1.52: M18
   sonraki dilim madde 1/2 — retraining otomasyonu). Öncesi `ec73851` (§1.51:
@@ -85,21 +96,34 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı: 1098 birim (110 dosya) + 60 e2e, 0 skip; build exit 0.**
-  (Bu oturumda tam takım DOKUZ kez uçtan uca yeşil koşuldu — `tema.spec` dahil
-  hiçbir izole-flake tekrarlamadı. Yol boyunca üç gerçek e2e çakışması
-  yakalandı ve düzeltildi (bkz. §1.49/§1.50/§1.53 detayları — ROADMAP'te).
-  §1.53'te bir tam-takım koşusunda PDF/ZIP paket testi 90sn timeout'la
-  düştü, İZOLE koşuda temiz geçti — kaynak çekişmesi (Chromium PDF render'ı
-  ağır), kod DEĞİL; §1.54'ün tam-takım koşusu 0 flake ile geçti. AYRICA:
+- **Test tabanı: 1126 birim (111 dosya) + 61 e2e, 0 skip; build exit 0.**
+  (Bu oturumda tam takım ON BİR kez uçtan uca yeşil koşuldu — `tema.spec`
+  dahil hiçbir izole-flake tekrarlamadı. Yol boyunca üç gerçek e2e çakışması
+  yakalandı ve düzeltildi (bkz. §1.49/§1.50/§1.53 detayları — ROADMAP'te);
+  §1.56'da DÖRDÜNCÜSÜ: e2e'de misafir context yanlış-token URL'inde kalıp
+  `reload()` ile devam ediyordu — `goto(anketUrl)` ile düzeltildi, ayrıca
+  ikinci `fill()` sonrası `toHaveValue` senkron kontrolü eklendi (React state
+  commit'ini garanti eder). §1.53'te bir tam-takım koşusunda PDF/ZIP paket
+  testi 90sn timeout'la düştü, İZOLE koşuda temiz geçti — kaynak çekişmesi,
+  kod DEĞİL; §1.54/§1.56'nın tam-takım koşuları 0 flake ile geçti. AYRICA:
   `.next` dizini bir noktada bozuldu (`pnpm check`/`pnpm build` tsc'de
   anlamsız hata verdi — kod DEĞİL, dev sunucusunun eşzamanlı yazdığı stale
   bir type-validator dosyası); `rm -rf .next` ile temizlenip yeniden
   koşuldu, temiz geçti — kayıt için: bu sınıf hata görülürse önce `.next`'i
   temizle.)
-- Migration sırası son: `20260719290000_tedarikci_dis_erisim.sql` (canlıda,
-  guard'lar gerçek Supabase'e karşı smoke ile doğrulandı — PGlite≠Supabase
-  disiplini korundu).
+- **§1.56'da canlı e2e GERÇEK bir şema bug'ı yakaladı (kayıt için önemli):**
+  `assessment_response_answers.question_id` ilk halinde `ON DELETE RESTRICT`
+  idi — `third_parties` silinirken cascade zinciri (assessments→questions VE
+  ayrı dalda revisions→answers) aynı işlemde çakışıyor, TÜM silme FK
+  ihlaliyle sessizce başarısız oluyordu (herhangi bir tedarikçi ankete yanıt
+  aldıysa, onu silmeye çalışan HER akış çökerdi — testler dahil). Forward-fix
+  migration `20260719301000` (`CASCADE`'e çevrildi) + PGlite regresyon testi.
+  **Ders:** cascade zincirinde bir dalda RESTRICT + başka dalda CASCADE aynı
+  hedef satıra bakıyorsa, Postgres sırayı garanti etmez — yeni bir FK
+  eklerken kardeş tablolardaki cascade yönünü kontrol et.
+- Migration sırası son: `20260719301000_tedarikci_anket_yaniti_cascade_
+  duzelt.sql` (canlıda; guard'lar + cascade fix gerçek Supabase'e karşı smoke
+  ile doğrulandı — PGlite≠Supabase disiplini korundu).
 - **E2E LEDGER TEMİZLİK KURALI (kayıt için):** kontrol testleri artık auto-anchor
   ediyor → `artifact_ledger_links` entries'e ON DELETE RESTRICT'li. Ledger'a
   dokunan HER e2e spec temizliğinde links+outbox ÖNCE silinmeli (yoksa toplu
@@ -127,20 +151,31 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   grants`/`tedarikci_goruntule`, matter_access_grants/matter_goruntule
   deseninin AYNISI; tedarikçi hesapsız süreli/iptal edilebilir token'la kendi
   kaydının özetini + açık bulgularını görür, `/tedarikci-erisim/[token]`
-  oturumsuz rota). Her dilim: kendi migration + RLS/guard testleri + canlı
-  guard smoke + UI + gerçek Chromium e2e + commit + push + deploy health
-  doğrulaması ile teslim edildi.
-- **Sıradaki (bilinçli sonraki dilim, bu oturumda YAPILMADI):** tezin 29 alt
-  kategorisi + kaynak künyesi/tez sayfa referansı (Dikey 5 kalanı); tedarikçi
-  kendi anket sorularını YANITLAMASI (yazma yolu — §1.54 salt-okur), resmi
-  DORA RoI RTS şeması (M35 kalanı); ROADMAP §1.25-1.28'in M36/M37/M38/M13
-  "sonraki dilim" borçları (sınır-ötesi TransferAssessment, AI literacy bağı,
-  ExternalOrganization/Professional sicili, vb — ROADMAP'te tek tek listeli).
-  Nihai talimat v3.3 §8.0'ın BEŞ dikeyi + M17/M18'in TÜM sonraki-dilim borcu +
-  M35'in vendor-portal maddesi bitti — kurucudan yeni belge gelene kadar bu
-  borç listesinden mantıklı bir sonraki madde seçilerek devam edilebilir
-  (v3.2 tamamlandığında izlenen desenin aynısı), ya da kurucudan yeni yön
-  beklenir.
+  oturumsuz rota). **37 Tez Dikey A da BİTTİ (§1.56)** — tedarikçi kendi
+  anket sorularını YANITLIYOR: token sertleştirmesi (yalnız hash saklanır),
+  TASLAK→GONDERILDI→(kurum incelemesi)→DEGISIKLIK_ISTENDI→[yeni revizyon]→
+  KABUL_EDILDI/REDDEDILDI/SURESI_DOLDU durum makinesi, RLS'te kilitli "kurum
+  tedarikçi adına cevap üretemez" invariant'ı (GONDERILDI olmayan revizyona
+  UPDATE erişimi hiç yok), çift-submit idempotent, süre-dolumu cron. Her
+  dilim: kendi migration + RLS/guard testleri + canlı guard smoke + UI +
+  gerçek Chromium e2e + commit + push + deploy health doğrulaması ile teslim
+  edildi.
+- **Sıradaki (Gap Map'in kendi sırası, bu oturumda YAPILMADI):** Dikey B (M35
+  resmi DORA RoI — RESMİ AB şeması bulunup kaydedilmeden KAYNAK BEKLİYOR
+  kalır, uydurulmaz), Dikey C (KOS-7 Model Claim Guard — M37 eval'ı genişletir,
+  yeni paralel motor kurulmaz), Dikey D (KOS-6 açıklama/adalet/itiraz — DIŞ
+  KARAR: SFIX/S-SFIX bağımsız replikasyon + lisans ADR'si olmadan
+  başlanmaz), Dikey E (KOS-5 AI Assurance kalanı: Governance Board + AI
+  sözleşme bağı), Dikey F (KOS-1 source-to-proof impact-review), Dikey G
+  (KOS-2 çok-hoplu dayanıklılık zinciri — 29 alt kategori hâlâ KAYNAK
+  BEKLİYOR), Dikey H (KOS-8 kalanı), Dikey I (KOS-9, YOK), Dikey J (KOS-10,
+  YOK, Dikey C'ye bağımlı), Dikey K (KOS-11, DIŞ KARAR + kapı, en son).
+  Tam ayrıntı: `docs/GAP_MAP_37_TEZ.md`. Bunun yanında hâlâ açık: tezin 29 alt
+  kategorisi + kaynak künyesi (Dikey 5/G kesişimi); ROADMAP §1.25-1.28'in
+  M36/M37/M38/M13 "sonraki dilim" borçları (sınır-ötesi TransferAssessment,
+  ExternalOrganization/Professional sicili, vb). Kurucudan yeni belge
+  gelene kadar bu iki listeden (Gap Map + eski backlog) mantıklı bir sonraki
+  madde seçilerek devam edilebilir.
 - **§8.0 ana dikeyi TAM (ilk kapsam madde 1-2):** kontrol testi koşusu
   (`test_runs`, otomatik, Proof Room'a bağlı) + DSAR kanıt paketi (senkrondan
   asenkrona geçirildi). Genel mekanizma (`ledger_outbox`+`artifact_ledger_links`
