@@ -823,6 +823,25 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.34 M36 sonraki dilim — DSAR karşılanma kanıt paketi (G3 defterine bağlı) ✅ (19 Temmuz)
+
+Migration `20260719090000` — `dsar_fulfillment_packages` (append-only). Bir DSAR
+`TAMAMLANDI`'ya geçtiğinde, NE açıklandığını (kategori etiketleri) ve NE ZAMAN
+karşılandığını mühürleyen kanonik manifest ES256 ile imzalanıp **G3 şeffaflık
+defterine** (`kind: DSAR_FULFILLMENT`) yazılır; paket DSAR'a + defter kaydına
+bağlanır. **Mevcut DSAR tablosu/guard'ı DEĞİŞMEDİ — eklemeli kabiliyet.** Guard'lar
+(canlı smoke 5/5): paket yalnız TAMAMLANDI DSAR için (karşılanmamış talebe kanıt
+YOK), UPDATE reddi (append-only), tenant tutarlılığı (DSAR+defter kaydı aynı
+kiracı), bir DSAR için tek paket (unique). **VERİ MİNİMİZASYONU:** manifest yalnız
+kategori ETİKETLERİ + veri sahibinin sha256 hash'ini taşır — açıklanan verinin
+KENDİSİ pakete girmez (kural: ham PII saklanmaz). Saf katman `gizlilik.ts`
+(`dsarManifestKur`/`dsarManifestHash`/`dsarPaketiDogrula` — imza G3'ten yeniden
+kullanılır). Rota `POST|GET /api/gizlilik/dsar/[id]/kanit-paketi` (session+RLS),
+`/gizlilik` UI'da mühürle+indir, **bağımsız `scripts/verify-dsar-paketi.ts`**
+(DB'siz; e2e ayrı process VERIFIED/kurcalı-FAILED). Testler: gizlilik-paket 4 +
+rls-dsar-fulfillment-package 6 (birim) + `gizlilik-kanit-paketi.spec.ts` e2e +
+smoke 5/5. Sonraki dilim: DSAR paketine kapsama makbuzu (STH) otomatik ekleme.
+
 ### 1.33 Gate G3 sonraki dilim — append-only tutarlılık doğrulaması ✅ (19 Temmuz)
 
 İki ağaç başı (STH) arası **tutarlılık kanıtı**: eski STH'nin ağacı yeni STH'nin

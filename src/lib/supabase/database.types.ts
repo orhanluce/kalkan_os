@@ -1446,6 +1446,67 @@ export type Database = {
           },
         ]
       }
+      dsar_fulfillment_packages: {
+        Row: {
+          aciklanan_kategoriler: string[]
+          dsar_id: string
+          id: string
+          leaf_index: number
+          ledger_entry_id: string
+          manifest: Json
+          manifest_hash: string
+          olusturuldu_at: string
+          signed_statement: Json
+          tenant_id: string
+        }
+        Insert: {
+          aciklanan_kategoriler?: string[]
+          dsar_id: string
+          id?: string
+          leaf_index: number
+          ledger_entry_id: string
+          manifest: Json
+          manifest_hash: string
+          olusturuldu_at?: string
+          signed_statement: Json
+          tenant_id: string
+        }
+        Update: {
+          aciklanan_kategoriler?: string[]
+          dsar_id?: string
+          id?: string
+          leaf_index?: number
+          ledger_entry_id?: string
+          manifest?: Json
+          manifest_hash?: string
+          olusturuldu_at?: string
+          signed_statement?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dsar_fulfillment_packages_dsar_id_fkey"
+            columns: ["dsar_id"]
+            isOneToOne: true
+            referencedRelation: "data_subject_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dsar_fulfillment_packages_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "transparency_ledger_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dsar_fulfillment_packages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evidence_reviews: {
         Row: {
           created_at: string

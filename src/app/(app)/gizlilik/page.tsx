@@ -51,6 +51,8 @@ export default function GizlilikPage() {
   const [ropalar, setRopalar] = useState<Ropa[]>([]);
   const [dsarlar, setDsarlar] = useState<Dsar[]>([]);
   const [ihlaller, setIhlaller] = useState<Ihlal[]>([]);
+  const [paketler, setPaketler] = useState<Record<string, { leafIndex: number }>>({});
+  const [kat, setKat] = useState<Record<string, string>>({});
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -84,14 +86,18 @@ export default function GizlilikPage() {
       const { data: p } = await db.from("profiles").select("tenant_id").eq("id", user.id).maybeSingle();
       setTenantId(p?.tenant_id ?? null);
     }
-    const [{ data: rs }, { data: ds }, { data: is }] = await Promise.all([
+    const [{ data: rs }, { data: ds }, { data: is }, { data: ps }] = await Promise.all([
       db.from("processing_activities").select("id, ad, amac, hukuki_dayanak, durum").order("ad"),
       db.from("data_subject_requests").select("id, tur, veri_sahibi_maskeli, kimlik_dogrulandi, durum, alindi_at, yasal_sure_gun").order("alindi_at", { ascending: false }),
       db.from("privacy_incidents").select("id, ozet, tespit_at, siniflandirma, otorite_bildirildi_at, durum").order("tespit_at", { ascending: false }),
+      db.from("dsar_fulfillment_packages").select("dsar_id, leaf_index"),
     ]);
     setRopalar((rs ?? []) as Ropa[]);
     setDsarlar((ds ?? []) as Dsar[]);
     setIhlaller((is ?? []) as Ihlal[]);
+    setPaketler(
+      Object.fromEntries(((ps ?? []) as { dsar_id: string; leaf_index: number }[]).map((p) => [p.dsar_id, { leafIndex: Number(p.leaf_index) }])),
+    );
   }, []);
 
   useEffect(() => {
@@ -154,6 +160,26 @@ export default function GizlilikPage() {
       await yukle();
     },
     [yukle],
+  );
+
+  const paketMuhurle = useCallback(
+    async (dsarId: string) => {
+      setHata(null);
+      const kategoriler = (kat[dsarId] ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const r = await fetch(`/api/gizlilik/dsar/${dsarId}/kanit-paketi`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ aciklananKategoriler: kategoriler }),
+      });
+      const j = (await r.json().catch(() => ({}))) as { hata?: string };
+      if (!r.ok) return setHata(j.hata ?? "Kanıt paketi mühürlenemedi.");
+      setKat((m) => ({ ...m, [dsarId]: "" }));
+      await yukle();
+    },
+    [kat, yukle],
   );
 
   const ihlalEkle = useCallback(async () => {
@@ -324,6 +350,28 @@ export default function GizlilikPage() {
                               <Button size="sm" onClick={() => void dsarGuncelle(d.id, { durum: "TAMAMLANDI" })}>
                                 Tamamla
                               </Button>
+                            ) : null}
+                            {d.durum === "TAMAMLANDI" && paketler[d.id] ? (
+                              <span className="flex items-center gap-1">
+                                <StatusBadge durum="success">Kanıt paketi ✓ (yaprak #{paketler[d.id].leafIndex})</StatusBadge>
+                                <a href={`/api/gizlilik/dsar/${d.id}/kanit-paketi`} download={`dsar-paketi-${d.id}.json`} className="text-xs underline underline-offset-2">
+                                  İndir
+                                </a>
+                              </span>
+                            ) : null}
+                            {d.durum === "TAMAMLANDI" && !paketler[d.id] ? (
+                              <span className="flex items-center gap-1">
+                                <Input
+                                  value={kat[d.id] ?? ""}
+                                  onChange={(e) => setKat((m) => ({ ...m, [d.id]: e.target.value }))}
+                                  placeholder="kategoriler (virgülle)"
+                                  className="h-8 w-48 text-xs"
+                                  aria-label={`${d.id} açıklanan kategoriler`}
+                                />
+                                <Button size="sm" variant="outline" onClick={() => void paketMuhurle(d.id)}>
+                                  Kanıt Paketi Mühürle
+                                </Button>
+                              </span>
                             ) : null}
                           </div>
                         </TableCell>
