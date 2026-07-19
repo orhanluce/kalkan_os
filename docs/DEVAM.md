@@ -64,9 +64,10 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (19 Temmuz — Dikey 5 + Dikey 4 kalanı + M17 sonraki dilim (3/4) BİTTİ)
-- **Remote (origin/main) HEAD:** `8eb3517` (§1.50: M17 sonraki dilim madde 3/4 —
-  formal independence bağı) + DEVAM SHA commit'i. Öncesi
+## 0c. GERÇEK DURUM (19 Temmuz — Dikey 5 + Dikey 4 kalanı + M17 §1.29 TAMAMEN KAPANDI)
+- **Remote (origin/main) HEAD:** `ec73851` (§1.51: M17 sonraki dilim madde 4/4
+  SON — WORM export → §1.29 KAPANDI) + DEVAM SHA commit'i.
+  Öncesi `8eb3517` (§1.50: madde 3/4 — formal independence bağı),
   `8618a64` (§1.49: madde 2/4 — PBC/request), `b73f51d`
   (§1.48: M17 sonraki dilim madde 1/4 — workpaper→bulgu/kontrol bağı),
   `c3320aa`/`4200c75` (§1.47: Dikey 4 kalanı — segment drift + insan override +
@@ -80,16 +81,17 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı: 1054 birim (104 dosya) + 58 e2e, 0 skip; build exit 0.**
-  (Bu oturumda tam takım BEŞ kez uçtan uca yeşil koşuldu — `tema.spec` dahil
+- **Test tabanı: 1067 birim (106 dosya) + 58 e2e, 0 skip; build exit 0.**
+  (Bu oturumda tam takım ALTI kez uçtan uca yeşil koşuldu — `tema.spec` dahil
   hiçbir izole-flake tekrarlamadı. Yol boyunca iki gerçek e2e çakışması
-  yakalandı ve düzeltildi: "Model rollback" yardım metnindeki "yok" kelimesi
-  `ai-olay-eval.spec.ts`'in `getByText("yok")`'uyla, "Çıkar çatışması yok"
-  metni de checkbox etiketiyle aynı satırda İKİ kez eşleşti (strict-mode) —
-  ikisi de `.first()`/metin değişikliğiyle düzeltildi.)
-- Migration sırası son: `20260719250000_audit_independence_declarations.sql`
-  (canlıda, guard'lar gerçek Supabase'e karşı smoke ile doğrulandı — PGlite≠
-  Supabase disiplini korundu).
+  yakalandı ve düzeltildi (bkz. §1.49/§1.50 notları). AYRICA: `.next` dizini
+  bir noktada bozuldu (`pnpm check`/`pnpm build` tsc'de anlamsız hata verdi —
+  kod DEĞİL, dev sunucusunun eşzamanlı yazdığı stale bir type-validator
+  dosyası); `rm -rf .next` ile temizlenip yeniden koşuldu, temiz geçti — kayıt
+  için: bu sınıf hata görülürse önce `.next`'i temizle.)
+- Migration sırası son: `20260719260000_audit_worm_exports.sql` (canlıda,
+  guard'lar gerçek Supabase'e karşı smoke ile doğrulandı — PGlite≠Supabase
+  disiplini korundu).
 - **E2E LEDGER TEMİZLİK KURALI (kayıt için):** kontrol testleri artık auto-anchor
   ediyor → `artifact_ledger_links` entries'e ON DELETE RESTRICT'li. Ledger'a
   dokunan HER e2e spec temizliğinde links+outbox ÖNCE silinmeli (yoksa toplu
@@ -138,13 +140,25 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   ile beyan) regresyonsuz — `rls-regulatory-engagement.test.ts` değişmeden
   geçti. UI `/denetim/[id]`'ye "Bağımsızlık Beyanları" kartı eklendi. Testler:
   rls-audit-independence 6 + mevcut `denetim.spec.ts` genişletildi (aynı
-  testte beyan ekleme adımı) + canlı guard smoke. **§1.29'un KALAN TEK maddesi
-  bilinçli BEKLİYOR:** WORM export.
+  testte beyan ekleme adımı) + canlı guard smoke.
+- **M17 sonraki dilim madde 4/4 SON BİTTİ — §1.29 TAMAMEN KAPANDI**
+  (ROADMAP §1.51): WORM export — `audit_worm_exports`, `simulation_result_
+  manifests`'in (M9) mühür deseninin AYNISI: INSERT/UPDATE/DELETE authenticated/
+  anon'dan revoke, immutable trigger service_role dahil reddeder. Saf motor
+  `src/lib/audit-worm-export.ts` (citation-bundle.ts deseni): denetim işinin
+  tam anlık görüntüsü → RFC 8785 TEK `paketHash`. Rota `POST /api/denetim/
+  [id]/worm-export` session client'la okur, service_role ile mühürler.
+  BAĞIMSIZ CLI `scripts/verify-audit-worm.ts` (DB'siz, VERIFIED/FAILED çıkış
+  0/1). UI `/denetim/[id]`'ye "WORM Export" kartı. Canlı uçtan uca doğrulandı:
+  tarayıcıda mühürle → gerçek paketi çek → ayrı process'te CLI VERIFIED verdi.
+  Testler: audit-worm-export 6 saf + rls-audit-worm-export 7 + mevcut
+  `denetim.spec.ts` genişletildi (mühürle→CLI VERIFIED→kurcalanmış paket
+  CLI'da FAILED→DB mühür donukluk reddi) + canlı guard smoke.
+  **M17'nin (§1.29) DÖRT maddesi de TAMAMLANDI.**
 - **Sıradaki (bilinçli sonraki dilim, bu oturumda YAPILMADI):** tezin 29 alt
-  kategorisi + kaynak künyesi/tez sayfa referansı (Dikey 5 kalanı); M17'nin
-  son maddesi (WORM export, yukarıda); ROADMAP §1.24-1.30'un diğer "sonraki
-  dilim" borçları (M35/M36/M38/M13). Nihai talimat v3.3 §8.0'ın BEŞ dikeyi
-  BİTTİ —
+  kategorisi + kaynak künyesi/tez sayfa referansı (Dikey 5 kalanı); ROADMAP
+  §1.24-1.30'un diğer "sonraki dilim" borçları (M13/M35/M36/M38). Nihai
+  talimat v3.3 §8.0'ın BEŞ dikeyi + M17'nin TÜM sonraki-dilim borcu bitti —
   kurucudan yeni belge gelene kadar bu borç listesinden mantıklı bir sonraki
   madde seçilerek devam edilebilir (v3.2 tamamlandığında izlenen desenin
   aynısı), ya da kurucudan yeni yön beklenir.
