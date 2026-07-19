@@ -41,17 +41,37 @@ offline verifier zincirine taşınmış). **BU DİKEY BİTTİ** (commit `7c548e6
 aşağıda). §8.0 sonu, bu dikeyden SONRAKİ öncelik sırasını da veriyor (aşağıda
 "Sonraki" altında).
 
-## 0c. GERÇEK DURUM (19 Temmuz, en son ölçüm — NİHAİ v3.2 §8.0 TAMAMEN BİTTİ)
-- **Remote (origin/main) HEAD:** `b6283bc` (M38 regülatör toplantı kaydı,
-  nihai v3.2 §8.0 sonu öncelik #4 — SON madde). Öncesi `65767b7` (öncelik #3:
-  M35 anket şablonu), `2e5efea` (öncelik #2: AI eval soyağacı), `4007aad`
-  (öncelik #1: AI olay bildirim saati), `7c548e6` (transactional outbox →
-  SCITT defteri, §8.0 ana dikey), `88df93e` (M37 AI olay/eval), `be073f3` (M35
-  değerlendirme), `2a40eca` (M36 DSAR paketi), `94e4748` (G3 tutarlılık),
-  `ed62f49` (G3 SCITT), `64d9a35` (G8/M40). Push edilmemiş commit YOK.
+## 0a4. NİHAİ TALİMAT v3.3 (19 Temmuz, "CLAUDE_CODE_KALKAN_OS_NIHAI_TEK_TALIMAT.md")
+Kurucu sürüm 3.3'ü yükledi ("bu talimatlara göre devam et") — **tek bağlayıcı
+talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulgularının
+ürünleştirilmesi). Milestone numaraları değişmedi; KALKAN_OS tek başına çalışır
+(başka proje/simülasyon motoruna çalışma-zamanı bağımlılığı YOK). Sıra:
+1. **G3 ledger kapsamını tamamlama** (M35 sign-off/kritik kapanış, M37 olay
+   kapanış/eval karar, M40 board attestation) — **BİTTİ** (`5df9176`, §1.42).
+2. M12 standart test/tatbikat manifesti (immutable snapshot: amaç/kapsam/hedef/
+   senaryo sürümü/başlangıç-bitiş/beklenen-gerçek/FP-FN/log hash/hazırlayan-
+   onaylayan/bulgu-retest/manifest hash+ledger receipt). Mevcut M12'yi BÜYÜT.
+3. M35 Cloud & Critical Third-Party Assurance Pack (bulut envanteri/shared-
+   responsibility/SLA/fourth-party/veri lokasyonu/IAM-log/olay süresi/yedekleme-
+   kurtarma/imha/çıkış/DDoS) — şablon içeriği uydurulmaz, kaynak+VERIFIED taşır.
+4. M37 AI veri/model güvence genişlemesi (eğitim-eval kaynak/lisans/izin/sürüm/
+   hash, sentetik oran, poisoning, label-noise, drift, segment sonuç, override,
+   rollback, ISO 42001↔27001 crosswalk). Ham veri LLM'e gitmez; eşik koda gömülmez.
+5. M21/M42 dayanıklılık taksonomisi (8 üst alan, THESIS_DERIVED/TODO_DOGRULA,
+   VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
+   etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
+
+## 0c. GERÇEK DURUM (19 Temmuz — v3.3 §8.0 Dikey 1 BİTTİ; sırada Dikey 2)
+- **Remote (origin/main) HEAD:** `5df9176` (v3.3 §8.0 Dikey 1: G3 defter kapsamı
+  genişlemesi — beş yeni artefakt otomatik mühür). Öncesi `b6283bc` (M38
+  toplantı), `65767b7` (M35 anket şablonu), `2e5efea` (AI eval soyağacı),
+  `4007aad` (AI olay bildirim saati), `7c548e6` (transactional outbox → SCITT
+  defteri), `88df93e` (M37 AI olay/eval), `be073f3` (M35 değerlendirme),
+  `2a40eca` (M36 DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT),
+  `64d9a35` (G8/M40). Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı:** 962 birim (94 dosya) + 53 e2e, 0 skip; build exit 0.
-- Migration sırası son: `20260719160000_regulatory_meeting` (canlıda).
+- **Test tabanı:** 975 birim (96 dosya) + 54 e2e, 0 skip; build exit 0.
+- Migration sırası son: `20260719170000_ledger_scope_expansion` (canlıda).
 - **§8.0 ana dikeyi TAM (ilk kapsam madde 1-2):** kontrol testi koşusu
   (`test_runs`, otomatik, Proof Room'a bağlı) + DSAR kanıt paketi (senkrondan
   asenkrona geçirildi). Genel mekanizma (`ledger_outbox`+`artifact_ledger_links`
