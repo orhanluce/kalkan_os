@@ -41,16 +41,17 @@ offline verifier zincirine taşınmış). **BU DİKEY BİTTİ** (commit `7c548e6
 aşağıda). §8.0 sonu, bu dikeyden SONRAKİ öncelik sırasını da veriyor (aşağıda
 "Sonraki" altında).
 
-## 0c. GERÇEK DURUM (19 Temmuz, en son ölçüm — nihai v3.2 §8.0 + öncelik #1-2 TAM)
-- **Remote (origin/main) HEAD:** `2e5efea` (AI eval veri-soyağacı, nihai v3.2
-  §8.0 sonu öncelik #2). Öncesi `4007aad` (öncelik #1: AI olay bildirim saati),
-  `7c548e6` (transactional outbox → SCITT defteri, §8.0 ana dikey), `88df93e`
-  (M37 AI olay/eval), `be073f3` (M35 değerlendirme), `2a40eca` (M36 DSAR
-  paketi), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
-  Push edilmemiş commit YOK.
+## 0c. GERÇEK DURUM (19 Temmuz, en son ölçüm — nihai v3.2 §8.0 + öncelik #1-3 TAM)
+- **Remote (origin/main) HEAD:** `65767b7` (M35 doğrulanmış anket şablonu,
+  nihai v3.2 §8.0 sonu öncelik #3). Öncesi `2e5efea` (öncelik #2: AI eval
+  soyağacı), `4007aad` (öncelik #1: AI olay bildirim saati), `7c548e6`
+  (transactional outbox → SCITT defteri, §8.0 ana dikey), `88df93e` (M37 AI
+  olay/eval), `be073f3` (M35 değerlendirme), `2a40eca` (M36 DSAR paketi),
+  `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40). Push
+  edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı:** 955 birim (92 dosya) + 52 e2e, 0 skip; build exit 0.
-- Migration sırası son: `20260719140000_ai_data_lineage` (canlıda).
+- **Test tabanı:** 959 birim (93 dosya) + 53 e2e, 0 skip; build exit 0.
+- Migration sırası son: `20260719150000_tpr_questionnaire_template` (canlıda).
 - **§8.0 ana dikeyi TAM (ilk kapsam madde 1-2):** kontrol testi koşusu
   (`test_runs`, otomatik, Proof Room'a bağlı) + DSAR kanıt paketi (senkrondan
   asenkrona geçirildi). Genel mekanizma (`ledger_outbox`+`artifact_ledger_links`
@@ -63,8 +64,11 @@ aşağıda). §8.0 sonu, bu dikeyden SONRAKİ öncelik sırasını da veriyor (a
 - **§8.0 sonu öncelik #2 TAM:** AI eval veri-soyağacı (`ai_data_lineage`,
   ROADMAP §1.39) — hangi veri kümesi/model sürümüne karşı ölçüldüğü izlenir;
   ham veri girmez (kural 22), içerik uydurulmaz (kural 3).
-- **Sonraki (nihai v3.2 §8.0 sonu sırası, kalan):** (3) M35 doğrulanmış anket
-  şablonu; (4) M38 regülatör toplantı kaydı.
+- **§8.0 sonu öncelik #3 TAM:** M35 doğrulanmış anket şablonu
+  (`assessment_question_templates`, ROADMAP §1.40) — bir kez yazılır, her
+  değerlendirmede kopyalanır; şablon değişse geçmiş kopya etkilenmez.
+- **Sonraki (nihai v3.2 §8.0 sonu sırası, kalan):** (4) M38 regülatör toplantı
+  kaydı.
 - **GATE G8 TAM** (M13+M17+M18+M40). **GATE G3 dış-karardan bağımsız kısım TAM**
   (SCITT şeffaflık defteri + TSA adaptör arayüzü; connector pilot yığını + nitelikli
   TSA sağlayıcı OPEN_DECISION #7 bekliyor — UYDURULMADI).
