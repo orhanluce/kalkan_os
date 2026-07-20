@@ -893,6 +893,129 @@ export type Database = {
           },
         ]
       }
+      assessment_finding_compensating_controls: {
+        Row: {
+          assessment_finding_id: string
+          control_id: string
+          created_at: string
+          durum: string
+          gerekce: string
+          id: string
+          onceki_id: string | null
+          red_gerekcesi: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          submitted_by: string | null
+          tenant_id: string
+          test_run_id: string
+          updated_at: string
+          valid_from: string
+          valid_until: string
+        }
+        Insert: {
+          assessment_finding_id: string
+          control_id: string
+          created_at?: string
+          durum?: string
+          gerekce: string
+          id?: string
+          onceki_id?: string | null
+          red_gerekcesi?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          submitted_by?: string | null
+          tenant_id: string
+          test_run_id: string
+          updated_at?: string
+          valid_from?: string
+          valid_until: string
+        }
+        Update: {
+          assessment_finding_id?: string
+          control_id?: string
+          created_at?: string
+          durum?: string
+          gerekce?: string
+          id?: string
+          onceki_id?: string | null
+          red_gerekcesi?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          submitted_by?: string | null
+          tenant_id?: string
+          test_run_id?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_finding_compensating_cont_assessment_finding_id_fkey"
+            columns: ["assessment_finding_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_findings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_finding_compensating_controls_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_finding_compensating_controls_onceki_id_fkey"
+            columns: ["onceki_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_finding_compensating_controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_finding_compensating_controls_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_finding_compensating_controls_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_finding_compensating_controls_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_finding_compensating_controls_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_finding_compensating_controls_test_run_id_fkey"
+            columns: ["test_run_id"]
+            isOneToOne: false
+            referencedRelation: "test_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessment_findings: {
         Row: {
           aciklama: string | null
@@ -8515,6 +8638,10 @@ export type Database = {
       artifact_ledger_durumu: {
         Args: { p_artifact_id: string; p_artifact_table: string }
         Returns: string
+      }
+      assessment_finding_cc_suresi_dolanlari_isle: {
+        Args: never
+        Returns: number
       }
       assurance_claims_yeniden_inceleme_isle: {
         Args: never

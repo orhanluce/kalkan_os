@@ -13,6 +13,8 @@ import {
   type KategoriKodu,
   type KaynakTuru,
   type SablonDogrulamaDurumu,
+  type TelafiEdiciKontrolDurumu,
+  type TelafiEdiciKontrolOzeti,
 } from "@/lib/cloud-assurance";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
@@ -60,6 +62,35 @@ async function girdiVeContractIdCozumle(
       .neq("durum", "KAPANDI"),
   ]);
 
+  // Dikey E2, Kapı 2: açık KRİTİK bulgulara bağlı telafi edici kontroller —
+  // motor `asOf` itibarıyla kendisi hesaplar (DB'nin dondurulmuş durum
+  // etiketine kör güvenmez), burada yalnız ham malzeme toplanır.
+  const bulguIdleri = (acikKritikBulgular ?? []).map((f) => f.id);
+  const { data: telafiKayitlari } = bulguIdleri.length > 0
+    ? await db
+        .from("assessment_finding_compensating_controls")
+        .select(
+          "id, assessment_finding_id, durum, valid_from, valid_until, controls (madde_ref), test_runs (sonuc, evidences (gecerlilik_bitis))",
+        )
+        .in("assessment_finding_id", bulguIdleri)
+    : { data: [] as never[] };
+
+  const bugun = new Date().toISOString().slice(0, 10);
+  const telafiEdiciKontroller: TelafiEdiciKontrolOzeti[] = (telafiKayitlari ?? []).map((t) => {
+    const testRun = t.test_runs as unknown as { sonuc: string; evidences: { gecerlilik_bitis: string | null } | null } | null;
+    const kanitBitis = testRun?.evidences?.gecerlilik_bitis ?? null;
+    return {
+      id: t.id,
+      assessmentFindingId: t.assessment_finding_id,
+      durum: t.durum as TelafiEdiciKontrolDurumu,
+      testSonucu: (testRun?.sonuc as TelafiEdiciKontrolOzeti["testSonucu"]) ?? "UNKNOWN",
+      kanitGuncel: kanitBitis === null || kanitBitis >= bugun,
+      validFrom: t.valid_from,
+      validUntil: t.valid_until,
+      controlMaddeRef: (t.controls as unknown as { madde_ref: string } | null)?.madde_ref ?? null,
+    };
+  });
+
   const sorular: GuvenceSorusuGirdisi[] = (questions ?? []).map((q) => {
     const sablon = q.assessment_question_templates as unknown as { kategori: string | null; dogrulama_durumu: string } | null;
     return {
@@ -78,6 +109,7 @@ async function girdiVeContractIdCozumle(
     contractId,
     sorular,
     acikKritikBulgular: (acikKritikBulgular ?? []).map((f) => ({ id: f.id, baslik: f.baslik })),
+    telafiEdiciKontroller,
   };
 
   return { girdi, contractId };

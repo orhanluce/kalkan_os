@@ -47,7 +47,8 @@ export type KenarTuru =
   | "KONTROL_TEST"
   | "TEST_BULGU"
   | "TEST_KANIT"
-  | "UCUNCU_TARAF_TEDARIKCI_BULGUSU";
+  | "UCUNCU_TARAF_TEDARIKCI_BULGUSU"
+  | "TEDARIKCI_BULGUSU_TELAFI_KONTROLU";
 
 export interface EtkiGrafKenari {
   kaynakId: string;
@@ -96,7 +97,19 @@ export interface EtkiGrafGirdisi {
    * filtrelemesi BURADA VARSAYILMAZ: çağıran hangi durumları dahil edeceğine
    * karar verir (ör. yalnız açık KRİTİK) — motor sessizce filtrelemez.
    */
-  tedarikciBulgulari?: { id: string; thirdPartyId: string; baslik: string }[];
+  /**
+   * `telafiEdiciKontrolId` (Dikey E2, Kapı 2, ADR §12): GEÇERLİ+AKTİF bir
+   * telafi edici kontrolün bağlı olduğu `controlId` — YENİ bir düğüm türü
+   * AÇILMADI, mevcut `KONTROL` düğümü kullanılır (kural: zaten var olan
+   * KONTROL_TEST/TEST_KANIT kenarları bu kontrolün test/kanıt zincirini
+   * OTOMATİK taşır, tekrar üretilmez). Çağıran, o `controlId`'yi `kontroller`
+   * dizisine de EKLEMİŞ olmalı — aksi halde kenar var olmayan bir düğüme
+   * işaret eder (kural 11, motor node listesini kendiliğinden genişletmez).
+   * Açık/kapalı VEYA aktif/süresi-dolmuş filtrelemesi BURADA VARSAYILMAZ —
+   * çağıran hangi telafiyi "geçerli" sayacağına karar verir (cloud-
+   * assurance.ts'nin `telafiAktifMi`'siyle AYNI ilke, motor tekrarlamaz).
+   */
+  tedarikciBulgulari?: { id: string; thirdPartyId: string; baslik: string; telafiEdiciKontrolId?: string }[];
 }
 
 /**
@@ -176,6 +189,14 @@ export function etkiGrafiProjekteEt(girdi: EtkiGrafGirdisi): EtkiGrafi {
   for (const b of girdi.tedarikciBulgulari ?? []) {
     dugumler.push({ id: dugumId("TEDARIKCI_BULGUSU", b.id), tur: "TEDARIKCI_BULGUSU", etiket: b.baslik, bilinmiyor: false });
     kenarEkle(dugumId("UCUNCU_TARAF", b.thirdPartyId), dugumId("TEDARIKCI_BULGUSU", b.id), "UCUNCU_TARAF_TEDARIKCI_BULGUSU", "assessment_findings");
+    if (b.telafiEdiciKontrolId) {
+      kenarEkle(
+        dugumId("TEDARIKCI_BULGUSU", b.id),
+        dugumId("KONTROL", b.telafiEdiciKontrolId),
+        "TEDARIKCI_BULGUSU_TELAFI_KONTROLU",
+        "assessment_finding_compensating_controls",
+      );
+    }
   }
 
   dugumler.sort((a, b) => a.id.localeCompare(b.id));

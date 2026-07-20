@@ -169,6 +169,50 @@ describe("etkiGrafiProjekteEt", () => {
     const sonuc = etkiYayilimi(["KRITIK_HIZMET:h1"], graf, "ileri");
     expect(sonuc.etkilenenler.map((e) => e.dugumId)).toContain("TEDARIKCI_BULGUSU:f1");
   });
+
+  it("telafiEdiciKontrolId atlanırsa (undefined) mevcut sonuçlar BİREBİR AYNI kalır (Dikey E2, geriye dönük uyumluluk)", () => {
+    const ortak = {
+      ucuncuTaraflar: [{ id: "t1", ad: "Bulut A.Ş." }],
+      tedarikciBulgulari: [{ id: "f1", thirdPartyId: "t1", baslik: "Şifreleme eksik" }],
+    };
+    const eski = etkiGrafiProjekteEt(bosGirdi(ortak));
+    const yeni = etkiGrafiProjekteEt(bosGirdi({ ...ortak, tedarikciBulgulari: [{ ...ortak.tedarikciBulgulari[0], telafiEdiciKontrolId: undefined }] }));
+    expect(yeni).toEqual(eski);
+  });
+
+  it("telafiEdiciKontrolId verilince TEDARIKCI_BULGUSU'ndan mevcut KONTROL düğümüne kenar üretir — YENİ düğüm türü AÇILMAZ", () => {
+    const graf = etkiGrafiProjekteEt(
+      bosGirdi({
+        ucuncuTaraflar: [{ id: "t1", ad: "Bulut A.Ş." }],
+        kontroller: [{ id: "c1", maddeRef: "M.1" }],
+        tedarikciBulgulari: [{ id: "f1", thirdPartyId: "t1", baslik: "Şifreleme eksik", telafiEdiciKontrolId: "c1" }],
+      }),
+    );
+    expect(graf.kenarlar).toContainEqual({
+      kaynakId: "TEDARIKCI_BULGUSU:f1",
+      hedefId: "KONTROL:c1",
+      tur: "TEDARIKCI_BULGUSU_TELAFI_KONTROLU",
+      kaynaklar: ["assessment_finding_compensating_controls"],
+    });
+  });
+
+  it("telafi kontrolüne bağlanan kontrolün MEVCUT test/kanıt zinciri tekrar üretilmeden yayılıma dahil olur", () => {
+    const graf = etkiGrafiProjekteEt(
+      bosGirdi({
+        ucuncuTaraflar: [{ id: "t1", ad: "Bulut A.Ş." }],
+        kontroller: [{ id: "c1", maddeRef: "M.1" }],
+        testler: [{ id: "test1", controlId: "c1", ad: "Test 1" }],
+        kanitlar: [{ id: "e1", hashSha256: "a".repeat(64) }],
+        testKanit: [{ testDefinitionId: "test1", evidenceId: "e1" }],
+        tedarikciBulgulari: [{ id: "f1", thirdPartyId: "t1", baslik: "Şifreleme eksik", telafiEdiciKontrolId: "c1" }],
+      }),
+    );
+    const sonuc = etkiYayilimi(["TEDARIKCI_BULGUSU:f1"], graf, "ileri");
+    const idler = sonuc.etkilenenler.map((e) => e.dugumId);
+    expect(idler).toContain("KONTROL:c1");
+    expect(idler).toContain("TEST:test1");
+    expect(idler).toContain("KANIT:e1");
+  });
 });
 
 describe("tekNoktaTespitiTamGraf", () => {
