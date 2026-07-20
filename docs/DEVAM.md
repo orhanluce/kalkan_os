@@ -64,7 +64,25 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (20 Temmuz — Dikey B Faz 3 ilk dilim TAMAM (export motoru) + iki paralel oturum başarıyla birleşti)
+## 0c. GERÇEK DURUM (20 Temmuz — Dikey B Faz 3 TAMAMEN BİTTİ, uçtan uca çalışır)
+- **20 Temmuz ALTINCI talimatı: Dikey B Faz 3'ün KALANI TAMAM (§1.63) —
+  DORA RoI export motoru artık UÇTAN UCA çalışır durumda** (veri modeli →
+  export üretimi → maker-checker onay → CSV/XLSX indirme → Proof Room
+  paylaşımı). Gerçek HTTP (`page.request`) + gerçek UI tıklama + gerçek
+  Supabase e2e (`e2e/dora-roi-export.spec.ts`). **Bu turda İKİ gerçek hata
+  bulundu ve düzeltildi:** (1) oturumsuz-erişim testi yanlış katmanı
+  hedefliyordu (proxy.ts 307'ye düşürüyor, rota kodu hiç çalışmıyor —
+  savunma zaten var, test düzeltildi); (2) **`proof_room_goruntule` RPC'sini
+  genişletirken önceki bir forward-fix'in (`ledgerDurumu` alanı,
+  20260719120000) İLK sürümü temel alınarak FARKINDA OLMADAN geri alınması**
+  — TAM e2e takımı koşusu (63 spec) bunu yakaladı (`proof-room.spec.ts`,
+  bu dikeyle ilgisiz mevcut bir test kırıldı), forward-fix `20260720160000`
+  ile düzeltildi. **Ders: bir fonksiyonu CREATE OR REPLACE ederken TÜM
+  dokunan migration'ları grep'lemek şart** — bugünün asıl dersiyle (dört-göz
+  INSERT-bypass) aynı kategoride farklı bir hata sınıfı.
+  CSV/XLSX serileştirme YENİ BAĞIMLILIK EKLEMEDEN yapıldı (jszip zaten
+  vardı, minimal OOXML elle yazıldı). **TAM e2e takımı (63 spec) sıfır
+  flake ile geçti — bu koşu iki hatayı da yakalayan koşuydu.**
 - **20 Temmuz DÖRDÜNCÜ talimatı: Dikey B Faz 3 ilk dilim TAMAM (§1.62) — DORA
   RoI Export Motoru.** Saf motor (`src/lib/roi-export.ts`) + `roi_export_runs`
   (sealed snapshot + maker-checker yayın onayı + export-öncesi-engelleme) +
@@ -135,17 +153,18 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DİLİMİ (§1.58 — `tenant_legal_identity` + `roi_kaynak_kayitlari`, İÇERİK
   SEED'İ YOK) BİTTİ.
 - **BİR SONRAKİ OTURUM ÖNCE `docs/GAP_MAP_37_TEZ.md` + `docs/adr/PR0-37-tez-
-  dikeyB-faz3-export-2026-07-20.md` OKUMALI** — kurucunun 20 Temmuz talimatı
-  Dikey B export'u BİTENE KADAR tek öncelik ilan etti. **Faz 1+2 TAMAMEN
-  BİTTİ. Faz 3'ün İLK DİLİMİ de BİTTİ (§1.62): saf motor + roi_export_runs
-  (sealed+maker-checker) + Proof Room şema genişletmesi + iki API rotası,
-  UI YOK.** Sıradaki adım Faz 3'ün kalanı: UI (`/dora-roi` veya benzeri —
-  taslak listesi, on-kontrol raporu görünümü, onay talebi/karar akışı),
-  `/api/proof-room` rotasının roi_export_run_id'yi kabul etmesi, CSV/XLSX
-  serileştirme (founder kararı gerekebilir — yeni bağımlılık), ardından Faz 4
-  (kanıt zinciri) + Faz 5 (kurumsal arayüz) — kurucunun kendi talimatı gereği
-  küçük dilimlere bölünmeli.
-- **Remote (origin/main) HEAD:** `7d46d7f` (§1.62: Dikey B Faz 3
+  dikeyB-faz3-kalan-2026-07-20.md` OKUMALI** — kurucunun 20 Temmuz talimatı
+  Dikey B export'u BİTENE KADAR tek öncelik ilan etti. **Faz 1-3 TAMAMEN
+  BİTTİ (§1.60-§1.63): DORA RoI export motoru uçtan uca çalışır** — veri
+  modeli → export üretimi → maker-checker onay → CSV/XLSX indirme → Proof
+  Room paylaşımı, hepsi gerçek HTTP+UI+e2e ile doğrulandı. Sıradaki adım
+  kurucu kararını bekliyor: Faz 4 (kanıt zinciri — export alanlarının
+  `assurance_claims`/`obligations`'a tam bağlanması) ya da Gap Map'teki
+  bağımsız bir sıradaki dikey (D/E/F/G/H).
+- **Remote (origin/main) HEAD:** `f5a15da` (§1.63: Dikey B
+  Faz 3 kalan dilimi — gerçek HTTP+UI+e2e, CSV/XLSX serileştirme, Proof Room
+  kablolaması, `proof_room_goruntule` ledgerDurumu forward-fix) + DEVAM SHA
+  commit'i. Öncesi `7d46d7f` (§1.62: Dikey B Faz 3
   ilk dilim — DORA RoI export motoru, roi_export_runs maker-checker+seal,
   Proof Room şema genişletmesi) + DEVAM SHA commit'i. Öncesi `89c6c5d`/
   `dd8596d` (PARALEL OTURUM: sod_import_rollbacklari INSERT-bypass forward-
@@ -183,8 +202,10 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı: 1251 birim (118 dosya, +2 yeni + paralel oturumun SoD
-  eklemeleri) + 62 e2e (değişmedi — §1.62'de UI yok), 0 skip; build exit 0.**
+- **Test tabanı: 1264 birim (119 dosya) + 63 e2e (+1 yeni), 0 skip; build
+  exit 0. TAM e2e takımı (63 spec) sıfır flake koştu.** (§1.63: +13 PGlite/
+  saf birim — 10 `roi-export-serialize.test.ts` + 3 `rls-proof-room.test.ts`
+  roi_export dalı. Tam takım koşuldu, sıfır regresyon.)
   (§1.62: +30 PGlite/saf birim — 15 `roi-export.test.ts` (saf motor) + 15
   `rls-roi-export-runs.test.ts` (INSERT-bypass regresyonu + maker-checker +
   export-öncesi-engelleme + Proof Room polimorfik hedef). Tam takım koşuldu,
