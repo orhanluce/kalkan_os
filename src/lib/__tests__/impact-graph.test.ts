@@ -128,6 +128,47 @@ describe("etkiGrafiProjekteEt", () => {
       ].sort(),
     );
   });
+
+  it("tedarikciBulgulari atlanırsa (undefined) mevcut sonuçlar BİREBİR AYNI kalır (geriye dönük uyumluluk, Dikey E)", () => {
+    const girdiOrtak = {
+      kritikHizmetler: [{ id: "h1", ad: "Ödeme" }],
+      ucuncuTaraflar: [{ id: "t1", ad: "Bulut A.Ş." }],
+      kritikHizmetUcuncuTaraf: [{ kritikHizmetId: "h1", thirdPartyId: "t1", kaynak: "SOZLESME_ESLEME" as const }],
+    };
+    const grafEski = etkiGrafiProjekteEt(bosGirdi(girdiOrtak));
+    const grafYeni = etkiGrafiProjekteEt(bosGirdi({ ...girdiOrtak, tedarikciBulgulari: undefined }));
+    expect(grafYeni).toEqual(grafEski);
+  });
+
+  it("tedarikciBulgulari verilince UCUNCU_TARAF'tan AYRI bir TEDARIKCI_BULGUSU düğümüne kenar üretir — M12'nin BULGU türüyle karışmaz", () => {
+    const graf = etkiGrafiProjekteEt(
+      bosGirdi({
+        ucuncuTaraflar: [{ id: "t1", ad: "Bulut A.Ş." }],
+        tedarikciBulgulari: [{ id: "f1", thirdPartyId: "t1", baslik: "Şifreleme eksik" }],
+      }),
+    );
+    const dugum = graf.dugumler.find((d) => d.id === "TEDARIKCI_BULGUSU:f1")!;
+    expect(dugum).toEqual({ id: "TEDARIKCI_BULGUSU:f1", tur: "TEDARIKCI_BULGUSU", etiket: "Şifreleme eksik", bilinmiyor: false });
+    expect(graf.kenarlar).toContainEqual({
+      kaynakId: "UCUNCU_TARAF:t1",
+      hedefId: "TEDARIKCI_BULGUSU:f1",
+      tur: "UCUNCU_TARAF_TEDARIKCI_BULGUSU",
+      kaynaklar: ["assessment_findings"],
+    });
+  });
+
+  it("tedarikçi bulgusu düğümü etki yayılımına (etkiYayilimi) katılır", () => {
+    const graf = etkiGrafiProjekteEt(
+      bosGirdi({
+        kritikHizmetler: [{ id: "h1", ad: "Ödeme" }],
+        ucuncuTaraflar: [{ id: "t1", ad: "Bulut A.Ş." }],
+        kritikHizmetUcuncuTaraf: [{ kritikHizmetId: "h1", thirdPartyId: "t1", kaynak: "SOZLESME_ESLEME" as const }],
+        tedarikciBulgulari: [{ id: "f1", thirdPartyId: "t1", baslik: "Şifreleme eksik" }],
+      }),
+    );
+    const sonuc = etkiYayilimi(["KRITIK_HIZMET:h1"], graf, "ileri");
+    expect(sonuc.etkilenenler.map((e) => e.dugumId)).toContain("TEDARIKCI_BULGUSU:f1");
+  });
 });
 
 describe("tekNoktaTespitiTamGraf", () => {

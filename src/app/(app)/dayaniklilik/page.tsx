@@ -41,6 +41,7 @@ const DUGUM_TUR_ETIKET: Record<DugumTuru, string> = {
   TEST: "Test",
   BULGU: "Bulgu",
   KANIT: "Kanıt",
+  TEDARIKCI_BULGUSU: "Tedarikçi bulgusu",
 };
 
 interface AnlikGoruntuSonucu {

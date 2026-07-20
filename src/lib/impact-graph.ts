@@ -26,7 +26,8 @@ export type DugumTuru =
   | "MEVZUAT"
   | "TEST"
   | "BULGU"
-  | "KANIT";
+  | "KANIT"
+  | "TEDARIKCI_BULGUSU";
 
 export interface EtkiGrafDugumu {
   id: string; // `${tur}:${kaynakId}` — tur-öneki tüm düğüm türlerinde çakışmayı yapısal olarak engeller.
@@ -45,7 +46,8 @@ export type KenarTuru =
   | "MEVZUAT_KONTROL"
   | "KONTROL_TEST"
   | "TEST_BULGU"
-  | "TEST_KANIT";
+  | "TEST_KANIT"
+  | "UCUNCU_TARAF_TEDARIKCI_BULGUSU";
 
 export interface EtkiGrafKenari {
   kaynakId: string;
@@ -85,6 +87,16 @@ export interface EtkiGrafGirdisi {
   mevzuatKontrol: { obligationId: string; controlId: string }[];
   /** Test tanımı başına EN GÜNCEL koşunun evidence_id'si (çağıran seçer — kural 11, motor "en güncel"i tanımlamaz). */
   testKanit: { testDefinitionId: string; evidenceId: string }[];
+  /**
+   * Dikey E, E1 (ADR §1 madde 4): tedarikçi değerlendirme bulguları (assessment_
+   * findings). OPSİYONEL — atlanırsa (undefined) mevcut tüm graf sonuçları
+   * BİREBİR AYNI kalır (geriye dönük uyumluluk, kural 11 regresyon garantisi).
+   * AYRI bir düğüm türü (`TEDARIKCI_BULGUSU`) — M12'nin control-test `BULGU`
+   * türüyle KARIŞTIRILMAZ (iki farklı köken, iki farklı anlam). Açık/kapalı
+   * filtrelemesi BURADA VARSAYILMAZ: çağıran hangi durumları dahil edeceğine
+   * karar verir (ör. yalnız açık KRİTİK) — motor sessizce filtrelemez.
+   */
+  tedarikciBulgulari?: { id: string; thirdPartyId: string; baslik: string }[];
 }
 
 /**
@@ -160,6 +172,10 @@ export function etkiGrafiProjekteEt(girdi: EtkiGrafGirdisi): EtkiGrafi {
   }
   for (const e of girdi.testKanit) {
     kenarEkle(dugumId("TEST", e.testDefinitionId), dugumId("KANIT", e.evidenceId), "TEST_KANIT", "test_runs");
+  }
+  for (const b of girdi.tedarikciBulgulari ?? []) {
+    dugumler.push({ id: dugumId("TEDARIKCI_BULGUSU", b.id), tur: "TEDARIKCI_BULGUSU", etiket: b.baslik, bilinmiyor: false });
+    kenarEkle(dugumId("UCUNCU_TARAF", b.thirdPartyId), dugumId("TEDARIKCI_BULGUSU", b.id), "UCUNCU_TARAF_TEDARIKCI_BULGUSU", "assessment_findings");
   }
 
   dugumler.sort((a, b) => a.id.localeCompare(b.id));

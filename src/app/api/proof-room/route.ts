@@ -21,6 +21,7 @@ export async function POST(req: Request) {
     testRunId?: string;
     roiExportRunId?: string;
     graphSnapshotId?: string;
+    cloudAssuranceProfileId?: string;
     linkId?: string;
     gecerlilikGun?: number;
   };
@@ -41,15 +42,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ iptal: true });
   }
 
-  if (!govde.testRunId && !govde.roiExportRunId && !govde.graphSnapshotId) {
-    return NextResponse.json({ hata: "testRunId, roiExportRunId veya graphSnapshotId zorunlu." }, { status: 400 });
+  if (!govde.testRunId && !govde.roiExportRunId && !govde.graphSnapshotId && !govde.cloudAssuranceProfileId) {
+    return NextResponse.json({ hata: "testRunId, roiExportRunId, graphSnapshotId veya cloudAssuranceProfileId zorunlu." }, { status: 400 });
   }
 
   const gun = Math.min(Math.max(govde.gecerlilikGun ?? 7, 1), 90);
   const sonGecerlilik = new Date(Date.now() + gun * 24 * 60 * 60 * 1000).toISOString();
 
   let tenantId: string;
-  const govdeYaz: { tenant_id: string; olusturan: string; son_gecerlilik: string; test_run_id?: string; roi_export_run_id?: string; graph_snapshot_id?: string } = {
+  const govdeYaz: {
+    tenant_id: string;
+    olusturan: string;
+    son_gecerlilik: string;
+    test_run_id?: string;
+    roi_export_run_id?: string;
+    graph_snapshot_id?: string;
+    cloud_assurance_profile_id?: string;
+  } = {
     tenant_id: "",
     olusturan: user.id,
     son_gecerlilik: sonGecerlilik,
@@ -72,14 +81,22 @@ export async function POST(req: Request) {
     }
     tenantId = exportKaydi.tenant_id;
     govdeYaz.roi_export_run_id = exportKaydi.id;
-  } else {
+  } else if (govde.graphSnapshotId) {
     // RLS: başka kiracının anlık görüntüsü burada zaten görünmez.
-    const { data: snapshot } = await db.from("impact_graph_snapshots").select("id, tenant_id").eq("id", govde.graphSnapshotId!).maybeSingle();
+    const { data: snapshot } = await db.from("impact_graph_snapshots").select("id, tenant_id").eq("id", govde.graphSnapshotId).maybeSingle();
     if (!snapshot) {
       return NextResponse.json({ hata: "Anlık görüntü bulunamadı." }, { status: 404 });
     }
     tenantId = snapshot.tenant_id;
     govdeYaz.graph_snapshot_id = snapshot.id;
+  } else {
+    // RLS: başka kiracının güvence profili burada zaten görünmez.
+    const { data: profil } = await db.from("cloud_assurance_profile_snapshots").select("id, tenant_id").eq("id", govde.cloudAssuranceProfileId!).maybeSingle();
+    if (!profil) {
+      return NextResponse.json({ hata: "Güvence profili bulunamadı." }, { status: 404 });
+    }
+    tenantId = profil.tenant_id;
+    govdeYaz.cloud_assurance_profile_id = profil.id;
   }
   govdeYaz.tenant_id = tenantId;
 

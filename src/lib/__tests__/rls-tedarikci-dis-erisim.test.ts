@@ -72,10 +72,14 @@ describe("tedarikci_goruntule (M35 sonraki dilim: vendor-portal dış erişim)",
       `insert into public.third_party_assessments (tenant_id, third_party_id) values ($1, $2) returning id`,
       [seed.A.tenantId, tpId],
     );
+    // Bağımsız kapanış invaryantı (Dikey E): sahibi ≠ kapatan.
+    const sahip = "a0000000-0000-0000-0000-000000000030";
+    await db.sql(`insert into auth.users (id, email) values ($1, 'sahip3@demo.com')`, [sahip]);
+    await db.sql(`insert into public.profiles (id, tenant_id, role, full_name) values ($1, $2, 'uyum', 'Sahip')`, [sahip, seed.A.tenantId]);
     await db.sql(
-      `insert into public.assessment_findings (tenant_id, assessment_id, third_party_id, baslik, durum, kapanis_kanit, kapatan, kapanis_zamani)
-       values ($1, $2, $3, 'Kapanmış bulgu', 'KAPANDI', 'kanit', $4, now())`,
-      [seed.A.tenantId, a[0].id, tpId, seed.A.userId],
+      `insert into public.assessment_findings (tenant_id, assessment_id, third_party_id, baslik, durum, sahibi, kapanis_kanit, kapatan, kapanis_zamani)
+       values ($1, $2, $3, 'Kapanmış bulgu', 'KAPANDI', $4, 'kanit', $5, now())`,
+      [seed.A.tenantId, a[0].id, tpId, sahip, seed.A.userId],
     );
     const token = await grant(seed.A.tenantId, tpId, YARIN);
     const sonuc = await goruntule(token);

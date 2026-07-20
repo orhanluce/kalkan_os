@@ -6,6 +6,7 @@ import { createTestDb, seedTwoTenants, type TestDb } from "./helpers/pg";
 let db: TestDb;
 let seed: Awaited<ReturnType<typeof seedTwoTenants>>;
 const A_MISAFIR = "a0000000-0000-0000-0000-000000000009";
+const A_SAHIP = "a0000000-0000-0000-0000-000000000010";
 
 async function tedarikci(tenantId: string, ad: string) {
   const { rows } = await db.sql(
@@ -21,10 +22,10 @@ async function degerlendirme(tenantId: string, tpId: string) {
   );
   return rows[0].id as string;
 }
-async function bulgu(tenantId: string, aId: string, tpId: string, ciddiyet: string) {
+async function bulgu(tenantId: string, aId: string, tpId: string, ciddiyet: string, sahibi: string | null = null) {
   const { rows } = await db.sql(
-    `insert into public.assessment_findings (tenant_id, assessment_id, third_party_id, baslik, ciddiyet) values ($1, $2, $3, 'B', $4) returning id`,
-    [tenantId, aId, tpId, ciddiyet],
+    `insert into public.assessment_findings (tenant_id, assessment_id, third_party_id, baslik, ciddiyet, sahibi) values ($1, $2, $3, 'B', $4, $5) returning id`,
+    [tenantId, aId, tpId, ciddiyet, sahibi],
   );
   return rows[0].id as string;
 }
@@ -36,6 +37,11 @@ beforeEach(async () => {
   await db.sql(
     `insert into public.profiles (id, tenant_id, role, full_name) values ($1, $2, 'denetci_misafir', 'Misafir')`,
     [A_MISAFIR, seed.A.tenantId],
+  );
+  await db.sql(`insert into auth.users (id, email) values ($1, 'sahip@demo.com')`, [A_SAHIP]);
+  await db.sql(
+    `insert into public.profiles (id, tenant_id, role, full_name) values ($1, $2, 'uyum', 'Bulgu Sahibi')`,
+    [A_SAHIP, seed.A.tenantId],
   );
 });
 afterEach(async () => {
@@ -60,12 +66,12 @@ describe("tedarikçi değerlendirme/bulgu — RLS + guard (M35 sonraki dilim)", 
   it("bulgu kapanışı kanıt + kapatan + zaman ister (kural 14)", async () => {
     const tp = await tedarikci(seed.A.tenantId, "V");
     const a = await degerlendirme(seed.A.tenantId, tp);
-    const f = await bulgu(seed.A.tenantId, a, tp, "YUKSEK");
+    const f = await bulgu(seed.A.tenantId, a, tp, "YUKSEK", A_SAHIP);
     // Kanıtsız kapatma reddi.
     await expect(
       db.sql(`update public.assessment_findings set durum = 'KAPANDI' where id = $1`, [f]),
     ).rejects.toThrow(/kanit/);
-    // Kanıt + kapatan + zaman ile kapanır.
+    // Kanıt + kapatan + zaman ile kapanır (kapatan ≠ sahibi — bağımsız kapanış, Dikey E).
     await db.sql(
       `update public.assessment_findings set durum = 'KAPANDI', kapanis_kanit = 'düzeltildi', kapatan = $2, kapanis_zamani = now() where id = $1`,
       [f, seed.A.userId],
@@ -89,11 +95,11 @@ describe("tedarikçi değerlendirme/bulgu — RLS + guard (M35 sonraki dilim)", 
       db.sql(`update public.third_party_assessments set durum = 'TAMAMLANDI' where id = $1`, [a]),
     ).rejects.toThrow(/degerlendiren/);
     // Açık KRİTİK bulgu → reddedilir.
-    const f = await bulgu(seed.A.tenantId, a, tp, "KRITIK");
+    const f = await bulgu(seed.A.tenantId, a, tp, "KRITIK", A_SAHIP);
     await expect(
       db.sql(`update public.third_party_assessments set durum = 'TAMAMLANDI', degerlendiren = $2 where id = $1`, [a, seed.A.userId]),
     ).rejects.toThrow(/KRITIK/);
-    // Kritik bulgu kapanınca tamamlanır (tamamlandi_at otomatik).
+    // Kritik bulgu kapanınca tamamlanır (tamamlandi_at otomatik; kapatan ≠ sahibi).
     await db.sql(
       `update public.assessment_findings set durum = 'KAPANDI', kapanis_kanit = 'x', kapatan = $2, kapanis_zamani = now() where id = $1`,
       [f, seed.A.userId],

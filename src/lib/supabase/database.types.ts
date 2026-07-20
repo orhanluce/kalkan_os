@@ -994,6 +994,7 @@ export type Database = {
           kategori: string | null
           kaynak_citation: string | null
           kaynak_surumu: string | null
+          kaynak_turu: string
           sira: number
           soru: string
           tenant_id: string
@@ -1009,6 +1010,7 @@ export type Database = {
           kategori?: string | null
           kaynak_citation?: string | null
           kaynak_surumu?: string | null
+          kaynak_turu?: string
           sira?: number
           soru: string
           tenant_id: string
@@ -1024,6 +1026,7 @@ export type Database = {
           kategori?: string | null
           kaynak_citation?: string | null
           kaynak_surumu?: string | null
+          kaynak_turu?: string
           sira?: number
           soru?: string
           tenant_id?: string
@@ -1053,9 +1056,11 @@ export type Database = {
           created_at: string
           id: string
           kaynak_citation: string | null
+          kaynak_turu: string
           risk_seviyesi: string | null
           sira: number
           soru: string
+          template_id: string | null
           tenant_id: string
           uygulanabilirlik: string
         }
@@ -1065,9 +1070,11 @@ export type Database = {
           created_at?: string
           id?: string
           kaynak_citation?: string | null
+          kaynak_turu?: string
           risk_seviyesi?: string | null
           sira?: number
           soru: string
+          template_id?: string | null
           tenant_id: string
           uygulanabilirlik?: string
         }
@@ -1077,9 +1084,11 @@ export type Database = {
           created_at?: string
           id?: string
           kaynak_citation?: string | null
+          kaynak_turu?: string
           risk_seviyesi?: string | null
           sira?: number
           soru?: string
+          template_id?: string | null
           tenant_id?: string
           uygulanabilirlik?: string
         }
@@ -1089,6 +1098,13 @@ export type Database = {
             columns: ["assessment_id"]
             isOneToOne: false
             referencedRelation: "third_party_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_questions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_question_templates"
             referencedColumns: ["id"]
           },
           {
@@ -2121,6 +2137,81 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cloud_assurance_profile_snapshots: {
+        Row: {
+          created_at: string
+          hesaplama_yontemi: Json
+          id: string
+          iliskili_roi_export_run_id: string | null
+          olusturan: string | null
+          profil: Json
+          profil_hash: string
+          tenant_id: string
+          third_party_contract_id: string | null
+          third_party_id: string
+        }
+        Insert: {
+          created_at?: string
+          hesaplama_yontemi: Json
+          id?: string
+          iliskili_roi_export_run_id?: string | null
+          olusturan?: string | null
+          profil: Json
+          profil_hash: string
+          tenant_id: string
+          third_party_contract_id?: string | null
+          third_party_id: string
+        }
+        Update: {
+          created_at?: string
+          hesaplama_yontemi?: Json
+          id?: string
+          iliskili_roi_export_run_id?: string | null
+          olusturan?: string | null
+          profil?: Json
+          profil_hash?: string
+          tenant_id?: string
+          third_party_contract_id?: string | null
+          third_party_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_assurance_profile_snapsho_iliskili_roi_export_run_id_fkey"
+            columns: ["iliskili_roi_export_run_id"]
+            isOneToOne: false
+            referencedRelation: "roi_export_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloud_assurance_profile_snapshots_olusturan_fkey"
+            columns: ["olusturan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloud_assurance_profile_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloud_assurance_profile_snapshots_third_party_contract_id_fkey"
+            columns: ["third_party_contract_id"]
+            isOneToOne: false
+            referencedRelation: "third_party_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cloud_assurance_profile_snapshots_third_party_id_fkey"
+            columns: ["third_party_id"]
+            isOneToOne: false
+            referencedRelation: "third_parties"
             referencedColumns: ["id"]
           },
         ]
@@ -4721,6 +4812,7 @@ export type Database = {
       }
       proof_room_links: {
         Row: {
+          cloud_assurance_profile_id: string | null
           created_at: string
           graph_snapshot_id: string | null
           id: string
@@ -4733,6 +4825,7 @@ export type Database = {
           token: string
         }
         Insert: {
+          cloud_assurance_profile_id?: string | null
           created_at?: string
           graph_snapshot_id?: string | null
           id?: string
@@ -4745,6 +4838,7 @@ export type Database = {
           token?: string
         }
         Update: {
+          cloud_assurance_profile_id?: string | null
           created_at?: string
           graph_snapshot_id?: string | null
           id?: string
@@ -4757,6 +4851,13 @@ export type Database = {
           token?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "proof_room_links_cloud_assurance_profile_id_fkey"
+            columns: ["cloud_assurance_profile_id"]
+            isOneToOne: false
+            referencedRelation: "cloud_assurance_profile_snapshots"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "proof_room_links_graph_snapshot_id_fkey"
             columns: ["graph_snapshot_id"]

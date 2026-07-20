@@ -17,6 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { roiSablonCsvYap, roiSablonXlsxYap, ROI_EXPORT_UYARI_METNI } from "@/lib/roi-export-serialize";
 import type { RoiSablonPaketi } from "@/lib/roi-export";
 import type { EtkiGrafi, TekNoktaTespitSonucu, EtkiYayilimSonucu, DugumTuru } from "@/lib/impact-graph";
+import { KAYNAK_TURU_TR_ETIKET, type CloudAssuranceHesaplamaYontemi, type GuvenceProfiliSonucu, type KaynakTuru } from "@/lib/cloud-assurance";
 
 // Proof Room — OTURUMSUZ denetçi/regülatör görünümü (G1; nihai §8).
 //
@@ -94,6 +95,15 @@ interface ProofVerisi {
     iliskiliRoiExportId: string | null;
     olusturulmaZamani: string;
   };
+  /** Dikey E, E1: bulut/tedarikçi güvence profili anlık görüntüsü — diğer üç dalla AYRIK. */
+  cloudAssuranceProfile?: {
+    id: string;
+    profil: GuvenceProfiliSonucu;
+    profilHash: string;
+    hesaplamaYontemi: CloudAssuranceHesaplamaYontemi;
+    iliskiliRoiExportId: string | null;
+    olusturulmaZamani: string;
+  };
 }
 
 /** proof_room_ledger_malzeme RPC'sinin ham dönüşü — yalnız ANCHORED iken leaves/signedStatement/sth dolu. */
@@ -164,6 +174,36 @@ const DUGUM_TUR_ETIKET: Record<DugumTuru, string> = {
   TEST: "Test",
   BULGU: "Bulgu",
   KANIT: "Kanıt",
+  TEDARIKCI_BULGUSU: "Tedarikçi bulgusu",
+};
+
+// Dikey E1: 11 bulut alanı — tedarikciler/page.tsx'teki BULUT_KATEGORI ile
+// AYNI etiketler (route grubu ayrı, küçük etiket haritası kasıtlı yinelenir —
+// DUGUM_TUR_ETIKET'in bu sayfada zaten kurulu deseni).
+const BULUT_KATEGORI: Record<string, string> = {
+  BULUT_ENVANTERI: "Bulut envanteri",
+  SHARED_RESPONSIBILITY: "Shared responsibility",
+  SLA_GUVENLIK: "SLA / güvenlik",
+  DORDUNCU_TARAF: "Dördüncü taraf",
+  VERI_LOKASYON: "Veri lokasyonu",
+  IAM_LOG: "IAM / merkezi log",
+  OLAY_BILDIRIM: "Olay bildirim süresi",
+  YEDEKLEME_KURTARMA: "Yedekleme / kurtarma",
+  VERI_IMHA: "Güvenli imha",
+  CIKIS_PLANI: "Çıkış / ikame",
+  DDOS_KAPASITE: "DDoS / kapasite",
+};
+const GENEL_GUVENCE_DURUM_ETIKET: Record<string, { etiket: string; semantik: SemantikDurum }> = {
+  DOGRULANMIS_PROFIL: { etiket: "Doğrulanmış profil", semantik: "success" },
+  INCELEME_GEREKLI: { etiket: "İnceleme gerekli", semantik: "warning" },
+  EKSIK: { etiket: "Eksik — henüz değerlendirilemiyor", semantik: "unknown" },
+  ENGELLENDI: { etiket: "Kritik bulgu nedeniyle engellendi", semantik: "danger" },
+};
+const KATEGORI_DURUM_SEMANTIK: Record<string, SemantikDurum> = {
+  DOGRULANMIS: "success",
+  UYGULANMAZ: "neutral",
+  INCELEME_GEREKLI: "warning",
+  CEVAPSIZ: "unknown",
 };
 
 const PROVENANCE_ETIKET: Record<string, string> = {
@@ -318,6 +358,115 @@ export default function ProofRoomPage() {
       <main className="mx-auto max-w-4xl p-6">
         <h1 className="text-xl font-semibold">Proof Room</h1>
         <p className="mt-2 text-sm text-muted-foreground">Link geçersiz veya süresi dolmuş.</p>
+      </main>
+    );
+  }
+
+  if (veri.cloudAssuranceProfile) {
+    const { cloudAssuranceProfile } = veri;
+    const { profil } = cloudAssuranceProfile;
+    const durumEtiket = GENEL_GUVENCE_DURUM_ETIKET[profil.genelDurum] ?? { etiket: profil.genelDurum, semantik: "unknown" as SemantikDurum };
+    return (
+      <main className="mx-auto flex max-w-4xl flex-col gap-6 p-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Proof Room — {veri.kurumAdi}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Bulut / tedarikçi güvence profili anlık görüntüsü. Erişim süresi: {new Date(veri.sonGecerlilik).toLocaleString("tr-TR")} · Bu
+            görüntüleme denetim izine kaydedildi.
+          </p>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Profil özeti</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            <p role="note" className="text-xs text-muted-foreground">
+              Bu bir kesin uyum kararı değildir — mevcut yanıtların ve açık kritik bulguların yapısal
+              bir dökümüdür. Mühürlendiği andan sonra bu görünüm asla değişmez; güncel durum için yeni
+              bir anlık görüntü gerekir.
+            </p>
+            <StatusBadge durum={durumEtiket.semantik}>{durumEtiket.etiket}</StatusBadge>
+            <p>Oluşturulma zamanı: {new Date(cloudAssuranceProfile.olusturulmaZamani).toLocaleString("tr-TR")}</p>
+            <p className="text-xs text-muted-foreground" title={cloudAssuranceProfile.profilHash}>
+              Profil hash&apos;i (SHA-256): {cloudAssuranceProfile.profilHash}
+            </p>
+            {cloudAssuranceProfile.iliskiliRoiExportId ? (
+              <p className="text-xs text-muted-foreground">İlişkili DORA RoI export: {cloudAssuranceProfile.iliskiliRoiExportId}</p>
+            ) : null}
+            {profil.acikKritikBulgular.length > 0 ? (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Açık KRİTİK bulgu(lar):</p>
+                <ul className="list-inside list-disc text-xs">
+                  {profil.acikKritikBulgular.map((b) => (
+                    <li key={b.id}>{b.baslik}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Kategori durumları ({profil.kategoriler.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {profil.kategoriler.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Bu profilde hiç Cloud Pack kategorisi yok.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {profil.kategoriler.map((k) => (
+                  <StatusBadge key={k.kategori} durum={KATEGORI_DURUM_SEMANTIK[k.durum] ?? "unknown"}>
+                    {BULUT_KATEGORI[k.kategori] ?? k.kategori}: {k.durum}
+                  </StatusBadge>
+                ))}
+              </div>
+            )}
+            {profil.kategorisizSoruSayisi > 0 ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {profil.kategorisizSoruSayisi} soru şablon bağlantısı olmadığı için kategorisiz — kaybolmadı, yalnız
+                bir kategoriye uydurulmadı.
+              </p>
+            ) : null}
+            <p className="mt-2 text-xs text-muted-foreground">
+              Genel kaynak türü dağılımı:{" "}
+              {Object.entries(profil.kaynakTuruDagilimi)
+                .map(([k, n]) => `${KAYNAK_TURU_TR_ETIKET[k as KaynakTuru] ?? k} (${n})`)
+                .join(", ") || "—"}
+            </p>
+          </CardContent>
+        </Card>
+
+        {profil.engelGerekceleri.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Engel/uyarı gerekçeleri ({profil.engelGerekceleri.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-inside list-disc text-sm">
+                {profil.engelGerekceleri.map((e, i) => (
+                  <li key={i}>
+                    {e.kategori ? `${BULUT_KATEGORI[e.kategori] ?? e.kategori} — ` : ""}
+                    {e.aciklama}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Hesaplama yöntemi</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-xs text-muted-foreground">
+            <p>Şema: {cloudAssuranceProfile.hesaplamaYontemi.sema}</p>
+            <p>{cloudAssuranceProfile.hesaplamaYontemi.worstOfKurali}</p>
+            <p>{cloudAssuranceProfile.hesaplamaYontemi.acikBulguKurali}</p>
+            <p>{cloudAssuranceProfile.hesaplamaYontemi.kaynakTuruYaklasimi}</p>
+            <p>{cloudAssuranceProfile.hesaplamaYontemi.bagimsizDogrulamaYaklasimi}</p>
+          </CardContent>
+        </Card>
       </main>
     );
   }

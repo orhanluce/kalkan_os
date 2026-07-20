@@ -8,9 +8,13 @@ import { createTestDb, seedTwoTenants, type TestDb } from "./helpers/pg";
 let db: TestDb;
 let seed: Awaited<ReturnType<typeof seedTwoTenants>>;
 
+const A_SAHIP = "a0000000-0000-0000-0000-000000000040";
+
 beforeEach(async () => {
   db = await createTestDb();
   seed = await seedTwoTenants(db);
+  await db.sql(`insert into auth.users (id, email) values ($1, 'sahip4@demo.com')`, [A_SAHIP]);
+  await db.sql(`insert into public.profiles (id, tenant_id, role, full_name) values ($1, $2, 'uyum', 'Sahip')`, [A_SAHIP, seed.A.tenantId]);
 });
 afterEach(async () => {
   await db.close();
@@ -48,8 +52,8 @@ describe("G3 defter kapsamı genişlemesi — beş yeni artefakt türü (§8.0 D
     const tp = await db.sql(`insert into public.third_parties (tenant_id, ad) values ($1, 'V') returning id`, [seed.A.tenantId]);
     const a = await db.sql(`insert into public.third_party_assessments (tenant_id, third_party_id, tur) values ($1, $2, 'DORA') returning id`, [seed.A.tenantId, tp.rows[0].id]);
     const fYuksek = await db.sql(
-      `insert into public.assessment_findings (tenant_id, assessment_id, third_party_id, baslik, ciddiyet) values ($1, $2, $3, 'B', 'YUKSEK') returning id`,
-      [seed.A.tenantId, a.rows[0].id as string, tp.rows[0].id as string],
+      `insert into public.assessment_findings (tenant_id, assessment_id, third_party_id, baslik, ciddiyet, sahibi) values ($1, $2, $3, 'B', 'YUKSEK', $4) returning id`,
+      [seed.A.tenantId, a.rows[0].id as string, tp.rows[0].id as string, A_SAHIP],
     );
     await db.sql(
       `update public.assessment_findings set durum = 'KAPANDI', kapanis_kanit = 'x', kapatan = $2, kapanis_zamani = now() where id = $1`,
@@ -58,8 +62,8 @@ describe("G3 defter kapsamı genişlemesi — beş yeni artefakt türü (§8.0 D
     expect(await outboxSayisi("assessment_findings", fYuksek.rows[0].id)).toBe(0); // YÜKSEK, KRİTİK değil
 
     const fKritik = await db.sql(
-      `insert into public.assessment_findings (tenant_id, assessment_id, third_party_id, baslik, ciddiyet) values ($1, $2, $3, 'B', 'KRITIK') returning id`,
-      [seed.A.tenantId, a.rows[0].id as string, tp.rows[0].id as string],
+      `insert into public.assessment_findings (tenant_id, assessment_id, third_party_id, baslik, ciddiyet, sahibi) values ($1, $2, $3, 'B', 'KRITIK', $4) returning id`,
+      [seed.A.tenantId, a.rows[0].id as string, tp.rows[0].id as string, A_SAHIP],
     );
     await db.sql(
       `update public.assessment_findings set durum = 'KAPANDI', kapanis_kanit = 'x', kapatan = $2, kapanis_zamani = now() where id = $1`,
