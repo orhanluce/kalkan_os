@@ -284,6 +284,22 @@ test("tatbikat puanlanınca katılımcının eşleşen eğitim ataması otomatik
     .single();
   if (!ikinciProfil) throw new Error("İkinci e2e kullanıcısı bulunamadı.");
 
+  // Bir önceki koşudan (ör. zaman aşımıyla kesilmiş bir test) kalan
+  // "_E2E_ Güvenlik Farkındalık %" adlı ATANDI bir atama varsa, /puanla
+  // rotasının training_completions toplu INSERT'i BU testin YENİ ataması ile
+  // birlikte o eski atamayı da eşleştirir; eski atamanın zaten bir tamamlama
+  // kaydı varsa `unique(assignment_id)` ihlali TÜM toplu INSERT'i 500'e
+  // düşürür (gerçek kök neden — bir UI bekleme eksikliği DEĞİL). Diğer e2e
+  // dosyalarındaki `temizle()`-önce-oluştur deseninin AYNISI.
+  const { data: eskiGereksinimler } = await db
+    .from("training_requirements")
+    .select("id")
+    .eq("tenant_id", tenant.id)
+    .like("ad", "_E2E_ Güvenlik Farkındalık%");
+  for (const g of eskiGereksinimler ?? []) {
+    await db.from("training_requirements").delete().eq("id", g.id);
+  }
+
   await db.from("scenario_templates").update({ egitim_konusu: "GUVENLIK" }).eq("id", sablon.id);
 
   const damga = Date.now();
@@ -355,7 +371,17 @@ test("tatbikat puanlanınca katılımcının eşleşen eğitim ataması otomatik
 
     await page.getByRole("button", { name: "Tamamla", exact: true }).click();
     await expect(page.getByRole("button", { name: "Puanla" })).toBeVisible({ timeout: 10_000 });
-    await page.getByRole("button", { name: "Puanla" }).click();
+    // Tamamlanmayı buton tıklamasının kendisinden veya "/100" gibi arıza
+    // durumunda da görünebilecek bir yan göstergeden değil, /puanla
+    // isteğinin GERÇEK yanıtından okuyoruz — puan `simulation_scores`'a
+    // eğitim tamamlama INSERT'inden ÖNCE yazıldığı için "/100" görünürlüğü
+    // rotanın SONRAKİ adımlarından biri (bu testte: eğitim bağı) 500 dönse
+    // bile gerçekleşebilir (bkz. yukarıdaki temizlik notu — gerçek kök neden).
+    const [puanlaYaniti] = await Promise.all([
+      page.waitForResponse((r) => r.url().includes(`/api/simulasyon/${runId}/puanla`) && r.request().method() === "POST"),
+      page.getByRole("button", { name: "Puanla" }).click(),
+    ]);
+    expect(puanlaYaniti.ok(), `Puanlama isteği başarısız: ${await puanlaYaniti.text()}`).toBe(true);
     await expect(page.getByText("/100")).toBeVisible({ timeout: 15_000 });
 
     // --- DB kanıtı: skor UYDURULMADI, mühürlenen puanla aynı satır geldi ---

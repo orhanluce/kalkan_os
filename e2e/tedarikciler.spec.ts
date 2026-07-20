@@ -191,6 +191,12 @@ test("vendor-portal anket yanıtlama: cevapla → gönder → kurum değişiklik
     // 1) Değerlendirme oluştur (TASLAK) + soru (bu ekranda manuel soru formu
     // yok — anket şablonu ayrı bir teste ait; burada tek soruyu DB'den ekliyoruz).
     await page.getByRole("button", { name: "Yeni Değerlendirme (DORA)" }).click();
+    // Butonun tıklanması, insert'in commit olduğunun kanıtı DEĞİLDİR — sonraki
+    // admin sorgusu düğmeye değil, ekranda yeni değerlendirmenin GERÇEKTEN
+    // göründüğü "TASLAK" rozetine bağlanır (dikeyE1/E2 e2e'lerinin AYNI
+    // deseni: bu, yükle()'nin veriyi tazeleyip yeniden render ettiğinin
+    // görünür kanıtıdır).
+    await expect(page.getByText("TASLAK", { exact: true })).toBeVisible({ timeout: 10_000 });
     const { data: tp } = await db.from("third_parties").select("id").eq("tenant_id", kurum!.id).eq("ad", "E2E-TP Anket").single();
     const { data: assessment } = await db
       .from("third_party_assessments")
