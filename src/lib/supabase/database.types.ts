@@ -4664,9 +4664,10 @@ export type Database = {
           id: string
           iptal_edildi: boolean
           olusturan: string | null
+          roi_export_run_id: string | null
           son_gecerlilik: string
           tenant_id: string
-          test_run_id: string
+          test_run_id: string | null
           token: string
         }
         Insert: {
@@ -4674,9 +4675,10 @@ export type Database = {
           id?: string
           iptal_edildi?: boolean
           olusturan?: string | null
+          roi_export_run_id?: string | null
           son_gecerlilik: string
           tenant_id: string
-          test_run_id: string
+          test_run_id?: string | null
           token?: string
         }
         Update: {
@@ -4684,9 +4686,10 @@ export type Database = {
           id?: string
           iptal_edildi?: boolean
           olusturan?: string | null
+          roi_export_run_id?: string | null
           son_gecerlilik?: string
           tenant_id?: string
-          test_run_id?: string
+          test_run_id?: string | null
           token?: string
         }
         Relationships: [
@@ -4695,6 +4698,13 @@ export type Database = {
             columns: ["olusturan"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proof_room_links_roi_export_run_id_fkey"
+            columns: ["roi_export_run_id"]
+            isOneToOne: false
+            referencedRelation: "roi_export_runs"
             referencedColumns: ["id"]
           },
           {
@@ -5144,6 +5154,76 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "risk_scenarios_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roi_export_runs: {
+        Row: {
+          created_at: string
+          durum: string
+          engelleyici_sorun_sayisi: number
+          format: string
+          id: string
+          on_kontrol_raporu: Json
+          onay_zamani: string | null
+          onaylayan: string | null
+          paket: Json
+          paket_hash: string
+          red_notu: string | null
+          talep_eden: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          durum?: string
+          engelleyici_sorun_sayisi?: number
+          format?: string
+          id?: string
+          on_kontrol_raporu: Json
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          paket: Json
+          paket_hash: string
+          red_notu?: string | null
+          talep_eden: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          durum?: string
+          engelleyici_sorun_sayisi?: number
+          format?: string
+          id?: string
+          on_kontrol_raporu?: Json
+          onay_zamani?: string | null
+          onaylayan?: string | null
+          paket?: Json
+          paket_hash?: string
+          red_notu?: string | null
+          talep_eden?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roi_export_runs_onaylayan_fkey"
+            columns: ["onaylayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roi_export_runs_talep_eden_fkey"
+            columns: ["talep_eden"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roi_export_runs_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

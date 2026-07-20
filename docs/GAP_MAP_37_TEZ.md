@@ -92,15 +92,14 @@ Durum sözlüğü: **TAM** (kullanıcı sonucu uçtan uca teslim + test edilmiş
 - **Eksik kullanıcı sonucu:** talimatın istediği bulut hizmet envanteri/ortak sorumluluk matrisi/IAM/merkezi log/DDoS testi bugün **serbest metin anket sorusu** olarak var (kategori etiketli), YAPILANDIRILMIŞ alan (ör. `rto_saat integer`, `ddos_test_tarihi date`) değil — bu bilinçli bir tasarım (kural 3: soru/cevap içeriği tenant girdisi, KALKAN_OS şema uydurmaz), talimat bunu yapılandırılmış istiyor ama hangi alanların "resmî" olduğu (DORA RoI şemasına bakılmadan) UYDURULAMAZ → **kısmen KAYNAK BEKLİYOR** (Dikey B'nin resmî şeması gelince yapılandırılabilir).
 - **Gerekli şema/RLS/invariant:** Dikey A (bu oturum) mevcut. Dikey B (DORA RoI) resmi şema geldiğinde yapılandırılmış alanları ekler.
 - **Önerilen dikey:** Dikey A ✅ TAMAMLANDI (§1.56) → Dikey B keşfi ✅ (§1.57) →
-  ilk migration dilimi ✅ (§1.58 — kurum kimlik+kaynak kataloğu) → §1.60 (Faz 1
-  hukuk/kaynak kilidi + Faz 2 ilk dilim `ict_service_types`, sistemik dört-göz
-  INSERT-bypass bulundu/düzeltildi) → **§1.61 (20 Temmuz): Faz 2 kalan dilimi
-  ✅** — `third_parties`/`third_party_contracts`/`fourth_parties`/`tenant_
-  legal_identity` RoI alanlarıyla genişletildi (yeni tablo ailesi YOK), açık
-  mapping tablosu (`third_party_contract_critical_services`) `third_parties.
-  tier`'ı DORA fonksiyon-kritikliğinden AYRIK tutuyor. Kurucunun 20 Temmuz
-  talimatı artık Dikey B'nin export motoruna kadar TEK ÖNCELİK — Dikey H (KOS-8
-  kalanı, bulut/3.taraf) ve diğerleri Dikey B export bitmeden YAPILMIYOR.
+  ilk migration dilimi ✅ (§1.58) → Faz 1+2-ilk-dilim ✅ (§1.60) → Faz 2-kalan
+  ✅ (§1.61, açık mapping tablosu `third_parties.tier`'ı DORA fonksiyon-
+  kritikliğinden ayrık tutuyor) → **§1.62 (20 Temmuz): Faz 3 ilk dilim — DORA
+  RoI Export Motoru ✅** — saf ön-kontrol+şablon-üretim motoru + `roi_export_
+  runs` (sealed snapshot + maker-checker yayın onayı, export-öncesi-engelleme)
+  + Proof Room şema genişletmesi. UI/rota-kablolama/CSV-XLSX sonraki dilim.
+  Kurucunun talimatı Dikey B'nin export motoru BİTENE KADAR TEK ÖNCELİK —
+  Dikey H (KOS-8 kalanı) ve diğerleri bekliyor.
 - **Kabul testi:** tedarikciler.spec.ts + tedarikci-degerlendirme.spec.ts + tedarikci-anket-sablonu.spec.ts + tedarikci-signoff-ledger.spec.ts (mevcut) + bu oturumun yeni testleri.
 
 ## KOS-9 — Harici sinyal, tehdit, fraud ve AML güvencesi

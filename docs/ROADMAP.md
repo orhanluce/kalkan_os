@@ -823,6 +823,69 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.62 37 Tez Dikey B, Faz 3 ilk dilim — DORA RoI Export Motoru ✅ (20 Temmuz)
+
+Kurucunun 20 Temmuz beşinci talimatı: export motoru, yalnız Faz 2'nin 5
+yapısını (kurum kimliği/ICT hizmet türü/third_parties/fourth_parties/
+critical_business_services) kullanarak, yeni paralel tablo/ikinci kritik
+fonksiyon modeli KURMADAN. ADR `docs/adr/PR0-37-tez-dikeyB-faz3-export-
+2026-07-20.md`.
+
+**Saf motor (`src/lib/roi-export.ts`, `legal-basis.ts` mimarisi):**
+`roiExportOnKontrol()` — blok/uyarı sorun listesi (deterministik, kural 11).
+**Bugün her ICT-hizmet-türü-bağlı sözleşme BLOK üretir** çünkü hiçbir
+`ict_service_types` satırı VERIFIED değil — bu dürüst ve istenen davranış
+(kural 3: doğrulanmamış kaynak export'a giremez). `roiSablonSatirlariUret()`
+— B_01.01/B_02.01/B_02.02/B_05.01/B_05.02/B_06.01 satırlarını yalnız VAR
+OLAN 5 yapıdan doldurur; karşılığı olmayan alanlar (RTO/RPO gibi)
+`kapsamDisiAlanlar` ile işaretlenir, UYDURULMAZ. 15 birim testi.
+
+**`roi_export_runs` (migration `20260720130000`):** sealed snapshot
+(`paket`/`paket_hash`/`on_kontrol_raporu` INSERT anında donar — RFC 8785
+`canonicalHash`, `src/lib/canonical.ts` YENİDEN KULLANILDI, ikinci hash
+şeması yok) + maker-checker yayın onayı (`talep_eden`/`onaylayan`, SoD
+import rollback ailesinin AYNI kavramı — altı-durumlu `dogrulama_durumu`
+sözlüğü BİLİNÇLİ OLARAK kullanılmadı, farklı soru). Durum makinesi: `TASLAK
+→ ONAY_TALEP_EDILDI → YAYINLANDI`/`REDDEDILDI`; `engelleyici_sorun_sayisi >
+0` iken onay talebi AÇILAMAZ (export öncesi engelleme, kurucu talimatı).
+
+**Yan bulgu, ayrı görev olarak işaretlendi (spawn_task) ve AYNI OTURUMDA
+BAŞKA BİR SESSION TARAFINDAN DÜZELTİLDİ:** bu guard'ı yazarken
+`sod_import_rollbacklari`'nın maker-checker guard'ının yalnız `before
+update` tetiklendiği, INSERT-anının HİÇ kontrol edilmediği fark edildi —
+bugünkü asıl dersle (dört-göz INSERT-bypass) AYNI SINIF bir açık. Bu ADR'nin
+KENDİ guard'ı BAŞTAN doğru yazıldı (`before insert or update`, INSERT dalı
+yalnız TASLAK'a izin verir). SoD bulgusu ayrı bir arka plan görevine
+devredildi; o görev bu oturum sürerken bağımsız olarak tamamlandı ve
+`origin/main`'e push edildi (`dd8596d`/`89c6c5d`) — iki paralel oturum
+çakışmadan birleşti.
+
+**Proof Room bağlantısı:** `proof_room_links.test_run_id` nullable yapıldı,
+`roi_export_run_id` eklendi, CHECK: tam olarak biri dolu. **Rota
+(`proof_room_goruntule` RPC'si) BU DİLİMDE GENİŞLETİLMEDİ** — şema hazır,
+kablolama sonraki dilim (ADR §4/§5, risk sınırlaması).
+
+**İki yeni API rotası** (`POST /api/dora-roi/export`, `POST /api/dora-roi/
+export/[id]/karar`) — service_role YOK, proof-room rotasının aynı disiplini
+(kullanıcının kendi RLS'i altında). **UI YOK bu dilimde** (önceki Faz 1/Faz
+2 kalan dilimleriyle aynı desen).
+
+**Doğrulama:** 15 (motor) + 15 (roi_export_runs PGlite, INSERT-bypass
+regresyonu dahil) = 30 yeni birim + canlı smoke (5 adım: INSERT-bypass reddi,
+export-öncesi-engelleme, maker-checker tek-kişi reddi + farklı-kişi kabulü,
+Proof Room linki). **API rota katmanı yalnız typecheck/lint ile doğrulandı,
+canlı HTTP çağrısıyla EGZERSİZ EDİLMEDİ** (tarayıcı aracı oturum açma
+adımında yanıt vermedi; altındaki DB katmanı ve saf motor ayrı ayrı tam
+doğrulandı, rotalar ince/service_role'süz sarmalayıcı — dürüstçe not
+edildi, sonraki dilimde UI ile birlikte e2e gelecek). **1251 birim (118+2
+dosya) + 62 e2e (değişmedi, UI yok), 0 skip; build yeşil.**
+
+**Bilinçli kapsam dışı:** CSV/XLSX serileştirme (yalnız JSON), UI,
+`/api/proof-room` rotasının roi_export_run_id'yi kabul etmesi,
+`impact_tolerances` RTO/RPO zenginleştirmesi, B_01.02/03/B_02.03/B_03.x/
+B_04.01/B_07.01/B_99.01 şablonları (kurucunun bu tur listesi yalnız 5 yapıyı
+kapsıyordu).
+
 ### 1.61 37 Tez Dikey B, Faz 2 kalan dilimi — kurum kimliği + tedarikçi/sözleşme RoI alanları + kritik-fonksiyon eşlemesi ✅ (20 Temmuz)
 
 Kurucunun 20 Temmuz ÜÇÜNCÜ talimatı: Faz 2'nin kalanı. ADR
