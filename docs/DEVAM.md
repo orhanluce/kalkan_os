@@ -191,7 +191,10 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   mühürleme + SCITT bağlama + reconciliation, hepsi gerçek HTTP+UI+e2e+canlı
   smoke ile doğrulandı. **37 Tez Dikey B TAM.** Sıradaki adım kurucu kararını
   bekliyor: Gap Map'teki bağımsız bir sıradaki dikey (D/E/F/G/H).
-- **Remote (origin/main) HEAD:** `f5a15da` (§1.63: Dikey B
+- **Remote (origin/main) HEAD:** `c0ea1c0` (§1.64: Dikey B Faz 4 — DORA RoI
+  export alanları için kanıt zinciri/provenance, SCITT bağlama, reconciliation
+  cron, Proof Room minimize projeksiyonu; **37 Tez Dikey B Faz 1-4 TAM**) +
+  DEVAM SHA commit'i. Öncesi `f5a15da` (§1.63: Dikey B
   Faz 3 kalan dilimi — gerçek HTTP+UI+e2e, CSV/XLSX serileştirme, Proof Room
   kablolaması, `proof_room_goruntule` ledgerDurumu forward-fix) + DEVAM SHA
   commit'i. Öncesi `7d46d7f` (§1.62: Dikey B Faz 3
