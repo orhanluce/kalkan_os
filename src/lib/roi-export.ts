@@ -220,6 +220,7 @@ export interface RoiSablonPaketi {
   }>;
   B_05_01: Array<{ id: string; B_05_01_0050_yasalAd: string; B_05_01_0080_merkezUlkesi: string | null }>;
   B_05_02: Array<{
+    ad: string | null;
     B_05_02_0010_sozlesmeReferansNo: string | null;
     B_05_02_0020_hizmetTuru: string | null;
     B_05_02_0050_sira: number | null;
@@ -278,6 +279,7 @@ export function roiSablonSatirlariUret(girdi: RoiExportGirdisi): RoiSablonPaketi
     B_05_02: [...girdi.altYukleniciler]
       .sort((a, b) => a.id.localeCompare(b.id))
       .map((a) => ({
+        ad: a.ad,
         B_05_02_0010_sozlesmeReferansNo: a.thirdPartyContractId ? (sozlesmeRefById.get(a.thirdPartyContractId) ?? null) : null,
         B_05_02_0020_hizmetTuru: a.ictHizmetTuruKod,
         B_05_02_0050_sira: a.sira,

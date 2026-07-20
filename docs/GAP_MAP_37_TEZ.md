@@ -93,13 +93,17 @@ Durum sözlüğü: **TAM** (kullanıcı sonucu uçtan uca teslim + test edilmiş
 - **Gerekli şema/RLS/invariant:** Dikey A (bu oturum) mevcut. Dikey B (DORA RoI) resmi şema geldiğinde yapılandırılmış alanları ekler.
 - **Önerilen dikey:** Dikey A ✅ TAMAMLANDI (§1.56) → Dikey B keşfi ✅ (§1.57) →
   ilk migration dilimi ✅ (§1.58) → Faz 1+2-ilk-dilim ✅ (§1.60) → Faz 2-kalan
-  ✅ (§1.61, açık mapping tablosu `third_parties.tier`'ı DORA fonksiyon-
-  kritikliğinden ayrık tutuyor) → **§1.62 (20 Temmuz): Faz 3 ilk dilim — DORA
-  RoI Export Motoru ✅** — saf ön-kontrol+şablon-üretim motoru + `roi_export_
-  runs` (sealed snapshot + maker-checker yayın onayı, export-öncesi-engelleme)
-  + Proof Room şema genişletmesi. UI/rota-kablolama/CSV-XLSX sonraki dilim.
-  Kurucunun talimatı Dikey B'nin export motoru BİTENE KADAR TEK ÖNCELİK —
-  Dikey H (KOS-8 kalanı) ve diğerleri bekliyor.
+  ✅ (§1.61) → Faz 3 ilk dilim ✅ (§1.62, motor+şema+API — HTTP doğrulanmamış)
+  → **§1.63 (20 Temmuz): Faz 3 kalan dilimi ✅ — gerçek HTTP+UI+e2e, CSV/XLSX
+  serileştirme (jszip ile elle yazılmış OOXML, yeni bağımlılık yok), Proof
+  Room kablolaması.** Bu turda `proof_room_goruntule` RPC'sinin bir önceki
+  forward-fix'i (`ledgerDurumu` alanı) yanlışlıkla geri alınmış, TAM e2e
+  koşusu yakalamış ve aynı turda düzeltilmiştir (§1.63 detayı). **DORA RoI
+  export motoru (Faz 1-3) artık uçtan uca çalışır durumda: veri modeli →
+  export üretimi → maker-checker onay → CSV/XLSX indirme → Proof Room
+  paylaşımı.** Kurucunun talimatı export motoru BİTENE KADAR tek öncelikti;
+  sıradaki adım kurucu kararını bekliyor (Faz 4 kanıt zinciri, ya da Dikey
+  H/D/E/F/G gibi bağımsız bir sıradaki dikey).
 - **Kabul testi:** tedarikciler.spec.ts + tedarikci-degerlendirme.spec.ts + tedarikci-anket-sablonu.spec.ts + tedarikci-signoff-ledger.spec.ts (mevcut) + bu oturumun yeni testleri.
 
 ## KOS-9 — Harici sinyal, tehdit, fraud ve AML güvencesi

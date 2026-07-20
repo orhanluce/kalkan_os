@@ -11,6 +11,7 @@ import {
   Boxes,
   ClipboardCheck,
   FileCheck2,
+  FileSpreadsheet,
   FileWarning,
   FlaskConical,
   Gavel,
@@ -67,6 +68,7 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
       { href: "/regulasyon/kaynaklar", etiket: "Kaynaklar", Ikon: Library },
       { href: "/regulasyon/dogrulama", etiket: "Doğrulama Kuyruğu", Ikon: ShieldCheck },
       { href: "/regulasyon/uygulanabilirlik", etiket: "Uygulanabilirlik", Ikon: ScrollText },
+      { href: "/dora-roi", etiket: "DORA RoI Export", Ikon: FileSpreadsheet },
     ],
   };
   return [

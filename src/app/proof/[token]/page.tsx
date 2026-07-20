@@ -14,6 +14,8 @@ import type { CanonicalDeger } from "@/lib/canonical";
 import { makbuzUret, STH_SCHEMA, type AgacBasi, type SeffaflikMakbuzu, type SignedStatement } from "@/lib/transparency";
 import type { DetachedImza } from "@/lib/manifest-signature";
 import { createClient } from "@/lib/supabase/client";
+import { roiSablonCsvYap, roiSablonXlsxYap, ROI_EXPORT_UYARI_METNI } from "@/lib/roi-export-serialize";
+import type { RoiSablonPaketi } from "@/lib/roi-export";
 
 // Proof Room — OTURUMSUZ denetçi/regülatör görünümü (G1; nihai §8).
 //
@@ -48,7 +50,7 @@ interface ProofZincirSatiri {
 interface ProofVerisi {
   kurumAdi: string;
   sonGecerlilik: string;
-  kosu: {
+  kosu?: {
     id: string;
     sonuc: string;
     gerekce: string;
@@ -57,18 +59,26 @@ interface ProofVerisi {
     kontrolMaddeRef: string;
     kontrolBaslik: string;
   };
-  legalSnapshot: { karar: string; snapshot: CanonicalDeger } | null;
-  kaynakZinciri: ProofZincirSatiri[];
-  applicability: {
+  legalSnapshot?: { karar: string; snapshot: CanonicalDeger } | null;
+  kaynakZinciri?: ProofZincirSatiri[];
+  applicability?: {
     obligationKod: string;
     durum: string;
     gerekce: string | null;
     factSnapshotFingerprint: string;
     kararKaynagi: string;
   }[];
-  kanit: { evidenceId: string; dosyaHashSha256: string | null } | null;
+  kanit?: { evidenceId: string; dosyaHashSha256: string | null } | null;
   /** G3 şeffaflık defteri durumu (nihai §8.0) — PENDING/ANCHORED/FAILED/KAYITSIZ. */
-  ledgerDurumu: string;
+  ledgerDurumu?: string;
+  /** 37 Tez Dikey B, Faz 3: DORA RoI export bağlantısı — kosu ile AYRIK dal. */
+  roiExport?: {
+    id: string;
+    paket: RoiSablonPaketi;
+    paketHash: string;
+    onKontrolRaporu: { sorunlar: { kod: string; seviye: string; mesaj: string }[]; engelleyiciSayisi: number };
+    yayinlanmaZamani: string;
+  };
 }
 
 /** proof_room_ledger_malzeme RPC'sinin ham dönüşü — yalnız ANCHORED iken leaves/signedStatement/sth dolu. */
@@ -177,13 +187,13 @@ export default function ProofRoomPage() {
   // Sitasyon paketi tarayıcıda, sunucudan gelen veriyle üretilir (RFC 8785
   // hash'leri dahil) — indirme sonrası bağımsız CLI doğrulaması için.
   useEffect(() => {
-    if (!veri) return;
+    if (!veri || veri.roiExport || !veri.kosu) return;
     let iptal = false;
     const uret = async () => {
       const girdi: SitasyonGirdisi = {
-        testRun: veri.kosu,
-        legalSnapshot: veri.legalSnapshot,
-        kaynakZinciri: veri.kaynakZinciri.map((z) => ({
+        testRun: veri.kosu!,
+        legalSnapshot: veri.legalSnapshot ?? null,
+        kaynakZinciri: (veri.kaynakZinciri ?? []).map((z) => ({
           authority: z.authority,
           kaynakAd: z.kaynakAd,
           jurisdiction: z.jurisdiction,
@@ -201,14 +211,14 @@ export default function ProofRoomPage() {
           mappingDogrulama: z.mappingDogrulama,
           kapsam: z.kapsam,
         })),
-        applicability: veri.applicability.map((a) => ({
+        applicability: (veri.applicability ?? []).map((a) => ({
           obligationKod: a.obligationKod,
           durum: a.durum,
           gerekce: a.gerekce,
           factSnapshotFingerprint: a.factSnapshotFingerprint,
           kararKaynagi: a.kararKaynagi,
         })),
-        kanit: veri.kanit,
+        kanit: veri.kanit ?? null,
         auditOlaylari: [],
         aktor: { id: "proof-room", ad: null },
         olusturmaZamani: new Date().toISOString(),
@@ -227,6 +237,32 @@ export default function ProofRoomPage() {
     return URL.createObjectURL(new Blob([JSON.stringify(paket, null, 2)], { type: "application/json" }));
   }, [paket]);
 
+  // DORA RoI export dalı: CSV/XLSX TARAYICIDA, sunucudan gelen paketten
+  // üretilir (roi-export-serialize.ts — sitasyon paketinin AYNI deseni).
+  // CSV senkron olduğundan useMemo (indirmeUrl'in aynı deseni); XLSX async
+  // olduğundan (jszip) useEffect + state gerekiyor.
+  const roiCsvUrl = useMemo(() => {
+    if (!veri?.roiExport) return null;
+    const csv = roiSablonCsvYap(veri.roiExport.paket);
+    return URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  }, [veri]);
+  const [roiXlsxUrl, setRoiXlsxUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!veri?.roiExport) return;
+    let iptal = false;
+    const uret = async () => {
+      const bayt = await roiSablonXlsxYap(veri.roiExport!.paket);
+      if (!iptal) {
+        const arabellek = bayt.buffer.slice(bayt.byteOffset, bayt.byteOffset + bayt.byteLength) as ArrayBuffer;
+        setRoiXlsxUrl(URL.createObjectURL(new Blob([arabellek], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })));
+      }
+    };
+    void uret();
+    return () => {
+      iptal = true;
+    };
+  }, [veri]);
+
   if (yukleniyor) {
     return <main className="mx-auto max-w-4xl p-6 text-sm text-muted-foreground">Yükleniyor…</main>;
   }
@@ -239,6 +275,73 @@ export default function ProofRoomPage() {
       </main>
     );
   }
+
+  if (veri.roiExport) {
+    const { roiExport } = veri;
+    return (
+      <main className="mx-auto flex max-w-4xl flex-col gap-6 p-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Proof Room — {veri.kurumAdi}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            DORA RoI export görünümü. Erişim süresi: {new Date(veri.sonGecerlilik).toLocaleString("tr-TR")} · Bu
+            görüntüleme denetim izine kaydedildi.
+          </p>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Export özeti</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            <p className="text-xs text-muted-foreground">{ROI_EXPORT_UYARI_METNI}</p>
+            <p>
+              Yayınlanma zamanı: {new Date(roiExport.yayinlanmaZamani).toLocaleString("tr-TR")}
+            </p>
+            <p className="text-xs text-muted-foreground" title={roiExport.paketHash}>
+              Snapshot hash&apos;i (SHA-256): {roiExport.paketHash}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {roiExport.onKontrolRaporu.sorunlar.length === 0 ? (
+                <StatusBadge durum="success">Ön-kontrol: sorun yok</StatusBadge>
+              ) : (
+                roiExport.onKontrolRaporu.sorunlar.map((s, i) => (
+                  <StatusBadge key={`${s.kod}-${i}`} durum={s.seviye === "blok" ? "danger" : "warning"}>
+                    {s.mesaj}
+                  </StatusBadge>
+                ))
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {roiCsvUrl ? (
+                <a href={roiCsvUrl} download={`kalkan-dora-roi-${roiExport.id}.csv`} className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                  CSV indir
+                </a>
+              ) : null}
+              {roiXlsxUrl ? (
+                <a href={roiXlsxUrl} download={`kalkan-dora-roi-${roiExport.id}.xlsx`} className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                  XLSX indir
+                </a>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  if (!veri.kosu) {
+    // RPC ya roiExport ya kosu döner (yukarıda ele alındı) — ikisi de yoksa gösterilecek bir şey yok.
+    return (
+      <main className="mx-auto max-w-4xl p-6">
+        <h1 className="text-xl font-semibold">Proof Room</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Link geçersiz veya süresi dolmuş.</p>
+      </main>
+    );
+  }
+
+  const kosu = veri.kosu;
+  const kaynakZinciri = veri.kaynakZinciri ?? [];
+  const applicability = veri.applicability ?? [];
+  const ledgerDurumu = veri.ledgerDurumu ?? "KAYITSIZ";
 
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
@@ -257,12 +360,12 @@ export default function ProofRoomPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-2 text-sm">
           <p>
-            <strong>{veri.kosu.kontrolMaddeRef}</strong> — {veri.kosu.kontrolBaslik} ·{" "}
-            {veri.kosu.tanimAd}
+            <strong>{kosu.kontrolMaddeRef}</strong> — {kosu.kontrolBaslik} ·{" "}
+            {kosu.tanimAd}
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge durum={SONUC_SEMANTIK[veri.kosu.sonuc] ?? "neutral"}>
-              Sonuç: {veri.kosu.sonuc}
+            <StatusBadge durum={SONUC_SEMANTIK[kosu.sonuc] ?? "neutral"}>
+              Sonuç: {kosu.sonuc}
             </StatusBadge>
             {veri.legalSnapshot ? (
               <StatusBadge durum={KARAR_SEMANTIK[veri.legalSnapshot.karar] ?? "neutral"}>
@@ -271,13 +374,13 @@ export default function ProofRoomPage() {
             ) : (
               <StatusBadge durum="unknown">Dayanak fotoğrafı yok (eski koşu)</StatusBadge>
             )}
-            <StatusBadge durum={LEDGER_DURUM_SEMANTIK[veri.ledgerDurumu] ?? "neutral"}>
-              {LEDGER_DURUM_ETIKET[veri.ledgerDurumu] ?? veri.ledgerDurumu}
+            <StatusBadge durum={LEDGER_DURUM_SEMANTIK[ledgerDurumu] ?? "neutral"}>
+              {LEDGER_DURUM_ETIKET[ledgerDurumu] ?? ledgerDurumu}
             </StatusBadge>
           </div>
-          <p className="text-muted-foreground">{veri.kosu.gerekce}</p>
+          <p className="text-muted-foreground">{kosu.gerekce}</p>
           <p className="text-xs text-muted-foreground">
-            Koşu zamanı: {new Date(veri.kosu.calistiAt).toLocaleString("tr-TR")}
+            Koşu zamanı: {new Date(kosu.calistiAt).toLocaleString("tr-TR")}
             {veri.kanit ? ` · Kanıt dosya hash'i: ${veri.kanit.dosyaHashSha256 ?? "—"}` : ""}
           </p>
         </CardContent>
@@ -285,10 +388,10 @@ export default function ProofRoomPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Kaynak zinciri ({veri.kaynakZinciri.length})</CardTitle>
+          <CardTitle>Kaynak zinciri ({kaynakZinciri.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {veri.kaynakZinciri.length === 0 ? (
+          {kaynakZinciri.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Bu kontrol için yasal dayanak eşlemesi yok — koşu dayanak iddiası taşımıyor.
             </p>
@@ -305,7 +408,7 @@ export default function ProofRoomPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {veri.kaynakZinciri.map((z) => (
+                  {kaynakZinciri.map((z) => (
                     <TableRow key={`${z.obligationKod}-${z.provisionRef}`}>
                       <TableCell className="text-xs">
                         {z.authority} · {z.kaynakAd} ({z.kaynakSeviyesi})
@@ -340,13 +443,13 @@ export default function ProofRoomPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Uygulanabilirlik kararları ({veri.applicability.length})</CardTitle>
+          <CardTitle>Uygulanabilirlik kararları ({applicability.length})</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
-          {veri.applicability.length === 0 ? (
+          {applicability.length === 0 ? (
             <p className="text-sm text-muted-foreground">Güncel uygulanabilirlik kararı yok.</p>
           ) : (
-            veri.applicability.map((a) => (
+            applicability.map((a) => (
               <div key={a.obligationKod} className="flex flex-wrap items-center gap-2 text-sm">
                 <span>{a.obligationKod}</span>
                 <StatusBadge durum={a.durum === "APPLICABLE" ? "info" : a.durum === "UNKNOWN" ? "unknown" : "neutral"}>
@@ -374,7 +477,7 @@ export default function ProofRoomPage() {
             <div className="flex flex-wrap items-center gap-2">
               <a
                 href={indirmeUrl}
-                download={`kalkan-sitasyon-${veri.kosu.id}.json`}
+                download={`kalkan-sitasyon-${kosu.id}.json`}
                 className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               >
                 Paketi indir (JSON)
@@ -409,7 +512,7 @@ export default function ProofRoomPage() {
             <div className="flex flex-wrap items-center gap-2">
               <a
                 href={makbuzIndirmeUrl}
-                download={`kalkan-makbuz-${veri.kosu.id}.json`}
+                download={`kalkan-makbuz-${kosu.id}.json`}
                 className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               >
                 Kapsama makbuzunu indir (JSON)

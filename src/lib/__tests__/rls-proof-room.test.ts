@@ -55,6 +55,31 @@ async function linkOlustur(userId: string, tenantId: string, runId: string, gunS
   return rows[0].token as string;
 }
 
+/** roi_export_run oluşturur, dört-göz ile YAYINLANDI'ya taşır (37 Tez Dikey B, Faz 3). */
+async function yayinlanmisExportEkle(tenantId: string, talepEden: string, onaylayan: string): Promise<string> {
+  const { rows } = await db.sql(
+    `insert into public.roi_export_runs (tenant_id, talep_eden, paket, paket_hash, on_kontrol_raporu, engelleyici_sorun_sayisi)
+     values ($1, $2, $3::jsonb, $4, '{"sorunlar":[],"engelleyiciSayisi":0}'::jsonb, 0) returning id`,
+    [tenantId, talepEden, JSON.stringify({ schema: "KALKAN_ROI_EXPORT_V1" }), "d".repeat(64)],
+  );
+  const id = rows[0].id as string;
+  await db.sql(`update public.roi_export_runs set durum = 'ONAY_TALEP_EDILDI' where id = $1`, [id]);
+  await db.sql(`update public.roi_export_runs set durum = 'YAYINLANDI', onaylayan = $2, onay_zamani = now() where id = $1`, [id, onaylayan]);
+  return id;
+}
+
+async function roiLinkOlustur(userId: string, tenantId: string, exportRunId: string, gunSonra = 7): Promise<string> {
+  const { rows } = await db.asUser(
+    userId,
+    `insert into public.proof_room_links (tenant_id, roi_export_run_id, son_gecerlilik)
+     values ($1, $2, now() + ($3 || ' days')::interval) returning token`,
+    [tenantId, exportRunId, String(gunSonra)],
+  );
+  return rows[0].token as string;
+}
+
+const A_IKINCI = "a0000000-0000-0000-0000-000000000002";
+
 beforeEach(async () => {
   db = await createTestDb();
   seed = await seedTwoTenants(db);
@@ -63,6 +88,8 @@ beforeEach(async () => {
     `insert into public.profiles (id, tenant_id, role, full_name) values ($1, $2, 'denetci_misafir', 'Misafir')`,
     [MISAFIR, seed.A.tenantId],
   );
+  await db.sql(`insert into auth.users (id, email) values ($1, 'a-ikinci@demo.com')`, [A_IKINCI]);
+  await db.sql(`insert into public.profiles (id, tenant_id, role, full_name) values ($1, $2, 'uyum', 'A İkinci')`, [A_IKINCI, seed.A.tenantId]);
 });
 
 afterEach(async () => {
@@ -124,5 +151,48 @@ describe("proof_room — token'lı salt-okur erişim (G1)", () => {
     const token = await linkOlustur(seed.A.userId, seed.A.tenantId, bRun);
     const { rows } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [token]);
     expect(rows[0].v).toBeNull(); // RPC, run.tenant_id = link.tenant_id ister
+  });
+});
+
+describe("proof_room — roi_export_run_id dalı (37 Tez Dikey B, Faz 3 kalan dilimi)", () => {
+  it("YAYINLANDI export'a link kurulur; token paket/paketHash/onKontrolRaporu döner ve audit'e düşer", async () => {
+    const exportId = await yayinlanmisExportEkle(seed.A.tenantId, seed.A.userId, A_IKINCI);
+    const token = await roiLinkOlustur(seed.A.userId, seed.A.tenantId, exportId);
+    const { rows } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [token]);
+    const v = rows[0].v as Record<string, unknown>;
+    const roiExport = v.roiExport as Record<string, unknown>;
+    expect(roiExport.id).toBe(exportId);
+    expect(roiExport.paketHash).toBe("d".repeat(64));
+    expect((roiExport.paket as Record<string, unknown>).schema).toBe("KALKAN_ROI_EXPORT_V1");
+    expect(v.kosu).toBeUndefined();
+    const { rows: audit } = await db.sql(
+      `select count(*)::int as n from public.audit_log where eylem = 'proof_room_goruntulendi' and tenant_id = $1`,
+      [seed.A.tenantId],
+    );
+    expect(audit[0].n).toBe(1);
+  });
+
+  it("TASLAK export'a (henüz YAYINLANDI değil) işaret eden link null döner — savunma derinliği", async () => {
+    const { rows } = await db.sql(
+      `insert into public.roi_export_runs (tenant_id, talep_eden, paket, paket_hash, on_kontrol_raporu, engelleyici_sorun_sayisi)
+       values ($1, $2, '{}'::jsonb, $3, '{"sorunlar":[],"engelleyiciSayisi":0}'::jsonb, 0) returning id`,
+      [seed.A.tenantId, seed.A.userId, "e".repeat(64)],
+    );
+    const taslakId = rows[0].id as string;
+    const token = await roiLinkOlustur(seed.A.userId, seed.A.tenantId, taslakId);
+    const { rows: v } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [token]);
+    expect(v[0].v).toBeNull();
+  });
+
+  it("test_run_id ve roi_export_run_id İKİSİ FARKLI DALLAR — biri diğerini etkilemez", async () => {
+    const { runId } = await kosuVeZincir(seed.A.tenantId);
+    const testToken = await linkOlustur(seed.A.userId, seed.A.tenantId, runId);
+    const exportId = await yayinlanmisExportEkle(seed.A.tenantId, seed.A.userId, A_IKINCI);
+    const roiToken = await roiLinkOlustur(seed.A.userId, seed.A.tenantId, exportId);
+
+    const { rows: t } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [testToken]);
+    expect((t[0].v as Record<string, unknown>).roiExport).toBeUndefined();
+    const { rows: r } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [roiToken]);
+    expect((r[0].v as Record<string, unknown>).kosu).toBeUndefined();
   });
 });

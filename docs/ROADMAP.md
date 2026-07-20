@@ -823,6 +823,78 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.63 37 Tez Dikey B, Faz 3 kalan dilimi — HTTP doğrulaması + UI + CSV/XLSX + Proof Room kablolaması ✅ (20 Temmuz)
+
+Kurucunun 20 Temmuz altıncı talimatı: Faz 3'ün ilk dilimindeki (§1.62)
+rotalar yalnız typecheck ile doğrulanmıştı — bu dilim gerçek HTTP + UI +
+serileştirme + Proof Room'u tamamlıyor. ADR `docs/adr/PR0-37-tez-dikeyB-
+faz3-kalan-2026-07-20.md`.
+
+**Bulunup düzeltilen İKİ gerçek hata (dürüstçe kayıtlı):**
+1. **Oturumsuz erişim testi yanlış katmanı hedefliyordu:** `src/proxy.ts`
+   (Next.js 16 middleware'i) `/api/dora-roi/*` dahil açık-yol listesinde
+   olmayan HER isteği `/giris`'e 307 REDIRECT ediyor — rota koduna hiç
+   ulaşmıyor. Rotanın kendi `if (!user) return 401` dalı tarayıcı-çerezli
+   hiçbir gerçek istek için tetiklenmiyor (asıl koruma proxy'de). E2E, 401
+   yerine 307+Location:/giris'i doğrulayacak şekilde düzeltildi.
+2. **DAHA ÖNEMLİ: `proof_room_goruntule` RPC'sini genişletirken (roi_
+   export_run_id dalı için) `20260719120000`'in EKLEDİĞİ `ledgerDurumu`
+   alanını (G3 şeffaflık defteri rozeti) FARKINDA OLMADAN geri aldım —
+   yalnız `20260718220000`'in (İLK) sürümünü temel almıştım, o alana
+   dokunan İKİNCİ migration'ı `grep`lemeyi ATLADIM. Sonuç: `proof-room.
+   spec.ts` (mevcut, bu dikeyle İLGİSİZ bir test) tam e2e koşusunda kırıldı
+   — "Şeffaflık defterinde mühürlü" rozeti kayboldu, sayfa "Bu koşu deftere
+   bağlı değil" (KAYITSIZ varsayılanı) gösterdi. Forward-fix migration
+   `20260720160000`: her iki eklemeyi (ledgerDurumu + roi_export_run_id
+   dalı) doğru birleştirdi. **Ders (bugünün asıl dersiyle AYNI kategoride,
+   farklı biçimde):** bir fonksiyonu `CREATE OR REPLACE` ile değiştirirken
+   yalnız İLK migration'ı değil, o fonksiyona dokunan TÜM migration'ları
+   bulup GÜNCEL halini temel almak gerekiyor.
+
+**HTTP + UI + e2e (`e2e/dora-roi-export.spec.ts`, gerçek `page.request` +
+gerçek tıklama):** oturumsuz 307 redirect, engelleyici-sorun-varken-TASLAK
+(Onay Talep Et devre dışı), kimlik profili girilince temiz export, maker-
+checker (talep eden kendi export'unu HTTP 409 ile REDDEDİLİR, UI'da buton
+bile göstermez — "Bu export'u siz talep ettiniz" notu), farklı kullanıcı
+onayı → YAYINLANDI, CSV indirme (içerik + uyarı metni + LEI doğrulandı,
+`X-Dosya-Hash-Sha256` başlığı), XLSX indirme (ZIP/PK imzası doğrulandı),
+TASLAK export'ta indirme 404 (yalnız YAYINLANDI — yapısal, ADR §4), Proof
+Room linki oluşturma + OTURUMSUZ görüntüleme.
+
+**CSV/XLSX serileştirme (`src/lib/roi-export-serialize.ts` +
+`src/lib/xlsx-writer.ts`):** yeni çalışma-zamanı bağımlılığı YOK — XLSX
+zaten bir ZIP arşivi, repo'nun ZATEN sahip olduğu `jszip` (M11) ile minimal,
+stilsiz, inline-string hücreli bir OOXML yazıcı elle yazıldı (`canonical.
+ts`'in "neden kütüphane değil" gerekçesinin aynısı). Kolon sırası her
+şablon için SABİT (nesne anahtarı sırasına güvenilmedi); dosya hash'i
+(`bytesHash`) `paket_hash`'ten (RFC 8785 JSON hash'i) AYRI — biri "veri
+doğru mu" biri "dosya bozulmadı mı" sorusuna cevap verir (kural 15).
+Serileştirme sırasında `B_05_02` (alt yüklenici zinciri) satırlarının
+KENDİ adını hiç taşımadığı fark edildi ve motor (`roi-export.ts`) düzeltildi
+— test tarafından yakalanan gerçek bir eksiklik.
+
+**İndirme kapısı (ADR §4, kesin karar):** "engelleyici sorun varsa
+uyarılı-indirmeyle-devam" seçeneği REDDEDİLDİ — yalnız TAM BLOKE. Bu ayrı
+bir kontrol GEREKTİRMİYOR: indirme yalnız `durum='YAYINLANDI'`, o duruma
+ulaşmak zaten `engelleyici_sorun_sayisi=0` şartına bağlı (yapısal). VERIFIED
+olmayan ICT kodunun "kesin ifade" olarak gösterilememesi de aynı şekilde
+inşa gereği sağlanıyor. CSV/XLSX çıktısının başında/içinde açık bir "resmi
+şemaya TAM UYGUNLUK İDDİA EDİLMEZ" uyarısı taşınıyor.
+
+**Proof Room:** `proof_room_goruntule` RPC'sine `roi_export_run_id` dalı
+eklendi (yalnız YAYINLANDI export açılabilir); `/proof/[token]` sayfası iki
+AYRI dal render ediyor (`kosu` vs `roiExport`, TypeScript'te optional +
+narrowing). `/api/proof-room` rotası `roiExportRunId`'yi kabul edecek
+şekilde genişletildi.
+
+**Doğrulama:** 10 (serileştirme birim) + 3 (Proof Room roi_export dalı
+PGlite) = 13 yeni birim + genişletilmiş `dora-roi-export.spec.ts` e2e +
+**TAM e2e takımı (63 spec) sıfır flake ile koştu** (bu bulgu ikisini de
+yakalayan koşuydu). **1264 birim (119 dosya) + 63 e2e, 0 skip; build yeşil.**
+
+**Bilinçli kapsam dışı:** `impact_tolerances` RTO/RPO zenginleştirmesi,
+B_01.02/03/B_02.03/B_03.x/B_04.01/B_07.01/B_99.01 şablonları, XLSX stilleme.
+
 ### 1.62 37 Tez Dikey B, Faz 3 ilk dilim — DORA RoI Export Motoru ✅ (20 Temmuz)
 
 Kurucunun 20 Temmuz beşinci talimatı: export motoru, yalnız Faz 2'nin 5
