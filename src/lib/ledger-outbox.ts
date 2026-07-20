@@ -67,15 +67,17 @@ async function manifestKur(db: Db, artifactTable: string, artifactId: string): P
     const { data: run } = await db
       .from("test_runs")
       .select(
-        "id, control_id, test_definition_id, sonuc, gerekce, tanim_surumu, calisti_at, evidence_id, beklenen_sonuc, performans_etkisi, yanlis_pozitif, yanlis_negatif, baslangic_at, bitis_at, log_referanslari, hazirlayan, sorumlu, bagimsiz_onaylayan",
+        "id, control_id, test_definition_id, sonuc, gerekce, tanim_surumu, calisti_at, evidence_id, beklenen_sonuc, performans_etkisi, yanlis_pozitif, yanlis_negatif, baslangic_at, bitis_at, log_referanslari, hazirlayan, sorumlu, bagimsiz_onaylayan, retest_of_finding_id",
       )
       .eq("id", artifactId)
       .maybeSingle();
     if (!run) return null;
-    // Sabit kapsam tanımdan gelir (V2 zengin snapshot).
+    // Sabit kapsam tanımdan gelir (V2 zengin snapshot; V3: kritik hizmet/
+    // senaryonun GERÇEK id'si de tanımdan — control_test_definitions'ın
+    // kendi opsiyonel FK'leri, Dikey F F1).
     const { data: tanim } = await db
       .from("control_test_definitions")
-      .select("amac, kapsam, hedef_varlik, kritik_hizmet_adi, senaryo_kimligi, senaryo_surumu")
+      .select("amac, kapsam, hedef_varlik, kritik_hizmet_adi, senaryo_kimligi, senaryo_surumu, critical_service_id, scenario_template_id")
       .eq("id", run.test_definition_id)
       .maybeSingle();
     const manifest = controlTestRunManifestKur({
@@ -103,6 +105,9 @@ async function manifestKur(db: Db, artifactTable: string, artifactId: string): P
       sorumlu: run.sorumlu,
       bagimsizOnaylayan: run.bagimsiz_onaylayan,
       evidenceId: run.evidence_id,
+      retestOfFindingId: run.retest_of_finding_id,
+      criticalServiceId: tanim?.critical_service_id ?? null,
+      scenarioTemplateId: tanim?.scenario_template_id ?? null,
     });
     return { kind: CONTROL_TEST_RUN_KIND, hash: await controlTestRunManifestHash(manifest) };
   }

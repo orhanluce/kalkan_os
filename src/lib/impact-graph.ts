@@ -48,7 +48,8 @@ export type KenarTuru =
   | "TEST_BULGU"
   | "TEST_KANIT"
   | "UCUNCU_TARAF_TEDARIKCI_BULGUSU"
-  | "TEDARIKCI_BULGUSU_TELAFI_KONTROLU";
+  | "TEDARIKCI_BULGUSU_TELAFI_KONTROLU"
+  | "BULGU_RETEST";
 
 export interface EtkiGrafKenari {
   kaynakId: string;
@@ -78,7 +79,20 @@ export interface EtkiGrafGirdisi {
   /** obligations satırları — yalnız kod taşınır (ham hüküm metni graf içinde YOK). */
   mevzuatlar: { id: string; kod: string }[];
   testler: { id: string; controlId: string; ad: string }[];
-  bulgular: { id: string; testDefinitionId: string | null; baslik: string }[];
+  /**
+   * Dikey F, F1 (ADR §8): `kapatmaRetestTestDefinitionId` — bulgunun GERÇEKTEN
+   * kapandığı retest koşusunun (`findings.kapatma_retest_run_id`) test
+   * TANIMI (`test_runs.test_definition_id`, çağıran çözer — motor join
+   * yapmaz, `testKanit`'in AYNI ilkesi). OPSİYONEL — atlanırsa mevcut tüm
+   * graf sonuçları BİREBİR AYNI kalır. Mevcut TEST düğümü (tanım granülerliği,
+   * KONTROL_TEST/TEST_BULGU/TEST_KANIT ile AYNI) yeniden kullanılır — YENİ bir
+   * "retest" düğüm türü AÇILMAZ. Yalnız GERÇEKTEN kayıtlı bir kapanış ilişkisi
+   * için kenar üretir; kapalı bulgu grafiktan SİLİNMEZ, kenar yalnız EKLENİR
+   * (tarihsel bağlantı kaybolmaz — retest başka bir tanıma ait olamayacağı
+   * için [finding_verified_closure_guard], bu genelde TEST_BULGU'nun kenarını
+   * ÜRETEN AYNI TEST düğümüne işaret eder).
+   */
+  bulgular: { id: string; testDefinitionId: string | null; baslik: string; kapatmaRetestTestDefinitionId?: string }[];
   kanitlar: { id: string; hashSha256: string | null }[];
 
   /** third_party_contract_critical_services + service_dependencies.third_party_id — İKİ kaynak, tek kenar (kaynaklar[] ile ayrık kalır). */
@@ -180,8 +194,12 @@ export function etkiGrafiProjekteEt(girdi: EtkiGrafGirdisi): EtkiGrafi {
     kenarEkle(dugumId("KONTROL", t.controlId), dugumId("TEST", t.id), "KONTROL_TEST", "control_test_definitions");
   }
   for (const b of girdi.bulgular) {
-    if (!b.testDefinitionId) continue;
-    kenarEkle(dugumId("TEST", b.testDefinitionId), dugumId("BULGU", b.id), "TEST_BULGU", "findings");
+    if (b.testDefinitionId) {
+      kenarEkle(dugumId("TEST", b.testDefinitionId), dugumId("BULGU", b.id), "TEST_BULGU", "findings");
+    }
+    if (b.kapatmaRetestTestDefinitionId) {
+      kenarEkle(dugumId("BULGU", b.id), dugumId("TEST", b.kapatmaRetestTestDefinitionId), "BULGU_RETEST", "findings");
+    }
   }
   for (const e of girdi.testKanit) {
     kenarEkle(dugumId("TEST", e.testDefinitionId), dugumId("KANIT", e.evidenceId), "TEST_KANIT", "test_runs");

@@ -8,7 +8,12 @@ import {
   tprCriticalFindingClosureManifestHash,
   tprCriticalFindingClosureManifestKur,
 } from "../tedarikci-ledger";
-import { controlTestRunManifestHash, controlTestRunManifestKur } from "../kontrol-test-ledger";
+import {
+  CONTROL_TEST_RUN_MANIFEST_SCHEMA,
+  CONTROL_TEST_RUN_MANIFEST_SCHEMA_V2,
+  controlTestRunManifestHash,
+  controlTestRunManifestKur,
+} from "../kontrol-test-ledger";
 import { aiIncidentClosureManifestHash, aiIncidentClosureManifestKur } from "../ai-olay";
 import { aiReceiptDecisionManifestHash, aiReceiptDecisionManifestKur } from "../ai-receipt";
 import { boardDeclarationAttestationManifestHash, boardDeclarationAttestationManifestKur } from "../board-declaration-ledger";
@@ -21,6 +26,7 @@ describe("kontrol testi koşusu manifesti V2 (Dikey 2 zengin snapshot)", () => {
     yanlisPozitif: false, yanlisNegatif: false, baslangicAt: "2026-07-19T00:00:00.000Z",
     bitisAt: "2026-07-19T00:01:00.000Z", calistiAt: "2026-07-19T00:01:00.000Z",
     hazirlayan: "u1", sorumlu: "u2", bagimsizOnaylayan: "u3", evidenceId: null,
+    retestOfFindingId: null, criticalServiceId: null, scenarioTemplateId: null,
   };
   it("deterministik + 64-hex; log referans SIRASI hash'i değiştirmez", async () => {
     const h1 = await controlTestRunManifestHash(controlTestRunManifestKur({ ...base, logReferanslari: [{ ad: "b", hash: null }, { ad: "a", hash: "x".repeat(64) }] }));
@@ -37,6 +43,44 @@ describe("kontrol testi koşusu manifesti V2 (Dikey 2 zengin snapshot)", () => {
     const h1 = await controlTestRunManifestHash(controlTestRunManifestKur({ ...base, beklenenSonuc: "b1" }));
     const h2 = await controlTestRunManifestHash(controlTestRunManifestKur({ ...base, beklenenSonuc: "b2" }));
     expect(h1).not.toBe(h2);
+  });
+
+  describe("V3 (Dikey F, F1): retest/kritik hizmet/senaryo referansları", () => {
+    it("şema V3'tür ve V2 sabiti hâlâ ayrı bir sabit olarak dışa açık (eski kayıtlar okunabilir)", () => {
+      expect(CONTROL_TEST_RUN_MANIFEST_SCHEMA).toBe("KALKAN_CONTROL_TEST_RUN_MANIFEST_V3");
+      expect(CONTROL_TEST_RUN_MANIFEST_SCHEMA_V2).toBe("KALKAN_CONTROL_TEST_RUN_MANIFEST_V2");
+      expect(CONTROL_TEST_RUN_MANIFEST_SCHEMA).not.toBe(CONTROL_TEST_RUN_MANIFEST_SCHEMA_V2);
+    });
+
+    it("findingId alanı manifestte HİÇ yok (bilinçli mimari karar — bkz. ADR §3)", () => {
+      const m = controlTestRunManifestKur(base);
+      expect("findingId" in m).toBe(false);
+    });
+
+    it("retestOfFindingId belirtilmezse null kalır (normal ilk koşu)", async () => {
+      const m = controlTestRunManifestKur(base);
+      expect(m.retestOfFindingId).toBeNull();
+      expect(await controlTestRunManifestHash(m)).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    it("retestOfFindingId doluysa hash'e taşınır (retest koşusu)", async () => {
+      const h1 = await controlTestRunManifestHash(controlTestRunManifestKur({ ...base, retestOfFindingId: null }));
+      const h2 = await controlTestRunManifestHash(controlTestRunManifestKur({ ...base, retestOfFindingId: "f1" }));
+      expect(h1).not.toBe(h2);
+    });
+
+    it("criticalServiceId/scenarioTemplateId değişince hash değişir", async () => {
+      const h1 = await controlTestRunManifestHash(controlTestRunManifestKur({ ...base, criticalServiceId: "cs1" }));
+      const h2 = await controlTestRunManifestHash(controlTestRunManifestKur({ ...base, criticalServiceId: "cs2" }));
+      expect(h1).not.toBe(h2);
+    });
+
+    it("V2-şekilli eski bir manifest (yeni alanlar hiç yokmuş gibi null) hâlâ deterministik hash üretir — eski kayıt bozuk sayılmaz", async () => {
+      const eskiSekil = { ...base, retestOfFindingId: null, criticalServiceId: null, scenarioTemplateId: null };
+      const h1 = await controlTestRunManifestHash(controlTestRunManifestKur(eskiSekil));
+      const h2 = await controlTestRunManifestHash(controlTestRunManifestKur(eskiSekil));
+      expect(h1).toBe(h2);
+    });
   });
 });
 

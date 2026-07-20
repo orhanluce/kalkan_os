@@ -2513,6 +2513,7 @@ export type Database = {
           beklenen: Json | null
           control_id: string
           created_at: string
+          critical_service_id: string | null
           grace_gun: number | null
           hedef_varlik: string | null
           id: string
@@ -2520,6 +2521,7 @@ export type Database = {
           kritik_hizmet_adi: string | null
           otomatik_bulgu: boolean
           retest_gerekli: boolean
+          scenario_template_id: string | null
           senaryo_kimligi: string | null
           senaryo_surumu: number | null
           tanim_surumu: number
@@ -2535,6 +2537,7 @@ export type Database = {
           beklenen?: Json | null
           control_id: string
           created_at?: string
+          critical_service_id?: string | null
           grace_gun?: number | null
           hedef_varlik?: string | null
           id?: string
@@ -2542,6 +2545,7 @@ export type Database = {
           kritik_hizmet_adi?: string | null
           otomatik_bulgu?: boolean
           retest_gerekli?: boolean
+          scenario_template_id?: string | null
           senaryo_kimligi?: string | null
           senaryo_surumu?: number | null
           tanim_surumu?: number
@@ -2557,6 +2561,7 @@ export type Database = {
           beklenen?: Json | null
           control_id?: string
           created_at?: string
+          critical_service_id?: string | null
           grace_gun?: number | null
           hedef_varlik?: string | null
           id?: string
@@ -2564,6 +2569,7 @@ export type Database = {
           kritik_hizmet_adi?: string | null
           otomatik_bulgu?: boolean
           retest_gerekli?: boolean
+          scenario_template_id?: string | null
           senaryo_kimligi?: string | null
           senaryo_surumu?: number | null
           tanim_surumu?: number
@@ -2577,6 +2583,20 @@ export type Database = {
             columns: ["control_id"]
             isOneToOne: false
             referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "control_test_definitions_critical_service_id_fkey"
+            columns: ["critical_service_id"]
+            isOneToOne: false
+            referencedRelation: "critical_business_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "control_test_definitions_scenario_template_id_fkey"
+            columns: ["scenario_template_id"]
+            isOneToOne: false
+            referencedRelation: "scenario_templates"
             referencedColumns: ["id"]
           },
           {
@@ -7881,6 +7901,7 @@ export type Database = {
           id: string
           log_referanslari: Json
           performans_etkisi: string | null
+          retest_of_finding_id: string | null
           seq: number
           sonuc: string
           sorumlu: string | null
@@ -7905,6 +7926,7 @@ export type Database = {
           id?: string
           log_referanslari?: Json
           performans_etkisi?: string | null
+          retest_of_finding_id?: string | null
           seq?: never
           sonuc: string
           sorumlu?: string | null
@@ -7929,6 +7951,7 @@ export type Database = {
           id?: string
           log_referanslari?: Json
           performans_etkisi?: string | null
+          retest_of_finding_id?: string | null
           seq?: never
           sonuc?: string
           sorumlu?: string | null
@@ -7965,6 +7988,13 @@ export type Database = {
             columns: ["hazirlayan"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_runs_retest_of_finding_id_fkey"
+            columns: ["retest_of_finding_id"]
+            isOneToOne: false
+            referencedRelation: "findings"
             referencedColumns: ["id"]
           },
           {

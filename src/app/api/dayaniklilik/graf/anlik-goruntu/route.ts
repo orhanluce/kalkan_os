@@ -37,7 +37,7 @@ export async function POST() {
         .select("critical_service_id, third_party_contracts (third_party_id, ict_hizmet_turu_kod)"),
       db.from("critical_service_controls").select("critical_service_id, control_id"),
       db.from("control_test_definitions").select("id, control_id, ad"),
-      db.from("findings").select("id, baslik, kaynak_test_definition_id, onem, durum"),
+      db.from("findings").select("id, baslik, kaynak_test_definition_id, onem, durum, kapatma_retest_run_id"),
     ]);
 
   const ucuncuTarafIdSeti = new Set<string>();
@@ -84,6 +84,16 @@ export async function POST() {
   const kanitIdListesi = [...new Set(enGuncelKanit.values())];
   const { data: kanitlar } = kanitIdListesi.length > 0 ? await db.from("evidences").select("id, hash_sha256").in("id", kanitIdListesi) : { data: [] as { id: string; hash_sha256: string | null }[] };
 
+  // Dikey F, F1: BULGU_RETEST kenarı için kapanış retest koşusunun HANGİ test
+  // tanımına ait olduğunu çöz (motor testDefinitionId ister, run id değil —
+  // TEST düğümü tanım-anahtarlıdır, bkz. impact-graph.ts).
+  const retestRunIdListesi = [...new Set((bulgular ?? []).map((b) => b.kapatma_retest_run_id).filter((x): x is string => !!x))];
+  const { data: retestKosulari } =
+    retestRunIdListesi.length > 0
+      ? await db.from("test_runs").select("id, test_definition_id").in("id", retestRunIdListesi)
+      : { data: [] as { id: string; test_definition_id: string }[] };
+  const retestRunToTestDefinitionId = new Map((retestKosulari ?? []).map((r) => [r.id, r.test_definition_id]));
+
   const girdi: EtkiGrafGirdisi = {
     kritikHizmetler: (hizmetler ?? []).map((h) => ({ id: h.id, ad: h.ad })),
     bagimliliklar: (bagimliliklar ?? [])
@@ -95,7 +105,12 @@ export async function POST() {
     kontroller: (kontroller ?? []).map((k) => ({ id: k.id, maddeRef: k.madde_ref })),
     mevzuatlar: [...new Map((eslemeler ?? []).map((e) => [e.obligation_id, (e.obligations as unknown as { kod: string } | null)?.kod ?? e.obligation_id])).entries()].map(([id, kod]) => ({ id, kod })),
     testler: (testTanimlari ?? []).map((t) => ({ id: t.id, controlId: t.control_id, ad: t.ad })),
-    bulgular: (bulgular ?? []).map((b) => ({ id: b.id, testDefinitionId: b.kaynak_test_definition_id, baslik: b.baslik })),
+    bulgular: (bulgular ?? []).map((b) => ({
+      id: b.id,
+      testDefinitionId: b.kaynak_test_definition_id,
+      baslik: b.baslik,
+      kapatmaRetestTestDefinitionId: b.kapatma_retest_run_id ? (retestRunToTestDefinitionId.get(b.kapatma_retest_run_id) ?? undefined) : undefined,
+    })),
     kanitlar: (kanitlar ?? []).map((k) => ({ id: k.id, hashSha256: k.hash_sha256 })),
     kritikHizmetUcuncuTaraf: [
       ...(bagimliliklar ?? [])

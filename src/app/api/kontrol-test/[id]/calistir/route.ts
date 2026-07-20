@@ -105,7 +105,31 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     logReferanslari?: { ad: string; hash: string | null }[];
     sorumlu?: string | null;
     bagimsizOnaylayan?: string | null;
+    // Dikey F, F1: bu koşu bir retest'se, hangi bulguyu kapatmak için
+    // çalıştırıldığı. İSTEMCİDEN GELEN DEĞERE KÖR GÜVENİLMEZ — aşağıda DB'den
+    // doğrulanır (aynı tenant + açık + retest_gerekli), yalnız o zaman yazılır.
+    retestOfFindingId?: string | null;
   };
+
+  let retestOfFindingId: string | null = null;
+  if (govde.retestOfFindingId) {
+    const { data: hedefBulgu } = await db
+      .from("findings")
+      .select("id, tenant_id, durum, retest_gerekli")
+      .eq("id", govde.retestOfFindingId)
+      .maybeSingle();
+    if (
+      hedefBulgu &&
+      hedefBulgu.tenant_id === tanim.tenant_id &&
+      hedefBulgu.durum === "acik" &&
+      hedefBulgu.retest_gerekli
+    ) {
+      retestOfFindingId = hedefBulgu.id;
+    }
+    // Eşleşmezse SESSİZCE yok sayılır (null kalır) — istemcinin iddiası
+    // sahte/eski/başka-kiracı olsa bile koşunun kendisi engellenmez, yalnız
+    // bu opsiyonel ilişki alanı boş kalır (kural: motor sonucu asla değişmez).
+  }
 
   const gozlem: Gozlem = {
     toplamaBasarisiz: govde.toplamaBasarisiz ?? false,
@@ -150,6 +174,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       hazirlayan: user.id,
       sorumlu: govde.sorumlu ?? null,
       bagimsiz_onaylayan: govde.bagimsizOnaylayan ?? null,
+      retest_of_finding_id: retestOfFindingId,
     })
     .select("id")
     .single();
@@ -227,5 +252,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     oneriId,
     dayanak,
     ledgerDurumu,
+    retestOfFindingId,
   });
 }

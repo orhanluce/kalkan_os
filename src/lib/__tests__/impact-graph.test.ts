@@ -129,6 +129,53 @@ describe("etkiGrafiProjekteEt", () => {
     );
   });
 
+  it("kapatmaRetestTestDefinitionId atlanırsa (undefined) mevcut sonuçlar BİREBİR AYNI kalır (geriye dönük uyumluluk, Dikey F)", () => {
+    const ortak = {
+      kontroller: [{ id: "c1", maddeRef: "M.1" }],
+      testler: [{ id: "t1", controlId: "c1", ad: "Test 1" }],
+      bulgular: [{ id: "b1", testDefinitionId: "t1", baslik: "Açık bulgu" }],
+    };
+    const eski = etkiGrafiProjekteEt(bosGirdi(ortak));
+    const yeni = etkiGrafiProjekteEt(
+      bosGirdi({ ...ortak, bulgular: [{ ...ortak.bulgular[0], kapatmaRetestTestDefinitionId: undefined }] }),
+    );
+    expect(yeni).toEqual(eski);
+  });
+
+  it("kapatmaRetestTestDefinitionId verilince BULGU'dan mevcut TEST düğümüne kenar üretir — yeni düğüm türü AÇILMAZ", () => {
+    const graf = etkiGrafiProjekteEt(
+      bosGirdi({
+        kontroller: [{ id: "c1", maddeRef: "M.1" }],
+        testler: [{ id: "t1", controlId: "c1", ad: "Test 1" }],
+        bulgular: [{ id: "b1", testDefinitionId: "t1", baslik: "Açık bulgu", kapatmaRetestTestDefinitionId: "t1" }],
+      }),
+    );
+    expect(graf.kenarlar).toContainEqual({
+      kaynakId: "BULGU:b1",
+      hedefId: "TEST:t1",
+      tur: "BULGU_RETEST",
+      kaynaklar: ["findings"],
+    });
+    // Kapalı/retestli bulgu grafiktan silinmez — TEST_BULGU kenarı da KORUNUR.
+    expect(graf.kenarlar).toContainEqual({
+      kaynakId: "TEST:t1",
+      hedefId: "BULGU:b1",
+      tur: "TEST_BULGU",
+      kaynaklar: ["findings"],
+    });
+  });
+
+  it("retest ilişkisi olmayan bulgu BULGU_RETEST kenarı üretmez", () => {
+    const graf = etkiGrafiProjekteEt(
+      bosGirdi({
+        kontroller: [{ id: "c1", maddeRef: "M.1" }],
+        testler: [{ id: "t1", controlId: "c1", ad: "Test 1" }],
+        bulgular: [{ id: "b1", testDefinitionId: "t1", baslik: "Açık bulgu" }],
+      }),
+    );
+    expect(graf.kenarlar.some((k) => k.tur === "BULGU_RETEST")).toBe(false);
+  });
+
   it("tedarikciBulgulari atlanırsa (undefined) mevcut sonuçlar BİREBİR AYNI kalır (geriye dönük uyumluluk, Dikey E)", () => {
     const girdiOrtak = {
       kritikHizmetler: [{ id: "h1", ad: "Ödeme" }],
