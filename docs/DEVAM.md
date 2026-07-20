@@ -64,7 +64,19 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (20 Temmuz — ÖNCELİK SIFIRLAMASI: Dikey B export TEK öncelik + sistemik dört-göz bug'ı bulundu/düzeltildi)
+## 0c. GERÇEK DURUM (20 Temmuz — Dikey B Faz 2 TAMAM (ilk dilim + kalan) + sistemik dört-göz bug'ı bulundu/düzeltildi)
+- **20 Temmuz ÜÇÜNCÜ talimatı: Dikey B Faz 2'nin KALANI TAMAM (§1.61).**
+  `third_parties`/`third_party_contracts`/`fourth_parties`/`tenant_legal_
+  identity` RoI alanlarıyla GENİŞLETİLDİ (yeni tablo ailesi yok, ADR
+  `docs/adr/PR0-37-tez-dikeyB-faz2-kalan-2026-07-20.md`). `third_party_
+  contracts.ict_hizmet_turu_kod` artık `ict_service_types` kataloğuna GERÇEK
+  FK. Açık mapping tablosu `third_party_contract_critical_services`
+  `third_parties.tier`'ı DORA fonksiyon-kritikliğinden KESİN AYRIK tutuyor
+  (talimatın kendi kırmızı çizgisi). Bu dilimde YENİ bir dört-göz guard'ı
+  YOK (dürüst gerekçe: eklenen alanların hiçbiri yeni regülasyon iddiası
+  taşımıyor) — dolayısıyla INSERT-bypass sınıfı hatanın tekrarlanma riski
+  yapısal olarak yok. 12 yeni PGlite testi + canlı smoke (6 adım), 0
+  regresyon. **1220 birim (118 dosya) + 62 e2e, 0 skip; build yeşil.**
 - **20 Temmuz İKİNCİ talimatı: Dikey C bitti, artık TEK ÖNCELİK Dikey B'nin
   DORA RoI export dilimi (§1.60).** 5 faz: hukuk/kaynak kilidi → veri modeli
   → export motoru → kanıt zinciri → kurumsal arayüz. ML-eval'e özgü dar
@@ -103,14 +115,18 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DİLİMİ (§1.58 — `tenant_legal_identity` + `roi_kaynak_kayitlari`, İÇERİK
   SEED'İ YOK) BİTTİ.
 - **BİR SONRAKİ OTURUM ÖNCE `docs/GAP_MAP_37_TEZ.md` + `docs/adr/PR0-37-tez-
-  dikeyB-export-2026-07-20.md` OKUMALI** — kurucunun 20 Temmuz İKİNCİ
-  talimatı Dikey B export'u BİTENE KADAR tek öncelik ilan etti; Dikey C'nin
-  ML-eval kalanı, Dikey D/E/F/G/H ve diğer her şey BEKLİYOR. Sıradaki adım
-  Faz 2'nin kalanı: kurum kimliği genişletmesi + sözleşme/üçüncü taraf/alt
-  yüklenici şeması (third_parties/fourth_parties GENİŞLETİLECEK, yeni paralel
-  tablo değil) + kritik fonksiyon eşlemesi — küçük, test edilebilir dilimlere
-  bölünmeli (kurucunun kendi talimatı).
-- **Remote (origin/main) HEAD:** `61a2a5d` (§1.60: Dikey B Faz 1
+  dikeyB-export-2026-07-20.md` OKUMALI** — kurucunun 20 Temmuz talimatı Dikey
+  B export'u BİTENE KADAR tek öncelik ilan etti; Dikey C'nin ML-eval kalanı,
+  Dikey D/E/F/G/H ve diğer her şey BEKLİYOR. **Faz 2 (veri modeli) TAMAMEN
+  BİTTİ (§1.60 ilk dilim + §1.61 kalan dilim).** Sıradaki adım Faz 3: export
+  motoru (resmî DORA RoI şablonlarına uygun CSV/XLSX/JSON, eksik alan/
+  doğrulanmamış kaynak/tutarsızlık export-öncesi engelleme, dört-göz yayın
+  onayı, export hash+zaman damgası+Proof Room bağlantısı) — kurucunun kendi
+  talimatı gereği küçük, test edilebilir dilimlere bölünmeli.
+- **Remote (origin/main) HEAD:** `0319296` (§1.61: Dikey B
+  Faz 2 kalan dilimi — kurum kimliği/sözleşme/alt-yüklenici RoI alanları +
+  açık kritik-fonksiyon mapping tablosu, tier'dan ayrık) + DEVAM SHA commit'i.
+  Öncesi `61a2a5d` (§1.60: Dikey B Faz 1
   hukuk/kaynak kilidi + Faz 2 ilk dilim `ict_service_types` + SİSTEMİK
   dört-göz INSERT-bypass forward-fix'i, 5 tablo) + DEVAM SHA commit'i. Öncesi
   `79abaf8` (§1.59: 37 Tez Dikey C —
@@ -140,7 +156,10 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı: 1208 birim (117 dosya) + 62 e2e (değişmedi — §1.60'ta UI
+- **Test tabanı: 1220 birim (118 dosya) + 62 e2e (değişmedi — §1.61'de UI
+  yok), 0 skip; build exit 0.** (§1.61: +12 PGlite birim, yeni `rls-dikeyB-
+  faz2-kalan.test.ts`. Tam takım koşuldu, sıfır regresyon.)
+  (§1.60'ta UI
   yok), 0 skip; build exit 0.** (§1.60: +25 PGlite birim — yeni `rls-ict-
   service-types.test.ts` 14 test + sistemik INSERT-bypass regresyon testi
   5 dosyaya birer/ikişer eklendi: obligations, assurance-claims, resilience,
