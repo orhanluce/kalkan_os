@@ -64,7 +64,37 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (20 Temmuz — Dikey B Faz 3 TAMAMEN BİTTİ, uçtan uca çalışır)
+## 0c. GERÇEK DURUM (20 Temmuz — Dikey B Faz 1-4 TAMAM, kanıt zinciri dahil)
+- **20 Temmuz YEDİNCİ talimatı: Dikey B Faz 4 TAMAM (§1.64) — DORA RoI export
+  alanları için kanıt zinciri (provenance).** Yeni ilişkisel model YOK
+  (talimatın kendi kısıtı) — export ÜRETİLİRKEN saf motor (`src/lib/roi-
+  export-provenance.ts`) mevcut ÜÇ kaynaktan (`roi_kaynak_kayitlari`/
+  `ict_service_types`/`assurance_claims`, `iddiaGosterimDurumuHesapla`
+  REUSE) bir provenance raporu hesaplar, `paket`le AYNI anda `provenance_
+  raporu`/`provenance_hash` olarak mühürlenir (worst-of birleşim — kanıtsız
+  alan asla VERIFIED gösterilemez, yapısal garanti). SCITT deftere
+  `ROI_EXPORT_PUBLISHED` olarak bağlandı (mevcut `ledger_outbox` deseni
+  GENİŞLETİLDİ, yeni entegrasyon yolu yok); reconciliation cron kaynak
+  sonradan düşerse export'u işaretler (durum geriye dönük değişmez). Proof
+  Room'a minimize provenance özeti (`{alanKodu, kaynakDurumu, genelDurum,
+  iddiaSayisi}`, ham iddia metni YOK) + ledgerDurumu eklendi.
+  **Bu turda İKİ gerçek hata bulundu ve düzeltildi (PGlite'ta, canlıya
+  gitmeden):** (1) `roi_export_run_guard()`'ın terminal-durum bloğu
+  reconciliation cron'un `yeniden_inceleme_*` yazmasını da engelliyordu —
+  istisna eklendi (yalnız o iki alan, kaçış yolu yok); (2) reconciliation
+  cron'un ilk taslağında `uuid`/`text` örtük karşılaştırması (42883) ve
+  tırnaksız/tırnaklı `jsonb_to_recordset` alias uyuşmazlığı (42703) vardı —
+  **cron'un exception-yutan try/catch'i bunu PGlite testinde SESSİZCE
+  yutuyordu, testler "hata yok" görüp "iş yapıldı" sanıyordu** — exception-
+  yutmasız bir debug kopyasıyla gerçek hatalar bulundu, forward-fix (henüz
+  push edilmeden, `20260720190000` içinde) düzeltildi. Gerçek oturumlu canlı
+  smoke 10/10 (mühürleme, guard kilidi, maker-checker, SCITT enqueue+
+  ANCHORED drenaj, terminal istisna, reconciliation, Proof Room minimize
+  projeksiyon) — service_role ile İLK smoke denemesi `ledger_outbox_claim`in
+  `current_tenant_id()`e dayandığını unutup boş döndü, gerçek e2e kullanıcı
+  oturumlarıyla düzeltildi (kontrol-test rotasının AYNI deseni). **TAM e2e
+  takımı (63 spec, 0 skip) sıfır flake ile koştu. 1288 birim (121 dosya,
+  +24) + 63 e2e, 0 skip; build yeşil.** **37 Tez Dikey B (Faz 1-4) TAM.**
 - **20 Temmuz ALTINCI talimatı: Dikey B Faz 3'ün KALANI TAMAM (§1.63) —
   DORA RoI export motoru artık UÇTAN UCA çalışır durumda** (veri modeli →
   export üretimi → maker-checker onay → CSV/XLSX indirme → Proof Room
@@ -153,14 +183,14 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DİLİMİ (§1.58 — `tenant_legal_identity` + `roi_kaynak_kayitlari`, İÇERİK
   SEED'İ YOK) BİTTİ.
 - **BİR SONRAKİ OTURUM ÖNCE `docs/GAP_MAP_37_TEZ.md` + `docs/adr/PR0-37-tez-
-  dikeyB-faz3-kalan-2026-07-20.md` OKUMALI** — kurucunun 20 Temmuz talimatı
-  Dikey B export'u BİTENE KADAR tek öncelik ilan etti. **Faz 1-3 TAMAMEN
-  BİTTİ (§1.60-§1.63): DORA RoI export motoru uçtan uca çalışır** — veri
-  modeli → export üretimi → maker-checker onay → CSV/XLSX indirme → Proof
-  Room paylaşımı, hepsi gerçek HTTP+UI+e2e ile doğrulandı. Sıradaki adım
-  kurucu kararını bekliyor: Faz 4 (kanıt zinciri — export alanlarının
-  `assurance_claims`/`obligations`'a tam bağlanması) ya da Gap Map'teki
-  bağımsız bir sıradaki dikey (D/E/F/G/H).
+  dikeyB-faz4-kanit-zinciri-2026-07-20.md` OKUMALI** — kurucunun 20 Temmuz
+  talimatı Dikey B export'u BİTENE KADAR tek öncelik ilan etti. **Faz 1-4
+  TAMAMEN BİTTİ (§1.60-§1.64): DORA RoI export motoru uçtan uca çalışır VE
+  alan bazlı kanıt zinciri taşır** — veri modeli → export üretimi →
+  maker-checker onay → CSV/XLSX indirme → Proof Room paylaşımı → provenance
+  mühürleme + SCITT bağlama + reconciliation, hepsi gerçek HTTP+UI+e2e+canlı
+  smoke ile doğrulandı. **37 Tez Dikey B TAM.** Sıradaki adım kurucu kararını
+  bekliyor: Gap Map'teki bağımsız bir sıradaki dikey (D/E/F/G/H).
 - **Remote (origin/main) HEAD:** `f5a15da` (§1.63: Dikey B
   Faz 3 kalan dilimi — gerçek HTTP+UI+e2e, CSV/XLSX serileştirme, Proof Room
   kablolaması, `proof_room_goruntule` ledgerDurumu forward-fix) + DEVAM SHA

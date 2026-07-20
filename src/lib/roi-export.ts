@@ -204,6 +204,7 @@ export interface RoiSablonPaketi {
   }>;
   B_02_01: Array<{ B_02_01_0010_sozlesmeReferansNo: string }>;
   B_02_02: Array<{
+    id: string;
     B_02_02_0010_sozlesmeReferansNo: string;
     B_02_02_0030_tedarikciKimlikKodu: string | null;
     B_02_02_0040_kodTuru: string | null;
@@ -256,6 +257,7 @@ export function roiSablonSatirlariUret(girdi: RoiExportGirdisi): RoiSablonPaketi
     B_02_02: [...girdi.sozlesmeler]
       .sort((a, b) => a.id.localeCompare(b.id))
       .map((s) => ({
+        id: s.id,
         B_02_02_0010_sozlesmeReferansNo: s.sozlesmeRef,
         B_02_02_0030_tedarikciKimlikKodu: s.tedarikciKimlikKodu,
         B_02_02_0040_kodTuru: s.tedarikciKimlikKoduTuru,

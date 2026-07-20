@@ -2,6 +2,7 @@
 // ONAY_TALEP_EDILDI → YAYINLANDI/REDDEDILDI (maker-checker: talep_eden ≠
 // onaylayan, DB guard'ı zaten zorluyor — rota yalnız dürüst hata döner).
 import { NextResponse } from "next/server";
+import { ledgerOutboxDrain } from "@/lib/ledger-outbox";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -44,6 +45,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (error || !data) {
       // Maker-checker reddi (talep_eden = onaylayan) de DB guard'ından burada gelir.
       return NextResponse.json({ hata: error?.message ?? "Karar verilemedi." }, { status: 409 });
+    }
+    // YAYINLANDI → şeffaflık defterine kuyruklandı (trigger, aynı transaction);
+    // burada senkron drenaj (kontrol-test/[id]/calistir'in AYNI deseni) — SCITT
+    // başarısız olursa sahte ANCHORED gösterilmez, drenaj başarısızlığı export
+    // kararını GERİ ALMAZ (ledgerDurumu canlı sorguda PENDING/FAILED kalır).
+    if (data.durum === "YAYINLANDI") {
+      try {
+        await ledgerOutboxDrain(db, 5);
+      } catch {
+        // Drenaj hatası export kararını etkilemez — ledgerDurumu sonraki
+        // sorguda/cron'da tekrar denenir.
+      }
     }
     return NextResponse.json({ id: data.id, durum: data.durum });
   }

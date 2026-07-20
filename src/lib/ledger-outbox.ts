@@ -42,6 +42,11 @@ import {
   boardDeclarationAttestationManifestHash,
   boardDeclarationAttestationManifestKur,
 } from "./board-declaration-ledger";
+import {
+  ROI_EXPORT_PUBLISHED_KIND,
+  roiExportPublishedManifestHash,
+  roiExportPublishedManifestKur,
+} from "./roi-export-ledger";
 import { LocalDevSigner } from "./manifest-signature";
 import { ifadeYaprakHash, imzaliIfadeOlustur } from "./transparency";
 import type { Database } from "./supabase/database.types";
@@ -248,6 +253,26 @@ async function manifestKur(db: Db, artifactTable: string, artifactId: string): P
       })),
     });
     return { kind: BOARD_DECLARATION_ATTESTATION_KIND, hash: await boardDeclarationAttestationManifestHash(manifest) };
+  }
+
+  if (artifactTable === "roi_export_runs") {
+    const { data: e } = await db
+      .from("roi_export_runs")
+      .select("id, tenant_id, durum, paket_hash, provenance_hash, onay_zamani")
+      .eq("id", artifactId)
+      .maybeSingle();
+    if (!e) return null;
+    if (e.durum !== "YAYINLANDI" || !e.onay_zamani) {
+      throw new Error(`RoI export ${artifactId}: yayın manifesti için durum=YAYINLANDI + onay_zamani zorunlu`);
+    }
+    const manifest = roiExportPublishedManifestKur({
+      exportId: e.id,
+      tenantId: e.tenant_id,
+      paketHash: e.paket_hash,
+      provenanceHash: e.provenance_hash,
+      yayinlanmaZamani: e.onay_zamani,
+    });
+    return { kind: ROI_EXPORT_PUBLISHED_KIND, hash: await roiExportPublishedManifestHash(manifest) };
   }
 
   return null;

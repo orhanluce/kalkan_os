@@ -71,6 +71,15 @@ test("DORA RoI export: oturumsuz 401, engelleyici-sorun-blok, maker-checker onay
     olusturulanExportIdleri.push(...exportlar!.map((e) => e.id));
 
     const temizSatir = adminPage.getByTestId(`roi-export-${temizExport.id}`);
+
+    // 3b) 37 Tez Dikey B, Faz 4: alan bazlı kanıt zinciri (provenance)
+    //     INSERT anında mühürlenip özet rozetleriyle gösterilir — YAYINLANDI
+    //     beklemez, TASLAK'ta da görünür.
+    const { data: temizKayit } = await db.from("roi_export_runs").select("provenance_raporu, provenance_hash").eq("id", temizExport.id).single();
+    expect(temizKayit?.provenance_hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(temizKayit?.provenance_raporu).not.toBeNull();
+    await expect(temizSatir.getByText("Kanıt zinciri:")).toBeVisible({ timeout: 10_000 });
+
     await temizSatir.getByRole("button", { name: "Onay Talep Et" }).click();
     await expect(adminPage.getByText("Bu export'u siz talep ettiniz")).toBeVisible({ timeout: 10_000 });
 
@@ -119,6 +128,14 @@ test("DORA RoI export: oturumsuz 401, engelleyici-sorun-blok, maker-checker onay
     await denetciPage.goto(proofUrl);
     await expect(denetciPage.getByText("Export özeti")).toBeVisible({ timeout: 10_000 });
     await expect(denetciPage.getByText(/Snapshot hash'i/)).toBeVisible();
+
+    // 10) 37 Tez Dikey B, Faz 4: Proof Room'da ledgerDurumu + alan bazlı
+    //     MİNİMİZE provenance özeti (ham iddia/kaynak metni YOK). Karar
+    //     rotası YAYINLANDI sonrası ledgerOutboxDrain'i senkron çağırıyor
+    //     (kontrol-test/[id]/calistir'in aynı deseni) — ANCHORED beklenir.
+    await expect(denetciPage.getByText("Şeffaflık defterinde mühürlü")).toBeVisible({ timeout: 10_000 });
+    await expect(denetciPage.getByText(/Alan bazlı kanıt zinciri/)).toBeVisible();
+    await expect(denetciPage.getByText(/B_01\.01:.*iddia/)).toBeVisible();
     await denetciCtx.close();
   } finally {
     if (olusturulanExportIdleri.length > 0) {

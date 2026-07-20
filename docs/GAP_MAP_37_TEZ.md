@@ -101,9 +101,18 @@ Durum sözlüğü: **TAM** (kullanıcı sonucu uçtan uca teslim + test edilmiş
   koşusu yakalamış ve aynı turda düzeltilmiştir (§1.63 detayı). **DORA RoI
   export motoru (Faz 1-3) artık uçtan uca çalışır durumda: veri modeli →
   export üretimi → maker-checker onay → CSV/XLSX indirme → Proof Room
-  paylaşımı.** Kurucunun talimatı export motoru BİTENE KADAR tek öncelikti;
-  sıradaki adım kurucu kararını bekliyor (Faz 4 kanıt zinciri, ya da Dikey
-  H/D/E/F/G gibi bağımsız bir sıradaki dikey).
+  paylaşımı.** → **§1.64 (20 Temmuz): Faz 4 ✅ — alan bazlı kanıt zinciri
+  (provenance).** Her export alanı, INSERT anında mühürlenen bir provenance
+  raporuna sahip: kaynak durumu (`roi_kaynak_kayitlari`/`ict_service_types`)
+  + ilişkili `assurance_claims`'in EN KÖTÜSÜ — kanıtsız/doğrulanmamış alan
+  YAPISAL OLARAK VERIFIED gösterilemez. SCITT deftere `ROI_EXPORT_PUBLISHED`
+  olarak bağlandı (ledgerDurumu canlı hesaplanır, sahte ANCHORED yok);
+  kaynak sonradan düşerse export `yeniden_inceleme_gerekli` işaretlenir
+  (durum geriye dönük değişmez). Proof Room'a minimize provenance özeti +
+  ledgerDurumu eklendi. **37 Tez Dikey B (Faz 1-4) artık TAM: hukuk/kaynak
+  kilidi → veri modeli → export motoru → kanıt zinciri.** Sıradaki adım
+  kurucu kararını bekliyor (Dikey H/D/E/F/G gibi bağımsız bir sıradaki
+  dikey, ya da M17/M18/M19+ — M16 kapı disiplini korunuyor).
 - **Kabul testi:** tedarikciler.spec.ts + tedarikci-degerlendirme.spec.ts + tedarikci-anket-sablonu.spec.ts + tedarikci-signoff-ledger.spec.ts (mevcut) + bu oturumun yeni testleri.
 
 ## KOS-9 — Harici sinyal, tehdit, fraud ve AML güvencesi

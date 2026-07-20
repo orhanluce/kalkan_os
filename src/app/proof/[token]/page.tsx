@@ -78,6 +78,9 @@ interface ProofVerisi {
     paketHash: string;
     onKontrolRaporu: { sorunlar: { kod: string; seviye: string; mesaj: string }[]; engelleyiciSayisi: number };
     yayinlanmaZamani: string;
+    ledgerDurumu?: string;
+    /** 37 Tez Dikey B, Faz 4: alan bazlı, MİNİMİZE provenance özeti — ham iddia/kanıt içeriği YOK. */
+    provenanceOzeti?: { alanKodu: string; kaynakDurumu: string; genelDurum: string; iddiaSayisi: number }[] | null;
   };
 }
 
@@ -127,6 +130,24 @@ const LEDGER_DURUM_ETIKET: Record<string, string> = {
   DEFTERDE_STH_BEKLIYOR: "Defterde — ağaç başı bekleniyor",
   FAILED: "Mühürleme başarısız",
   KAYITSIZ: "Bu koşu deftere bağlı değil",
+};
+
+// 37 Tez Dikey B, Faz 4: roiExport.provenanceOzeti'nin genelDurum alanı için.
+const PROVENANCE_ROZET: Record<string, SemantikDurum> = {
+  VERIFIED: "success",
+  LEGAL_REVIEW_REQUIRED: "legal-review",
+  UNVERIFIED: "neutral",
+  SURESI_GECMIS_INCELEME_GEREKLI: "warning",
+  REDDEDILDI: "danger",
+  KAYNAK_YOK: "unknown",
+};
+const PROVENANCE_ETIKET: Record<string, string> = {
+  VERIFIED: "Doğrulanmış",
+  LEGAL_REVIEW_REQUIRED: "Hukuki inceleme gerekli",
+  UNVERIFIED: "Doğrulanmamış",
+  SURESI_GECMIS_INCELEME_GEREKLI: "Süresi geçmiş",
+  REDDEDILDI: "Reddedilmiş",
+  KAYNAK_YOK: "Kaynak yok",
 };
 
 export default function ProofRoomPage() {
@@ -309,7 +330,24 @@ export default function ProofRoomPage() {
                   </StatusBadge>
                 ))
               )}
+              <StatusBadge durum={LEDGER_DURUM_SEMANTIK[roiExport.ledgerDurumu ?? "KAYITSIZ"] ?? "unknown"}>
+                {LEDGER_DURUM_ETIKET[roiExport.ledgerDurumu ?? "KAYITSIZ"] ?? roiExport.ledgerDurumu}
+              </StatusBadge>
             </div>
+            {roiExport.provenanceOzeti && roiExport.provenanceOzeti.length > 0 ? (
+              <div className="mt-2 flex flex-col gap-1.5">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Alan bazlı kanıt zinciri (yalnız durum özeti — kaynak/iddia gerekçe metni gösterilmez):
+                </p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {roiExport.provenanceOzeti.map((s, i) => (
+                    <StatusBadge key={`${s.alanKodu}-${i}`} durum={PROVENANCE_ROZET[s.genelDurum] ?? "unknown"}>
+                      {s.alanKodu}: {PROVENANCE_ETIKET[s.genelDurum] ?? s.genelDurum} ({s.iddiaSayisi} iddia)
+                    </StatusBadge>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {roiCsvUrl ? (
                 <a href={roiCsvUrl} download={`kalkan-dora-roi-${roiExport.id}.csv`} className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90">

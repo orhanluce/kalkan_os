@@ -17,6 +17,12 @@ interface OnKontrolSorunu {
   mesaj: string;
 }
 
+type ProvenanceDurum = "VERIFIED" | "LEGAL_REVIEW_REQUIRED" | "UNVERIFIED" | "SURESI_GECMIS_INCELEME_GEREKLI" | "REDDEDILDI" | "KAYNAK_YOK";
+
+interface ProvenanceRaporu {
+  ozet: Partial<Record<ProvenanceDurum, number>>;
+}
+
 interface ExportRun {
   id: string;
   durum: "TASLAK" | "ONAY_TALEP_EDILDI" | "YAYINLANDI" | "REDDEDILDI";
@@ -27,6 +33,9 @@ interface ExportRun {
   onaylayan: string | null;
   red_notu: string | null;
   created_at: string;
+  provenance_raporu: ProvenanceRaporu | null;
+  yeniden_inceleme_gerekli: boolean;
+  yeniden_inceleme_nedeni: string | null;
 }
 
 const DURUM_ROZET: Record<ExportRun["durum"], SemantikDurum> = {
@@ -34,6 +43,24 @@ const DURUM_ROZET: Record<ExportRun["durum"], SemantikDurum> = {
   ONAY_TALEP_EDILDI: "legal-review",
   YAYINLANDI: "success",
   REDDEDILDI: "danger",
+};
+
+const PROVENANCE_ROZET: Record<ProvenanceDurum, SemantikDurum> = {
+  VERIFIED: "success",
+  LEGAL_REVIEW_REQUIRED: "legal-review",
+  UNVERIFIED: "neutral",
+  SURESI_GECMIS_INCELEME_GEREKLI: "warning",
+  REDDEDILDI: "danger",
+  KAYNAK_YOK: "unknown",
+};
+
+const PROVENANCE_ETIKET: Record<ProvenanceDurum, string> = {
+  VERIFIED: "Doğrulanmış",
+  LEGAL_REVIEW_REQUIRED: "Hukuki inceleme gerekli",
+  UNVERIFIED: "Doğrulanmamış",
+  SURESI_GECMIS_INCELEME_GEREKLI: "Süresi geçmiş — inceleme gerekli",
+  REDDEDILDI: "Reddedilmiş",
+  KAYNAK_YOK: "Kaynak yok",
 };
 
 export default function DoraRoiPage() {
@@ -48,7 +75,9 @@ export default function DoraRoiPage() {
     const db = createClient();
     const { data } = await db
       .from("roi_export_runs")
-      .select("id, durum, paket_hash, engelleyici_sorun_sayisi, on_kontrol_raporu, talep_eden, onaylayan, red_notu, created_at")
+      .select(
+        "id, durum, paket_hash, engelleyici_sorun_sayisi, on_kontrol_raporu, talep_eden, onaylayan, red_notu, created_at, provenance_raporu, yeniden_inceleme_gerekli, yeniden_inceleme_nedeni",
+      )
       .order("created_at", { ascending: false });
     setRunlar((data ?? []) as unknown as ExportRun[]);
     setYukleniyor(false);
@@ -163,6 +192,24 @@ export default function DoraRoiPage() {
                   ) : (
                     <span className="pl-1 text-xs text-success">Ön-kontrol: sorun yok</span>
                   )}
+
+                  {r.provenance_raporu ? (
+                    <div className="flex flex-wrap items-center gap-1.5 pl-1">
+                      <span className="text-xs text-muted-foreground">Kanıt zinciri:</span>
+                      {(Object.entries(r.provenance_raporu.ozet) as [ProvenanceDurum, number][])
+                        .filter(([, sayi]) => sayi > 0)
+                        .map(([durum, sayi]) => (
+                          <StatusBadge key={durum} durum={PROVENANCE_ROZET[durum]}>
+                            {PROVENANCE_ETIKET[durum]} ({sayi})
+                          </StatusBadge>
+                        ))}
+                      {r.yeniden_inceleme_gerekli ? (
+                        <span title={r.yeniden_inceleme_nedeni ?? undefined}>
+                          <StatusBadge durum="warning">Yeniden inceleme gerekli</StatusBadge>
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   <div className="flex flex-wrap items-center gap-2 pl-1">
                     {r.durum === "TASLAK" ? (

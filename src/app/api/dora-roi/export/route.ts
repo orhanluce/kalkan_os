@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { canonicalHash, type CanonicalDeger } from "@/lib/canonical";
 import { roiExportOnKontrol, roiSablonSatirlariUret, type RoiExportGirdisi } from "@/lib/roi-export";
+import { roiExportProvenanceOlustur, type RoiExportProvenanceGirdisi } from "@/lib/roi-export-provenance";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
 
@@ -89,6 +90,38 @@ export async function POST() {
   const paket = roiSablonSatirlariUret(girdi);
   const paketHash = await canonicalHash(paket as unknown as CanonicalDeger);
 
+  // Faz 4 — kanıt zinciri: paketle AYNI anda, mevcut 3 doğrulama kaynağından
+  // (roi_kaynak_kayitlari/ict_service_types/assurance_claims) hesaplanır ve
+  // paketle BİRLİKTE mühürlenir (ADR §1, on_kontrol_raporu'nun AYNI deseni).
+  const [{ data: roiKaynaklari }, { data: iddialar }] = await Promise.all([
+    db.from("roi_kaynak_kayitlari").select("sablon_kodu, alan_kodu, dogrulama_durumu"),
+    db
+      .from("assurance_claims")
+      .select("id, hedef_tablo, hedef_id, sonuc, dogrulama_durumu, yururluk_tarihi, yeniden_inceleme_gerekli")
+      .in("hedef_tablo", ["third_party_contracts", "critical_business_services"]),
+  ]);
+  const provenanceGirdi: RoiExportProvenanceGirdisi = {
+    paket,
+    roiKaynaklari: (roiKaynaklari ?? []).map((k) => ({
+      sablonKodu: k.sablon_kodu,
+      alanKodu: k.alan_kodu,
+      dogrulamaDurumu: k.dogrulama_durumu as RoiExportProvenanceGirdisi["roiKaynaklari"][number]["dogrulamaDurumu"],
+    })),
+    ictHizmetTurleri: (hizmetTurleri ?? []).map((h) => ({ kod: h.kod, dogrulamaDurumu: h.dogrulama_durumu as RoiExportProvenanceGirdisi["ictHizmetTurleri"][number]["dogrulamaDurumu"] })),
+    iddialar: (iddialar ?? []).map((i) => ({
+      id: i.id,
+      hedefTablo: i.hedef_tablo,
+      hedefId: i.hedef_id,
+      sonuc: i.sonuc as RoiExportProvenanceGirdisi["iddialar"][number]["sonuc"],
+      dogrulamaDurumu: i.dogrulama_durumu as RoiExportProvenanceGirdisi["iddialar"][number]["dogrulamaDurumu"],
+      yururlukTarihi: i.yururluk_tarihi,
+      yenidenIncelemeGerekli: i.yeniden_inceleme_gerekli,
+    })),
+    asOf,
+  };
+  const provenanceRaporu = roiExportProvenanceOlustur(provenanceGirdi);
+  const provenanceHash = await canonicalHash(provenanceRaporu as unknown as CanonicalDeger);
+
   const { data: kayit, error } = await db
     .from("roi_export_runs")
     .insert({
@@ -98,6 +131,8 @@ export async function POST() {
       paket_hash: paketHash,
       on_kontrol_raporu: onKontrol as unknown as Json,
       engelleyici_sorun_sayisi: onKontrol.engelleyiciSayisi,
+      provenance_raporu: provenanceRaporu as unknown as Json,
+      provenance_hash: provenanceHash,
     })
     .select("id, durum, paket_hash, engelleyici_sorun_sayisi")
     .single();

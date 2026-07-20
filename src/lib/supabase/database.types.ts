@@ -5173,9 +5173,13 @@ export type Database = {
           onaylayan: string | null
           paket: Json
           paket_hash: string
+          provenance_hash: string | null
+          provenance_raporu: Json | null
           red_notu: string | null
           talep_eden: string
           tenant_id: string
+          yeniden_inceleme_gerekli: boolean
+          yeniden_inceleme_nedeni: string | null
         }
         Insert: {
           created_at?: string
@@ -5188,9 +5192,13 @@ export type Database = {
           onaylayan?: string | null
           paket: Json
           paket_hash: string
+          provenance_hash?: string | null
+          provenance_raporu?: Json | null
           red_notu?: string | null
           talep_eden: string
           tenant_id: string
+          yeniden_inceleme_gerekli?: boolean
+          yeniden_inceleme_nedeni?: string | null
         }
         Update: {
           created_at?: string
@@ -5203,9 +5211,13 @@ export type Database = {
           onaylayan?: string | null
           paket?: Json
           paket_hash?: string
+          provenance_hash?: string | null
+          provenance_raporu?: Json | null
           red_notu?: string | null
           talep_eden?: string
           tenant_id?: string
+          yeniden_inceleme_gerekli?: boolean
+          yeniden_inceleme_nedeni?: string | null
         }
         Relationships: [
           {
@@ -8435,6 +8447,7 @@ export type Database = {
       policy_istisna_suresi_dolanlari_isle: { Args: never; Returns: undefined }
       proof_room_goruntule: { Args: { p_token: string }; Returns: Json }
       proof_room_ledger_malzeme: { Args: { p_token: string }; Returns: Json }
+      roi_export_runs_yeniden_inceleme_isle: { Args: never; Returns: undefined }
       simulation_manifest_durumu: {
         Args: { target_manifest_id: string }
         Returns: string

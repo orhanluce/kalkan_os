@@ -823,6 +823,96 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.64 37 Tez Dikey B, Faz 4 — DORA RoI export alanları için kanıt zinciri (provenance) ✅ (20 Temmuz)
+
+Kurucunun 20 Temmuz yedinci talimatı: yayınlanmış her RoI export alanı
+kaynağına ve kanıtına kadar izlenebilir olmalı; hiçbir alan için hukuki/
+güvenlik kesinliği uydurulmamalı. ADR `docs/adr/PR0-37-tez-dikeyB-faz4-
+kanit-zinciri-2026-07-20.md`.
+
+**Mimari (yeni ilişkisel model YOK, talimatın kendi kısıtı):** provenance
+`on_kontrol_raporu`nun (Faz 3) AYNI deseni — export ÜRETİLİRKEN saf bir
+fonksiyon (`src/lib/roi-export-provenance.ts`) mevcut ÜÇ doğrulama
+kaynağından (`roi_kaynak_kayitlari`, `ict_service_types`, `assurance_
+claims`) bir provenance raporu HESAPLAR, INSERT anında `roi_export_runs.
+provenance_raporu` (jsonb) + `provenance_hash` (RFC 8785, `paket_hash`'ten
+AYRI — kural 15) olarak MÜHÜRLENİR. `iddiaGosterimDurumuHesapla` (Dikey C'nin
+`claim-guard.ts`'i) REUSE edildi — ikinci bir "gösterim durumu" motoru İCAT
+EDİLMEDİ. Her satır için `kaynakDurumu` + `iliskiliIddialar`'ın EN KÖTÜSÜ
+(worst-of) `genelDurum`'u belirler — kanıtı olmayan (`iliskiliIddiaSayisi=0`
+VE kaynak VERIFIED değil) bir alan YAPISAL OLARAK asla VERIFIED gösterilemez
+(kural 3/6, kaçış yolu yok).
+
+**SCITT/şeffaflık defteri:** mevcut `ledger_outbox` mekanizması genişletildi
+(`20260719170000`'in AYNI `AFTER UPDATE ... WHEN (durum='YAYINLANDI')`
+deseni, yeni bir entegrasyon yolu İCAT EDİLMEDİ), statement_kind
+`ROI_EXPORT_PUBLISHED`; manifest (`src/lib/roi-export-ledger.ts`) yalnız
+`{exportId, tenantId, paketHash, provenanceHash, yayinlanmaZamani}` taşır —
+HAM İÇERİK DEFTERE GİRMEZ. Karar rotası YAYINLANDI sonrası `ledgerOutboxDrain`
+çağırır (`kontrol-test/[id]/calistir`nin AYNI deseni). `ledgerDurumu` HİÇBİR
+YERDE STORED değil — `artifact_ledger_durumu('roi_export_runs', id)` ile HER
+SORGUDA canlı hesaplanır, SCITT başarısız olursa sahte ANCHORED gösterilemez.
+
+**Yeniden inceleme (kural 9, assurance_claims'in AYNI deseni):**
+`yeniden_inceleme_gerekli`/`yeniden_inceleme_nedeni` eklendi. Motor artık
+mühürlenirken dayanılan GERÇEK kaynak/iddia kimliklerini de kaydediyor
+(`provenance_raporu.izlenenler` — hangi `roi_kaynak_kayitlari` satırı, hangi
+`ict_service_types` kodu, hangi `assurance_claims` id'si) — yeni idempotent
+pg_cron `roi_export_runs_yeniden_inceleme_isle()` bu KESİN kimliklerle canlı
+durumu karşılaştırır (tahmin/yeniden-eşleme YOK). Bir kaynak SUPERSEDED/
+REJECTED olursa export işaretlenir; **durum GERİYE DÖNÜK DEĞİŞTİRİLMEZ**
+(assurance_claims'in AYNI ilkesi — DB guard geçmiş kararı silmez, yalnız
+işaretler).
+
+**Guard forward-fix (aynı turda İKİ gerçek hata bulundu ve düzeltildi,
+dürüstçe kayıtlı):**
+1. `roi_export_run_guard()` (20260720130000, terminal-durum bloğu) YAYINLANDI/
+   REDDEDILDI sonrası TÜM güncellemeleri reddediyordu — reconciliation
+   cron'un `yeniden_inceleme_*` bayrağını yazması da bu yüzden engellenirdi.
+   Guard'a bir İSTİSNA eklendi: terminal kayıtta YALNIZ `yeniden_inceleme_
+   gerekli`/`yeniden_inceleme_nedeni` değişebilir, durum/paket/karar
+   alanlarının HİÇBİRİ (kaçış yolu yok, PGlite testli).
+2. Reconciliation cron'un PGlite testinde İKİ hata art arda yakalandı: (a)
+   `assurance_claims.id` (uuid) ile `jsonb_array_elements_text` çıktısı
+   (text) örtük karşılaştırılıyordu (42883 "operator does not exist") —
+   `::uuid` cast eklendi; (b) `jsonb_to_recordset(...) as ref(sablonKodu
+   text, ...)` alias'ı TIRNAKSIZ yazılmıştı (Postgres küçük harfe çevirir)
+   ama WHERE'deki `ref."sablonKodu"` TIRNAKLI referans veriyordu (42703) —
+   alias da tırnaklandı. **Ders:** cron/otomasyon fonksiyonlarının
+   exception-yutan `begin/exception when others` bloğu, testte "hata yok"
+   ile "iş gerçekten yapıldı"yı ayırt edilemez kılabilir — exception-
+   yutmasız bir debug kopyası kullanılarak gerçek hatalar (42883, 42703)
+   ortaya çıkarıldı. Forward-fix `20260720190000` (henüz push edilmemiş
+   haldeyken düzeltildi, ayrı bir "canlıya zaten gitmiş" migration DEĞİL).
+
+**Proof Room minimizasyonu (kural: ham hassas veri taşınmaz):**
+`proof_room_goruntule`'un roi_export dalına (GÜNCEL sürüm `20260720160000`
+temel alındı, grep ile doğrulandı) `ledgerDurumu` + minimize `provenanceOzeti`
+eklendi (`20260720180000`) — yalnız `{alanKodu, kaynakDurumu, genelDurum,
+iddiaSayisi}`, `iddia_metni`/`guven_gerekcesi`/`kanit_referanslari`'nin HAM
+İÇERİĞİ ASLA dönmez.
+
+**UI:** `/dora-roi` export satırlarına "Kanıt zinciri:" özet rozetleri
+(INSERT anında görünür, YAYINLANDI beklemez) + "Yeniden inceleme gerekli"
+uyarı rozeti eklendi. `/proof/[token]` roiExport dalına ledgerDurumu rozeti +
+alan bazlı minimize provenance rozetleri eklendi (aynı `LEDGER_DURUM_*`
+haritaları reuse edildi).
+
+**Doğrulama:** 11 birim (roi-export-provenance.test.ts) + 13 PGlite RLS/guard
+testi (mühürleme/terminal istisna/SCITT enqueue/reconciliation/cross-tenant)
++ gerçek oturumlu canlı smoke (10/10 kontrol: mühürleme, guard kilidi,
+maker-checker, SCITT enqueue+ANCHORED drenaj, terminal istisna, reconciliation
+cron, Proof Room minimize projeksiyon) + genişletilmiş `dora-roi-export.
+spec.ts` + **TAM e2e takımı (63 spec, 0 skip) sıfır flake ile koştu**.
+Toplam birim testleri: **1288 (121 dosya, +24) + 63 e2e, 0 skip; build
+yeşil.**
+
+**Bilinçli kapsam dışı (talimatın kendi listesi):** yeni LLM sağlayıcısı,
+otomatik hukuki yorum, kaynaksız seed, ZKP, doğrulanmamış DORA alanlarını
+VERIFIED yapmak. `obligations`/`provisions`/`regulatory_sources` zinciri
+RoI export'a DOĞRUDAN bağlanmadı (yalnız `assurance_claims.kaynak_
+obligation_id` ÜZERİNDEN dolaylı bağ — zaten zincire dahil).
+
 ### 1.63 37 Tez Dikey B, Faz 3 kalan dilimi — HTTP doğrulaması + UI + CSV/XLSX + Proof Room kablolaması ✅ (20 Temmuz)
 
 Kurucunun 20 Temmuz altıncı talimatı: Faz 3'ün ilk dilimindeki (§1.62)
