@@ -20,6 +20,7 @@ export async function POST(req: Request) {
     eylem?: "olustur" | "iptal";
     testRunId?: string;
     roiExportRunId?: string;
+    graphSnapshotId?: string;
     linkId?: string;
     gecerlilikGun?: number;
   };
@@ -40,15 +41,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ iptal: true });
   }
 
-  if (!govde.testRunId && !govde.roiExportRunId) {
-    return NextResponse.json({ hata: "testRunId veya roiExportRunId zorunlu." }, { status: 400 });
+  if (!govde.testRunId && !govde.roiExportRunId && !govde.graphSnapshotId) {
+    return NextResponse.json({ hata: "testRunId, roiExportRunId veya graphSnapshotId zorunlu." }, { status: 400 });
   }
 
   const gun = Math.min(Math.max(govde.gecerlilikGun ?? 7, 1), 90);
   const sonGecerlilik = new Date(Date.now() + gun * 24 * 60 * 60 * 1000).toISOString();
 
   let tenantId: string;
-  const govdeYaz: { tenant_id: string; olusturan: string; son_gecerlilik: string; test_run_id?: string; roi_export_run_id?: string } = {
+  const govdeYaz: { tenant_id: string; olusturan: string; son_gecerlilik: string; test_run_id?: string; roi_export_run_id?: string; graph_snapshot_id?: string } = {
     tenant_id: "",
     olusturan: user.id,
     son_gecerlilik: sonGecerlilik,
@@ -62,15 +63,23 @@ export async function POST(req: Request) {
     }
     tenantId = kosu.tenant_id;
     govdeYaz.test_run_id = kosu.id;
-  } else {
+  } else if (govde.roiExportRunId) {
     // Yalnız YAYINLANDI export'lar için link kurulabilir (ADR §5 — bloke
     // varken export zaten YAYINLANDI olamaz, bu ayrıca bir kontrol GEREKMEZ).
-    const { data: exportKaydi } = await db.from("roi_export_runs").select("id, tenant_id, durum").eq("id", govde.roiExportRunId!).eq("durum", "YAYINLANDI").maybeSingle();
+    const { data: exportKaydi } = await db.from("roi_export_runs").select("id, tenant_id, durum").eq("id", govde.roiExportRunId).eq("durum", "YAYINLANDI").maybeSingle();
     if (!exportKaydi) {
       return NextResponse.json({ hata: "Export bulunamadı ya da henüz yayınlanmadı." }, { status: 404 });
     }
     tenantId = exportKaydi.tenant_id;
     govdeYaz.roi_export_run_id = exportKaydi.id;
+  } else {
+    // RLS: başka kiracının anlık görüntüsü burada zaten görünmez.
+    const { data: snapshot } = await db.from("impact_graph_snapshots").select("id, tenant_id").eq("id", govde.graphSnapshotId!).maybeSingle();
+    if (!snapshot) {
+      return NextResponse.json({ hata: "Anlık görüntü bulunamadı." }, { status: 404 });
+    }
+    tenantId = snapshot.tenant_id;
+    govdeYaz.graph_snapshot_id = snapshot.id;
   }
   govdeYaz.tenant_id = tenantId;
 

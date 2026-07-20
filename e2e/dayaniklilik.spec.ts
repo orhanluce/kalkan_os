@@ -101,3 +101,77 @@ test("dayanıklılık etki grafiği: kontrol kenarı (M13 genişlemesi) + M21/M4
     await temizle(db, kurum!.id, [k1.id, k2.id]);
   }
 });
+
+// Dikey D, ilk dilim (docs/adr/PR0-dikeyD-dayaniklilik-etki-grafi-2026-07-20.md):
+// birleşik etki grafı anlık görüntüsü — SPOF tespiti + mühürleme + Proof Room.
+test("dayanıklılık: birleşik etki grafı anlık görüntüsü — SPOF tespiti + Proof Room", async ({ browser }) => {
+  test.setTimeout(120_000);
+  const db = admin();
+  const { data: kurum } = await db.from("tenants").select("id").eq("name", E2E_KURUM_ADI).single();
+  const tenantId = kurum!.id as string;
+
+  await db.from("critical_business_services").delete().eq("tenant_id", tenantId).like("ad", "E2E-GRAF%");
+  const olusturulanSnapshotIdleri: string[] = [];
+
+  const { data: hizmetler, error: hizmetHata } = await db
+    .from("critical_business_services")
+    .insert([
+      { tenant_id: tenantId, ad: "E2E-GRAF Ödeme" },
+      { tenant_id: tenantId, ad: "E2E-GRAF Takas" },
+    ])
+    .select("id, ad");
+  expect(hizmetHata).toBeNull();
+  const h1 = hizmetler!.find((h) => h.ad === "E2E-GRAF Ödeme")!;
+  const h2 = hizmetler!.find((h) => h.ad === "E2E-GRAF Takas")!;
+
+  // İki farklı kritik hizmet AYNI bağımlılık adını paylaşır — SPOF (M13 senaryosu).
+  const { error: bagHata } = await db.from("service_dependencies").insert([
+    { tenant_id: tenantId, critical_service_id: h1.id, ad: "E2E-GRAF Ortak Veri Merkezi", bagimlilik_turu: "TESIS" },
+    { tenant_id: tenantId, critical_service_id: h2.id, ad: "E2E-GRAF Ortak Veri Merkezi", bagimlilik_turu: "TESIS" },
+  ]);
+  expect(bagHata).toBeNull();
+
+  const adminCtx = await browser.newContext();
+  const adminPage = await adminCtx.newPage();
+
+  try {
+    await girisYap(adminPage);
+    await adminPage.goto("/dayaniklilik");
+
+    await adminPage.getByRole("button", { name: "Anlık Görüntü Oluştur" }).click();
+    const sonuc = adminPage.getByTestId("etki-grafi-anlik-goruntu");
+    await expect(sonuc).toBeVisible({ timeout: 15_000 });
+    await expect(sonuc.getByText(/Graf hash'i:/)).toBeVisible();
+    await expect(sonuc.getByText(/E2E-GRAF Ortak Veri Merkezi \(2\)/)).toBeVisible();
+
+    // DB doğrulaması: mühürlü, hash gerçek RFC 8785 formatında.
+    const { data: snapshotlar } = await db.from("impact_graph_snapshots").select("id, graf_hash, spof_raporu").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(1);
+    olusturulanSnapshotIdleri.push(...(snapshotlar ?? []).map((s) => s.id));
+    expect(snapshotlar![0].graf_hash).toMatch(/^[0-9a-f]{64}$/);
+    const spof = snapshotlar![0].spof_raporu as { sistemikNoktalar: { etiket: string }[] };
+    expect(spof.sistemikNoktalar.some((s) => s.etiket === "E2E-GRAF Ortak Veri Merkezi")).toBe(true);
+
+    // Proof Room linki + oturumsuz görüntüleme.
+    await sonuc.getByRole("button", { name: "Proof Room Linki Oluştur" }).click();
+    const proofLink = await adminPage.getByText(/^Proof Room linki:/).textContent();
+    const proofUrl = proofLink!.replace("Proof Room linki: ", "").trim();
+
+    const denetciCtx = await browser.newContext();
+    const denetciPage = await denetciCtx.newPage();
+    await denetciPage.goto(proofUrl);
+    await expect(denetciPage.getByText("Anlık görüntü özeti")).toBeVisible({ timeout: 10_000 });
+    await expect(denetciPage.getByText(/Graf hash'i \(SHA-256\)/)).toBeVisible();
+    await expect(denetciPage.getByText("Hesaplama yöntemi ve varsayımlar")).toBeVisible();
+    await expect(denetciPage.getByText(/kesin\/doğrulanmış bir gerçek DEĞİLDİR/)).toBeVisible();
+    await expect(denetciPage.getByText("E2E-GRAF Ortak Veri Merkezi")).toBeVisible();
+    await expect(denetciPage.getByText("2 kritik hizmeti etkiliyor")).toBeVisible();
+    await denetciCtx.close();
+  } finally {
+    if (olusturulanSnapshotIdleri.length > 0) {
+      await db.from("proof_room_links").delete().in("graph_snapshot_id", olusturulanSnapshotIdleri);
+      await db.from("impact_graph_snapshots").delete().in("id", olusturulanSnapshotIdleri);
+    }
+    await db.from("critical_business_services").delete().eq("tenant_id", tenantId).like("ad", "E2E-GRAF%");
+    await adminCtx.close();
+  }
+});

@@ -28,6 +28,30 @@ import {
 } from "@/lib/etki-analizi";
 import { createClient } from "@/lib/supabase/client";
 import { konsantrasyonAnalizi, type TedarikciGraf } from "@/lib/tedarikci";
+import type { DugumTuru, TekNoktaTespitSonucu, EtkiYayilimSonucu } from "@/lib/impact-graph";
+
+const DUGUM_TUR_ETIKET: Record<DugumTuru, string> = {
+  KRITIK_HIZMET: "Kritik hizmet",
+  BAGIMLILIK: "Bağımlılık",
+  UCUNCU_TARAF: "Üçüncü taraf",
+  ALT_YUKLENICI: "Alt yüklenici",
+  ICT_HIZMETI: "ICT hizmeti",
+  KONTROL: "Kontrol",
+  MEVZUAT: "Mevzuat",
+  TEST: "Test",
+  BULGU: "Bulgu",
+  KANIT: "Kanıt",
+};
+
+interface AnlikGoruntuSonucu {
+  id: string;
+  grafHash: string;
+  olusturulmaZamani: string;
+  dugumSayisi: number;
+  kenarSayisi: number;
+  spofRaporu: TekNoktaTespitSonucu;
+  yayilimRaporu: { baslangicKontrolDugumIdleri: string[]; geri: EtkiYayilimSonucu | null; ileri: EtkiYayilimSonucu | null };
+}
 
 interface Siniflandirma {
   id: string;
@@ -53,6 +77,9 @@ export default function DayaniklilikPage() {
   const [sKategori, setSKategori] = useState("YONETISIM");
   const [sGerekce, setSGerekce] = useState("");
   const [hata, setHata] = useState<string | null>(null);
+  const [anlikGoruntu, setAnlikGoruntu] = useState<AnlikGoruntuSonucu | null>(null);
+  const [anlikGoruntuOlusturuluyor, setAnlikGoruntuOlusturuluyor] = useState(false);
+  const [proofLinki, setProofLinki] = useState<string | null>(null);
 
   const yukle = useCallback(async () => {
     const db = createClient();
@@ -186,6 +213,30 @@ export default function DayaniklilikPage() {
     [yukle],
   );
 
+  const anlikGoruntuOlustur = useCallback(async () => {
+    setHata(null);
+    setProofLinki(null);
+    setAnlikGoruntuOlusturuluyor(true);
+    const res = await fetch("/api/dayaniklilik/graf/anlik-goruntu", { method: "POST" });
+    const govde = (await res.json().catch(() => ({}))) as AnlikGoruntuSonucu & { hata?: string };
+    setAnlikGoruntuOlusturuluyor(false);
+    if (!res.ok) return setHata(govde.hata ?? "Anlık görüntü oluşturulamadı.");
+    setAnlikGoruntu(govde);
+  }, []);
+
+  const proofLinkiOlustur = useCallback(async () => {
+    if (!anlikGoruntu) return;
+    setHata(null);
+    const res = await fetch("/api/proof-room", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ eylem: "olustur", graphSnapshotId: anlikGoruntu.id }),
+    });
+    const govde = (await res.json().catch(() => ({}))) as { url?: string; hata?: string };
+    if (!res.ok || !govde.url) return setHata(govde.hata ?? "Proof Room linki oluşturulamadı.");
+    setProofLinki(govde.url);
+  }, [anlikGoruntu]);
+
   const siniflandirmaOner = useCallback(async () => {
     if (!sSecim) return;
     await eylemGonder({ eylem: "olustur", controlId: sSecim, kategori: sKategori, gerekce: sGerekce.trim() || undefined });
@@ -218,6 +269,66 @@ export default function DayaniklilikPage() {
           {hata}
         </p>
       ) : null}
+
+      {/* Birleşik etki grafı anlık görüntüsü (Dikey D, ilk dilim) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Birleşik etki grafı anlık görüntüsü</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 text-sm">
+          <p className="text-xs text-muted-foreground">
+            Mevzuat/kritik hizmet/ICT hizmeti/üçüncü taraf/alt yüklenici/kontrol/test/bulgu/kanıt arasındaki zincirleme etkiyi TEK bir
+            mühürlü anlık görüntüde birleştirir. Aşağıdaki sonuçlar yapısal bir hesaplamadır, kesin/doğrulanmış gerçek DEĞİLDİR.
+          </p>
+          <Button size="sm" onClick={() => void anlikGoruntuOlustur()} disabled={anlikGoruntuOlusturuluyor}>
+            {anlikGoruntuOlusturuluyor ? "Oluşturuluyor…" : "Anlık Görüntü Oluştur"}
+          </Button>
+          {anlikGoruntu ? (
+            <div data-testid="etki-grafi-anlik-goruntu" className="flex flex-col gap-3 border-t pt-3">
+              <p className="text-xs text-muted-foreground" title={anlikGoruntu.grafHash}>
+                Graf hash&apos;i: {anlikGoruntu.grafHash} · {anlikGoruntu.dugumSayisi} düğüm · {anlikGoruntu.kenarSayisi} kenar
+              </p>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Sistemik tekil noktalar ({anlikGoruntu.spofRaporu.sistemikNoktalar.length}):</p>
+                {anlikGoruntu.spofRaporu.sistemikNoktalar.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Bulunamadı.</p>
+                ) : (
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {anlikGoruntu.spofRaporu.sistemikNoktalar.map((s) => (
+                      <StatusBadge key={s.dugumId} durum="warning">
+                        {DUGUM_TUR_ETIKET[s.tur]}: {s.etiket} ({s.etkilenenKritikHizmetIdleri.length})
+                      </StatusBadge>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {anlikGoruntu.yayilimRaporu.baslangicKontrolDugumIdleri.length > 0 ? (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Açık kritik/yüksek bulgulu kontrollerden etkilenen kritik hizmetler:
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {(anlikGoruntu.yayilimRaporu.geri?.etkilenenler ?? []).map((e) => (
+                      <StatusBadge key={e.dugumId} durum="danger">
+                        {DUGUM_TUR_ETIKET[e.tur]}: {e.etiket}
+                      </StatusBadge>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {proofLinki ? (
+                <a href={proofLinki} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
+                  Proof Room linki: {proofLinki}
+                </a>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => void proofLinkiOlustur()}>
+                  Proof Room Linki Oluştur
+                </Button>
+              )}
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
 
       {/* 8 üst alan kapsam özeti */}
       <Card>

@@ -16,6 +16,7 @@ import type { DetachedImza } from "@/lib/manifest-signature";
 import { createClient } from "@/lib/supabase/client";
 import { roiSablonCsvYap, roiSablonXlsxYap, ROI_EXPORT_UYARI_METNI } from "@/lib/roi-export-serialize";
 import type { RoiSablonPaketi } from "@/lib/roi-export";
+import type { EtkiGrafi, TekNoktaTespitSonucu, EtkiYayilimSonucu, DugumTuru } from "@/lib/impact-graph";
 
 // Proof Room — OTURUMSUZ denetçi/regülatör görünümü (G1; nihai §8).
 //
@@ -82,6 +83,17 @@ interface ProofVerisi {
     /** 37 Tez Dikey B, Faz 4: alan bazlı, MİNİMİZE provenance özeti — ham iddia/kanıt içeriği YOK. */
     provenanceOzeti?: { alanKodu: string; kaynakDurumu: string; genelDurum: string; iddiaSayisi: number }[] | null;
   };
+  /** Dikey D, ilk dilim: kurumsal dayanıklılık etki grafı anlık görüntüsü — kosu/roiExport ile AYRIK dal. */
+  graphSnapshot?: {
+    id: string;
+    graf: EtkiGrafi;
+    grafHash: string;
+    spofRaporu: TekNoktaTespitSonucu;
+    yayilimRaporu: { baslangicKontrolDugumIdleri: string[]; geri: EtkiYayilimSonucu | null; ileri: EtkiYayilimSonucu | null };
+    hesaplamaYontemi: { motorSurumu: string; spofYontemi: string; yayilimYontemi: string; varsayimlar: string[] };
+    iliskiliRoiExportId: string | null;
+    olusturulmaZamani: string;
+  };
 }
 
 /** proof_room_ledger_malzeme RPC'sinin ham dönüşü — yalnız ANCHORED iken leaves/signedStatement/sth dolu. */
@@ -141,6 +153,19 @@ const PROVENANCE_ROZET: Record<string, SemantikDurum> = {
   REDDEDILDI: "danger",
   KAYNAK_YOK: "unknown",
 };
+const DUGUM_TUR_ETIKET: Record<DugumTuru, string> = {
+  KRITIK_HIZMET: "Kritik hizmet",
+  BAGIMLILIK: "Bağımlılık",
+  UCUNCU_TARAF: "Üçüncü taraf",
+  ALT_YUKLENICI: "Alt yüklenici",
+  ICT_HIZMETI: "ICT hizmeti",
+  KONTROL: "Kontrol",
+  MEVZUAT: "Mevzuat",
+  TEST: "Test",
+  BULGU: "Bulgu",
+  KANIT: "Kanıt",
+};
+
 const PROVENANCE_ETIKET: Record<string, string> = {
   VERIFIED: "Doğrulanmış",
   LEGAL_REVIEW_REQUIRED: "Hukuki inceleme gerekli",
@@ -293,6 +318,117 @@ export default function ProofRoomPage() {
       <main className="mx-auto max-w-4xl p-6">
         <h1 className="text-xl font-semibold">Proof Room</h1>
         <p className="mt-2 text-sm text-muted-foreground">Link geçersiz veya süresi dolmuş.</p>
+      </main>
+    );
+  }
+
+  if (veri.graphSnapshot) {
+    const { graphSnapshot } = veri;
+    return (
+      <main className="mx-auto flex max-w-4xl flex-col gap-6 p-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Proof Room — {veri.kurumAdi}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Dayanıklılık etki grafı anlık görüntüsü. Erişim süresi: {new Date(veri.sonGecerlilik).toLocaleString("tr-TR")} · Bu görüntüleme
+            denetim izine kaydedildi.
+          </p>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Anlık görüntü özeti</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            <p>Oluşturulma zamanı: {new Date(graphSnapshot.olusturulmaZamani).toLocaleString("tr-TR")}</p>
+            <p className="text-xs text-muted-foreground" title={graphSnapshot.grafHash}>
+              Graf hash&apos;i (SHA-256): {graphSnapshot.grafHash}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Düğüm sayısı: {graphSnapshot.graf.dugumler.length} · Kenar sayısı: {graphSnapshot.graf.kenarlar.length}
+            </p>
+            {graphSnapshot.iliskiliRoiExportId ? (
+              <p className="text-xs text-muted-foreground">İlişkili DORA RoI export: {graphSnapshot.iliskiliRoiExportId}</p>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Hesaplama yöntemi ve varsayımlar</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-xs text-muted-foreground">
+            <p role="note">
+              Bu sayfadaki bulgular yapısal bir hesaplamanın sonucudur, kesin/doğrulanmış bir gerçek DEĞİLDİR — aşağıdaki yöntem ve
+              varsayımlarla birlikte okunmalıdır.
+            </p>
+            <p>Motor sürümü: {graphSnapshot.hesaplamaYontemi.motorSurumu}</p>
+            <p>{graphSnapshot.hesaplamaYontemi.spofYontemi}</p>
+            <p>{graphSnapshot.hesaplamaYontemi.yayilimYontemi}</p>
+            <ul className="list-inside list-disc">
+              {graphSnapshot.hesaplamaYontemi.varsayimlar.map((v, i) => (
+                <li key={i}>{v}</li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Sistemik tekil noktalar ({graphSnapshot.spofRaporu.sistemikNoktalar.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {graphSnapshot.spofRaporu.sistemikNoktalar.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Grafta paylaşılan (≥2 kritik hizmeti etkileyen) düğüm bulunamadı.</p>
+            ) : (
+              <div className="flex flex-col gap-2 text-sm">
+                {graphSnapshot.spofRaporu.sistemikNoktalar.map((s) => (
+                  <div key={s.dugumId} className="flex flex-wrap items-center gap-2 border-b pb-2 last:border-0">
+                    <StatusBadge durum="warning">{DUGUM_TUR_ETIKET[s.tur]}</StatusBadge>
+                    <span>{s.etiket}</span>
+                    <span className="text-xs text-muted-foreground">{s.etkilenenKritikHizmetIdleri.length} kritik hizmeti etkiliyor</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {graphSnapshot.yayilimRaporu.baslangicKontrolDugumIdleri.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Açık kritik/yüksek bulgulu kontrollerin etki yayılımı</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3 text-sm">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Bu kontroller bozulursa etkilenecek düğümler (yukarı yönde):</p>
+                {graphSnapshot.yayilimRaporu.geri?.etkilenenler.length ? (
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {graphSnapshot.yayilimRaporu.geri.etkilenenler.map((e) => (
+                      <StatusBadge key={e.dugumId} durum="danger">
+                        {DUGUM_TUR_ETIKET[e.tur]}: {e.etiket}
+                      </StatusBadge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Yukarı yönde etkilenen düğüm bulunamadı.</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Kanıt/test zinciri (aşağı yönde):</p>
+                {graphSnapshot.yayilimRaporu.ileri?.etkilenenler.length ? (
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {graphSnapshot.yayilimRaporu.ileri.etkilenenler.map((e) => (
+                      <StatusBadge key={e.dugumId} durum="info">
+                        {DUGUM_TUR_ETIKET[e.tur]}: {e.etiket}
+                      </StatusBadge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Aşağı yönde bağlı düğüm bulunamadı.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
       </main>
     );
   }

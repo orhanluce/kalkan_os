@@ -64,7 +64,39 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (20 Temmuz — Dikey B Faz 1-4 TAMAM, kanıt zinciri dahil)
+## 0c. GERÇEK DURUM (20 Temmuz — Dikey B Faz 1-4 TAMAM + Dikey D ilk dilim TAMAM)
+- **20 Temmuz SEKİZİNCİ talimatı: Dikey D ilk dilim TAMAM (§1.65) —
+  Kurumsal Dayanıklılık ve Kritik Hizmet Bağımlılık Grafiği.** Grep sweep
+  gerçek boşluğu KÜÇÜLTTÜ: Dikey 5 zaten kritik-hizmet grafının çoğunu
+  inşa etmişti — yeni bir "graf DB'si" KURULMADI, `src/lib/impact-graph.ts`
+  (YENİ saf motor) 9 dağınık kenar kaynağını (`critical_business_services`/
+  `service_dependencies`/`third_parties`/`fourth_parties`/`ict_service_
+  types`/`controls`/`obligations`/`control_test_definitions`/`findings`/
+  `evidences`) TEK bir kanonik düğüm/kenar projeksiyonuna birleştirdi.
+  `tekilNoktaAnalizi` (M13) ve `konsantrasyonAnalizi` (M35) TEKRARLANMADI —
+  `tekNoktaTespitiTamGraf` ilkelerini TEK bir BFS ile tüm düğüm türlerine
+  (çok-atlamalı dahil) genelleştirdi; `etkiYayilimi` açık kritik/yüksek
+  bulgulu kontrollerden otomatik başlayan çok-atlamalı yayılım hesaplar
+  (geri: etkilenen kritik hizmet/mevzuat; ileri: kanıt/test zinciri).
+  **Bulunup düzeltilen gerçek hata (unit testte yakalandı, canlıya gitmeden):**
+  BAGIMLILIK düğümleri ilk taslakta satır id'siyle kimliklendiriliyordu —
+  aynı fiziksel bağımlılığı (ör. "Ana Veri Merkezi") paylaşan iki kritik
+  hizmetin iki AYRI satırı iki AYRI düğüme dönüşüp SPOF tespitinin asıl
+  amacını kırıyordu; düğüm kimliği normalize ada çevrildi (`tekilNoktaAnalizi`
+  M13 kuralı). Mühürlü artefakt `impact_graph_snapshots` (`20260720200000`)
+  — maker-checker YOK (uyum iddiası değil, deterministik hesaplama fotoğrafı),
+  **immutable by design** (UPDATE trigger'ı service_role dahil her zaman
+  reddeder — `test_runs`'ın 20260717230001 dersi). Proof Room üçüncü dal
+  (`20260720210000`, GÜNCEL `proof_room_goruntule` — `20260720180000` —
+  temel alındı, Faz 4 dersi bir kez daha uygulandı). "AI sonucu kesin gerçek
+  DEĞİLDİR" kuralı her sonuçta `hesaplamaYontemi` ile ayrı gösterildi.
+  `/dayaniklilik` + `/proof/[token]` UI'ı, 17 birim + 13 PGlite testi +
+  gerçek oturumlu canlı smoke + yeni Chromium e2e (SPOF+Proof Room) yeşil.
+  **TAM e2e takımı (64 spec) — yalnız `tema.spec.ts` tam takımda tek seferlik
+  zamanlama flake'i gösterdi, izole koşuda yeşil (bu dikeyle İLGİSİZ).**
+  **1318 birim (123 dosya) + 64 e2e; build yeşil.** Sıradaki adım kurucu
+  kararını bekliyor: Dikey D sonraki dilim (süreç/varlık/uygulama ayrı
+  düğüm tipleri, RTO/RPO-gerçek-test farkı) ya da başka bir dikey.
 - **20 Temmuz YEDİNCİ talimatı: Dikey B Faz 4 TAMAM (§1.64) — DORA RoI export
   alanları için kanıt zinciri (provenance).** Yeni ilişkisel model YOK
   (talimatın kendi kısıtı) — export ÜRETİLİRKEN saf motor (`src/lib/roi-
@@ -182,15 +214,16 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   Dikey A BİTTİ (§1.56). Dikey B'nin KEŞİF adımı (§1.57) + İLK MİGRATİON
   DİLİMİ (§1.58 — `tenant_legal_identity` + `roi_kaynak_kayitlari`, İÇERİK
   SEED'İ YOK) BİTTİ.
-- **BİR SONRAKİ OTURUM ÖNCE `docs/GAP_MAP_37_TEZ.md` + `docs/adr/PR0-37-tez-
-  dikeyB-faz4-kanit-zinciri-2026-07-20.md` OKUMALI** — kurucunun 20 Temmuz
-  talimatı Dikey B export'u BİTENE KADAR tek öncelik ilan etti. **Faz 1-4
-  TAMAMEN BİTTİ (§1.60-§1.64): DORA RoI export motoru uçtan uca çalışır VE
-  alan bazlı kanıt zinciri taşır** — veri modeli → export üretimi →
-  maker-checker onay → CSV/XLSX indirme → Proof Room paylaşımı → provenance
-  mühürleme + SCITT bağlama + reconciliation, hepsi gerçek HTTP+UI+e2e+canlı
-  smoke ile doğrulandı. **37 Tez Dikey B TAM.** Sıradaki adım kurucu kararını
-  bekliyor: Gap Map'teki bağımsız bir sıradaki dikey (D/E/F/G/H).
+- **BİR SONRAKİ OTURUM ÖNCE `docs/GAP_MAP_37_TEZ.md` + `docs/adr/PR0-dikeyD-
+  dayaniklilik-etki-grafi-2026-07-20.md` OKUMALI** — kurucunun 20 Temmuz
+  sekizinci talimatı Dikey D'nin ilk dilimini TAMAMEN BİTİRDİ (§1.65):
+  birleşik etki grafı (mevzuat/kritik hizmet/ICT hizmeti/üçüncü taraf/alt
+  yüklenici/kontrol/test/bulgu/kanıt), çok-atlamalı SPOF tespiti, otomatik
+  yayılım hesaplaması, mühürlü immutable snapshot, Proof Room üçüncü dalı —
+  hepsi gerçek PGlite+canlı smoke+e2e ile doğrulandı. **37 Tez Dikey B (Faz
+  1-4) de zaten TAM idi (§1.60-§1.64).** Sıradaki adım kurucu kararını
+  bekliyor: Dikey D sonraki dilim (süreç/varlık/uygulama ayrı düğüm tipleri,
+  RTO/RPO-gerçek-test farkı) ya da Gap Map'teki bağımsız bir sıradaki dikey.
 - **Remote (origin/main) HEAD:** `c0ea1c0` (§1.64: Dikey B Faz 4 — DORA RoI
   export alanları için kanıt zinciri/provenance, SCITT bağlama, reconciliation
   cron, Proof Room minimize projeksiyonu; **37 Tez Dikey B Faz 1-4 TAM**) +

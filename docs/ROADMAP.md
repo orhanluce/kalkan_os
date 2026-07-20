@@ -823,6 +823,78 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.65 Dikey D, ilk dilim — Kurumsal Dayanıklılık ve Kritik Hizmet Bağımlılık Grafiği ✅ (20 Temmuz)
+
+Kurucunun 20 Temmuz sekizinci talimatı: mevzuat, kritik hizmet, ICT hizmeti,
+üçüncü taraf, alt yüklenici, kontrol, test, bulgu ve kanıt arasındaki
+zincirleme etkiyi hesaplayan birleşik bir etki grafiği. ADR
+`docs/adr/PR0-dikeyD-dayaniklilik-etki-grafi-2026-07-20.md`.
+
+**Grep sweep bulgusu (talimatın kendi kural 1'i):** bu iş sanıldığından çok
+daha az boş alan buldu — **Dikey 5 (nihai talimat v3.3 §8.0) zaten kritik-
+hizmet grafının önemli bölümünü inşa etmişti**: `critical_business_services`/
+`service_dependencies` (M13), `critical_service_controls`/`control_
+resilience_domains` (Dikey 5), `third_party_contract_critical_services`
+(Dikey B). Yeni bir "graf DB'si" KURULMADI — kenarlar zaten vardı, dağınıktı.
+
+**Saf motor (`src/lib/impact-graph.ts`, YENİ):** `etkiGrafiProjekteEt` 9
+dağınık kenar kaynağını (kritik hizmet→bağımlılık/üçüncü-taraf/kontrol,
+üçüncü-taraf→alt-yüklenici/ICT-hizmeti, mevzuat→kontrol, kontrol→test,
+test→bulgu/kanıt) TEK bir kanonik düğüm/kenar yapısına birleştirir.
+`tekilNoktaAnalizi` (M13) ve `konsantrasyonAnalizi` (M35) TEKRARLANMADI —
+`tekNoktaTespitiTamGraf` bu ikisinin ilkesini ("≥2 farklı kritik hizmetin
+paylaştığı düğüm = sistemik risk") TEK bir BFS traversal'ıyla TÜM düğüm
+türlerine (çok-atlamalı dahil) genelleştirir. `etkiYayilimi` çok-atlamalı
+BFS ile yayılım hesaplar (`geri`: kontrol bozulursa etkilenen kritik hizmet/
+mevzuat; `ileri`: kontrolün kanıt/test zinciri) — otomatik olarak açık
+kritik/yüksek bulgulu kontrollerden başlar.
+
+**Bulunup düzeltilen gerçek hata (canlıya gitmeden, unit testte yakalandı):**
+BAGIMLILIK düğümleri ilk taslakta `service_dependencies` satır id'siyle
+kimliklendiriliyordu — bu, aynı fiziksel bağımlılığı (ör. "Ana Veri Merkezi")
+paylaşan iki farklı kritik hizmetin İKİ AYRI satırını İKİ AYRI düğüme
+dönüştürüp SPOF tespitinin asıl amacını kırıyordu. Düğüm kimliği normalize
+ada (`tekilNoktaAnalizi`'nin M13 kuralı) çevrildi.
+
+**"AI sonucu kesin gerçek olarak gösterilmemeli":** her sonuç
+`hesaplamaYontemi` sabit açıklaması taşır; UI "yapısal erişilebilirlik
+hesaplaması" der, "doğrulanmış gerçek" DEMEZ. Eksik veri (`fourth_parties.
+bilinmiyor`) `BILINMIYOR` yer tutucusuyla kalır, ad UYDURULMAZ.
+
+**Mühürlü artefakt (`impact_graph_snapshots`, `20260720200000`):**
+`roi_export_runs`'ın Faz 3 mühürleme deseni AMA maker-checker YOK (uyum
+iddiası değil, deterministik hesaplamanın fotoğrafı — assurance_claims'in
+"kesin hüküm" sorunuyla karışmaz). **İmmutable by design:** UPDATE trigger'ı
+service_role dahil HER ZAMAN reddeder (`test_runs`'ın 20260717230001 dersi —
+yalnız `revoke` service_role'ü durdurmaz). Cross-tenant guard:
+`iliskili_roi_export_run_id` (DORA export bağlantısı) doluysa AYNI kiracıya
+ait olmalı.
+
+**Proof Room üçüncü dal (`20260720210000`):** `proof_room_links.graph_
+snapshot_id`, polimorfik "tek hedef" kısıtı üçe genişledi. `proof_room_
+goruntule` GÜNCEL sürüm (`20260720180000`, grep doğrulandı — Faz 4'ün
+dersinin bir kez daha uygulanması) temel alındı. Graf minimizasyona
+GEREK DUYMAZ (assurance_claims'ten fark: yalnız kimlik/ad/tur taşır, ham
+gerekçe metni yok).
+
+**UI:** `/dayaniklilik`'e "Birleşik etki grafı anlık görüntüsü" kartı
+(oluştur → hash/SPOF/yayılım özeti → Proof Room linki). `/proof/[token]`
+üçüncü dal: anlık görüntü özeti + "hesaplama yöntemi ve varsayımlar" bölümü
+(ayrık, "kesin gerçek değildir" notu) + SPOF + yayılım rozetleri.
+
+**Doğrulama:** 17 birim (impact-graph.test.ts) + 13 PGlite RLS/immutable/
+cross-tenant/Proof Room testi + gerçek oturumlu canlı smoke (mühürleme,
+immutability, Proof Room dalı) + yeni Chromium e2e (SPOF tespiti + Proof
+Room oturumsuz görüntüleme, gerçek `service_dependencies` verisiyle) +
+**TAM e2e takımı (64 spec) — yalnız `tema.spec.ts` izole koşuda yeşil geçen,
+tam takımda tek seferlik zamanlama flake'i gösterdi (bu dikeyle İLGİSİZ,
+tema/çerez mantığına dokunulmadı).** **1318 birim (123 dosya) + 64 e2e;
+build yeşil.**
+
+**Bilinçli kapsam dışı:** sözleşme-düzeyi graf granülerliği, RTO/RPO
+zenginleştirmesi, interaktif düğüm-seçerek-sorgu UI'ı, 29 alt kategori,
+SCITT şeffaflık defterine bağlama (talimatın kendi listesinde yok).
+
 ### 1.64 37 Tez Dikey B, Faz 4 — DORA RoI export alanları için kanıt zinciri (provenance) ✅ (20 Temmuz)
 
 Kurucunun 20 Temmuz yedinci talimatı: yayınlanmış her RoI export alanı

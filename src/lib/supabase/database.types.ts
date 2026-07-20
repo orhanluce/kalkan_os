@@ -3242,6 +3242,67 @@ export type Database = {
           },
         ]
       }
+      impact_graph_snapshots: {
+        Row: {
+          created_at: string
+          graf: Json
+          graf_hash: string
+          hesaplama_yontemi: Json
+          id: string
+          iliskili_roi_export_run_id: string | null
+          olusturan: string | null
+          spof_raporu: Json
+          tenant_id: string
+          yayilim_raporu: Json
+        }
+        Insert: {
+          created_at?: string
+          graf: Json
+          graf_hash: string
+          hesaplama_yontemi: Json
+          id?: string
+          iliskili_roi_export_run_id?: string | null
+          olusturan?: string | null
+          spof_raporu: Json
+          tenant_id: string
+          yayilim_raporu: Json
+        }
+        Update: {
+          created_at?: string
+          graf?: Json
+          graf_hash?: string
+          hesaplama_yontemi?: Json
+          id?: string
+          iliskili_roi_export_run_id?: string | null
+          olusturan?: string | null
+          spof_raporu?: Json
+          tenant_id?: string
+          yayilim_raporu?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impact_graph_snapshots_iliskili_roi_export_run_id_fkey"
+            columns: ["iliskili_roi_export_run_id"]
+            isOneToOne: false
+            referencedRelation: "roi_export_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impact_graph_snapshots_olusturan_fkey"
+            columns: ["olusturan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impact_graph_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       impact_tolerances: {
         Row: {
           created_at: string
@@ -4661,6 +4722,7 @@ export type Database = {
       proof_room_links: {
         Row: {
           created_at: string
+          graph_snapshot_id: string | null
           id: string
           iptal_edildi: boolean
           olusturan: string | null
@@ -4672,6 +4734,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          graph_snapshot_id?: string | null
           id?: string
           iptal_edildi?: boolean
           olusturan?: string | null
@@ -4683,6 +4746,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          graph_snapshot_id?: string | null
           id?: string
           iptal_edildi?: boolean
           olusturan?: string | null
@@ -4693,6 +4757,13 @@ export type Database = {
           token?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "proof_room_links_graph_snapshot_id_fkey"
+            columns: ["graph_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "impact_graph_snapshots"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "proof_room_links_olusturan_fkey"
             columns: ["olusturan"]

@@ -25,14 +25,14 @@ Durum sözlüğü: **TAM** (kullanıcı sonucu uçtan uca teslim + test edilmiş
 
 ## KOS-2 — Kritik hizmet ve dayanıklılık grafiği
 
-- **Modül/Gate:** M13 (`critical_business_services`/`impact_tolerances`/`service_dependencies`) + Dikey 5 (M21/M42, `control_resilience_domains`/`critical_service_controls`) + `src/lib/etki-analizi.ts`.
-- **Dosyalar:** `20260719040000_critical_service.sql`, `20260719210000_resilience_taxonomy.sql`, `/kritik-hizmetler`, `/dayaniklilik`.
-- **Durum: KISMİ.**
-- **Eksik kullanıcı sonucu:** talimatın istediği tam zincir — kritik hizmet → **süreç** → **varlık** → **uygulama/altyapı** → **veri** → **kişi/tesis** → tedarikçi → kontrol/test — bugün TEK SEVİYE bir kenar: `service_dependencies.bagimlilik_turu` (SISTEM/EKIP/TESIS/TEDARIKCI/BULUT, düz metin `ad`, opsiyonel `third_party_id`). Çok-hoplu (multi-hop) graf yok; "süreç"/"varlık"/"uygulama" ayrı varlık tipleri olarak modellenmedi. Kapasite/kurtarma senaryosu bağı yok (simülasyon M7-M9 ile bağlanmadı).
-- **Gerekli şema/RLS/invariant:** `service_dependencies`'i tip-bazlı ayrı tablolara bölmeden (kural: paralel graf kurma) kenar tipini genişletmek — yeni bir `depends_on` self-referencing kenar (bagimlilik→bagimlilik) ile çok-hoplu zincir; RTO/RPO ile GERÇEK test sonucu (kontrol testi/tatbikat) arasında fark raporu.
+- **Modül/Gate:** M13 (`critical_business_services`/`impact_tolerances`/`service_dependencies`) + Dikey 5 (M21/M42, `control_resilience_domains`/`critical_service_controls`) + **Dikey D ilk dilim ✅ (§1.65, 20 Temmuz) — birleşik etki grafı projeksiyonu + mühürlü snapshot + Proof Room bağlantısı.**
+- **Dosyalar:** `20260719040000_critical_service.sql`, `20260719210000_resilience_taxonomy.sql`, `20260720200000_impact_graph_snapshots.sql`, `20260720210000_proof_room_graph_snapshot_dali.sql`, `src/lib/impact-graph.ts`, `/kritik-hizmetler`, `/dayaniklilik`.
+- **Durum: KISMİ → İLERLEDİ (çok-hoplu birleşik graf + SPOF + yayılım VAR; süreç/varlık/uygulama ayrı varlık tipleri hâlâ YOK).**
+- **Dikey D'nin kapattığı boşluk:** artık kritik hizmet → bağımlılık/üçüncü-taraf/kontrol → mevzuat/test → bulgu/kanıt TEK bir kanonik grafta (`etkiGrafiProjekteEt`), ÇOK-ATLAMALI SPOF tespiti (`tekNoktaTespitiTamGraf` — `tekilNoktaAnalizi`+`konsantrasyonAnalizi`'nin ilkesini tüm düğüm türlerine genelleştirir) ve otomatik yayılım (`etkiYayilimi`, açık kritik/yüksek bulgulu kontrollerden başlar) VAR. Sonuç mühürlü bir Proof Room artefaktı (`impact_graph_snapshots`, immutable).
+- **Hâlâ eksik kullanıcı sonucu:** "süreç"/"varlık"/"uygulama/altyapı"/"veri"/"kişi/tesis" AYRI varlık tipleri olarak modellenmedi (bugün tek `BAGIMLILIK` düğüm türü, `service_dependencies.bagimlilik_turu` etiketiyle); sözleşme-düzeyi graf granülerliği yok (vendor→ICT-hizmet-türü özetlenmiş); RTO/RPO ile GERÇEK test sonucu (tatbikat, M7-M9) arasında fark raporu yok; interaktif düğüm-seçerek-sorgu UI'ı yok (yayılım şimdilik yalnız otomatik, açık-bulgu tetiklemeli).
 - **Mevzuat/kaynak statüsü:** 8 üst alan THESIS_DERIVED zaten VERIFIED disiplininde; **29 alt kategori KAYNAK BEKLİYOR** (talimat §4 Dikey G alt bölümü, kaynak repo'da yok — uydurulmayacak, aynen CLAUDE.md kararı).
-- **Önerilen dikey:** Dikey G (bu talimatın sırasında Dikey A'dan SONRA) — çok-hoplu zincir + RTO/RPO-gerçek-test farkı; 29 kategori KAYNAK_BEKLİYOR olarak şemada yer tutar, seed edilmez.
-- **Kabul testi:** dayaniklilik.spec.ts genişler (yeni kenar tipi + fark raporu).
+- **Önerilen dikey:** Dikey D sonraki dilim — süreç/varlık/uygulama ayrı düğüm tipleri (self-referencing çok-hoplu zincir), sözleşme-düzeyi granülerlik, RTO/RPO-gerçek-test farkı, interaktif sorgu; 29 kategori KAYNAK_BEKLİYOR olarak şemada yer tutar, seed edilmez.
+- **Kabul testi:** dayaniklilik.spec.ts genişledi (SPOF tespiti + Proof Room anlık görüntü akışı) — sonraki dilimde yeni kenar tipi + fark raporu için TEKRAR genişler.
 
 ## KOS-3 — Kontrol/test/kanıt motoru
 
