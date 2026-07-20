@@ -371,6 +371,43 @@ describe("sod_import_rollbacklari RLS + yetki sınırları", () => {
     ).rejects.toThrow();
   });
 
+  it("doğrudan INSERT ile durum='UYGULANDI' yazarak maker-checker atlanamaz", async () => {
+    const { manifestId } = await applyKur(seed.A.tenantId, seed.A.userId);
+    // Saldırı: talep eden kendi kaydını doğrudan UYGULANDI olarak, kendini
+    // onaylayan yaparak INSERT etmeyi dener (UPDATE guard'ını hiç tetiklemez).
+    await expect(
+      db.asUser(
+        seed.A.userId,
+        `insert into public.sod_import_rollbacklari
+           (tenant_id, manifest_id, gerekce, talep_eden, onaylayan, durum, uygulandi_at)
+         values ($1, $2, 'x', $3, $3, 'UYGULANDI', now())`,
+        [seed.A.tenantId, manifestId, seed.A.userId],
+      ),
+    ).rejects.toThrow(/TALEP_EDILDI/);
+
+    // REDDEDILDI ile de aynı şekilde reddedilir.
+    await expect(
+      db.asUser(
+        seed.A.userId,
+        `insert into public.sod_import_rollbacklari
+           (tenant_id, manifest_id, gerekce, talep_eden, durum)
+         values ($1, $2, 'x', $3, 'REDDEDILDI')`,
+        [seed.A.tenantId, manifestId, seed.A.userId],
+      ),
+    ).rejects.toThrow(/TALEP_EDILDI/);
+
+    // Karar alanları TALEP_EDILDI ile birlikte önceden doldurulamaz.
+    await expect(
+      db.asUser(
+        seed.A.userId,
+        `insert into public.sod_import_rollbacklari
+           (tenant_id, manifest_id, gerekce, talep_eden, onaylayan)
+         values ($1, $2, 'x', $3, $3)`,
+        [seed.A.tenantId, manifestId, seed.A.userId],
+      ),
+    ).rejects.toThrow(/Karar alanlari/);
+  });
+
   it("istemci UPDATE/DELETE edemez; geri-al RPC'sini authenticated çağıramaz", async () => {
     const { manifestId } = await applyKur(seed.A.tenantId, seed.A.userId);
     const talepId = await talepAc(seed.A.tenantId, manifestId, seed.A.userId);
