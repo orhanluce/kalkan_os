@@ -64,7 +64,27 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (20 Temmuz — Dikey B Faz 2 TAMAM (ilk dilim + kalan) + sistemik dört-göz bug'ı bulundu/düzeltildi)
+## 0c. GERÇEK DURUM (20 Temmuz — Dikey B Faz 3 ilk dilim TAMAM (export motoru) + iki paralel oturum başarıyla birleşti)
+- **20 Temmuz DÖRDÜNCÜ talimatı: Dikey B Faz 3 ilk dilim TAMAM (§1.62) — DORA
+  RoI Export Motoru.** Saf motor (`src/lib/roi-export.ts`) + `roi_export_runs`
+  (sealed snapshot + maker-checker yayın onayı + export-öncesi-engelleme) +
+  Proof Room şema genişletmesi + iki API rotası. UI YOK, `/api/proof-room`
+  RPC'si roi_export_run_id'yi henüz kabul etmiyor (bilinçli, sonraki dilim).
+  **API rota katmanı yalnız typecheck/lint ile doğrulandı** (tarayıcı aracı
+  oturum açma adımında yanıt vermedi) — altındaki DB katmanı ve saf motor
+  ayrı ayrı canlı/PGlite ile tam doğrulandı, rotalar ince sarmalayıcı.
+- **PARALEL OTURUM NOTU (dürüstçe, önemli):** bu dikeyin guard'ını yazarken
+  `sod_import_rollbacklari`'nda AYNI SINIF bir dört-göz INSERT-bypass'ı
+  bulundu (guard yalnız `before update`, INSERT hiç kontrol edilmiyordu).
+  `spawn_task` ile AYRI bir arka plan görevine devredildi (bu dikeyin
+  kapsamı dışı). O görev BU OTURUM SÜRERKEN, AYNI git çalışma dizininde
+  (izole worktree DEĞİL) bağımsız çalıştı ve `dd8596d`/`89c6c5d` commit'lerini
+  DOĞRUDAN `origin/main`'e push etti — benim kendi commit'lerimden ÖNCE.
+  Çakışma OLMADI (git geçmişi lineer birleşti, `git status` "up to date"
+  gösterdi), ama bu iki ajan oturumunun AYNI repo+AYNI canlı Supabase'e
+  eşzamanlı yazdığı anlamına geliyor — ileride benzer bir durumda dikkatli
+  olunmalı (örn. iki migration'ın çakışan timestamp'i, ya da bir db:push'un
+  diğerinin şemasını yarım görmesi riski; bu seferinde gerçekleşmedi).
 - **20 Temmuz ÜÇÜNCÜ talimatı: Dikey B Faz 2'nin KALANI TAMAM (§1.61).**
   `third_parties`/`third_party_contracts`/`fourth_parties`/`tenant_legal_
   identity` RoI alanlarıyla GENİŞLETİLDİ (yeni tablo ailesi yok, ADR
@@ -115,15 +135,22 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DİLİMİ (§1.58 — `tenant_legal_identity` + `roi_kaynak_kayitlari`, İÇERİK
   SEED'İ YOK) BİTTİ.
 - **BİR SONRAKİ OTURUM ÖNCE `docs/GAP_MAP_37_TEZ.md` + `docs/adr/PR0-37-tez-
-  dikeyB-export-2026-07-20.md` OKUMALI** — kurucunun 20 Temmuz talimatı Dikey
-  B export'u BİTENE KADAR tek öncelik ilan etti; Dikey C'nin ML-eval kalanı,
-  Dikey D/E/F/G/H ve diğer her şey BEKLİYOR. **Faz 2 (veri modeli) TAMAMEN
-  BİTTİ (§1.60 ilk dilim + §1.61 kalan dilim).** Sıradaki adım Faz 3: export
-  motoru (resmî DORA RoI şablonlarına uygun CSV/XLSX/JSON, eksik alan/
-  doğrulanmamış kaynak/tutarsızlık export-öncesi engelleme, dört-göz yayın
-  onayı, export hash+zaman damgası+Proof Room bağlantısı) — kurucunun kendi
-  talimatı gereği küçük, test edilebilir dilimlere bölünmeli.
-- **Remote (origin/main) HEAD:** `0319296` (§1.61: Dikey B
+  dikeyB-faz3-export-2026-07-20.md` OKUMALI** — kurucunun 20 Temmuz talimatı
+  Dikey B export'u BİTENE KADAR tek öncelik ilan etti. **Faz 1+2 TAMAMEN
+  BİTTİ. Faz 3'ün İLK DİLİMİ de BİTTİ (§1.62): saf motor + roi_export_runs
+  (sealed+maker-checker) + Proof Room şema genişletmesi + iki API rotası,
+  UI YOK.** Sıradaki adım Faz 3'ün kalanı: UI (`/dora-roi` veya benzeri —
+  taslak listesi, on-kontrol raporu görünümü, onay talebi/karar akışı),
+  `/api/proof-room` rotasının roi_export_run_id'yi kabul etmesi, CSV/XLSX
+  serileştirme (founder kararı gerekebilir — yeni bağımlılık), ardından Faz 4
+  (kanıt zinciri) + Faz 5 (kurumsal arayüz) — kurucunun kendi talimatı gereği
+  küçük dilimlere bölünmeli.
+- **Remote (origin/main) HEAD:** `7d46d7f` (§1.62: Dikey B Faz 3
+  ilk dilim — DORA RoI export motoru, roi_export_runs maker-checker+seal,
+  Proof Room şema genişletmesi) + DEVAM SHA commit'i. Öncesi `89c6c5d`/
+  `dd8596d` (PARALEL OTURUM: sod_import_rollbacklari INSERT-bypass forward-
+  fix — bu dikeyin yan bulgusu, ayrı görev olarak tamamlandı). Öncesi
+  `0319296` (§1.61: Dikey B
   Faz 2 kalan dilimi — kurum kimliği/sözleşme/alt-yüklenici RoI alanları +
   açık kritik-fonksiyon mapping tablosu, tier'dan ayrık) + DEVAM SHA commit'i.
   Öncesi `61a2a5d` (§1.60: Dikey B Faz 1
@@ -156,8 +183,13 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   DSAR), `94e4748` (G3 tutarlılık), `ed62f49` (G3 SCITT), `64d9a35` (G8/M40).
   Push edilmemiş commit YOK.
 - **Deploy health:** `/health/ready` → `{"durum":"hazir","supabase":"erisilebilir"}`.
-- **Test tabanı: 1220 birim (118 dosya) + 62 e2e (değişmedi — §1.61'de UI
-  yok), 0 skip; build exit 0.** (§1.61: +12 PGlite birim, yeni `rls-dikeyB-
+- **Test tabanı: 1251 birim (118 dosya, +2 yeni + paralel oturumun SoD
+  eklemeleri) + 62 e2e (değişmedi — §1.62'de UI yok), 0 skip; build exit 0.**
+  (§1.62: +30 PGlite/saf birim — 15 `roi-export.test.ts` (saf motor) + 15
+  `rls-roi-export-runs.test.ts` (INSERT-bypass regresyonu + maker-checker +
+  export-öncesi-engelleme + Proof Room polimorfik hedef). Tam takım koşuldu,
+  sıfır regresyon — paralel SoD oturumunun eklemeleri dahil.)
+  (§1.61: +12 PGlite birim, yeni `rls-dikeyB-
   faz2-kalan.test.ts`. Tam takım koşuldu, sıfır regresyon.)
   (§1.60'ta UI
   yok), 0 skip; build exit 0.** (§1.60: +25 PGlite birim — yeni `rls-ict-
