@@ -1,6 +1,57 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**Dikey F, F1 BİTTİ (21 Temmuz 2026) — Test Manifesti, Kritik Hizmet Bağı ve
+Yeniden Test Görünürlüğü.** Kurucunun beş kararı ile daraltılmış F1 kapsamı
+(docs/adr/PR0-dikeyF-f1-test-manifesti-kritik-hizmet-retest-2026-07-20.md)
+tam teslim edildi: `control_test_definitions` → `critical_service_id`/
+`scenario_template_id` (opsiyonel, nullable, tenant guard'lı — serbest metin
+`kritik_hizmet_adi`/`senaryo_kimligi` SİLİNMEDİ, yanında durur);
+`finding_verified_closure_guard` forward-fix (`20260720310000`) — önceki BEŞ
+kontrol aynen korunarak ALTINCI eklendi: öneriyi KABUL eden kişi kendi
+bulgusunu doğrulanmış biçimde kapatamaz (bağımsızlık/dört göz, `control_test_
+finding_proposals.karar_veren`'den türetilir, ilişki yoksa guard sessizce
+atlar — sahte kısıtlama icat edilmez). `test_runs.retest_of_finding_id`
+(`20260720320000`) — bir koşunun retest NİYETİ, `findings.kapatma_retest_
+run_id`'den (tarihsel kapanış GERÇEĞİ) BİLİNÇLİ AYRI bir alan; ikisi birlikte
+yaşar. Manifest şeması V2→V3 (`kontrol-test-ledger.ts`): `findingId` ASLA
+manifeste yazılmaz (bulgu, manifest mühürlendikten SONRA doğar — zamanlama
+kuralı ADR'de); ilişki hep `test_run → öneri → bulgu` zincirinden İLİŞKİSEL
+sorgulanır. `impact-graph.ts`'e yeni `BULGU_RETEST` kenarı (mevcut `BULGU`/
+`TEST` düğümleri yeniden kullanılır, yeni düğüm türü YOK) — hem saf motora
+hem GERÇEK route'a (`/api/dayaniklilik/graf/anlik-goruntu`) kablolu. Proof
+Room forward-fix (`20260720330000`) hem RPC hem SAYFA (`/proof/[token]`)
+seviyesinde: `manifestOzeti` (şema V3 + kritik hizmet/senaryo doğrulanmış mı
+BOOLEAN — ham UUID/isim DEĞİL, mevcut "kullanıcı kimlikleri dönmez" ilkesi
+korunarak), `retestNiyeti`, İLİŞKİSEL `kabulEdilmisBulgu` ve tarihsel
+`kapananBulgular` — manifest hash'i BİLİNÇLİ gösterilmiyor (RFC 8785 yalnız
+TS'te var, SQL'de yok — raporlanmış teknik sınır). UI: `/controls/[id]`'de
+"Kritik hizmete bağlı"/"Serbest metin kapsamı"/"Senaryo şablonuna bağlı"/
+"Doğrulanmamış senaryo kimliği" etiketli seçiciler + bulgu/retest zinciri
+görünümü + retest-niyeti seçici. **31/31 canlı Supabase smoke (iki gerçek
+kullanıcı, tam zincir) + 1 yeni Chromium e2e + 24 yeni PGlite testi; 1465
+birim + 76 e2e, 0 skip; build yeşil.**
+
+Yol boyunca (tam e2e suite koşusu SAYESİNDE) bulunup düzeltilen İKİ gerçek
+açık, F1'in kendisinden BAĞIMSIZ: (1) `scripts/setup-e2e-fixtures.ts`
+`policy_exceptions` tablosunu (M16 policy_lifecycle_v2, `telafi_test_
+definition_id ... on delete restrict`) hiç temizlemiyordu — `control_test_
+definitions` reset'i sessizce başarısız oluyor, aynı isimli fixture tanımı
+her koşuda birikiyordu; (2) yeni `retest_of_finding_id` (`on delete set
+null`) `test_run_immutable()` (M12, `20260717230001`) ile çatışıyordu —
+trigger HER update'i koşulsuz reddettiği için, bir bulgu silindiğinde
+Postgres'in KENDİ FK-cascade UPDATE'i bile reddediliyor, ilişkili koşu bir
+daha ASLA silinemiyordu; forward-fix (`20260720340000`) yalnız bu tek-alan
+null'lamayı serbest bırakıyor, kural 13'ün gerisini bozmuyor. İkisi de
+regresyon testleriyle kilitlendi.
+
+**Bilinçli sonraki dilim (F1'in KENDİSİNDE kapsam dışı, kurucu kararı
+bekliyor):** F2 test-program/campaign tablosu, M17 `audit_samples`↔
+`SAMPLE_REVIEW` bridge, RTO/RPO/`impact_tolerances` bağlama, TLPT/pentest
+orkestrasyon, AI-üretilmiş verdict, findings kapanışı için özel bir UI/rota
+(bugün olduğu gibi doğrudan DB üzerinden, service_role ile — kontrol-test.
+spec.ts'teki emsal desen).
+
 **SPK belgesi (18 Temmuz 2026) DEĞERLENDİRİLDİ ve önceliklendirildi.** Beşinci
 vizyon belgesi (`docs/arastirma/KALKAN_OS_SPK_Notlari_Urunlestirme_Eki_2026.md`)
 ROADMAP §1.6'ya işlendi; üç yeni alan ayrı taş oldu: **M16 SoD** (kodlandı,

@@ -1,24 +1,56 @@
-# DEVAM TALİMATI — kaldığın yerden sürdür (18 Temmuz 2026 gece güncellemesi 2)
+# DEVAM TALİMATI — kaldığın yerden sürdür (21 Temmuz 2026 güncellemesi — Dikey F F1)
 
 Bu dosya oturumlar arası devir içindir. **Kurucu kalıcı onay verdi:
 "her bitişte onaya gerek yok, V2 PR sırasının SONUNA KADAR devam."** Her PR'ı
 doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine geç.
 
+## -1. DİKEY F, F1 BİTTİ (21 Temmuz 2026)
+Kurucunun F1 talimatı (docs/adr/PR0-dikeyF-f1-test-manifesti-kritik-hizmet-
+retest-2026-07-20.md) tam uygulandı: `control_test_definitions` → kritik
+hizmet/senaryo GERÇEK referansı (tenant guard'lı, serbest metin korunur);
+`finding_verified_closure_guard` forward-fix (öneriyi kabul eden kendi
+bulgusunu kapatamaz); `test_runs.retest_of_finding_id` (retest NİYETİ, bulgunun
+kapanış kaydından AYRI); manifest V3 (`findingId` asla yazılmaz — ilişki hep
+sorgudan); impact-graph `BULGU_RETEST` kenarı (gerçek route'a kablolu); Proof
+Room hem RPC hem SAYFA (`/proof/[token]`) yeni alanları gösteriyor; UI
+seçiciler + zincir görünümü `/controls/[id]`'de. **31/31 canlı Supabase smoke +
+1 Chromium e2e (kontrol-test-f1.spec.ts) + 24 yeni PGlite testi.**
+
+Yol boyunca bulunup düzeltilen İKİ gerçek açık (F1'in KENDİSİ değil, ama tam
+e2e suite koşusu SAYESİNDE ortaya çıktı):
+1. `scripts/setup-e2e-fixtures.ts` `policy_exceptions` tablosunu hiç
+   temizlemiyordu (`on delete restrict` → `control_test_definitions` reset'i
+   sessizce başarısız oluyor, aynı isimli tanım birikiyordu).
+2. `test_runs.retest_of_finding_id` (`on delete set null`) `test_run_
+   immutable()` ile çatışıyordu: bir bulgu silinince Postgres'in kendi FK-
+   cascade UPDATE'i bile reddediliyor, ilişkili koşu BİR DAHA ASLA
+   silinemiyordu. Forward-fix (`20260720340000`) yalnız bu tek-alan
+   null'lamayı serbest bırakıyor.
+İkisi de düzeltildi + regresyon testleriyle kilitlendi; ayrıca `kontrol-
+test.spec.ts`'in kendi `.eq("tur","MANUAL_PROCEDURE").single()` sorgusu
+(legal-basis.spec.ts/proof-room.spec.ts'te zaten `ad` ile düzeltilmişti, bu
+dosya unutulmuştu) aynı desenle düzeltildi.
+
+**Sıradaki:** F2 (test-program/campaign tablosu — kurucu kararı bekliyor),
+M17 audit_samples↔SAMPLE_REVIEW bridge, RTO/RPO/impact_tolerances bağlama —
+hepsi F1'de BİLİNÇLİ kapsam dışı bırakıldı (docs/adr/PR0-dikeyF-f1-...'de §10).
+
 ## 0. İLK İŞ (her yeni oturumun başında)
 Yeşil taban doğrula (körlemesine güvenme):
 ```
-pnpm check        # typecheck + lint + vitest  (beklenen: ~1442 birim, 0 skip)
-pnpm e2e          # gerçek Chromium            (beklenen: ~75 e2e, 0 skip, fixture reset dahil)
+pnpm check        # typecheck + lint + vitest  (beklenen: ~1465 birim, 0 skip)
+pnpm e2e          # gerçek Chromium            (beklenen: ~76 e2e, 0 skip, fixture reset dahil)
 cmd /c "pnpm build 2>&1"   # exit 0
 curl.exe -s https://blue-yak-865668.hostingersite.com/health/ready  # hazir/erisilebilir
 ```
-Bu üçlü 20 Temmuz Dikey E2 oturumunda TAM koşuldu (1426 birim + Dikey E2'nin
-16 yeni saf motor/PGlite testi hariç tutulan koşularda görülmüştü — nihai
-`pnpm check` 1426/1426, `pnpm e2e` 73/75 — 2 kalan başarısızlık bu dilimle
-İLGİSİZ, ayrı borç, §1.68'de kayıtlı). **`pnpm e2e` KULLAN, çıplak `playwright
-test` DEĞİL** — fixture reset olmadan partial/tekrarlı koşular birbirinin
-DB durumunu kirletip sahte başarısızlık üretir (bu bir ürün hatası değildi,
-20 Temmuz oturumunda tekrar keşfedildi). Kırmızı çıkarsa önce onu düzelt.
+Bu üçlü 21 Temmuz Dikey F F1 oturumunda TAM koşuldu (1465/1465 birim; `pnpm e2e`
+5 tam koşu içinde 2 kez tastamam 76/76 temiz, arada çıkan 2 tekil başarısızlık
+(tema.spec.ts, tedarikci-signoff-ledger.spec.ts — F1 ile İLGİSİZ modüller)
+izole 3x tekrar koşusunda temiz çıktı — genel suite'in ortam gürültüsü,
+regresyon değil). **`pnpm e2e` KULLAN, çıplak `playwright test` DEĞİL** —
+fixture reset olmadan partial/tekrarlı koşular birbirinin DB durumunu kirletip
+sahte başarısızlık üretir (bu bir ürün hatası değildi, 20 Temmuz oturumunda
+tekrar keşfedildi). Kırmızı çıkarsa önce onu düzelt.
 
 ## 0b. BLOKAJ ÇÖZÜLDÜ (kayıt için)
 Gece oturumundaki izin blokajı kurucu onayıyla ("izin verdim") aşıldı:

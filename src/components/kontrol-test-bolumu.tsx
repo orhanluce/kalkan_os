@@ -34,6 +34,11 @@ interface TestTanimi {
   basarisizlik_onem: string;
   otomatik_bulgu: boolean;
   retest_gerekli: boolean;
+  // Dikey F, F1: opsiyonel GERÇEK referanslar (serbest metin ile birlikte var).
+  critical_service_id: string | null;
+  scenario_template_id: string | null;
+  kritik_hizmet_adi: string | null;
+  senaryo_kimligi: string | null;
 }
 
 interface SonTestRun {
@@ -52,6 +57,31 @@ interface OneriSatiri {
   baslik: string;
   gerekce: string;
   onem: string;
+}
+
+// Dikey F, F1: kritik hizmet/senaryo GERÇEK referansı (opsiyonel) + bulgu/
+// retest zinciri görünürlüğü.
+interface KritikHizmetSatiri {
+  id: string;
+  ad: string;
+}
+interface SenaryoSatiri {
+  id: string;
+  kod: string;
+  ad: string;
+}
+interface AcikBulguSatiri {
+  id: string;
+  baslik: string;
+}
+interface BulguZinciri {
+  id: string;
+  baslik: string;
+  durum: string;
+  aksiyon_plani: string | null;
+  kapatan_ad: string | null;
+  kapatma_retest_run_id: string | null;
+  kapatma_retest_sonuc: string | null;
 }
 
 /** Kullanıcının seçtiği gözlem sonucu — motora gönderilecek sinyale çevrilir. */
@@ -100,6 +130,18 @@ export function KontrolTestBolumu({
   const [yeniHedefVarlik, setYeniHedefVarlik] = useState("");
   const [yeniKritikHizmet, setYeniKritikHizmet] = useState("");
   const [yeniSenaryoKimligi, setYeniSenaryoKimligi] = useState("");
+  // Dikey F, F1: opsiyonel GERÇEK referans seçimi — serbest metnin YANINDA,
+  // yerine değil (kural: eski kayıt "doğrulanmış ilişki" gibi gösterilmez).
+  const [kritikHizmetler, setKritikHizmetler] = useState<KritikHizmetSatiri[]>([]);
+  const [senaryolar, setSenaryolar] = useState<SenaryoSatiri[]>([]);
+  const [yeniKritikHizmetId, setYeniKritikHizmetId] = useState<string>("");
+  const [yeniSenaryoTemplateId, setYeniSenaryoTemplateId] = useState<string>("");
+  // Bu tanıma bağlı, retest gerektiren AÇIK bulgular — koşuyu retest niyetiyle
+  // işaretlemek için (test_runs.retest_of_finding_id, API'de tenant/durum
+  // doğrulanır — burada gösterilen liste yalnızca kullanıcı kolaylığı).
+  const [acikBulgular, setAcikBulgular] = useState<Record<string, AcikBulguSatiri[]>>({});
+  const [retestNiyeti, setRetestNiyeti] = useState<Record<string, string>>({});
+  const [bulguZincirleri, setBulguZincirleri] = useState<Record<string, BulguZinciri[]>>({});
 
   const [gozlemSecimleri, setGozlemSecimleri] = useState<Record<string, GozlemSecimi>>({});
   const [toplamaHatasi, setToplamaHatasi] = useState<Record<string, string>>({});
@@ -111,10 +153,22 @@ export function KontrolTestBolumu({
     const db = createClient();
     const { data: t } = await db
       .from("control_test_definitions")
-      .select("id, tur, ad, aciklama, tazelik_gun, basarisizlik_onem, otomatik_bulgu, retest_gerekli")
+      .select(
+        "id, tur, ad, aciklama, tazelik_gun, basarisizlik_onem, otomatik_bulgu, retest_gerekli, critical_service_id, scenario_template_id, kritik_hizmet_adi, senaryo_kimligi",
+      )
       .eq("control_id", controlId)
       .order("created_at", { ascending: true });
     setTanimlar(t ?? []);
+
+    // Seçici listeleri — kritik hizmet kiracıya özgü (AKTIF), senaryo global
+    // katalog. Form her zaman görünür olduğundan tanım sayısından bağımsız
+    // yükleniyor.
+    const [{ data: khList }, { data: senList }] = await Promise.all([
+      db.from("critical_business_services").select("id, ad").eq("durum", "AKTIF").order("ad", { ascending: true }),
+      db.from("scenario_templates").select("id, kod, ad").order("kod", { ascending: true }),
+    ]);
+    setKritikHizmetler(khList ?? []);
+    setSenaryolar(senList ?? []);
 
     if (t && t.length > 0) {
       const { data: runs } = await db
@@ -159,9 +213,75 @@ export function KontrolTestBolumu({
         .eq("control_id", controlId)
         .eq("durum", "PROPOSED");
       setOneriler(props ?? []);
+
+      // Dikey F, F1: bulgu/retest zinciri — "ilk test sonucu → kabul edilmiş
+      // bulgu → düzeltici faaliyet varsa → kapanış retest'i → bağımsız
+      // kapatan" (manifest DEĞİŞMEZ; bu tamamen İLİŞKİSEL bir görünüm).
+      const { data: kabulEdilmisler } = await db
+        .from("control_test_finding_proposals")
+        .select("test_definition_id, finding_id")
+        .eq("control_id", controlId)
+        .eq("durum", "KABUL")
+        .not("finding_id", "is", null);
+
+      const zincirMap: Record<string, BulguZinciri[]> = {};
+      const acikMap: Record<string, AcikBulguSatiri[]> = {};
+      if (kabulEdilmisler && kabulEdilmisler.length > 0) {
+        const findingIds = kabulEdilmisler.map((k) => k.finding_id as string);
+        const { data: bulgular } = await db
+          .from("findings")
+          .select("id, baslik, durum, aksiyon_plani, kapatan, kapatma_retest_run_id, kaynak_test_definition_id")
+          .in("id", findingIds);
+
+        const kapatanIds = (bulgular ?? []).map((b) => b.kapatan).filter((x): x is string => !!x);
+        const retestRunIds = (bulgular ?? [])
+          .map((b) => b.kapatma_retest_run_id)
+          .filter((x): x is string => !!x);
+        const [{ data: kapatanlar }, { data: retestRunlar }] = await Promise.all([
+          kapatanIds.length > 0
+            ? db.from("profiles").select("id, full_name").in("id", kapatanIds)
+            : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
+          retestRunIds.length > 0
+            ? db.from("test_runs").select("id, sonuc").in("id", retestRunIds)
+            : Promise.resolve({ data: [] as { id: string; sonuc: string }[] }),
+        ]);
+
+        for (const k of kabulEdilmisler) {
+          const b = (bulgular ?? []).find((x) => x.id === k.finding_id);
+          if (!b) continue;
+          const kapatan = kapatanlar?.find((p) => p.id === b.kapatan);
+          const retestRun = retestRunlar?.find((r) => r.id === b.kapatma_retest_run_id);
+          const satir: BulguZinciri = {
+            id: b.id,
+            baslik: b.baslik,
+            durum: b.durum,
+            aksiyon_plani: b.aksiyon_plani,
+            kapatan_ad: kapatan?.full_name ?? (b.kapatan ? "(isim yok)" : null),
+            kapatma_retest_run_id: b.kapatma_retest_run_id,
+            kapatma_retest_sonuc: retestRun?.sonuc ?? null,
+          };
+          (zincirMap[k.test_definition_id] ??= []).push(satir);
+        }
+      }
+      // Açık, retest gerektiren bulgular — koşuyu retest niyetiyle işaretlemek
+      // için seçenek listesi (API'de yeniden doğrulanır, burası kolaylık).
+      const { data: acikRetestBulgular } = await db
+        .from("findings")
+        .select("id, baslik, kaynak_test_definition_id")
+        .eq("durum", "acik")
+        .eq("retest_gerekli", true)
+        .not("kaynak_test_definition_id", "is", null);
+      for (const b of acikRetestBulgular ?? []) {
+        if (!b.kaynak_test_definition_id) continue;
+        (acikMap[b.kaynak_test_definition_id] ??= []).push({ id: b.id, baslik: b.baslik });
+      }
+      setBulguZincirleri(zincirMap);
+      setAcikBulgular(acikMap);
     } else {
       setSonRunlar({});
       setOneriler([]);
+      setBulguZincirleri({});
+      setAcikBulgular({});
       onGuvenceDurumu?.(kontrolGuvenceDurumu([]));
     }
     setYukleniyor(false);
@@ -186,6 +306,7 @@ export function KontrolTestBolumu({
       bitisAt: now,
       beklenenSonuc: beklenen[tanimId]?.trim() || null,
       performansEtkisi: performans[tanimId]?.trim() || null,
+      retestOfFindingId: retestNiyeti[tanimId] || null,
     };
     if (secim === "gecti") govde.iddiaKarsilandi = true;
     else if (secim === "kaldi") govde.iddiaKarsilandi = false;
@@ -240,6 +361,10 @@ export function KontrolTestBolumu({
       hedef_varlik: yeniHedefVarlik.trim() || null,
       kritik_hizmet_adi: yeniKritikHizmet.trim() || null,
       senaryo_kimligi: yeniSenaryoKimligi.trim() || null,
+      // Dikey F, F1: opsiyonel GERÇEK referans — serbest metnin yerine değil,
+      // yanında. Boş seçim null kalır (uydurulmuş bağ yok).
+      critical_service_id: yeniKritikHizmetId || null,
+      scenario_template_id: yeniSenaryoTemplateId || null,
     });
     if (error) {
       setHata(error.message);
@@ -250,6 +375,8 @@ export function KontrolTestBolumu({
       setYeniHedefVarlik("");
       setYeniKritikHizmet("");
       setYeniSenaryoKimligi("");
+      setYeniKritikHizmetId("");
+      setYeniSenaryoTemplateId("");
       setFormAcik(false);
       await yukle();
     }
@@ -294,6 +421,8 @@ export function KontrolTestBolumu({
               // (control_test_finding_proposals'ın kendi kolonu — kırılgan bir
               // metin karşılaştırması değil).
               const tanimOnerisi = oneriler.find((o) => o.test_definition_id === tanim.id);
+              const zincir = bulguZincirleri[tanim.id] ?? [];
+              const acikBulgularBu = acikBulgular[tanim.id] ?? [];
 
               return (
                 <li key={tanim.id} className="rounded-lg border p-3">
@@ -304,6 +433,18 @@ export function KontrolTestBolumu({
                         {TEST_TUR_LABEL[tanim.tur] ?? tanim.tur}
                         {tanim.tazelik_gun && ` · tazelik ${tanim.tazelik_gun} gün`}
                       </p>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {tanim.critical_service_id ? (
+                          <StatusBadge durum="info">Kritik hizmete bağlı</StatusBadge>
+                        ) : tanim.kritik_hizmet_adi ? (
+                          <StatusBadge durum="warning">Serbest metin kapsamı: {tanim.kritik_hizmet_adi}</StatusBadge>
+                        ) : null}
+                        {tanim.scenario_template_id ? (
+                          <StatusBadge durum="info">Senaryo şablonuna bağlı</StatusBadge>
+                        ) : tanim.senaryo_kimligi ? (
+                          <StatusBadge durum="warning">Doğrulanmamış senaryo kimliği: {tanim.senaryo_kimligi}</StatusBadge>
+                        ) : null}
+                      </div>
                     </div>
                     {sonRun && (
                       <StatusBadge durum={TEST_SONUC_SEMANTIK[sonRun.sonuc] ?? "unknown"}>
@@ -356,7 +497,60 @@ export function KontrolTestBolumu({
                     </div>
                   )}
 
+                  {/* Dikey F, F1: bulgu/retest zinciri — manifest DEĞİŞMEZ, bu
+                      tamamen ilişkisel bir görünüm (test_run → öneri → kabul
+                      edilmiş bulgu → düzeltici faaliyet → kapanış retest'i →
+                      bağımsız kapatan). Kapanmış bulgu geçmişten SİLİNMEZ. */}
+                  {zincir.length > 0 && (
+                    <div className="mt-3 flex flex-col gap-2 rounded-md border p-2">
+                      <p className="text-xs font-medium">Bulgu ve retest zinciri</p>
+                      {zincir.map((b) => (
+                        <div key={b.id} className="flex flex-col gap-1 border-t pt-2 first:border-t-0 first:pt-0">
+                          <div className="flex items-center gap-2">
+                            <StatusBadge durum={b.durum === "kapali" ? "success" : "warning"}>
+                              {b.durum === "kapali" ? "Kapandı" : "Açık — kabul edilmiş bulgu"}
+                            </StatusBadge>
+                            <p className="text-xs">{b.baslik}</p>
+                          </div>
+                          {b.aksiyon_plani && (
+                            <p className="text-xs text-muted-foreground">Düzeltici faaliyet: {b.aksiyon_plani}</p>
+                          )}
+                          {b.kapatma_retest_run_id ? (
+                            <p className="text-xs text-muted-foreground">
+                              Kapanış retest&apos;i: {b.kapatma_retest_sonuc ?? "?"}
+                              {b.kapatan_ad ? ` · bağımsız kapatan: ${b.kapatan_ad}` : ""}
+                            </p>
+                          ) : b.durum === "acik" ? (
+                            <p className="text-xs text-muted-foreground">Kapanış retest&apos;i henüz yok.</p>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="mt-3 flex flex-wrap items-end gap-2">
+                    {acikBulgularBu.length > 0 && (
+                      <div className="flex flex-col gap-1.5">
+                        <Label htmlFor={`retest-${tanim.id}`}>Bu koşu bir retest ise, hangi bulguyu kapatmak için (opsiyonel)</Label>
+                        <Select
+                          items={Object.fromEntries([["", "— (retest değil)"], ...acikBulgularBu.map((b) => [b.id, b.baslik])])}
+                          value={retestNiyeti[tanim.id] ?? ""}
+                          onValueChange={(v) => setRetestNiyeti((s) => ({ ...s, [tanim.id]: v ?? "" }))}
+                        >
+                          <SelectTrigger id={`retest-${tanim.id}`} className="w-64">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">— (retest değil)</SelectItem>
+                            {acikBulgularBu.map((b) => (
+                              <SelectItem key={b.id} value={b.id}>
+                                {b.baslik}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor={`gozlem-${tanim.id}`}>Gözlem</Label>
                       <Select
@@ -484,14 +678,60 @@ export function KontrolTestBolumu({
                 <Input id="yeni-hedef" value={yeniHedefVarlik} onChange={(e) => setYeniHedefVarlik(e.target.value)} placeholder="ör. Entra ID" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="yeni-kritik">Kritik hizmet (opsiyonel)</Label>
+                <Label htmlFor="yeni-kritik">Serbest metin kapsamı (opsiyonel)</Label>
                 <Input id="yeni-kritik" value={yeniKritikHizmet} onChange={(e) => setYeniKritikHizmet(e.target.value)} placeholder="ör. Ödeme sistemi" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="yeni-senaryo">Senaryo kimliği (opsiyonel)</Label>
+                <Label htmlFor="yeni-senaryo">Doğrulanmamış senaryo kimliği (opsiyonel)</Label>
                 <Input id="yeni-senaryo" value={yeniSenaryoKimligi} onChange={(e) => setYeniSenaryoKimligi(e.target.value)} placeholder="ör. TATBIKAT-MFA-01" />
               </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="yeni-kritik-id">Kritik hizmete bağlı (opsiyonel)</Label>
+                <Select
+                  items={Object.fromEntries([["", "— (bağlama)"], ...kritikHizmetler.map((k) => [k.id, k.ad])])}
+                  value={yeniKritikHizmetId}
+                  onValueChange={(v) => setYeniKritikHizmetId(v ?? "")}
+                >
+                  <SelectTrigger id="yeni-kritik-id">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">— (bağlama)</SelectItem>
+                    {kritikHizmetler.map((k) => (
+                      <SelectItem key={k.id} value={k.id}>
+                        {k.ad}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="yeni-senaryo-id">Senaryo şablonuna bağlı (opsiyonel)</Label>
+                <Select
+                  items={Object.fromEntries([["", "— (bağlama)"], ...senaryolar.map((s) => [s.id, `${s.kod} — ${s.ad}`])])}
+                  value={yeniSenaryoTemplateId}
+                  onValueChange={(v) => setYeniSenaryoTemplateId(v ?? "")}
+                >
+                  <SelectTrigger id="yeni-senaryo-id">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">— (bağlama)</SelectItem>
+                    {senaryolar.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.kod} — {s.ad}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Bir kayıt seçilirse görünen ad serbest metin alanına otomatik önerilebilir, ama tek
+              doğruluk kaynağı olarak GERÇEK referans (yukarıdaki seçici) sayılır — serbest metin
+              yalnızca eski kayıtlarda veya henüz kataloglanmamış kapsamlarda &ldquo;doğrulanmamış&rdquo;
+              olarak kalır.
+            </p>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="yeni-onem">Başarısızlık önemi (bulgu üretilirse)</Label>
               <Select

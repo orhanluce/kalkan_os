@@ -154,6 +154,137 @@ describe("proof_room — token'lı salt-okur erişim (G1)", () => {
   });
 });
 
+describe("proof_room — test_run_id dalı V2/V3 manifest özeti (Dikey F, F1)", () => {
+  it("manifestOzeti kritik hizmet/senaryo bilgisiyle döner; hazırlayan RAW UUID olarak DÖNMEZ", async () => {
+    const { rows: d } = await db.sql(
+      `insert into public.control_test_definitions (tenant_id, control_id, tur, ad, amac, kapsam, kritik_hizmet_adi, senaryo_kimligi)
+       values ($1, $2, 'MANUAL_PROCEDURE', 'F1 tanımı', 'amac', 'kapsam', 'Ödeme Sistemi', 'TAT-01') returning id`,
+      [seed.A.tenantId, seed.controlId],
+    );
+    const { rows: r } = await db.sql(
+      `insert into public.test_runs (tenant_id, test_definition_id, control_id, sonuc, gerekce, tanim_surumu, hazirlayan)
+       values ($1, $2, $3, 'PASSED', 'test', 1, $4) returning id`,
+      [seed.A.tenantId, d[0].id, seed.controlId, seed.A.userId],
+    );
+    const token = await linkOlustur(seed.A.userId, seed.A.tenantId, r[0].id as string);
+    const { rows } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [token]);
+    const v = rows[0].v as Record<string, unknown>;
+    const manifest = v.manifestOzeti as Record<string, unknown>;
+    expect(manifest.semaSurumu).toBe("KALKAN_CONTROL_TEST_RUN_MANIFEST_V3");
+    expect(manifest.amac).toBe("amac");
+    expect(manifest.kritikHizmetAdi).toBe("Ödeme Sistemi");
+    expect(manifest.kritikHizmetIdDogrulanmis).toBe(false);
+    expect(manifest.hazirlayanBelirtildi).toBe(true);
+    expect(JSON.stringify(v)).not.toContain(seed.A.userId); // kullanıcı kimliği raw dönmez
+  });
+
+  it("critical_service_id FK doluysa kritikHizmetIdDogrulanmis true olur", async () => {
+    const { rows: hizmet } = await db.sql(
+      `insert into public.critical_business_services (tenant_id, ad) values ($1, 'Ödeme') returning id`,
+      [seed.A.tenantId],
+    );
+    const { rows: d } = await db.sql(
+      `insert into public.control_test_definitions (tenant_id, control_id, tur, ad, critical_service_id)
+       values ($1, $2, 'MANUAL_PROCEDURE', 'F1 tanımı', $3) returning id`,
+      [seed.A.tenantId, seed.controlId, hizmet[0].id],
+    );
+    const { rows: r } = await db.sql(
+      `insert into public.test_runs (tenant_id, test_definition_id, control_id, sonuc, gerekce, tanim_surumu)
+       values ($1, $2, $3, 'PASSED', 'test', 1) returning id`,
+      [seed.A.tenantId, d[0].id, seed.controlId],
+    );
+    const token = await linkOlustur(seed.A.userId, seed.A.tenantId, r[0].id as string);
+    const { rows } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [token]);
+    const v = rows[0].v as Record<string, unknown>;
+    expect((v.manifestOzeti as Record<string, unknown>).kritikHizmetIdDogrulanmis).toBe(true);
+  });
+
+  it("bu koşunun ürettiği KABUL edilmiş bulgu ilişkisel bağlantıda görünür (manifestin PARÇASI değil)", async () => {
+    const { rows: d } = await db.sql(
+      `insert into public.control_test_definitions (tenant_id, control_id, tur, ad) values ($1, $2, 'MANUAL_PROCEDURE', 'F1') returning id`,
+      [seed.A.tenantId, seed.controlId],
+    );
+    const { rows: r } = await db.sql(
+      `insert into public.test_runs (tenant_id, test_definition_id, control_id, sonuc, gerekce, tanim_surumu)
+       values ($1, $2, $3, 'FAILED', 'basarisiz', 1) returning id`,
+      [seed.A.tenantId, d[0].id, seed.controlId],
+    );
+    const { rows: f } = await db.sql(
+      `insert into public.findings (tenant_id, kaynak, onem, baslik, durum, retest_gerekli, kaynak_test_definition_id)
+       values ($1, 'kontrol_testi', 'kritik', 'X', 'acik', true, $2) returning id`,
+      [seed.A.tenantId, d[0].id],
+    );
+    await db.sql(
+      `insert into public.control_test_finding_proposals (test_run_id, test_definition_id, tenant_id, control_id, baslik, gerekce, onem, durum, finding_id, karar_veren, karar_at)
+       values ($1, $2, $3, $4, 'X', 'g', 'kritik', 'KABUL', $5, $6, now())`,
+      [r[0].id, d[0].id, seed.A.tenantId, seed.controlId, f[0].id, seed.A.userId],
+    );
+    const token = await linkOlustur(seed.A.userId, seed.A.tenantId, r[0].id as string);
+    const { rows } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [token]);
+    const v = rows[0].v as Record<string, unknown>;
+    const baglanti = (v.iliskiselBaglantilar as Record<string, unknown>).kabulEdilmisBulgu as Record<string, unknown>;
+    expect(baglanti.findingId).toBe(f[0].id);
+    expect((v.manifestOzeti as Record<string, unknown>)["findingId"]).toBeUndefined();
+  });
+
+  it("bu koşuyla GERÇEKTEN kapanan bulgu tarihsel kapanış bağlantısında görünür", async () => {
+    const { rows: d } = await db.sql(
+      `insert into public.control_test_definitions (tenant_id, control_id, tur, ad) values ($1, $2, 'MANUAL_PROCEDURE', 'F1') returning id`,
+      [seed.A.tenantId, seed.controlId],
+    );
+    const { rows: f } = await db.sql(
+      `insert into public.findings (tenant_id, kaynak, onem, baslik, durum, retest_gerekli, kaynak_test_definition_id)
+       values ($1, 'kontrol_testi', 'kritik', 'X', 'acik', true, $2) returning id`,
+      [seed.A.tenantId, d[0].id],
+    );
+    await db.sql(`select pg_sleep(0.01)`);
+    const { rows: retest } = await db.sql(
+      `insert into public.test_runs (tenant_id, test_definition_id, control_id, sonuc, gerekce, tanim_surumu)
+       values ($1, $2, $3, 'PASSED', 'retest', 1) returning id`,
+      [seed.A.tenantId, d[0].id, seed.controlId],
+    );
+    await db.sql(
+      `update public.findings set durum = 'kapali', kapatma_retest_run_id = $1, kapatan = $2 where id = $3`,
+      [retest[0].id, A_IKINCI, f[0].id],
+    );
+    const token = await linkOlustur(seed.A.userId, seed.A.tenantId, retest[0].id as string);
+    const { rows } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [token]);
+    const v = rows[0].v as Record<string, unknown>;
+    const kapanan = (v.kapanisBaglantisi as Record<string, unknown>).kapananBulgular as Record<string, unknown>[];
+    expect(kapanan).toHaveLength(1);
+    expect(kapanan[0].findingId).toBe(f[0].id);
+  });
+
+  it("retest niyeti (test_runs.retest_of_finding_id) belirtilmişse görünür", async () => {
+    const { rows: d } = await db.sql(
+      `insert into public.control_test_definitions (tenant_id, control_id, tur, ad) values ($1, $2, 'MANUAL_PROCEDURE', 'F1') returning id`,
+      [seed.A.tenantId, seed.controlId],
+    );
+    const { rows: f } = await db.sql(
+      `insert into public.findings (tenant_id, kaynak, onem, baslik, durum, retest_gerekli)
+       values ($1, 'kontrol_testi', 'kritik', 'X', 'acik', true) returning id`,
+      [seed.A.tenantId],
+    );
+    const { rows: r } = await db.sql(
+      `insert into public.test_runs (tenant_id, test_definition_id, control_id, sonuc, gerekce, tanim_surumu, retest_of_finding_id)
+       values ($1, $2, $3, 'PASSED', 'retest', 1, $4) returning id`,
+      [seed.A.tenantId, d[0].id, seed.controlId, f[0].id],
+    );
+    const token = await linkOlustur(seed.A.userId, seed.A.tenantId, r[0].id as string);
+    const { rows } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [token]);
+    const v = rows[0].v as Record<string, unknown>;
+    expect((v.retestNiyeti as Record<string, unknown>).findingId).toBe(f[0].id);
+  });
+
+  it("retest niyeti yoksa null döner (uydurulmaz)", async () => {
+    const { runId } = await kosuVeZincir(seed.A.tenantId);
+    const token = await linkOlustur(seed.A.userId, seed.A.tenantId, runId);
+    const { rows } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [token]);
+    const v = rows[0].v as Record<string, unknown>;
+    expect(v.retestNiyeti).toBeNull();
+  });
+});
+
 describe("proof_room — roi_export_run_id dalı (37 Tez Dikey B, Faz 3 kalan dilimi)", () => {
   it("YAYINLANDI export'a link kurulur; token paket/paketHash/onKontrolRaporu döner ve audit'e düşer", async () => {
     const exportId = await yayinlanmisExportEkle(seed.A.tenantId, seed.A.userId, A_IKINCI);

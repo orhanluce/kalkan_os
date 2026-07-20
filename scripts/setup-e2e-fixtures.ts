@@ -144,6 +144,17 @@ async function main() {
   //    testleri ".single()" sorgusunda "birden fazla satır" hatasıyla patlar.
   //    sod_catismalari silinince istisnalar + telafi kontroller CASCADE ile
   //    gider; sod_kurallari silinince taraflar CASCADE ile gider.
+  //
+  //    AYNI SINIF BAŞKA BİR AÇIK (Dikey F, F1 doğrulaması sırasında
+  //    bulundu): `policy_exceptions.telafi_test_definition_id` de
+  //    control_test_definitions'a ON DELETE RESTRICT ile bağlı
+  //    (20260718240000_policy_lifecycle_v2.sql) ve bu tablo listede HİÇ
+  //    yoktu — sod.spec.ts'in "telafi edici kontrol" testi bir istisnayı bu
+  //    tanıma bağladığında, sonraki her fixture reset'i control_test_
+  //    definitions silmeyi SESSİZCE başaramıyor, aynı isimli tanım
+  //    (E2E: MFA tüm ayrıcalıklı hesaplarda zorunlu) her koşuda birikip
+  //    ".single()" varsayan üç ayrı e2e testini (kontrol-test/legal-basis/
+  //    proof-room) ve sod.spec.ts'in kendi dropdown'ını patlatıyordu.
   for (const tablo of [
     "evidences",
     "findings",
@@ -154,7 +165,9 @@ async function main() {
     "sod_kurallari",
     "sod_atamalari",
     "sod_degerlendirme_calistirmalari",
+    "policy_exceptions",
     "control_test_definitions",
+    "critical_business_services",
   ]) {
     await db.from(tablo).delete().eq("tenant_id", tenant.id);
   }
@@ -171,6 +184,15 @@ async function main() {
     basarisizlik_onem: "kritik",
     otomatik_bulgu: true,
     retest_gerekli: true,
+  });
+
+  // 6) Dikey F, F1: bir kritik hizmet seed et — e2e'nin, test tanımı formundaki
+  //    opsiyonel "Kritik hizmete bağlı" seçiciyi GERÇEKTEN tıklayabilmesi için.
+  //    Senaryo şablonu ayrıca seed edilmiyor: global kataloktur (pnpm seed:scenarios).
+  await db.from("critical_business_services").insert({
+    tenant_id: tenant.id,
+    ad: "E2E Kritik Hizmet",
+    durum: "AKTIF",
   });
 
   console.log(`E2E fiksturu hazir: ${controls.length} kontrol atandi, veriler sifirlandi.`);

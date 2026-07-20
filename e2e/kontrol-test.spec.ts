@@ -24,13 +24,17 @@ test("başarısız test → öneri → kabul → bulgu; retest olmadan kapanamaz
 
   const db = admin();
 
-  // E2E kiracısının seed edilen test tanımını bul.
+  // E2E kiracısının seed edilen test tanımını ADIYLA bul: yalnız `tur` filtresi
+  // kırılgan — diğer spec'ler (ör. kontrol-test-f1.spec.ts, bu dosyanın kendi
+  // ikinci testi) aynı kiracıda KENDİ MANUAL_PROCEDURE tanımlarını yaratıyor;
+  // `.single()` o zaman "birden fazla satır" ile patlar (legal-basis.spec.ts/
+  // proof-room.spec.ts'te zaten aynı isimle düzeltilmişti, bu dosya unutulmuştu).
   const { data: kurum } = await db.from("tenants").select("id").eq("name", "E2E Test Kurumu A.Ş.").single();
   const { data: tanim } = await db
     .from("control_test_definitions")
     .select("id")
     .eq("tenant_id", kurum!.id)
-    .eq("tur", "MANUAL_PROCEDURE")
+    .eq("ad", "E2E: MFA tüm ayrıcalıklı hesaplarda zorunlu")
     .single();
   const tanimId = tanim!.id as string;
 

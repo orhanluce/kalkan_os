@@ -61,6 +61,28 @@ interface ProofVerisi {
     kontrolMaddeRef: string;
     kontrolBaslik: string;
   };
+  /** Dikey F, F1: V3 manifest özeti — manifest ALANI (mühürlenmiş, DEĞİŞMEZ). */
+  manifestOzeti?: {
+    semaSurumu: string;
+    kritikHizmetAdi: string | null;
+    kritikHizmetIdDogrulanmis: boolean;
+    senaryoKimligi: string | null;
+    senaryoSurumu: string | null;
+    senaryoIdDogrulanmis: boolean;
+    beklenenSonuc: string | null;
+    performansEtkisi: string | null;
+    yanlisPozitif: boolean | null;
+    yanlisNegatif: boolean | null;
+    hazirlayanBelirtildi: boolean;
+    sorumluBelirtildi: boolean;
+    bagimsizOnaylayanBelirtildi: boolean;
+  } | null;
+  /** Dikey F, F1: bu koşu bir retest NİYETİYLE mi çalıştırıldı — manifest ALANI. */
+  retestNiyeti?: { findingId: string } | null;
+  /** Dikey F, F1: İLİŞKİSEL (manifest DEĞİL) — bu koşudan doğan kabul edilmiş bulgu, varsa. */
+  iliskiselBaglantilar?: { kabulEdilmisBulgu: { findingId: string; onem: string; durum: string } | null };
+  /** Dikey F, F1: İLİŞKİSEL, TARİHSEL (manifest DEĞİL) — bu koşuyla GERÇEKTEN kapanmış bulgu(lar). */
+  kapanisBaglantisi?: { kapananBulgular: { findingId: string; kapaninZamani: string | null }[] };
   legalSnapshot?: { karar: string; snapshot: CanonicalDeger } | null;
   kaynakZinciri?: ProofZincirSatiri[];
   applicability?: {
@@ -724,6 +746,51 @@ export default function ProofRoomPage() {
           </p>
         </CardContent>
       </Card>
+
+      {veri.manifestOzeti ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Kritik hizmet, senaryo ve bulgu/retest zinciri</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            <p role="note" className="text-xs text-muted-foreground">
+              Aşağıdaki üç grup FARKLI kaynaklardan gelir ve karıştırılmaz: manifest alanları (bu koşu
+              mühürlendiği anda sabitlendi, hiçbir zaman değişmez), ilişkisel bağlantılar (canlı sorgu,
+              manifestin İÇİNDE değil) ve tarihsel kapanış bağlantısı.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {veri.manifestOzeti.kritikHizmetIdDogrulanmis ? (
+                <StatusBadge durum="info">Kritik hizmete bağlı</StatusBadge>
+              ) : veri.manifestOzeti.kritikHizmetAdi ? (
+                <StatusBadge durum="warning">Serbest metin kapsamı: {veri.manifestOzeti.kritikHizmetAdi}</StatusBadge>
+              ) : null}
+              {veri.manifestOzeti.senaryoIdDogrulanmis ? (
+                <StatusBadge durum="info">Senaryo şablonuna bağlı</StatusBadge>
+              ) : veri.manifestOzeti.senaryoKimligi ? (
+                <StatusBadge durum="warning">Doğrulanmamış senaryo kimliği: {veri.manifestOzeti.senaryoKimligi}</StatusBadge>
+              ) : null}
+            </div>
+            <p className="text-xs text-muted-foreground">Manifest şeması: {veri.manifestOzeti.semaSurumu}</p>
+            {veri.retestNiyeti ? (
+              <p className="text-xs text-muted-foreground">
+                Bu koşu, bir bulguyu kapatma NİYETİYLE (retest) çalıştırıldı — manifeste koşu anında yazılan alan.
+              </p>
+            ) : null}
+            {veri.iliskiselBaglantilar?.kabulEdilmisBulgu ? (
+              <p className="text-xs text-muted-foreground">
+                Bu koşudan İLİŞKİSEL olarak doğan kabul edilmiş bulgu var (önem: {veri.iliskiselBaglantilar.kabulEdilmisBulgu.onem},
+                durum: {veri.iliskiselBaglantilar.kabulEdilmisBulgu.durum}) — bu bağlantı canlı sorgudur, manifestin bir alanı değildir.
+              </p>
+            ) : null}
+            {veri.kapanisBaglantisi && veri.kapanisBaglantisi.kapananBulgular.length > 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Bu koşu, {veri.kapanisBaglantisi.kapananBulgular.length} bulguyu TARİHSEL olarak kapatmıştır (bağımsız onayla) —
+                bu da manifestin değil, bulgunun kendi kapanış kaydının bir yansımasıdır.
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
