@@ -239,7 +239,9 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
   1-4) de zaten TAM idi (§1.60-§1.64).** Sıradaki adım kurucu kararını
   bekliyor: Dikey D sonraki dilim (süreç/varlık/uygulama ayrı düğüm tipleri,
   RTO/RPO-gerçek-test farkı) ya da Gap Map'teki bağımsız bir sıradaki dikey.
-- **Remote (origin/main) HEAD:** `a3e30b2` (§1.65: Dikey D ilk dilim —
+- **Remote (origin/main) HEAD:** `76c1c8b` (§1.66: Kullanıcı Kılavuzu /
+  Yardım Merkezi — 3 yeni sayfa + 13 modül yardım paneli, DB/motor değişikliği
+  yok) + DEVAM SHA commit'i. Öncesi `a3e30b2` (§1.65: Dikey D ilk dilim —
   kurumsal dayanıklılık birleşik etki grafı, SPOF tespiti, çok-atlamalı
   yayılım, mühürlü immutable snapshot, Proof Room üçüncü dal) + DEVAM SHA
   commit'i. Öncesi `c0ea1c0` (§1.64: Dikey B Faz 4 — DORA RoI
