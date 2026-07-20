@@ -3090,8 +3090,11 @@ export type Database = {
           bilinmiyor: boolean
           created_at: string
           hizmet_ozeti: string | null
+          ict_hizmet_turu_kod: string | null
           id: string
+          sira: number | null
           tenant_id: string
+          third_party_contract_id: string | null
           third_party_id: string
           ulke: string | null
         }
@@ -3100,8 +3103,11 @@ export type Database = {
           bilinmiyor?: boolean
           created_at?: string
           hizmet_ozeti?: string | null
+          ict_hizmet_turu_kod?: string | null
           id?: string
+          sira?: number | null
           tenant_id: string
+          third_party_contract_id?: string | null
           third_party_id: string
           ulke?: string | null
         }
@@ -3110,17 +3116,34 @@ export type Database = {
           bilinmiyor?: boolean
           created_at?: string
           hizmet_ozeti?: string | null
+          ict_hizmet_turu_kod?: string | null
           id?: string
+          sira?: number | null
           tenant_id?: string
+          third_party_contract_id?: string | null
           third_party_id?: string
           ulke?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "fourth_parties_ict_hizmet_turu_kod_fkey"
+            columns: ["ict_hizmet_turu_kod"]
+            isOneToOne: false
+            referencedRelation: "ict_service_types"
+            referencedColumns: ["kod"]
+          },
+          {
             foreignKeyName: "fourth_parties_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fourth_parties_third_party_contract_id_fkey"
+            columns: ["third_party_contract_id"]
+            isOneToOne: false
+            referencedRelation: "third_party_contracts"
             referencedColumns: ["id"]
           },
           {
@@ -7323,10 +7346,13 @@ export type Database = {
           guncelleyen: string | null
           hiyerarsi_seviyesi: string | null
           id: string
+          kayit_tutan_kurulus_adi: string | null
+          kayit_tutan_kurulus_lei: string | null
           kurulus_turu: string | null
           lei: string | null
           para_birimi: string | null
           tenant_id: string
+          ticaret_sicil_no: string | null
           ulke_kodu: string | null
           updated_at: string
         }
@@ -7338,10 +7364,13 @@ export type Database = {
           guncelleyen?: string | null
           hiyerarsi_seviyesi?: string | null
           id?: string
+          kayit_tutan_kurulus_adi?: string | null
+          kayit_tutan_kurulus_lei?: string | null
           kurulus_turu?: string | null
           lei?: string | null
           para_birimi?: string | null
           tenant_id: string
+          ticaret_sicil_no?: string | null
           ulke_kodu?: string | null
           updated_at?: string
         }
@@ -7353,10 +7382,13 @@ export type Database = {
           guncelleyen?: string | null
           hiyerarsi_seviyesi?: string | null
           id?: string
+          kayit_tutan_kurulus_adi?: string | null
+          kayit_tutan_kurulus_lei?: string | null
           kurulus_turu?: string | null
           lei?: string | null
           para_birimi?: string | null
           tenant_id?: string
+          ticaret_sicil_no?: string | null
           ulke_kodu?: string | null
           updated_at?: string
         }
@@ -7759,47 +7791,127 @@ export type Database = {
           },
         ]
       }
+      third_party_contract_critical_services: {
+        Row: {
+          created_at: string
+          critical_service_id: string
+          id: string
+          tenant_id: string
+          third_party_contract_id: string
+        }
+        Insert: {
+          created_at?: string
+          critical_service_id: string
+          id?: string
+          tenant_id: string
+          third_party_contract_id: string
+        }
+        Update: {
+          created_at?: string
+          critical_service_id?: string
+          id?: string
+          tenant_id?: string
+          third_party_contract_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "third_party_contract_critical_serv_third_party_contract_id_fkey"
+            columns: ["third_party_contract_id"]
+            isOneToOne: false
+            referencedRelation: "third_party_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "third_party_contract_critical_services_critical_service_id_fkey"
+            columns: ["critical_service_id"]
+            isOneToOne: false
+            referencedRelation: "critical_business_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "third_party_contract_critical_services_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       third_party_contracts: {
         Row: {
           baslangic: string
+          bildirim_suresi_kurum_gun: number | null
+          bildirim_suresi_saglayici_gun: number | null
           bitis: string
           cikis_maddesi: boolean
           created_at: string
           denetim_hakki: boolean
           durum: string
+          ict_hizmet_turu_kod: string | null
           id: string
+          sona_erme_nedeni: string | null
           sozlesme_ref: string
+          tedarikci_kimlik_kodu: string | null
+          tedarikci_kimlik_kodu_turu: string | null
           tenant_id: string
           third_party_id: string
           updated_at: string
+          veri_isleme_ulkesi: string | null
+          veri_saklama_ulkesi: string | null
+          veri_saklaniyor_mu: boolean | null
         }
         Insert: {
           baslangic: string
+          bildirim_suresi_kurum_gun?: number | null
+          bildirim_suresi_saglayici_gun?: number | null
           bitis: string
           cikis_maddesi?: boolean
           created_at?: string
           denetim_hakki?: boolean
           durum?: string
+          ict_hizmet_turu_kod?: string | null
           id?: string
+          sona_erme_nedeni?: string | null
           sozlesme_ref: string
+          tedarikci_kimlik_kodu?: string | null
+          tedarikci_kimlik_kodu_turu?: string | null
           tenant_id: string
           third_party_id: string
           updated_at?: string
+          veri_isleme_ulkesi?: string | null
+          veri_saklama_ulkesi?: string | null
+          veri_saklaniyor_mu?: boolean | null
         }
         Update: {
           baslangic?: string
+          bildirim_suresi_kurum_gun?: number | null
+          bildirim_suresi_saglayici_gun?: number | null
           bitis?: string
           cikis_maddesi?: boolean
           created_at?: string
           denetim_hakki?: boolean
           durum?: string
+          ict_hizmet_turu_kod?: string | null
           id?: string
+          sona_erme_nedeni?: string | null
           sozlesme_ref?: string
+          tedarikci_kimlik_kodu?: string | null
+          tedarikci_kimlik_kodu_turu?: string | null
           tenant_id?: string
           third_party_id?: string
           updated_at?: string
+          veri_isleme_ulkesi?: string | null
+          veri_saklama_ulkesi?: string | null
+          veri_saklaniyor_mu?: boolean | null
         }
         Relationships: [
+          {
+            foreignKeyName: "third_party_contracts_ict_hizmet_turu_kod_fkey"
+            columns: ["ict_hizmet_turu_kod"]
+            isOneToOne: false
+            referencedRelation: "ict_service_types"
+            referencedColumns: ["kod"]
+          },
           {
             foreignKeyName: "third_party_contracts_tenant_id_fkey"
             columns: ["tenant_id"]

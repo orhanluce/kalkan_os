@@ -823,6 +823,62 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.61 37 Tez Dikey B, Faz 2 kalan dilimi — kurum kimliği + tedarikçi/sözleşme RoI alanları + kritik-fonksiyon eşlemesi ✅ (20 Temmuz)
+
+Kurucunun 20 Temmuz ÜÇÜNCÜ talimatı: Faz 2'nin kalanı. ADR
+`docs/adr/PR0-37-tez-dikeyB-faz2-kalan-2026-07-20.md`. **Yeni tablo ailesi
+YOK** (kural: eski kopya deseni kullanma) — `third_parties`/`third_party_
+contracts`/`fourth_parties`/`tenant_legal_identity` GENİŞLETİLDİ (migration
+`20260720120000`), yalnız açıkça istenen BİR mapping tablosu açıldı.
+
+**tenant_legal_identity:** `ticaret_sicil_no` (EUID'nin AB-dışı muadili,
+"ulusal kurum kimliği") + `kayit_tutan_kurulus_lei`/`_adi` (B_01.01 "Entity
+maintaining the register" — NULL=tenant kendi kaydını tutuyor, dolu=grup
+konsolide kaydı BAŞKA kuruluşta). `hiyerarsi_seviyesi` zaten konsolidasyon
+seviyesini karşılıyordu — yeni kolon açılmadı, yorum güncellendi.
+
+**third_party_contracts (B_02.02'nin çekirdek alt kümesi):** `tedarikci_
+kimlik_kodu`/`_turu`, **`ict_hizmet_turu_kod` — Faz 2 ilk dilimin `ict_
+service_types` kataloğuna GERÇEK FK** (var olmayan kod reddedilir, canlı
+kanıtlı), veri lokasyonu (`veri_saklaniyor_mu`/`veri_saklama_ulkesi`/`veri_
+isleme_ulkesi`, ISO 3166-1 format guard'lı), `sona_erme_nedeni` (B_02.02.0090
+— 6 seçenek Faz 1'de birebir biliniyor ama **CHECK constraint YAPILMADI**,
+"type of financial entity" 22-madde listesiyle AYNI ilke: henüz VERIFIED
+olmayan bir listeyi şemaya bağlayıcı kilitlemek kural 3'ü ihlal ederdi),
+bildirim süreleri.
+
+**fourth_parties (B_05.02 tedarik zinciri):** sözleşme bağı (`third_party_
+contract_id`), sıra (`sira >= 2` — doğrudan sağlayıcı=1 third_party'nin
+kendisi, örtük), hizmet türü kodu (aynı FK).
+
+**Açık mapping tablosu — `third_party_contract_critical_services`
+(talimat madde 4, KESİN KURAL):** `third_parties.tier` (iş riski tiering'i)
+ile DORA'nın kritik/önemli fonksiyon kavramı (`critical_business_services`,
+M13) OTOMATİK BİRLEŞTİRİLMEDİ — FARKLI SORULAR (tier: tedarikçi ne kadar
+riskli; eşleme: sözleşme hangi iş fonksiyonuna hizmet ediyor). Yeni, dar
+tablo: sözleşme↔kritik-hizmet, tenant-scoped RLS, `tier` alanı bu tabloda
+HİÇ YOK (test bunu şema seviyesinde doğruluyor — `information_schema.
+columns` sorgusu). Mevcut `service_dependencies`'in (Dikey 5 impact-graph
+girdisi) genel dayanıklılık semantiğiyle KARIŞTIRILMADI, ayrı tutuldu.
+
+**Dört-göz — bu dilimde YENİ bir guard YOK (dürüst gerekçe, ADR §5):**
+eklenen hiçbir alan yeni bir regülasyon iddiası taşımıyor — tenant'ın kendi
+operasyonel gerçeği (third_parties.ulke'yle AYNI kategori) ya da ZATEN
+dört-göz korumalı `ict_service_types`'a FK. **Sonuç: INSERT-bypass sınıfı
+bir hatanın bu dilimde tekrarlanma riski yapısal olarak yok** (kopyalanacak
+yeni bir guard fonksiyonu yok).
+
+**Doğrulama:** 12 yeni PGlite testi (`rls-dikeyB-faz2-kalan.test.ts`) + canlı
+smoke (6 adım: kimlik alanları, FK reddi/kabulü, veri lokasyonu format
+guard'ı, fourth_parties sira kısıtı, mapping unique kısıtı). **1220 birim
+(118 dosya) + 62 e2e (değişmedi, UI yok bu dilimde), 0 skip; build yeşil.**
+
+**Bilinçli kapsam dışı:** B_02.01.0020 sözleşme türü, para birimi/yıllık
+gider, governing-law/provision-country, veri hassasiyeti/güvenme seviyesi —
+kurucunun bu turki listesinde yoktu. Export motoru, S17-S19 VERIFIED,
+hukuksuz seed, tier↔kritiklik sessiz eşitleme — talimatın kendi "yapılmayacak"
+listesi.
+
 ### 1.60 37 Tez Dikey B, Faz 1+2 ilk dilim — hukuk/kaynak kilidi + ICT hizmet türü kataloğu (S01-S19) ✅ (20 Temmuz, ÖNCELİK SIFIRLAMASI)
 
 Kurucunun 20 Temmuz İKİNCİ talimatı: Dikey C bitti, artık **tek öncelik**
