@@ -64,7 +64,42 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (20 Temmuz — Dikey B Faz 1-4 + Dikey D ilk dilim + Kullanıcı Kılavuzu TAMAM)
+## 0c. GERÇEK DURUM (20 Temmuz — Dikey E1 + Dikey B Faz 1-4 + Dikey D ilk dilim + Kullanıcı Kılavuzu TAMAM)
+- **20 Temmuz ONBİRİNCİ talimatı: Dikey E, E1 — Bulut/Kritik Tedarikçi Güvence
+  Profili TAMAM (ROADMAP §1.67).** **İSİM ÇAKIŞMASI UYARISI (kayıt için
+  önemli):** `docs/GAP_MAP_37_TEZ.md`'deki "Dikey E" (KOS-5, AI Governance
+  Board — hâlâ YAPILMADI) ile BU dilim ("Dikey E1", kurucunun ayrı/yeni
+  talimatı) FARKLI şeylerdir — aynı harf, iki bağımsız dikey sıralaması.
+  Gap Map'e DOKUNULMADI (bu dilim hiçbir KOS maddesine karşılık gelmiyor).
+  Detay ROADMAP §1.67'de tam. Özet: `kaynak_turu` epistemik kolonu (8 değer,
+  default UNKNOWN, kaynak_turu≠dogrulama_durumu AYRI boyut) +
+  `assessment_finding_guard` bağımsız-kapanış forward-fix'i (sahibi kendi
+  bulgusunu kapatamaz) + TEK yeni tablo `cloud_assurance_profile_snapshots`
+  (mühürlü, immutable, `impact_graph_snapshots`'ın AYNI deseni) + saf motor
+  `src/lib/cloud-assurance.ts` (zorunlu kategori listesi UYDURULMADI,
+  worst-of) + `impact-graph.ts`'e opsiyonel `tedarikciBulgulari` (backward-
+  compat korunuyor, 20 birim regresyon dahil) + Proof Room 4. dal.
+  **Bulunan gerçek boşluk kapatıldı:** `proof_room_links`'in üç eski dalında
+  hiç var olmayan cross-tenant FK-hedef guard'ı, yalnız yeni 4. dal için dar
+  kapsamda eklendi. **Bulunan iki gerçek yan-hata düzeltildi:** şablon→soru
+  kopyalama `kaynak_turu`/`template_id` taşımıyordu; mevcut bulgu-kapatma
+  UI'ı hiç `sahibi` atamıyordu (yeni guard'la MEVCUT akış kırılırdı — UI'a
+  zorunlu sahip seçici eklenerek önlendi, canlıya gitmeden yakalandı).
+  UI ilk kez Cloud Pack'i `/tedarikciler/[id]`'de görünür/kullanılabilir
+  yaptı + güvence profili kartı (mühürleme + Proof Room bağlantısı) +
+  `/proof/[token]` 4. dal render'ı. **32 PGlite + 16 saf motor + 20 impact-
+  graph birim + canlı smoke (17 kontrol) + yeni `dikey-e1-cloud-assurance.
+  spec.ts` (uçtan uca, bağımsız kapanış dahil).** Test koşusu sırasında
+  DÖRT test (bulut-pak/kontrol-test-manifest/kontrol-test/tema) tam takımda
+  başarısız oldu, izole+temiz-ortam koşusunda hepsi yeşil — kök neden
+  KENDİ arka-plan test koşularımın birikmiş node/chrome process yükü
+  (bir chrome process ~8000 CPU-saniyesi biriktirmişti), kod DEĞİL; ayrıca
+  `simulasyon.spec.ts`'in M18 bağı testi bu dilimle dosya-düzeyinde İLGİSİZ
+  ve tekrarlanabilir başarısız — koda DOKUNULMADI, ayrı borç olarak kayıtlı.
+  **TAM e2e takımı temiz ortamda 73/73, 0 skip. 1369 birim (125 dosya) + 73
+  e2e; build yeşil.** Bilinçli kapsam dışı: telafi edici kontrol (E2), RTO/
+  RPO zinciri, sözleşme-düzeyi graf granülerliği, dördüncü-taraf değişiklik
+  bildirimi, SCITT/KMS/JWS/TSA/AI-hukuk-sağlayıcı seçimi.
 - **20 Temmuz ONUNCU talimatı: Kullanıcı Kılavuzu / Yardım Merkezi TAMAM
   (§1.66).** Teknik olmayan kurum çalışanı için Türkçe kılavuz + bağlama
   duyarlı yardım paneli — ürün mimarisi DEĞİŞMEDİ. İçerik `src/lib/yardim-

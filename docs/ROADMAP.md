@@ -823,6 +823,90 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.67 Dikey E, E1 — Bulut / Kritik Tedarikçi Güvence Profili ✅ (20 Temmuz)
+
+Kurucunun 20 Temmuz onbirinci talimatı: Dikey E analizi onayı + E1 uygulama
+emri, 4 kurucu kararıyla (bağımsız kapanış, snapshot tablo adı, kaynak_turu
+default UNKNOWN, telafi edici kontrol E2'ye erteleme). ADR
+`docs/adr/PR0-dikeyE1-cloud-tedarikci-guvence-2026-07-20.md`.
+
+**Yeni tablo/motor/graf DB YOK — mevcut M35 + Cloud Pack (Dikey 3) + Dikey D
+(`impact-graph.ts`) + Dikey B (provenance/Proof Room) ÜZERİNE 5 dar iş:**
+(1) `kaynak_turu` epistemik kolonu (`assessment_question_templates` +
+`assessment_questions`, 8 değer, default UNKNOWN — hukuki zorunluluk sistem
+tarafından TAHMİN EDİLEMEZ); (2) `assessment_finding_guard` bağımsız-kapanış
+forward-fix'i (`sahibi` kendi bulgusunu kapatamaz — M12/SoD'nin AYNI deseni);
+(3) TEK yeni tablo `cloud_assurance_profile_snapshots` (mühürlü profil,
+`impact_graph_snapshots`'ın AYNI immutable+cross-tenant-guard deseni);
+(4) `impact-graph.ts`'e opsiyonel `tedarikciBulgulari` genişlemesi (yeni
+`TEDARIKCI_BULGUSU` düğüm türü, M12'nin `BULGU` türüyle KARIŞTIRILMADI);
+(5) Proof Room 4. polimorfik dal (CHECK 3→4).
+
+**kaynak_turu ↔ dogrulama_durumu AYRI iki boyut (ADR §5):** kaynak_turu
+(iddianın DAYANDIĞI kaynak türü) motorun ürettiği hiçbir sonucu otomatik
+yükseltmez; `PROVIDER_ATTESTATION` tek başına bağımsız doğrulama SAYILMAZ.
+`assessment_questions.template_id` (bilinçli, dar kapsam genişlemesi, ADR §1
+gerekçeli) CANLI sorgulanır — yalnız mühürlü snapshot kendi anını dondurur.
+
+**Saf motor `src/lib/cloud-assurance.ts`:** "zorunlu kategori" listesi
+UYDURULMADI (Cloud Pack şemasında hiçbir kategori zorunlu işaretli değil) —
+genel durum yalnız MEVCUT sorulara göre worst-of hesaplanır
+(`ENGELLENDI > EKSIK > INCELEME_GEREKLI > DOGRULANMIS_PROFIL`), sorusu
+olmayan kategori `CEVAPSIZ` görünür (sessizce atlanmaz). Açık KRİTİK bulgu
+tek MUTLAK blok (M35'in mevcut `assessment_tamamla_guard` ilkesinin AYNI
+yansıması). 16 birim testi.
+
+**Bulunan ve dar kapsamda kapatılan gerçek boşluk:** `proof_room_links`'in
+var olan üç dalında (test_run_id/roi_export_run_id/graph_snapshot_id)
+FK'lı hedefin tenant_id'sini doğrulayan bir trigger HİÇ YOKTU — yalnız
+satırın kendi tenant_id'si RLS ile korunuyordu. Üç eski dal DOKUNULMADAN,
+yalnız YENİ `cloud_assurance_profile_id` için dar bir guard eklendi
+(`20260720270000`) — kurucunun 4. dal için açık şartını ("cross-tenant
+linking rejected at DB level") karşılamak için.
+
+**UI:** Cloud Pack ilk kez `/tedarikciler/[id]`'de görünür/kullanılabilir
+(kategori grupları, cevap/uygulanabilirlik/kaynak_turu düzenleme, şablon
+doğrulama durumu canlı gösterimi, sağlayıcı-beyanı uyarısı); güvence profili
+kartı (önizleme + "Profili Mühürle" sealed-snapshot eylemi + Proof Room
+bağlantısı); `/tedarikciler` şablon kartına kaynak_turu seçici eklendi.
+`/proof/[token]` 4. dal render'ı (minimize: ham cevap/sözleşme metni/PII
+YOK). Bulgu ekleme formuna ZORUNLU sahip seçici eklendi (bağımsız kapanış
+öncülü) — mevcut "Kapat" akışı sahip=kapatan iken düğmeyi gizler, açıklama
+gösterir.
+
+**Test disiplini (bu dilimde iki gerçek yan-hata bulundu ve düzeltildi):**
+(1) şablon→soru kopyalama fonksiyonu `kaynak_turu`/`template_id`'yi hiç
+TAŞIMIYORDU — kopyalanan soru her zaman UNKNOWN'a düşüyor, canlı bağlantı
+hiç kurulmuyordu; düzeltildi (ADR §1'in "template_id CANLI bağlanır" kararı
+gerçek işlevsel hâle geldi). (2) mevcut bulgu kapatma UI'ı hiçbir zaman
+`sahibi` atamıyordu — bağımsız-kapanış guard'ı yürürlüğe girince MEVCUT
+"Kapat" akışı DAİMA reddedilirdi; UI'a zorunlu sahip seçici eklenerek
+kapatıldı (canlı davranışı bozacak bir regresyon, koda gitmeden yakalandı).
+E2E test yazarken de iki kırılgan varsayım bulundu: `ikinciKullaniciGirisYap`
+öncesi açık oturum varken `/giris`'e gitmek proxy tarafından "/"'e geri
+yönlendiriliyor (önce "Çıkış" tıklanmalı — `sod-import.spec.ts`'in AYNI
+dersi); `getByRole("button",{name:"Çıkış"})` bu sayfada "Çıkış Planı Ekle"
+ile substring çakışıyor (`exact:true` şart).
+
+**Doğrulama:** 32 PGlite RLS/guard birim (5 migration) + 16 saf motor birim
++ 20 impact-graph birim (backward-compat regresyon dahil) + canlı smoke
+(17 kontrol — sahibi/kapatan, immutable, cross-tenant, oturumsuz Proof Room
+görünümü) + yeni `e2e/dikey-e1-cloud-assurance.spec.ts` (uçtan uca: kritik
+tedarikçi → alt yüklenici → Cloud Pack kategori+kaynak türü → açık KRİTİK
+bulgu → sign-off engeli → sahibi kendi kapatamaz → farklı yetkili kanıtla
+kapatır → profil mühürleme → Proof Room bağlantısı → oturumsuz görünüm).
+**TAM e2e takımı 73/73, 0 skip** (dört ayrı-koşulu izole doğrulanmış flake —
+bulut-pak/kontrol-test-manifest/kontrol-test/tema — tam takımda YÜKSEK
+paralel arka-plan koşu YÜKÜNDEN kaynaklı, izole+temiz ortamda hepsi yeşil;
+simulasyon.spec.ts M18 bağı testi bu dilimle İLGİSİZ, dokunulmayan dosyalarda
+tekrarlanabilir başarısız — kod DEĞİŞTİRİLMEDİ, ayrı borç). 1369 birim (125
+dosya) + 73 e2e; production build yeşil.
+
+**Bilinçli kapsam dışı (kurucunun kendi listesi):** telafi edici kontrol
+bağlantısı (E2), RTO/RPO zinciri, sözleşme-düzeyi graf granülerliği,
+dördüncü-taraf değişiklik bildirimi, yapılandırılmış SLA/IAM/yedekleme
+alanları, SCITT bağlantısı, KMS/JWS/TSA, AI/hukuk sağlayıcısı seçimi.
+
 ### 1.66 Kullanıcı Kılavuzu / Yardım Merkezi ✅ (20 Temmuz)
 
 Kurucunun 20 Temmuz onuncu talimatı (`CLAUDE_CODE_KALKAN_OS_KULLANICI_

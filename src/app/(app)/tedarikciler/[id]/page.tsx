@@ -13,9 +13,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { disErisimTokenUret } from "@/lib/dis-erisim-token";
+import {
+  CLOUD_PACK_KATEGORILERI,
+  KAYNAK_TURLERI,
+  KAYNAK_TURU_TR_ETIKET,
+  type GuvenceProfiliSonucu,
+  type KaynakTuru,
+} from "@/lib/cloud-assurance";
 import { bulguOzeti, roiKaydiUret, sozlesmeYakinligi, type Bulgu } from "@/lib/tedarikci";
 import { createClient } from "@/lib/supabase/client";
-import { KARAR, TIER } from "../page";
+import { BULUT_KATEGORI, KARAR, TIER } from "../page";
+
+const GENEL_DURUM_ETIKET: Record<string, { etiket: string; semantik: "success" | "warning" | "danger" | "unknown" }> = {
+  DOGRULANMIS_PROFIL: { etiket: "Doğrulanmış profil", semantik: "success" },
+  INCELEME_GEREKLI: { etiket: "İnceleme gerekli", semantik: "warning" },
+  EKSIK: { etiket: "Eksik — henüz değerlendirilemiyor", semantik: "unknown" },
+  ENGELLENDI: { etiket: "Kritik bulgu nedeniyle engellendi", semantik: "danger" },
+};
 
 interface Tedarikci {
   ad: string;
@@ -66,6 +80,11 @@ interface BulguRow {
   baslik: string;
   ciddiyet: string;
   durum: string;
+  sahibi: string | null;
+}
+interface ProfilRow {
+  id: string;
+  full_name: string | null;
 }
 interface SoruRow {
   id: string;
@@ -88,6 +107,17 @@ interface RevizyonCevapRow {
   cevap: string | null;
   kanit_metni: string | null;
 }
+interface BulutSoruRow {
+  id: string;
+  assessment_id: string;
+  soru: string;
+  cevap: string | null;
+  uygulanabilirlik: string;
+  kaynak_turu: string;
+  kaynak_citation: string | null;
+  template_id: string | null;
+  assessment_question_templates: { kategori: string | null; dogrulama_durumu: string; dogrulayan: string | null; dogrulama_zamani: string | null } | null;
+}
 
 export default function TedarikciDetayPage() {
   const params = useParams<{ id: string }>();
@@ -105,7 +135,9 @@ export default function TedarikciDetayPage() {
   const [ledgerDurum, setLedgerDurum] = useState<Record<string, string>>({});
   const [bBaslik, setBBaslik] = useState<Record<string, string>>({});
   const [bCiddiyet, setBCiddiyet] = useState<Record<string, string>>({});
+  const [bSahibi, setBSahibi] = useState<Record<string, string>>({});
   const [bKanit, setBKanit] = useState<Record<string, string>>({});
+  const [profiller, setProfiller] = useState<ProfilRow[]>([]);
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [kullaniciId, setKullaniciId] = useState<string | null>(null);
   const [hata, setHata] = useState<string | null>(null);
@@ -123,6 +155,14 @@ export default function TedarikciDetayPage() {
   const [disEmail, setDisEmail] = useState("");
   const [grantUrl, setGrantUrl] = useState<string | null>(null);
 
+  // Dikey E, E1: Cloud Pack soruları + güvence profili + Proof Room.
+  const [bulutSorular, setBulutSorular] = useState<BulutSoruRow[]>([]);
+  const [bCevap, setBCevap] = useState<Record<string, string>>({});
+  const [guvenceProfili, setGuvenceProfili] = useState<GuvenceProfiliSonucu | null>(null);
+  const [guvenceYukleniyor, setGuvenceYukleniyor] = useState(false);
+  const [sonSnapshot, setSonSnapshot] = useState<{ id: string; profil_hash: string; created_at: string } | null>(null);
+  const [proofLinkUrl, setProofLinkUrl] = useState<string | null>(null);
+
   const bugun = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const yukle = useCallback(async () => {
@@ -134,6 +174,10 @@ export default function TedarikciDetayPage() {
     if (user) {
       const { data: p } = await db.from("profiles").select("tenant_id").eq("id", user.id).maybeSingle();
       setTenantId(p?.tenant_id ?? null);
+      if (p?.tenant_id) {
+        const { data: pr } = await db.from("profiles").select("id, full_name").eq("tenant_id", p.tenant_id).order("full_name");
+        setProfiller((pr ?? []) as ProfilRow[]);
+      }
     }
     const { data: tp } = await db
       .from("third_parties")
@@ -153,7 +197,7 @@ export default function TedarikciDetayPage() {
     setCikis((cs ?? []) as CikisPlani[]);
     const [{ data: as_ }, { data: fs }] = await Promise.all([
       db.from("third_party_assessments").select("id, tur, durum, tamamlandi_at").eq("third_party_id", params.id).order("baslangic_at", { ascending: false }),
-      db.from("assessment_findings").select("id, assessment_id, baslik, ciddiyet, durum").eq("third_party_id", params.id),
+      db.from("assessment_findings").select("id, assessment_id, baslik, ciddiyet, durum, sahibi").eq("third_party_id", params.id),
     ]);
     setDegerlendirmeler((as_ ?? []) as Degerlendirme[]);
     setBulgular((fs ?? []) as BulguRow[]);
@@ -195,6 +239,26 @@ export default function TedarikciDetayPage() {
       setSonRevizyon({});
       setRevizyonCevaplari({});
     }
+    if (assessmentIds.length > 0) {
+      const { data: bs } = await db
+        .from("assessment_questions")
+        .select(
+          "id, assessment_id, soru, cevap, uygulanabilirlik, kaynak_turu, kaynak_citation, template_id, assessment_question_templates (kategori, dogrulama_durumu, dogrulayan, dogrulama_zamani)",
+        )
+        .in("assessment_id", assessmentIds)
+        .not("template_id", "is", null);
+      setBulutSorular(((bs ?? []) as unknown as BulutSoruRow[]).filter((s) => s.assessment_question_templates?.kategori));
+    } else {
+      setBulutSorular([]);
+    }
+    const { data: snap } = await db
+      .from("cloud_assurance_profile_snapshots")
+      .select("id, profil_hash, created_at")
+      .eq("third_party_id", params.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setSonSnapshot(snap ?? null);
     // TAMAMLANDI değerlendirmelerin defter mühür durumu (§8.0 Dikey 1).
     const tamamlandiIds = (as_ ?? []).filter((a) => a.durum === "TAMAMLANDI").map((a) => a.id);
     const durumlar: Record<string, string> = {};
@@ -248,7 +312,7 @@ export default function TedarikciDetayPage() {
       const db = createClient();
       const { data: sablonlar, error: selErr } = await db
         .from("assessment_question_templates")
-        .select("soru, sira, kaynak_citation")
+        .select("id, soru, sira, kaynak_citation, kaynak_turu")
         .eq("tenant_id", tenantId)
         .eq("tur", tur)
         .eq("aktif", true)
@@ -257,10 +321,21 @@ export default function TedarikciDetayPage() {
       if (!sablonlar || sablonlar.length === 0) {
         return setHata(`"${tur}" türü için aktif şablon sorusu yok (Tedarikçiler ana sayfasında ekleyin).`);
       }
-      // Kopyalanan soru kaynak künyesini de taşır (kopya şablondan bağımsız,
-      // uygulanabilirlik UNKNOWN doğar — kural 7).
+      // Kopyalanan soru kaynak künyesini + BAŞLANGIÇ kaynak_turu'nu taşır
+      // (kopya şablondan bağımsız — sonradan ayrı ayrı değiştirilebilir,
+      // uygulanabilirlik UNKNOWN doğar — kural 7). template_id CANLI bağlanır
+      // (ADR §1, Dikey E1): şablonun güncel dogrulama_durumu'nu hesap anında
+      // okumak için — kopyalama anında DONDURULMAZ.
       const { error } = await db.from("assessment_questions").insert(
-        sablonlar.map((s) => ({ tenant_id: tenantId, assessment_id: assessmentId, soru: s.soru, sira: s.sira, kaynak_citation: s.kaynak_citation })),
+        sablonlar.map((s) => ({
+          tenant_id: tenantId,
+          assessment_id: assessmentId,
+          soru: s.soru,
+          sira: s.sira,
+          kaynak_citation: s.kaynak_citation,
+          kaynak_turu: s.kaynak_turu,
+          template_id: s.id,
+        })),
       );
       if (error) setHata(error.message);
       await yukle();
@@ -272,7 +347,11 @@ export default function TedarikciDetayPage() {
     async (assessmentId: string) => {
       setHata(null);
       const baslik = (bBaslik[assessmentId] ?? "").trim();
-      if (!baslik || !tenantId) return;
+      const sahibi = bSahibi[assessmentId];
+      // Bağımsız kapanış invaryantı (Dikey E, kural: kendi işini kendi
+      // kapatamaz) sahibi'nin baştan atanmasını GEREKTİRİR — sahibisiz bulgu
+      // hiçbir zaman kapatılamaz (DB guard). UI'da uydurmadan zorunlu tutulur.
+      if (!baslik || !tenantId || !sahibi) return;
       const db = createClient();
       const { error } = await db.from("assessment_findings").insert({
         tenant_id: tenantId,
@@ -280,12 +359,14 @@ export default function TedarikciDetayPage() {
         third_party_id: params.id,
         baslik,
         ciddiyet: bCiddiyet[assessmentId] ?? "ORTA",
+        sahibi,
       });
       if (error) setHata(error.message);
       setBBaslik((m) => ({ ...m, [assessmentId]: "" }));
+      setBSahibi((m) => ({ ...m, [assessmentId]: "" }));
       await yukle();
     },
-    [bBaslik, bCiddiyet, tenantId, params.id, yukle],
+    [bBaslik, bCiddiyet, bSahibi, tenantId, params.id, yukle],
   );
 
   const bulguKapat = useCallback(
@@ -307,6 +388,91 @@ export default function TedarikciDetayPage() {
     },
     [bKanit, kullaniciId, yukle],
   );
+
+  const bulutCevapKaydet = useCallback(
+    async (id: string) => {
+      const db = createClient();
+      const { error } = await db.from("assessment_questions").update({ cevap: bCevap[id] ?? "" }).eq("id", id);
+      if (error) setHata(error.message);
+      await yukle();
+    },
+    [bCevap, yukle],
+  );
+  const bulutUygulanabilirlikGuncelle = useCallback(
+    async (id: string, deger: string) => {
+      const db = createClient();
+      const { error } = await db.from("assessment_questions").update({ uygulanabilirlik: deger }).eq("id", id);
+      if (error) setHata(error.message);
+      await yukle();
+    },
+    [yukle],
+  );
+  const bulutKaynakTuruGuncelle = useCallback(
+    async (id: string, deger: KaynakTuru) => {
+      const db = createClient();
+      const { error } = await db.from("assessment_questions").update({ kaynak_turu: deger }).eq("id", id);
+      if (error) setHata(error.message);
+      await yukle();
+    },
+    [yukle],
+  );
+
+  // Güvence profili: GET önizler (mühürlemez), POST mühürler (sealed snapshot).
+  const guvenceOnizle = useCallback(async () => {
+    setGuvenceYukleniyor(true);
+    setHata(null);
+    try {
+      const res = await fetch(`/api/tedarikciler/${params.id}/guvence-profili`);
+      const govde = await res.json();
+      if (!res.ok) return setHata(govde.hata ?? "Güvence profili hesaplanamadı.");
+      setGuvenceProfili(govde.profil as GuvenceProfiliSonucu);
+    } finally {
+      setGuvenceYukleniyor(false);
+    }
+  }, [params.id]);
+
+  const guvenceMuhurle = useCallback(async () => {
+    setGuvenceYukleniyor(true);
+    setHata(null);
+    try {
+      const res = await fetch(`/api/tedarikciler/${params.id}/guvence-profili`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const govde = await res.json();
+      if (!res.ok) return setHata(govde.hata ?? "Güvence profili mühürlenemedi.");
+      setGuvenceProfili(govde.profil as GuvenceProfiliSonucu);
+      await yukle();
+    } finally {
+      setGuvenceYukleniyor(false);
+    }
+  }, [params.id, yukle]);
+
+  const proofLinkiOlustur = useCallback(async () => {
+    setHata(null);
+    if (!sonSnapshot) return;
+    const res = await fetch("/api/proof-room", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cloudAssuranceProfileId: sonSnapshot.id }),
+    });
+    const govde = await res.json();
+    if (!res.ok || !govde.url) return setHata(govde.hata ?? "Proof Room linki oluşturulamadı.");
+    setProofLinkUrl(govde.url);
+  }, [sonSnapshot]);
+
+  useEffect(() => {
+    let iptal = false;
+    void (async () => {
+      const res = await fetch(`/api/tedarikciler/${params.id}/guvence-profili`);
+      const govde = await res.json();
+      if (!iptal && res.ok) setGuvenceProfili(govde.profil as GuvenceProfiliSonucu);
+    })();
+    return () => {
+      iptal = true;
+    };
+  }, [params.id]);
 
   // Vendor-portal dış erişim (M35 sonraki dilim, G7 M41 partner modeli):
   // matter_access_grants/matter_goruntule deseninin AYNISI, bağımsızlık beyanı
@@ -758,7 +924,13 @@ export default function TedarikciDetayPage() {
                     <span>{f.baslik}</span>
                     <StatusBadge durum={f.ciddiyet === "KRITIK" ? "danger" : f.ciddiyet === "YUKSEK" ? "warning" : "neutral"}>{f.ciddiyet}</StatusBadge>
                     <StatusBadge durum={f.durum === "KAPANDI" ? "success" : "warning"}>{f.durum}</StatusBadge>
-                    {f.durum !== "KAPANDI" ? (
+                    <span className="text-muted-foreground">Sahip: {profiller.find((p) => p.id === f.sahibi)?.full_name ?? "—"}</span>
+                    {f.durum !== "KAPANDI" && f.sahibi && f.sahibi === kullaniciId ? (
+                      <span className="text-muted-foreground">
+                        Bu bulgunun sahibisiniz — bağımsız kapanış gereği kendi bulgunuzu kapatamazsınız (kural 14, Dikey E).
+                      </span>
+                    ) : null}
+                    {f.durum !== "KAPANDI" && f.sahibi && f.sahibi !== kullaniciId ? (
                       <>
                         <Input
                           value={bKanit[f.id] ?? ""}
@@ -795,7 +967,25 @@ export default function TedarikciDetayPage() {
                       <option value="YUKSEK">Yüksek</option>
                       <option value="KRITIK">Kritik</option>
                     </select>
-                    <Button size="sm" variant="outline" onClick={() => void bulguEkle(a.id)} disabled={!(bBaslik[a.id] ?? "").trim()}>
+                    <select
+                      value={bSahibi[a.id] ?? ""}
+                      onChange={(e) => setBSahibi((m) => ({ ...m, [a.id]: e.target.value }))}
+                      aria-label={`${a.id} bulgu sahibi`}
+                      className="h-8 rounded-md border bg-background px-2 text-xs"
+                    >
+                      <option value="">Sahip seçin…</option>
+                      {profiller.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.full_name ?? p.id}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void bulguEkle(a.id)}
+                      disabled={!(bBaslik[a.id] ?? "").trim() || !bSahibi[a.id]}
+                    >
                       Bulgu Ekle
                     </Button>
                   </div>
@@ -803,6 +993,175 @@ export default function TedarikciDetayPage() {
               </div>
             );
           })}
+        </CardContent>
+      </Card>
+
+      {/* Cloud Pack (Dikey E1): 11 bulut alanı, kaynak_turu ↔ dogrulama_durumu AYRI boyutlar. */}
+      <Card data-testid="cloud-pack-karti">
+        <CardHeader>
+          <CardTitle>Bulut / kritik tedarikçi güvence paketi</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 text-sm">
+          <p className="text-muted-foreground">
+            Kaynak türü (bu iddia NEYE dayanıyor) ile doğrulama durumu (soru künyesi insan tarafından
+            doğrulandı mı) BAĞIMSIZ iki boyuttur — biri diğerini otomatik olarak yükseltmez. Sağlayıcı
+            beyanı tek başına bağımsız doğrulama SAYILMAZ.
+          </p>
+          {bulutSorular.length === 0 ? (
+            <p className="text-muted-foreground">
+              Bu tedarikçinin hiçbir değerlendirmesinde Cloud Pack sorusu yok. Şablondan kopyalayın
+              (yukarıdaki değerlendirme kartı) — şablonları{" "}
+              <Link href="/tedarikciler" className="text-primary underline">
+                Tedarikçiler ana sayfasında
+              </Link>{" "}
+              yönetin.
+            </p>
+          ) : (
+            Object.entries(
+              bulutSorular.reduce<Record<string, BulutSoruRow[]>>((acc, s) => {
+                const k = s.assessment_question_templates?.kategori ?? "BILINMIYOR";
+                (acc[k] ??= []).push(s);
+                return acc;
+              }, {}),
+            ).map(([kategori, sorular]) => (
+              <div key={kategori} className="flex flex-col gap-2 border-t pt-2">
+                <span className="font-medium">{BULUT_KATEGORI[kategori] ?? kategori}</span>
+                {sorular.map((s) => {
+                  const sablon = s.assessment_question_templates;
+                  return (
+                    <div key={s.id} className="flex flex-col gap-1 rounded border p-2 text-xs">
+                      <span>{s.soru}</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Input
+                          value={bCevap[s.id] ?? s.cevap ?? ""}
+                          onChange={(e) => setBCevap((m) => ({ ...m, [s.id]: e.target.value }))}
+                          placeholder="Cevap"
+                          aria-label={`${s.id} cevap`}
+                          className="h-7 w-56 text-xs"
+                        />
+                        <Button size="sm" variant="outline" onClick={() => void bulutCevapKaydet(s.id)}>
+                          Kaydet
+                        </Button>
+                        <select
+                          value={s.uygulanabilirlik}
+                          onChange={(e) => void bulutUygulanabilirlikGuncelle(s.id, e.target.value)}
+                          aria-label={`${s.id} uygulanabilirlik`}
+                          className="h-7 rounded-md border bg-background px-1 text-xs"
+                        >
+                          <option value="UNKNOWN">Uygulanabilirlik: bilinmiyor</option>
+                          <option value="APPLICABLE">Uygulanabilir</option>
+                          <option value="NOT_APPLICABLE">Uygulanamaz</option>
+                        </select>
+                        <select
+                          value={s.kaynak_turu}
+                          onChange={(e) => void bulutKaynakTuruGuncelle(s.id, e.target.value as KaynakTuru)}
+                          aria-label={`${s.id} kaynak türü`}
+                          className="h-7 rounded-md border bg-background px-1 text-xs"
+                        >
+                          {KAYNAK_TURLERI.map((k) => (
+                            <option key={k} value={k}>
+                              {KAYNAK_TURU_TR_ETIKET[k]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {s.kaynak_turu === "PROVIDER_ATTESTATION" ? (
+                        <span className="text-muted-foreground">Sağlayıcı beyanı — bağımsız doğrulama değil.</span>
+                      ) : null}
+                      {s.kaynak_citation ? <span className="text-muted-foreground">Künye: {s.kaynak_citation}</span> : null}
+                      <StatusBadge durum={sablon?.dogrulama_durumu === "VERIFIED" ? "success" : "warning"}>
+                        Soru künyesi: {sablon?.dogrulama_durumu === "VERIFIED" ? "Doğrulandı" : "Doğrulanmadı"}
+                      </StatusBadge>
+                      {sablon?.dogrulama_durumu === "VERIFIED" && sablon.dogrulama_zamani ? (
+                        <span className="text-muted-foreground">
+                          {new Date(sablon.dogrulama_zamani).toLocaleString("tr-TR")} tarihinde doğrulandı.
+                        </span>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Güvence profili (Dikey E1): saf motor önizler, mühürleme sealed snapshot yaratır. */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Bulut / tedarikçi güvence profili</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 text-sm">
+          <p className="text-muted-foreground">
+            Bu bir kesin uyum kararı değildir — mevcut Cloud Pack yanıtlarının + açık KRİTİK bulguların
+            yapısal bir dökümüdür. &quot;Mühürle&quot;, o anki durumun DEĞİŞMEZ bir fotoğrafını
+            oluşturur; eski anlık görüntüler asla güncellenmez, yeni bir durum yeni bir anlık görüntü
+            ister.
+          </p>
+          {guvenceYukleniyor ? <p className="text-muted-foreground">Hesaplanıyor…</p> : null}
+          {guvenceProfili ? (
+            <div className="flex flex-col gap-2">
+              <StatusBadge durum={GENEL_DURUM_ETIKET[guvenceProfili.genelDurum]?.semantik ?? "unknown"}>
+                {GENEL_DURUM_ETIKET[guvenceProfili.genelDurum]?.etiket ?? guvenceProfili.genelDurum}
+              </StatusBadge>
+              {guvenceProfili.acikKritikBulgular.length > 0 ? (
+                <p className="text-danger">
+                  Açık KRİTİK bulgu(lar): {guvenceProfili.acikKritikBulgular.map((b) => b.baslik).join(", ")}
+                </p>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                {CLOUD_PACK_KATEGORILERI.map((k) => {
+                  const kat = guvenceProfili.kategoriler.find((c) => c.kategori === k);
+                  if (!kat) return null;
+                  return (
+                    <StatusBadge
+                      key={k}
+                      durum={kat.durum === "DOGRULANMIS" ? "success" : kat.durum === "UYGULANMAZ" ? "neutral" : kat.durum === "INCELEME_GEREKLI" ? "warning" : "unknown"}
+                    >
+                      {BULUT_KATEGORI[k]}: {kat.durum}
+                    </StatusBadge>
+                  );
+                })}
+              </div>
+              {guvenceProfili.engelGerekceleri.length > 0 ? (
+                <ul className="list-disc pl-4 text-xs text-muted-foreground">
+                  {guvenceProfili.engelGerekceleri.map((e, i) => (
+                    <li key={i}>{e.aciklama}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {guvenceProfili.kategorisizSoruSayisi > 0 ? (
+                <p className="text-muted-foreground">
+                  {guvenceProfili.kategorisizSoruSayisi} soru şablon bağlantısı olmadığı için kategorisiz —
+                  kaybolmadı, yalnız bir kategoriye uydurulmadı.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-2 border-t pt-2">
+            <Button size="sm" variant="outline" onClick={() => void guvenceOnizle()} disabled={guvenceYukleniyor}>
+              Yeniden Önizle
+            </Button>
+            <Button size="sm" onClick={() => void guvenceMuhurle()} disabled={guvenceYukleniyor}>
+              Profili Mühürle (sealed snapshot)
+            </Button>
+          </div>
+          {sonSnapshot ? (
+            <div className="flex flex-wrap items-center gap-2 border-t pt-2 text-xs">
+              <span className="text-muted-foreground">
+                Son mühürlü profil: {sonSnapshot.profil_hash.slice(0, 16)}… ·{" "}
+                {new Date(sonSnapshot.created_at).toLocaleString("tr-TR")}
+              </span>
+              <Button size="sm" variant="outline" onClick={() => void proofLinkiOlustur()}>
+                Proof Room Bağlantısı Oluştur
+              </Button>
+              {proofLinkUrl ? (
+                <Link href={proofLinkUrl} className="text-primary underline">
+                  {proofLinkUrl}
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

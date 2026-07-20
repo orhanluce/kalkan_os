@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { KAYNAK_TURLERI, KAYNAK_TURU_TR_ETIKET, type KaynakTuru } from "@/lib/cloud-assurance";
 import { konsantrasyonAnalizi, type TedarikciGraf } from "@/lib/tedarikci";
 import { createClient } from "@/lib/supabase/client";
 import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
@@ -42,10 +43,11 @@ interface Sablon {
   kaynak_citation: string | null;
   kaynak_surumu: string | null;
   dogrulama_durumu: string;
+  kaynak_turu: string;
 }
 
 // 11 bulut alanı (Dikey 3).
-const BULUT_KATEGORI: Record<string, string> = {
+export const BULUT_KATEGORI: Record<string, string> = {
   BULUT_ENVANTERI: "Bulut envanteri",
   SHARED_RESPONSIBILITY: "Shared responsibility",
   SLA_GUVENLIK: "SLA / güvenlik",
@@ -72,6 +74,7 @@ export default function TedariklerPage() {
   const [sKategori, setSKategori] = useState("");
   const [sCitation, setSCitation] = useState("");
   const [sSurum, setSSurum] = useState("");
+  const [sKaynakTuru, setSKaynakTuru] = useState<KaynakTuru>("UNKNOWN");
 
   const yukle = useCallback(async () => {
     const db = createClient();
@@ -94,7 +97,7 @@ export default function TedariklerPage() {
     setKonsantrasyon(konsantrasyonAnalizi(graf));
     const { data: sb } = await db
       .from("assessment_question_templates")
-      .select("id, tur, soru, aktif, kategori, kaynak_citation, kaynak_surumu, dogrulama_durumu")
+      .select("id, tur, soru, aktif, kategori, kaynak_citation, kaynak_surumu, dogrulama_durumu, kaynak_turu")
       .order("tur")
       .order("sira");
     setSablonlar((sb ?? []) as Sablon[]);
@@ -151,13 +154,15 @@ export default function TedariklerPage() {
       kategori: sKategori || null,
       kaynak_citation: sCitation.trim() || null,
       kaynak_surumu: sSurum.trim() || null,
+      kaynak_turu: sKaynakTuru,
     });
     if (error) return setHata(error.message);
     setSSoru("");
     setSCitation("");
     setSSurum("");
+    setSKaynakTuru("UNKNOWN");
     await yukle();
-  }, [sTur, sSoru, sKategori, sCitation, sSurum, yukle]);
+  }, [sTur, sSoru, sKategori, sCitation, sSurum, sKaynakTuru, yukle]);
 
   // Doğrulama (kural 6): pak maddesini İNSAN doğrulayıcı olarak VERIFIED yap.
   const sablonDogrula = useCallback(
@@ -172,6 +177,18 @@ export default function TedariklerPage() {
         .from("assessment_question_templates")
         .update({ dogrulama_durumu: "VERIFIED", dogrulayan: user.id, dogrulama_zamani: new Date().toISOString() })
         .eq("id", id);
+      if (error) setHata(error.message);
+      await yukle();
+    },
+    [yukle],
+  );
+
+  // kaynak_turu değişimi audit_log'a düşer (DB trigger) — bu yalnız çağırır.
+  const sablonKaynakTuruDegistir = useCallback(
+    async (id: string, kaynakTuru: KaynakTuru) => {
+      setHata(null);
+      const db = createClient();
+      const { error } = await db.from("assessment_question_templates").update({ kaynak_turu: kaynakTuru }).eq("id", id);
       if (error) setHata(error.message);
       await yukle();
     },
@@ -323,6 +340,21 @@ export default function TedariklerPage() {
                 <div key={s.id} className="flex flex-wrap items-center gap-2 text-xs">
                   <span className={s.aktif ? "" : "text-muted-foreground line-through"}>{s.soru}</span>
                   {s.kategori ? <StatusBadge durum="info">{BULUT_KATEGORI[s.kategori] ?? s.kategori}</StatusBadge> : null}
+                  <select
+                    aria-label={`${s.id} kaynak türü`}
+                    value={s.kaynak_turu}
+                    onChange={(e) => void sablonKaynakTuruDegistir(s.id, e.target.value as KaynakTuru)}
+                    className="h-7 rounded-md border bg-background px-1 text-xs"
+                  >
+                    {KAYNAK_TURLERI.map((k) => (
+                      <option key={k} value={k}>
+                        {KAYNAK_TURU_TR_ETIKET[k]}
+                      </option>
+                    ))}
+                  </select>
+                  {s.kaynak_turu === "PROVIDER_ATTESTATION" ? (
+                    <span className="text-muted-foreground">bağımsız doğrulama değil</span>
+                  ) : null}
                   {s.kaynak_citation ? (
                     <span className="text-muted-foreground">
                       [{s.kaynak_citation}
@@ -381,6 +413,21 @@ export default function TedariklerPage() {
             <div className="flex flex-col gap-1">
               <Label htmlFor="sb-surum">Kaynak sürümü (opsiyonel)</Label>
               <Input id="sb-surum" value={sSurum} onChange={(e) => setSSurum(e.target.value)} placeholder="ör. RTS-2024" className="w-32" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="sb-kaynak-turu">Kaynak türü</Label>
+              <select
+                id="sb-kaynak-turu"
+                value={sKaynakTuru}
+                onChange={(e) => setSKaynakTuru(e.target.value as KaynakTuru)}
+                className="h-9 rounded-md border bg-background px-2 text-sm"
+              >
+                {KAYNAK_TURLERI.map((k) => (
+                  <option key={k} value={k}>
+                    {KAYNAK_TURU_TR_ETIKET[k]}
+                  </option>
+                ))}
+              </select>
             </div>
             <Button size="sm" onClick={() => void sablonEkle()} disabled={!sSoru.trim()}>
               Şablona Ekle

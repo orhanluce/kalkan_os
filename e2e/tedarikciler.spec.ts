@@ -29,11 +29,11 @@ test("tedarikçi: hizmet/dördüncü-taraf/sözleşme/çıkış planı → insan
     await page.goto("/tedarikciler");
 
     // 1) İki tedarikçi oluştur (yoğunlaşma için).
-    await page.getByLabel("Ad").fill("E2E-TP Bulut A");
+    await page.getByLabel("Ad", { exact: true }).fill("E2E-TP Bulut A");
     await page.getByLabel("Kritiklik").selectOption("KRITIK");
     await page.getByRole("button", { name: "Oluştur" }).click();
     await expect(page.getByRole("link", { name: "E2E-TP Bulut A" })).toBeVisible();
-    await page.getByLabel("Ad").fill("E2E-TP Bulut B");
+    await page.getByLabel("Ad", { exact: true }).fill("E2E-TP Bulut B");
     await page.getByRole("button", { name: "Oluştur" }).click();
     await expect(page.getByRole("link", { name: "E2E-TP Bulut B" })).toBeVisible();
 
@@ -182,7 +182,7 @@ test("vendor-portal anket yanıtlama: cevapla → gönder → kurum değişiklik
   try {
     await girisYap(page);
     await page.goto("/tedarikciler");
-    await page.getByLabel("Ad").fill("E2E-TP Anket");
+    await page.getByLabel("Ad", { exact: true }).fill("E2E-TP Anket");
     await page.getByLabel("Kritiklik").selectOption("KRITIK");
     await page.getByRole("button", { name: "Oluştur" }).click();
     await page.getByRole("link", { name: "E2E-TP Anket" }).click();

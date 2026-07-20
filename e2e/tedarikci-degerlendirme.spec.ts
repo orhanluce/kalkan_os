@@ -1,10 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
-import { E2E_KURUM_ADI, girisYap } from "./helpers";
+import { E2E_KULLANICI_ADI, E2E_KURUM_ADI, girisYap, ikinciKullaniciGirisYap } from "./helpers";
 
 // M35 sonraki dilim: tedarikçi değerlendirme + bulgu. Açık KRİTİK bulgu varken
 // TAMAMLA engellenir (kural: çözülmemiş kritik riskle sign-off yok); bulgu
 // kanıtla kapanınca (kural 14) değerlendirme tamamlanır. Gerçek Chromium.
+//
+// Dikey E kurucu kararı #1 (bağımsız kapanış): bulgunun sahibi kendi
+// bulgusunu KAPATAMAZ. Bu akış artık İKİ farklı gerçek kullanıcı gerektirir —
+// sahip Ayşe (girisYap) bulguyu KAPATAMADIĞINI, farklı yetkili Mehmet
+// (ikinciKullaniciGirisYap) kanıtla kapattığını doğrular.
 
 const VENDOR = "E2E Değerlendirme Vendor A.Ş.";
 
@@ -49,22 +54,35 @@ test("tedarikçi: değerlendirme + KRİTİK bulgu tamamlamayı engeller, kapanı
       .single();
     const aId = asmt!.id as string;
 
-    // KRİTİK bulgu ekle.
+    // KRİTİK bulgu ekle, sahibi = birincil kullanıcı (Ayşe) — bağımsız kapanış
+    // testinin ön koşulu.
     await page.getByLabel(`${aId} bulgu başlık`).fill("Şifreleme eksikliği");
     await page.getByLabel(`${aId} ciddiyet`).selectOption("KRITIK");
+    await page.getByLabel(`${aId} bulgu sahibi`).selectOption({ label: E2E_KULLANICI_ADI });
     await page.getByRole("button", { name: "Bulgu Ekle" }).click();
     await expect(page.getByText("Açık KRİTİK bulgu")).toBeVisible();
 
     // Açık KRİTİK varken Tamamla DISABLED.
     await expect(page.getByRole("button", { name: "Değerlendirmeyi Tamamla" })).toBeDisabled();
 
-    // Bulguyu kanıtla kapat (kural 14).
     const { data: finding } = await db
       .from("assessment_findings")
       .select("id")
       .eq("assessment_id", aId)
       .single();
     const fId = finding!.id as string;
+
+    // Sahibi (Ayşe) KENDİ bulgusunu kapatamaz — Kapat düğmesi hiç görünmez,
+    // yerine bağımsız kapanış açıklaması gösterilir (bağımsız kapanış, Dikey E).
+    await expect(page.getByText("bağımsız kapanış gereği")).toBeVisible();
+    await expect(page.getByLabel(`${fId} kapanış kanıtı`)).toHaveCount(0);
+
+    // Farklı yetkili (Mehmet) kanıtla kapatır (kural 14). Önce çıkış yapılmalı
+    // — oturumu açık kullanıcı /giris'e giderse proxy onu doğrudan "/"e geri
+    // yollar (src/proxy.ts), form hiç görünmez (sod-import.spec.ts'in AYNI dersi).
+    await page.getByRole("button", { name: "Çıkış", exact: true }).click();
+    await ikinciKullaniciGirisYap(page);
+    await page.goto(`/tedarikciler/${vendorId}`);
     await page.getByLabel(`${fId} kapanış kanıtı`).fill("HSM devreye alındı, kanıt #123");
     await page.getByRole("button", { name: "Kapat" }).click();
     await expect(page.getByText("KAPANDI")).toBeVisible();
