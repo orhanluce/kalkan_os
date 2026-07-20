@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/empty-state";
+import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
 import { useLocalStore } from "@/lib/store";
 import { DURUM_LABEL, DURUM_SEMANTIK } from "@/lib/ui-labels";
 
@@ -48,6 +49,8 @@ export default function ControlsPage() {
           Bu kütüphane doğrulanmamış iskelet veridir (TODO-DOGRULA), bkz. data/controls/*.yaml
         </p>
       </div>
+
+      <EkranYardimPaneli modulId="yukumlulukler-kontroller" />
 
       <div className="flex items-center gap-2">
         <Label htmlFor="cerceve-filtre" className="text-sm text-muted-foreground">

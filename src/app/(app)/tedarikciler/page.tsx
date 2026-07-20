@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { konsantrasyonAnalizi, type TedarikciGraf } from "@/lib/tedarikci";
 import { createClient } from "@/lib/supabase/client";
+import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
 
 export const TIER: Record<string, { etiket: string; semantik: SemantikDurum }> = {
   KRITIK: { etiket: "Kritik", semantik: "danger" },
@@ -198,6 +199,8 @@ export default function TedariklerPage() {
           işaretlenemez; bilinmeyen alt-bağımlılık düşük risk sayılmaz.
         </p>
       </div>
+
+      <EkranYardimPaneli modulId="tedarikciler" />
 
       {hata ? (
         <p role="alert" className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">

@@ -4,6 +4,7 @@
 // çıkış. Global arama/komut paleti ve bildirim SONRAKİ tur (PR-2+) —
 // çalışmayan ikon koymak yerine yer bırakıyoruz (ölü UI eklenmez).
 import Link from "next/link";
+import { CircleHelp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { useAuth } from "@/lib/auth";
@@ -35,6 +36,14 @@ export function ContextHeader() {
         </Link>
       )}
       <div className="ml-auto flex items-center gap-2">
+        <Link
+          href="/yardim"
+          title="Kullanıcı Kılavuzu"
+          aria-label="Kullanıcı Kılavuzu"
+          className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+        >
+          <CircleHelp className="size-4" aria-hidden />
+        </Link>
         <ThemeSwitcher />
         {currentUser && (
           <>

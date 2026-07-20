@@ -2,6 +2,7 @@
 
 import { StatusBadge } from "@/components/durum/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
 import { calculateMaturityScore, topRiskyOpenControls } from "@/lib/maturity";
 import { useLocalStore } from "@/lib/store";
 import { DURUM_LABEL, DURUM_SEMANTIK } from "@/lib/ui-labels";
@@ -52,6 +53,8 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-semibold tracking-tight">{kurum.tenant?.name ?? "—"}</h1>
         <p className="text-sm text-muted-foreground">Uyum Panosu</p>
       </div>
+
+      <EkranYardimPaneli modulId="ana-panel" />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>

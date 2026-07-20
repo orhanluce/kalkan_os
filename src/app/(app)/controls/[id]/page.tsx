@@ -31,6 +31,7 @@ import {
 } from "@/lib/evidence-types";
 import { useLocalStore } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
+import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
 import type { Durum, EvidenceTip } from "@/lib/types";
 import {
   DURUM_LABEL,
@@ -268,6 +269,11 @@ export default function ControlDetailPage() {
           {control.maddeRef} · kritiklik {control.kritiklik} · {control.periyot.replace("_", " ")}
         </p>
         <p className="mt-2 max-w-2xl text-sm">{control.aciklama}</p>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <EkranYardimPaneli modulId="kontrol-testleri" />
+        <EkranYardimPaneli modulId="kanit-kasasi" />
       </div>
 
       {/* Kanıt izi rayı (master talimat §4.3, imza öğesi). DÜRÜST kısmi veri:

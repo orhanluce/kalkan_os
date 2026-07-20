@@ -64,7 +64,22 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (20 Temmuz — Dikey B Faz 1-4 TAMAM + Dikey D ilk dilim TAMAM)
+## 0c. GERÇEK DURUM (20 Temmuz — Dikey B Faz 1-4 + Dikey D ilk dilim + Kullanıcı Kılavuzu TAMAM)
+- **20 Temmuz ONUNCU talimatı: Kullanıcı Kılavuzu / Yardım Merkezi TAMAM
+  (§1.66).** Teknik olmayan kurum çalışanı için Türkçe kılavuz + bağlama
+  duyarlı yardım paneli — ürün mimarisi DEĞİŞMEDİ. İçerik `src/lib/yardim-
+  icerik.ts`'te TEK kaynak (kurucunun anlatım şablonu birebir, route'lar
+  `nav-items.ts`'ten doğrulandı — uydurulmuş route yok). 3 yeni sayfa
+  (`/yardim`, `/yardim/hizli-baslangic`, `/yardim/sozluk`) + 13 modül
+  sayfasına `EkranYardimPaneli` (native `<details>`, JS'siz klavye erişimi).
+  **Gerçek erişilebilirlik açığı bulundu ve düzeltildi:** `CardTitle` bu
+  kod tabanında semantik olmayan bir `<div>`dir — kılavuzun ~20 bölümü ekran
+  okuyucu başlık gezinmesine hiç girmiyordu; `<h2 className="contents">`
+  ile (yalnız yeni sayfalarda, paylaşılan bileşene dokunmadan) düzeltildi.
+  Yeni `e2e/yardim.spec.ts` (8 senaryo) + `erisilebilirlik.spec.ts`'e
+  `/yardim`+`/yardim/sozluk` eklendi (axe AA sıfır ihlal, light+dark).
+  **TAM e2e takımı 72/72, 0 skip.** 1318 birim (bu dilim DB/motor kodu
+  içermiyor, sayı değişmedi) + 72 e2e; build yeşil.
 - **20 Temmuz SEKİZİNCİ talimatı: Dikey D ilk dilim TAMAM (§1.65) —
   Kurumsal Dayanıklılık ve Kritik Hizmet Bağımlılık Grafiği.** Grep sweep
   gerçek boşluğu KÜÇÜLTTÜ: Dikey 5 zaten kritik-hizmet grafının çoğunu

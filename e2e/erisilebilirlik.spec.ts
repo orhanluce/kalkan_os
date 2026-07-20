@@ -19,6 +19,8 @@ const EKRANLAR: { ad: string; yol: string }[] = [
   { ad: "sod", yol: "/sod" },
   { ad: "sod-import", yol: "/sod/import" },
   { ad: "sod-atamalar", yol: "/sod/atamalar" },
+  { ad: "yardim", yol: "/yardim" },
+  { ad: "yardim-sozluk", yol: "/yardim/sozluk" },
 ];
 
 async function tara(page: Page, etiket: string) {

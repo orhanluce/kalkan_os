@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { tekilNoktaAnalizi, type KritikHizmetGraf } from "@/lib/dayaniklilik";
 import { createClient } from "@/lib/supabase/client";
+import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
 
 interface Hizmet {
   id: string;
@@ -85,6 +86,8 @@ export default function KritikHizmetlerPage() {
           olarak işaretlenir.
         </p>
       </div>
+
+      <EkranYardimPaneli modulId="kritik-hizmetler" />
 
       {hata ? (
         <p role="alert" className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">

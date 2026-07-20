@@ -10,6 +10,7 @@ import { StatusBadge, type SemantikDurum } from "@/components/durum/status-badge
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
 
 interface OnKontrolSorunu {
   kod: string;
@@ -143,6 +144,8 @@ export default function DoraRoiPage() {
           (talep eden kendi export&apos;unu onaylayamaz).
         </p>
       </div>
+
+      <EkranYardimPaneli modulId="dora-roi" />
 
       {hata ? (
         <p role="alert" className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">

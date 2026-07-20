@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth";
 import { financeVarsayilanAcik, ONBOARDING_SECENEKLERI, type OrganizationType } from "@/lib/organizasyon";
 import { useLocalStore } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
+import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
 
 export default function KurulumPage() {
   const router = useRouter();
@@ -74,6 +75,8 @@ export default function KurulumPage() {
           </p>
         )}
       </div>
+
+      <EkranYardimPaneli modulId="kurum-profili" />
 
       {!yetkili && (
         <p role="alert" className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">

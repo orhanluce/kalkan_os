@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
+import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
 
 interface Girdi {
   id: string;
@@ -131,6 +132,8 @@ export default function SeffaflikPage() {
           nitelikli bir RFC 3161 TSA gerekir (henüz bağlı değil — durum bunu dürüstçe ayırır).
         </p>
       </div>
+
+      <EkranYardimPaneli modulId="seffaflik-defteri" />
 
       {hata ? (
         <p role="alert" className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">

@@ -22,6 +22,7 @@ import {
   type IddiaTuru,
 } from "@/lib/claim-guard";
 import { createClient } from "@/lib/supabase/client";
+import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
 
 interface Iddia {
   id: string;
@@ -198,6 +199,8 @@ export default function GuvencePage() {
           doğrulayamaz.
         </p>
       </div>
+
+      <EkranYardimPaneli modulId="claim-guard" />
 
       {hata ? (
         <p role="alert" className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">

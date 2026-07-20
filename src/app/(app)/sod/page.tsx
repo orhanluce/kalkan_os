@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/empty-state";
 import { useAuth } from "@/lib/auth";
 import { sodMetrikleriHesapla, type SodMetrikleri } from "@/lib/sod-metrikler";
 import { createClient } from "@/lib/supabase/client";
+import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
 import {
   ONEM_LABEL,
   ONEM_SEMANTIK,
@@ -268,6 +269,8 @@ export default function SodPage() {
           </Button>
         </div>
       </div>
+
+      <EkranYardimPaneli modulId="gorevler-ayriligi" />
 
       {hata && <p className="text-sm text-destructive">{hata}</p>}
 

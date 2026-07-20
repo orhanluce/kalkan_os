@@ -17,6 +17,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/empty-state";
 import { useLocalStore } from "@/lib/store";
+import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
 import type { Finding, Onem } from "@/lib/types";
 import {
   FINDING_DURUM_LABEL,
@@ -65,6 +66,8 @@ export default function FindingsPage() {
           Sızma testi, denetim ve iç tespit kaynaklı bulgu takibi.
         </p>
       </div>
+
+      <EkranYardimPaneli modulId="bulgular" />
 
       <Card>
         <CardHeader>

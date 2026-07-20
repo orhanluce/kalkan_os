@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/client";
+import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
 
 interface Is {
   id: string;
@@ -65,6 +66,8 @@ export default function DenetimPage() {
           (hazırlayan/reviewer bağımsızlık sign-off). Denetçi seed&apos;le örneği yeniden üretebilir.
         </p>
       </div>
+
+      <EkranYardimPaneli modulId="yonetim-denetim-raporlari" />
 
       {hata ? (
         <p role="alert" className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">

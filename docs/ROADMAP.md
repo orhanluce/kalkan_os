@@ -823,6 +823,53 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.66 Kullanıcı Kılavuzu / Yardım Merkezi ✅ (20 Temmuz)
+
+Kurucunun 20 Temmuz onuncu talimatı (`CLAUDE_CODE_KALKAN_OS_KULLANICI_
+KILAVUZU_UI_TALIMATI.md` + `KALKAN_OS_KURUMSAL_KULLANICI_ANLATIM_SABLONU_
+2026.md`): teknik bilgisi olmayan kurum çalışanları için Türkçe kullanıcı
+kılavuzu + bağlama duyarlı yardım paneli. Ürün mimarisi DEĞİŞMEDİ — yalnız
+mevcut ekranların ÜZERİNE dar bir içerik/yardım katmanı.
+
+**İçerik sözleşmesi (`src/lib/yardim-icerik.ts`, TEK kaynak):** kurucunun
+anlatım şablonu BİREBİR — 15 modül (nedir/ne işe yarar/çalışan ne yapar/
+dikkat), 5 adımlı hızlı başlangıç, 22 terimlik sözlük, rol tablosu, 8
+durumluk durum sözlüğü, "sık yapılmaması gerekenler". `route` alanları
+GERÇEK route'larla eşlendi (`nav-items.ts` taranarak — uydurulmuş/eski route
+YOK); birden çok modül aynı gerçek ekrana (`/controls/[id]` hem "Kontrol
+Testleri" hem "Kanıt Kasası") düşünce panel İKİ AYRI `<details>` olarak
+gösterildi, içerik tekrar yazılmadı.
+
+**Sayfalar:** `/yardim` (15 bölüm + roller + durumlar + SSS + destek),
+`/yardim/hizli-baslangic`, `/yardim/sozluk` (istemci-taraflı arama) — hepsi
+`(app)` kabuğu altında, DİĞER TÜM modüllerle AYNI oturum zorunluluğuna tabi
+(ayrı bir oturumsuz yüzey AÇILMADI — ürün bilgisi bile olsa tenant bağlamı
+sızdırmama disiplini). `EkranYardimPaneli` (native `<details>/<summary>`,
+JS'siz klavye erişimi) 13 gerçek modül sayfasına eklendi; `ContextHeader`'a
+küçük bir "Kullanıcı Kılavuzu" bağlantısı — büyük bir nav refactoru YOK.
+
+**Bulunup düzeltilen gerçek erişilebilirlik açığı:** `CardTitle` bu
+kod tabanında SEMANTİK OLMAYAN bir `<div>`dir (görsel başlık, gerçek
+`<h1>`-`<h6>` DEĞİL) — Kullanıcı Kılavuzu'nun ~20 bölümü baştan `CardTitle`
+ile yazılınca hiçbiri ekran okuyucu başlık gezinmesine (`getByRole("heading")`)
+GİRMİYORDU. e2e testinde yakalandı, `CardTitle` içine gerçek bir `<h2
+className="contents">` (yalnız DOM semantiği ekler, görsel stili DEĞİŞTİRMEZ)
+eklenerek düzeltildi — yalnız bu 3 YENİ sayfada, paylaşılan `CardTitle`
+bileşenine DOKUNULMADI (geniş regresyon riski gereksiz).
+
+**Doğrulama:** yeni `e2e/yardim.spec.ts` (8 senaryo: oturumsuz 307, tenant
+verisi sızmazlık, 15 bölüm+roller+durumlar, hızlı başlangıç route'ları,
+sözlük arama, modül panelinden klavyeyle açma + `/yardim#çapa` linki, kontrol
+detayında iki panel birlikte, mobil+masaüstü×açık+koyu tema) + `erisilebilirlik.
+spec.ts`'e `/yardim` ve `/yardim/sozluk` eklendi (axe AA: **sıfır ihlal**, hem
+açık hem koyu tema). **TAM e2e takımı 72/72, 0 skip** (yeni yardim.spec.ts'in
+8'i dahil). 1318 birim (123 dosya, değişmedi — bu dilim DB/motor kodu
+İÇERMİYOR) + 72 e2e; build yeşil.
+
+**Bilinçli kapsam dışı (talimatın kendi listesi):** yeni regülasyon içeriği,
+veritabanı modeli değişikliği, yeni rol/yetki, ham log/hash zorunlu
+gösterimi, kullanıcı yerine hukuki karar, büyük navigasyon refactoru.
+
 ### 1.65 Dikey D, ilk dilim — Kurumsal Dayanıklılık ve Kritik Hizmet Bağımlılık Grafiği ✅ (20 Temmuz)
 
 Kurucunun 20 Temmuz sekizinci talimatı: mevzuat, kritik hizmet, ICT hizmeti,

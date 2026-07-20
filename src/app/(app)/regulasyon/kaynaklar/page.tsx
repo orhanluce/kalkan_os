@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { kaynakTazeligi } from "@/lib/kaynak-tazelik";
 import { createClient } from "@/lib/supabase/client";
+import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
 
 interface Kaynak {
   id: string;
@@ -105,6 +106,8 @@ export default function KaynaklarPage() {
           çekim (connector) erişim politikası onaylanmadan üretime çıkmaz.
         </p>
       </div>
+
+      <EkranYardimPaneli modulId="regulasyon-kaynaklar" />
 
       <Card>
         <CardHeader>
