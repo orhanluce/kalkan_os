@@ -7,13 +7,18 @@ doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine g
 ## 0. İLK İŞ (her yeni oturumun başında)
 Yeşil taban doğrula (körlemesine güvenme):
 ```
-pnpm check        # typecheck + lint + vitest  (beklenen: ~789 birim, 0 skip)
-pnpm e2e          # gerçek Chromium            (beklenen: ~34 e2e, 0 skip)
+pnpm check        # typecheck + lint + vitest  (beklenen: ~1442 birim, 0 skip)
+pnpm e2e          # gerçek Chromium            (beklenen: ~75 e2e, 0 skip, fixture reset dahil)
 cmd /c "pnpm build 2>&1"   # exit 0
 curl.exe -s https://blue-yak-865668.hostingersite.com/health/ready  # hazir/erisilebilir
 ```
-Bu üçlü 18 Temmuz gece oturumunda TAM koşuldu ve yeşildi (742→782 birim,
-33 e2e, build exit 0). Kırmızı çıkarsa önce onu düzelt.
+Bu üçlü 20 Temmuz Dikey E2 oturumunda TAM koşuldu (1426 birim + Dikey E2'nin
+16 yeni saf motor/PGlite testi hariç tutulan koşularda görülmüştü — nihai
+`pnpm check` 1426/1426, `pnpm e2e` 73/75 — 2 kalan başarısızlık bu dilimle
+İLGİSİZ, ayrı borç, §1.68'de kayıtlı). **`pnpm e2e` KULLAN, çıplak `playwright
+test` DEĞİL** — fixture reset olmadan partial/tekrarlı koşular birbirinin
+DB durumunu kirletip sahte başarısızlık üretir (bu bir ürün hatası değildi,
+20 Temmuz oturumunda tekrar keşfedildi). Kırmızı çıkarsa önce onu düzelt.
 
 ## 0b. BLOKAJ ÇÖZÜLDÜ (kayıt için)
 Gece oturumundaki izin blokajı kurucu onayıyla ("izin verdim") aşıldı:
@@ -64,7 +69,40 @@ talimat budur.** §8.0 artık BEŞ DİKEYLİK bir sıra veriyor (tez bulguların
    VERIFIED seed YOK) + etki grafiği (tek hata noktası/zincirleme etki/en çok
    etkileyen kontrol/tedarikçi yoğunlaşması/en yüksek iyileştirme — tek sahte skor YOK).
 
-## 0c. GERÇEK DURUM (20 Temmuz — Dikey E1 + Dikey B Faz 1-4 + Dikey D ilk dilim + Kullanıcı Kılavuzu TAMAM)
+## 0c. GERÇEK DURUM (20 Temmuz — Dikey E2 + Dikey E1 + Dikey B Faz 1-4 + Dikey D ilk dilim + Kullanıcı Kılavuzu TAMAM)
+- **20 Temmuz ONİKİNCİ talimatı: Dikey E, E2 — Telafi Edici Kontrol + Proof
+  Room Tenant Bütünlüğü TAMAM (ROADMAP §1.68, tam detay orada).** İKİ SIRALI
+  KAPI: Kapı 1 (`280199c`, önceki oturumda push'landı) Proof Room'un ÜÇ ESKİ
+  dalındaki (test_run_id/roi_export_run_id/graph_snapshot_id) hiç var
+  olmayan cross-tenant guard'ını TEK merkezi `proof_room_link_target_guard()`
+  ile kapattı — canlı tarihsel tarama sıfır kirlenme buldu. Kapı 2
+  (`20260720290000`) `assessment_finding_compensating_controls` — YENİ test
+  altyapısı yok (M12 kontrol-test motoru yeniden kullanılır), SoD'nin
+  `sod_telafi_edici_kontroller`'inin DOĞRUDAN kopyası DEĞİL (burada telafi
+  KAYDININ KENDİSİ de maker-checker'lı: submitted_by≠reviewed_by zorunlu).
+  Saf motor (`cloud-assurance.ts` @1→@2, geriye dönük uyumlu):
+  `telafiAktifMi` DB'nin dondurulmuş AKTIF etiketine kör güvenmez, `asOf`
+  itibarıyla PASSED+kanıt-güncel+geçerlilik-penceresi kendisi hesaplar.
+  **Bulgu HİÇBİR ZAMAN telafiyle kapanmaz** — tüm açık KRİTİK bulgular
+  kapsanınca `genelDurum` yeni `KRITIK_BULGU_TELAFI_ALTINDA` değerine döner
+  (`acikKritikBulgular`'da hâlâ görünür), kısmi kapsama ENGELLENDI'de tutar.
+  Sign-off: `assessment_tamamla_guard()` DEĞİŞTİRİLMEDİ (dar hesaplanmış
+  etiket tercih edildi, blast-radius sıfır). Impact graph: yeni düğüm türü
+  YOK, mevcut KONTROL düğümüne tek yeni kenar türü. Proof Room'a asgari
+  `telafiOzetleri` (kontrol referansı + geçerlilik bitişi, ham veri YOK).
+  API: `/api/tedarikciler/[id]/bulgular/[findingId]/telafi` (öner+gönder),
+  `/api/telafi/[id]/karar`, `/api/telafi/[id]/iptal` — hepsi session client,
+  kimlik atfı istemciden GÜVENİLMEZ. UI `/tedarikciler/[id]`'de her açık
+  KRİTİK/YÜKSEK bulgu satırında telafi bloğu. **Süre-dolumu (SURESI_DOLDU)
+  geçişi BİLİNÇLİ OLARAK yalnız PGlite'ta test edildi** — canlı paylaşımlı
+  tabloda güvenlik trigger'ını geçici devre dışı bırakmak gerekirdi,
+  kurucuya AskUserQuestion ile soruldu, "canlı trigger'a dokunma" seçildi.
+  25 PGlite + 16+3 saf motor birim + canlı smoke (16 kontrol, iki gerçek
+  kullanıcı oturumu) + yeni `e2e/dikey-e2-telafi-edici-kontrol.spec.ts`
+  (2 senaryo). **`pnpm e2e` (fixture reset dahil) 73/75, 0 skip** — 2 kalan
+  başarısızlık bu dilimle İLGİSİZ (simulasyon.spec.ts M18 + tedarikciler.
+  spec.ts vendor-portal, ikisi de AYNI sınıf ön-var olan okuma-yarışı, koda
+  dokunulmadı, ayrı borç). 1442 birim (127 dosya) + 75 e2e; build yeşil.
 - **20 Temmuz ONBİRİNCİ talimatı: Dikey E, E1 — Bulut/Kritik Tedarikçi Güvence
   Profili TAMAM (ROADMAP §1.67).** **İSİM ÇAKIŞMASI UYARISI (kayıt için
   önemli):** `docs/GAP_MAP_37_TEZ.md`'deki "Dikey E" (KOS-5, AI Governance

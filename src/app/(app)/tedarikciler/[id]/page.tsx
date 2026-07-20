@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { disErisimTokenUret } from "@/lib/dis-erisim-token";
 import {
   CLOUD_PACK_KATEGORILERI,
+  GUVENCE_ENGEL_ACIKLAMALARI,
   KAYNAK_TURLERI,
   KAYNAK_TURU_TR_ETIKET,
   type GuvenceProfiliSonucu,
@@ -29,6 +30,9 @@ const GENEL_DURUM_ETIKET: Record<string, { etiket: string; semantik: "success" |
   INCELEME_GEREKLI: { etiket: "İnceleme gerekli", semantik: "warning" },
   EKSIK: { etiket: "Eksik — henüz değerlendirilemiyor", semantik: "unknown" },
   ENGELLENDI: { etiket: "Kritik bulgu nedeniyle engellendi", semantik: "danger" },
+  // Dikey E, E2, Kapı 2: bulgu AÇIK kalır — bu asla "çözüldü"/"uygun" anlamına
+  // gelmez, yalnız doğrulanmış telafi edici kontrolle YÖNETİLDİĞİNİ bildirir.
+  KRITIK_BULGU_TELAFI_ALTINDA: { etiket: "Kritik bulgu açık — telafi edici kontrol altında", semantik: "warning" },
 };
 
 interface Tedarikci {
@@ -119,6 +123,45 @@ interface BulutSoruRow {
   assessment_question_templates: { kategori: string | null; dogrulama_durumu: string; dogrulayan: string | null; dogrulama_zamani: string | null } | null;
 }
 
+// Dikey E, E2, Kapı 2: telafi edici kontrol — bulguyu KAPATMAZ, yalnız
+// yönetim durumunu bildirir (ADR §4-5).
+interface TelafiRow {
+  id: string;
+  durum: string;
+  controlId: string;
+  controlMaddeRef: string | null;
+  testRunId: string;
+  testSonucu: string | null;
+  gerekce: string;
+  validFrom: string;
+  validUntil: string;
+  submittedBy: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  redGerekcesi: string | null;
+  revokedBy: string | null;
+  revokedAt: string | null;
+  revocationReason: string | null;
+  oncekiId: string | null;
+  createdAt: string;
+}
+interface UygunTestKosu {
+  id: string;
+  controlId: string;
+  controlMaddeRef: string | null;
+  calistiAt: string;
+  kanitVarMi: boolean;
+  kanitGuncel: boolean;
+}
+const TELAFI_DURUM_ETIKET: Record<string, { etiket: string; semantik: "success" | "warning" | "danger" | "neutral" }> = {
+  TASLAK: { etiket: "Taslak", semantik: "neutral" },
+  INCELEMEDE: { etiket: "İncelemede", semantik: "warning" },
+  AKTIF: { etiket: "Telafi ile yönetiliyor (bulgu AÇIK)", semantik: "warning" },
+  REDDEDILDI: { etiket: "Reddedildi", semantik: "danger" },
+  SURESI_DOLDU: { etiket: "Süresi doldu", semantik: "danger" },
+  IPTAL_EDILDI: { etiket: "İptal edildi", semantik: "neutral" },
+};
+
 export default function TedarikciDetayPage() {
   const params = useParams<{ id: string }>();
   const [t, setT] = useState<Tedarikci | null>(null);
@@ -163,6 +206,15 @@ export default function TedarikciDetayPage() {
   const [sonSnapshot, setSonSnapshot] = useState<{ id: string; profil_hash: string; created_at: string } | null>(null);
   const [proofLinkUrl, setProofLinkUrl] = useState<string | null>(null);
 
+  // Dikey E, E2, Kapı 2: telafi edici kontrol.
+  const [telafiler, setTelafiler] = useState<Record<string, TelafiRow[]>>({});
+  const [uygunTestKosulari, setUygunTestKosulari] = useState<UygunTestKosu[]>([]);
+  const [telafiForm, setTelafiForm] = useState<
+    Record<string, { controlId: string; testRunId: string; gerekce: string; validFrom: string; validUntil: string }>
+  >({});
+  const [telafiRedNeden, setTelafiRedNeden] = useState<Record<string, string>>({});
+  const [telafiIptalNeden, setTelafiIptalNeden] = useState<Record<string, string>>({});
+
   const bugun = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const yukle = useCallback(async () => {
@@ -201,6 +253,73 @@ export default function TedarikciDetayPage() {
     ]);
     setDegerlendirmeler((as_ ?? []) as Degerlendirme[]);
     setBulgular((fs ?? []) as BulguRow[]);
+
+    // Dikey E, E2, Kapı 2: telafi edici kontroller — yalnız açık KRİTİK/YÜKSEK
+    // bulgular için (dar/yeterli, motorun genelDurum'a dahil ettiği tek
+    // ciddiyet KRİTİK'tir; YÜKSEK burada yalnız GÖRÜNÜRLÜK içindir, engeli
+    // etkilemez — ADR §5). Tek toplu sorgu (N+1 yok).
+    const acikYuksekVeUstuIdler = (fs ?? [])
+      .filter((f) => (f.ciddiyet === "KRITIK" || f.ciddiyet === "YUKSEK") && f.durum !== "KAPANDI")
+      .map((f) => f.id);
+    if (acikYuksekVeUstuIdler.length > 0) {
+      const { data: tk } = await db
+        .from("assessment_finding_compensating_controls")
+        .select(
+          "id, assessment_finding_id, durum, control_id, test_run_id, gerekce, valid_from, valid_until, submitted_by, reviewed_by, reviewed_at, red_gerekcesi, revoked_by, revoked_at, revocation_reason, onceki_id, created_at, controls (madde_ref), test_runs (sonuc)",
+        )
+        .in("assessment_finding_id", acikYuksekVeUstuIdler)
+        .order("created_at", { ascending: false });
+      const grouped: Record<string, TelafiRow[]> = {};
+      for (const t of (tk ?? []) as unknown as Array<Record<string, unknown>>) {
+        const row: TelafiRow = {
+          id: t.id as string,
+          durum: t.durum as string,
+          controlId: t.control_id as string,
+          controlMaddeRef: (t.controls as { madde_ref: string } | null)?.madde_ref ?? null,
+          testRunId: t.test_run_id as string,
+          testSonucu: (t.test_runs as { sonuc: string } | null)?.sonuc ?? null,
+          gerekce: t.gerekce as string,
+          validFrom: t.valid_from as string,
+          validUntil: t.valid_until as string,
+          submittedBy: t.submitted_by as string | null,
+          reviewedBy: t.reviewed_by as string | null,
+          reviewedAt: t.reviewed_at as string | null,
+          redGerekcesi: t.red_gerekcesi as string | null,
+          revokedBy: t.revoked_by as string | null,
+          revokedAt: t.revoked_at as string | null,
+          revocationReason: t.revocation_reason as string | null,
+          oncekiId: t.onceki_id as string | null,
+          createdAt: t.created_at as string,
+        };
+        const fid = t.assessment_finding_id as string;
+        grouped[fid] = [...(grouped[fid] ?? []), row];
+      }
+      setTelafiler(grouped);
+
+      const { data: pk } = await db
+        .from("test_runs")
+        .select("id, control_id, sonuc, calisti_at, evidence_id, controls (madde_ref), evidences (gecerlilik_bitis)")
+        .eq("sonuc", "PASSED")
+        .order("calisti_at", { ascending: false });
+      const bugunIso = new Date().toISOString().slice(0, 10);
+      setUygunTestKosulari(
+        ((pk ?? []) as unknown as Array<Record<string, unknown>>).map((t) => {
+          const kanitBitis = (t.evidences as { gecerlilik_bitis: string | null } | null)?.gecerlilik_bitis ?? null;
+          return {
+            id: t.id as string,
+            controlId: t.control_id as string,
+            controlMaddeRef: (t.controls as { madde_ref: string } | null)?.madde_ref ?? null,
+            calistiAt: t.calisti_at as string,
+            kanitVarMi: t.evidence_id !== null,
+            kanitGuncel: kanitBitis === null || kanitBitis >= bugunIso,
+          };
+        }),
+      );
+    } else {
+      setTelafiler({});
+      setUygunTestKosulari([]);
+    }
+
     const assessmentIds = (as_ ?? []).map((a) => a.id);
     if (assessmentIds.length > 0) {
       const { data: qs } = await db.from("assessment_questions").select("id, assessment_id, soru").in("assessment_id", assessmentIds);
@@ -387,6 +506,60 @@ export default function TedarikciDetayPage() {
       await yukle();
     },
     [bKanit, kullaniciId, yukle],
+  );
+
+  const telafiOner = useCallback(
+    async (findingId: string) => {
+      setHata(null);
+      const form = telafiForm[findingId];
+      if (!form?.controlId || !form.testRunId || !form.gerekce?.trim() || !form.validFrom || !form.validUntil) return;
+      const res = await fetch(`/api/tedarikciler/${params.id}/bulgular/${findingId}/telafi`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const govde = await res.json();
+      if (!res.ok) return setHata(govde.hata ?? "Telafi edici kontrol önerilemedi.");
+      setTelafiForm((m) => ({ ...m, [findingId]: { controlId: "", testRunId: "", gerekce: "", validFrom: "", validUntil: "" } }));
+      await yukle();
+    },
+    [telafiForm, params.id, yukle],
+  );
+
+  const telafiKararVer = useCallback(
+    async (telafiId: string, karar: "AKTIF" | "REDDEDILDI") => {
+      setHata(null);
+      const gov: { karar: string; redGerekcesi?: string } = { karar };
+      if (karar === "REDDEDILDI") gov.redGerekcesi = telafiRedNeden[telafiId] ?? "";
+      const res = await fetch(`/api/telafi/${telafiId}/karar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(gov),
+      });
+      const govde = await res.json();
+      if (!res.ok) return setHata(govde.hata ?? "Karar kaydedilemedi.");
+      setTelafiRedNeden((m) => ({ ...m, [telafiId]: "" }));
+      await yukle();
+    },
+    [telafiRedNeden, yukle],
+  );
+
+  const telafiIptalEt = useCallback(
+    async (telafiId: string) => {
+      setHata(null);
+      const neden = (telafiIptalNeden[telafiId] ?? "").trim();
+      if (!neden) return setHata("İptal nedeni zorunlu.");
+      const res = await fetch(`/api/telafi/${telafiId}/iptal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ revocationReason: neden }),
+      });
+      const govde = await res.json();
+      if (!res.ok) return setHata(govde.hata ?? "İptal edilemedi.");
+      setTelafiIptalNeden((m) => ({ ...m, [telafiId]: "" }));
+      await yukle();
+    },
+    [telafiIptalNeden, yukle],
   );
 
   const bulutCevapKaydet = useCallback(
@@ -919,33 +1092,173 @@ export default function TedarikciDetayPage() {
                   </div>
                 ) : null}
 
-                {aBulgular.map((f) => (
-                  <div key={f.id} className="flex flex-wrap items-center gap-2 border-t pt-2 text-xs">
-                    <span>{f.baslik}</span>
-                    <StatusBadge durum={f.ciddiyet === "KRITIK" ? "danger" : f.ciddiyet === "YUKSEK" ? "warning" : "neutral"}>{f.ciddiyet}</StatusBadge>
-                    <StatusBadge durum={f.durum === "KAPANDI" ? "success" : "warning"}>{f.durum}</StatusBadge>
-                    <span className="text-muted-foreground">Sahip: {profiller.find((p) => p.id === f.sahibi)?.full_name ?? "—"}</span>
-                    {f.durum !== "KAPANDI" && f.sahibi && f.sahibi === kullaniciId ? (
-                      <span className="text-muted-foreground">
-                        Bu bulgunun sahibisiniz — bağımsız kapanış gereği kendi bulgunuzu kapatamazsınız (kural 14, Dikey E).
-                      </span>
-                    ) : null}
-                    {f.durum !== "KAPANDI" && f.sahibi && f.sahibi !== kullaniciId ? (
-                      <>
-                        <Input
-                          value={bKanit[f.id] ?? ""}
-                          onChange={(e) => setBKanit((m) => ({ ...m, [f.id]: e.target.value }))}
-                          placeholder="kapanış kanıtı"
-                          aria-label={`${f.id} kapanış kanıtı`}
-                          className="h-7 w-44 text-xs"
-                        />
-                        <Button size="sm" variant="outline" onClick={() => void bulguKapat(f.id)}>
-                          Kapat
-                        </Button>
-                      </>
-                    ) : null}
-                  </div>
-                ))}
+                {aBulgular.map((f) => {
+                  const buBulgununTelafileri = telafiler[f.id] ?? [];
+                  const telafiUygun = (f.ciddiyet === "KRITIK" || f.ciddiyet === "YUKSEK") && f.durum !== "KAPANDI";
+                  const acikTeklifVarMi = buBulgununTelafileri.some((t) => t.durum === "TASLAK" || t.durum === "INCELEMEDE" || t.durum === "AKTIF");
+                  const form = telafiForm[f.id] ?? { controlId: "", testRunId: "", gerekce: "", validFrom: "", validUntil: "" };
+                  const seciliKontrolTestleri = uygunTestKosulari.filter((tk) => tk.controlId === form.controlId);
+                  const kontrolSecenekleri = [...new Map(uygunTestKosulari.map((tk) => [tk.controlId, tk.controlMaddeRef])).entries()];
+                  return (
+                    <div key={f.id} className="flex flex-col gap-2 border-t pt-2 text-xs">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span>{f.baslik}</span>
+                        <StatusBadge durum={f.ciddiyet === "KRITIK" ? "danger" : f.ciddiyet === "YUKSEK" ? "warning" : "neutral"}>{f.ciddiyet}</StatusBadge>
+                        <StatusBadge durum={f.durum === "KAPANDI" ? "success" : "warning"}>{f.durum}</StatusBadge>
+                        <span className="text-muted-foreground">Sahip: {profiller.find((p) => p.id === f.sahibi)?.full_name ?? "—"}</span>
+                        {f.durum !== "KAPANDI" && f.sahibi && f.sahibi === kullaniciId ? (
+                          <span className="text-muted-foreground">
+                            Bu bulgunun sahibisiniz — bağımsız kapanış gereği kendi bulgunuzu kapatamazsınız (kural 14, Dikey E).
+                          </span>
+                        ) : null}
+                        {f.durum !== "KAPANDI" && f.sahibi && f.sahibi !== kullaniciId ? (
+                          <>
+                            <Input
+                              value={bKanit[f.id] ?? ""}
+                              onChange={(e) => setBKanit((m) => ({ ...m, [f.id]: e.target.value }))}
+                              placeholder="kapanış kanıtı"
+                              aria-label={`${f.id} kapanış kanıtı`}
+                              className="h-7 w-44 text-xs"
+                            />
+                            <Button size="sm" variant="outline" onClick={() => void bulguKapat(f.id)}>
+                              Kapat
+                            </Button>
+                          </>
+                        ) : null}
+                      </div>
+
+                      {/* Dikey E, E2, Kapı 2: telafi edici kontrol — bulguyu
+                          KAPATMAZ, yalnız yönetim durumunu bildirir. */}
+                      {telafiUygun ? (
+                        <div className="flex flex-col gap-2 rounded-md border border-dashed p-2" data-testid={`telafi-blok-${f.id}`}>
+                          <span className="font-medium">Telafi Edici Kontrol</span>
+                          {buBulgununTelafileri.map((t) => {
+                            const etiket = TELAFI_DURUM_ETIKET[t.durum] ?? { etiket: t.durum, semantik: "neutral" as const };
+                            const benimTeklifim = t.submittedBy === kullaniciId;
+                            return (
+                              <div key={t.id} className="flex flex-col gap-1 rounded border p-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <StatusBadge durum={etiket.semantik}>{etiket.etiket}</StatusBadge>
+                                  <span className="text-muted-foreground">
+                                    Kontrol {t.controlMaddeRef ?? t.controlId} · Test sonucu {t.testSonucu ?? "—"} · {t.validFrom} → {t.validUntil}
+                                  </span>
+                                </div>
+                                {t.durum === "AKTIF" ? (
+                                  <p className="text-muted-foreground">{GUVENCE_ENGEL_ACIKLAMALARI.AKTIF_TELAFI_EDICI_KONTROL}</p>
+                                ) : null}
+                                {t.gerekce ? <span className="text-muted-foreground">Gerekçe: {t.gerekce}</span> : null}
+                                {t.durum === "REDDEDILDI" && t.redGerekcesi ? (
+                                  <span className="text-muted-foreground">Red gerekçesi: {t.redGerekcesi}</span>
+                                ) : null}
+                                {t.durum === "IPTAL_EDILDI" && t.revocationReason ? (
+                                  <span className="text-muted-foreground">İptal nedeni: {t.revocationReason}</span>
+                                ) : null}
+
+                                {t.durum === "INCELEMEDE" && benimTeklifim ? (
+                                  <span className="text-muted-foreground">
+                                    Bu öneriyi siz hazırladınız — bağımsız inceleme gereği kendi teklifinizi karara bağlayamazsınız (maker-checker).
+                                  </span>
+                                ) : null}
+                                {t.durum === "INCELEMEDE" && !benimTeklifim ? (
+                                  <div className="flex flex-wrap items-end gap-2">
+                                    <Button size="sm" onClick={() => void telafiKararVer(t.id, "AKTIF")}>
+                                      Onayla (Aktive Et)
+                                    </Button>
+                                    <Input
+                                      value={telafiRedNeden[t.id] ?? ""}
+                                      onChange={(e) => setTelafiRedNeden((m) => ({ ...m, [t.id]: e.target.value }))}
+                                      placeholder="Red gerekçesi"
+                                      aria-label={`${t.id} red gerekçesi`}
+                                      className="h-7 w-44 text-xs"
+                                    />
+                                    <Button size="sm" variant="outline" onClick={() => void telafiKararVer(t.id, "REDDEDILDI")}>
+                                      Reddet
+                                    </Button>
+                                  </div>
+                                ) : null}
+                                {["TASLAK", "INCELEMEDE", "AKTIF"].includes(t.durum) ? (
+                                  <div className="flex flex-wrap items-end gap-2">
+                                    <Input
+                                      value={telafiIptalNeden[t.id] ?? ""}
+                                      onChange={(e) => setTelafiIptalNeden((m) => ({ ...m, [t.id]: e.target.value }))}
+                                      placeholder="İptal nedeni"
+                                      aria-label={`${t.id} iptal nedeni`}
+                                      className="h-7 w-44 text-xs"
+                                    />
+                                    <Button size="sm" variant="outline" onClick={() => void telafiIptalEt(t.id)}>
+                                      İptal Et
+                                    </Button>
+                                  </div>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+
+                          {!acikTeklifVarMi ? (
+                            <div className="flex flex-wrap items-end gap-2">
+                              <select
+                                value={form.controlId}
+                                onChange={(e) => setTelafiForm((m) => ({ ...m, [f.id]: { ...form, controlId: e.target.value, testRunId: "" } }))}
+                                aria-label={`${f.id} telafi kontrol seç`}
+                                className="h-8 rounded-md border bg-background px-2 text-xs"
+                              >
+                                <option value="">Kontrol seçin…</option>
+                                {kontrolSecenekleri.map(([cid, ref]) => (
+                                  <option key={cid} value={cid}>
+                                    {ref ?? cid}
+                                  </option>
+                                ))}
+                              </select>
+                              <select
+                                value={form.testRunId}
+                                onChange={(e) => setTelafiForm((m) => ({ ...m, [f.id]: { ...form, testRunId: e.target.value } }))}
+                                aria-label={`${f.id} telafi test koşusu seç`}
+                                disabled={!form.controlId}
+                                className="h-8 rounded-md border bg-background px-2 text-xs"
+                              >
+                                <option value="">PASSED test koşusu seçin…</option>
+                                {seciliKontrolTestleri.map((tk) => (
+                                  <option key={tk.id} value={tk.id}>
+                                    {new Date(tk.calistiAt).toLocaleDateString("tr-TR")} {tk.kanitGuncel ? "· kanıt güncel" : "· kanıt güncel değil"}
+                                  </option>
+                                ))}
+                              </select>
+                              <Input
+                                value={form.gerekce}
+                                onChange={(e) => setTelafiForm((m) => ({ ...m, [f.id]: { ...form, gerekce: e.target.value } }))}
+                                placeholder="Gerekçe"
+                                aria-label={`${f.id} telafi gerekçesi`}
+                                className="h-8 w-40 text-xs"
+                              />
+                              <Input
+                                type="date"
+                                value={form.validFrom}
+                                onChange={(e) => setTelafiForm((m) => ({ ...m, [f.id]: { ...form, validFrom: e.target.value } }))}
+                                aria-label={`${f.id} telafi geçerlilik başlangıcı`}
+                                className="h-8 w-36 text-xs"
+                              />
+                              <Input
+                                type="date"
+                                value={form.validUntil}
+                                onChange={(e) => setTelafiForm((m) => ({ ...m, [f.id]: { ...form, validUntil: e.target.value } }))}
+                                aria-label={`${f.id} telafi geçerlilik bitişi`}
+                                className="h-8 w-36 text-xs"
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => void telafiOner(f.id)}
+                                disabled={!form.controlId || !form.testRunId || !form.gerekce.trim() || !form.validFrom || !form.validUntil}
+                              >
+                                Öner ve İncelemeye Gönder
+                              </Button>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
 
                 {a.durum !== "TAMAMLANDI" ? (
                   <div className="flex flex-wrap items-end gap-2 border-t pt-2">

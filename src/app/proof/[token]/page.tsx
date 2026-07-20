@@ -198,6 +198,9 @@ const GENEL_GUVENCE_DURUM_ETIKET: Record<string, { etiket: string; semantik: Sem
   INCELEME_GEREKLI: { etiket: "İnceleme gerekli", semantik: "warning" },
   EKSIK: { etiket: "Eksik — henüz değerlendirilemiyor", semantik: "unknown" },
   ENGELLENDI: { etiket: "Kritik bulgu nedeniyle engellendi", semantik: "danger" },
+  // Dikey E, E2, Kapı 2: bulgu AÇIK kalır — "çözüldü"/"uygun" DEĞİL, yalnız
+  // doğrulanmış telafi edici kontrolle yönetildiğini bildirir.
+  KRITIK_BULGU_TELAFI_ALTINDA: { etiket: "Kritik bulgu açık — telafi edici kontrol altında", semantik: "warning" },
 };
 const KATEGORI_DURUM_SEMANTIK: Record<string, SemantikDurum> = {
   DOGRULANMIS: "success",
@@ -390,6 +393,7 @@ export default function ProofRoomPage() {
             <p className="text-xs text-muted-foreground" title={cloudAssuranceProfile.profilHash}>
               Profil hash&apos;i (SHA-256): {cloudAssuranceProfile.profilHash}
             </p>
+            <p className="text-xs text-muted-foreground">Şema sürümü: {profil.semaSurumu}</p>
             {cloudAssuranceProfile.iliskiliRoiExportId ? (
               <p className="text-xs text-muted-foreground">İlişkili DORA RoI export: {cloudAssuranceProfile.iliskiliRoiExportId}</p>
             ) : null}
@@ -397,9 +401,21 @@ export default function ProofRoomPage() {
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Açık KRİTİK bulgu(lar):</p>
                 <ul className="list-inside list-disc text-xs">
-                  {profil.acikKritikBulgular.map((b) => (
-                    <li key={b.id}>{b.baslik}</li>
-                  ))}
+                  {profil.acikKritikBulgular.map((b) => {
+                    const ozet = profil.telafiOzetleri?.find((o) => o.bulguId === b.id);
+                    return (
+                      <li key={b.id}>
+                        {b.baslik}
+                        {ozet ? (
+                          <span className="block text-muted-foreground">
+                            Bulgu AÇIK kalmaktadır; doğrulanmış telafi edici kontrol ({ozet.controlMaddeRef ?? "kontrol"}, geçerlilik bitişi{" "}
+                            {ozet.validUntil}) nedeniyle belirli süreyle yönetilmektedir. Bu, bulgunun kapandığı veya kök nedenin ortadan
+                            kalktığı anlamına gelmez.
+                          </span>
+                        ) : null}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ) : null}

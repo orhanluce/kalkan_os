@@ -823,6 +823,135 @@ UI `/seffaflik` (Güvence navı), **bağımsız `scripts/verify-seffaflik.ts`**
 10 (7 akış + 3 TSA) + rls-transparency-ledger 5 (birim, +15 → 908) +
 `seffaflik.spec.ts` e2e (48. e2e) + canlı smoke 7/7.
 
+### 1.68 Dikey E, E2 — Telafi Edici Kontrol + Proof Room Tenant Bütünlüğü ✅ (20 Temmuz)
+
+Kurucunun 20 Temmuz onikinci talimatı: E1'in bilinçli erteleme listesindeki
+"telafi edici kontrol" (E2) + Proof Room'un E1'de bulunan güvenlik açığının
+KALAN üç dalını da kapatma. ADR `docs/adr/PR0-dikeyE2-telafi-edici-kontrol-
+proof-room-2026-07-20.md`. İKİ SIRALI KAPI: Kapı 1 (tenant bütünlüğü, güvenlik
+forward-fix) Kapı 2'den (ürün özelliği) ÖNCE tamamen bitmiş+test edilmiş+
+canlıya push'lanmış olmalıydı — kurucunun kendi disiplini.
+
+**Kapı 1 — merkezi Proof Room hedef guard'ı (`20260720280000`, commit
+`280199c`):** E1'in kendi ADR'si "yalnız yeni 4. dal için dar guard" demişti;
+grep sweep gerçek boşluğu doğruladı — `test_run_id`/`roi_export_run_id`/
+`graph_snapshot_id` ÜÇ ESKİ dalın HİÇBİRİNDE cross-tenant FK-hedef guard'ı
+yoktu, yalnız satırın kendi `tenant_id`'si RLS ile korunuyordu (A kiracısı
+B'nin `test_run_id`'sine işaret eden bir link YAZABİLİRDİ). Dört tekrarlı
+trigger yerine TEK `proof_room_link_target_guard()` (BEFORE INSERT AND UPDATE,
+security definer, service_role dahil atlanamaz) — dört hedefin HER BİRİ için
+var olma + aynı-tenant kontrolü, mevcut "tam olarak bir hedef" CHECK'i
+korunarak. Canlı tarihsel tarama (read-only, mutasyon YOK) SIFIR cross-tenant
+kayıt buldu — geriye dönük düzeltme gerekmedi. 11 PGlite testi (4 hedef ×
+cross-tenant red + eksik-artefakt red + çoklu/sıfır-hedef CHECK red +
+geçerli-aynı-tenant kabul ×4 + service_role atlayamaz + mevcut linkler
+etkilenmez) + canlı smoke 5/5 (gerçek iki kiracı).
+
+**Kapı 2 — telafi edici kontrol (`20260720290000`):** YENİ test altyapısı
+YOK — `control_id`/`test_run_id` mevcut M12 kontrol-test motoruna işaret eder
+(motor YENİDEN KULLANILIR). `sod_telafi_edici_kontroller`'in (M16)
+DOĞRUDAN kopyası DEĞİL (o tablonun kendi maker-checker'ı yok, güven yalnız
+test sonucuna dayanıyor; burada telafi KAYDININ KENDİSİ de bağımsız
+incelenmeli — ADR §0/§3 gerekçeli karar). Durum makinesi `TASLAK→İNCELEMEDE→
+AKTIF|REDDEDILDI`, `→İPTAL_EDİLDİ` her aktif durumdan, `AKTIF→SÜRESİ_DOLDU`
+yalnız idempotent pg_cron (`kalkan-e2-telafi-suresi-dolumu`, */5, BullMQ
+DEĞİL — kural 4). Maker-checker: `submitted_by` istemciden GÜVENİLMEZ
+(guard'da oturum sahibine sabitlenir), `reviewed_by=submitted_by` reddedilir,
+kimlik atfı her geçişte oturum sahibine sabit. AKTIF olmuş kaydın çekirdek
+alanları (kontrol/test/tarih/gerekçe) BİR DAHA DEĞİŞTİRİLEMEZ — uzatma YENİ
+kayıt açar (`onceki_id` zinciri, `sod_istisnalari`'nın AYNI deseni).
+"PROVIDER_ATTESTATION/UNKNOWN asla olumlu sayılmaz" kısıtı AYRI bir
+`kaynak_turu` kolonu EKLENMEDEN yapısal olarak sağlandı — `test_run_id`
+her zaman gerçek bir M12 koşusuna işaret eder ve `sonuc='PASSED'` zorunlu
+tutulur (ADR §4 gerekçeli, kural: gereksiz alan uydurulmaz).
+
+**Saf motor genişlemesi (`cloud-assurance.ts`, şema `@1`→`@2`, geriye dönük
+uyumlu):** `telafiEdiciKontroller?` opsiyonel girdi — atlanırsa TÜM E1
+sonuçları birebir aynı kalır. `telafiAktifMi` DB'nin dondurulmuş
+`durum='AKTIF'` etiketine KÖR GÜVENMEZ — `asOf` itibarıyla testSonucu=PASSED+
+kanıtGüncel+geçerlilik penceresi İÇİNDE olup olmadığını kendisi hesaplar
+(cron henüz çalışmamış olsa bile süresi geçmiş bir kayıt etkin SAYILMAZ).
+TÜM açık KRİTİK bulgular geçerli+aktif telafiyle kapsanırsa `genelDurum`
+`KRITIK_BULGU_TELAFI_ALTINDA`'ya döner — **bulguyu KAPATMAZ**, `acikKritik
+Bulgular`'da hâlâ görünür, yalnız yönetim durumunu bildirir; TEK bir
+kapsanmamış KRİTİK bulgu bile `ENGELLENDI`'de tutar (kısmi kapsama testi).
+Zorunlu kullanıcı-yüzü cümlesi (kurucunun verdiği metin, birebir) `AKTIF_
+TELAFI_EDICI_KONTROL` açıklamasına gömülü: "Bulgu açık kalmaktadır;
+doğrulanmış telafi edici kontrol nedeniyle belirli süreyle yönetilmektedir."
+16 yeni saf motor testi (32→48 toplam bu dosyada).
+
+**Sign-off kararı (ADR §5):** `assessment_tamamla_guard()` DEĞİŞTİRİLMEDİ —
+kritik bulgu telafi altındayken bile `third_party_assessments.durum`
+`TAMAMLANDI`'ya GEÇEMEZ (mevcut guard aynen çalışmaya devam eder). Bunun
+yerine DAR HESAPLANMIŞ ETİKET tercih edildi: `KRITIK_BULGU_TELAFI_ALTINDA`
+yalnız `cloud-assurance.ts`'nin çıktı union'ında ve JSONB snapshot'ta var —
+guard/CHECK/ledger-outbox tetikleyicisi/`bulguOzeti()`/iki UI yüzeyi
+DOKUNULMADAN kaldı (blast-radius izlendi, en dar seçenek tercih edildi).
+YÜKSEK ciddiyetli bulgular davranışı AYNEN korundu — yeni ilke İCAT EDİLMEDİ.
+
+**Impact graph:** yeni düğüm türü AÇILMADI — `telafiEdiciKontrolId` verilirse
+`TEDARIKCI_BULGUSU`'ndan MEVCUT `KONTROL` düğümüne `TEDARIKCI_BULGUSU_
+TELAFI_KONTROLU` kenarı eklenir; var olan `KONTROL_TEST`/`TEST_KANIT`
+kenarları o kontrolün kanıt zincirini OTOMATİK taşır (tekrar üretilmez).
+Etki yayılımı telafi varlığından ETKİLENMEZ — telafi yalnız güvence
+durumunu ANNOTATE eder, graf erişilebilirliğini asla durdurmaz. 3 yeni
+birim testi (backward-compat + kenar üretimi + tam zincir traversal).
+
+**Snapshot V2 + Proof Room:** `cloud_assurance_profile_snapshots.profil`de
+DB CHECK yok (serbest jsonb) — V1 payload'ları DEĞİŞTİRİLMEDİ, yeniden
+hash'lenmedi; eski (`@1`) bir snapshot'ta `telafiKapsananBulguIdleri`/
+`telafiOzetleri` hiç YOKTUR, UI/Proof Room bunu savunmacı (`?.`) okur, asla
+kapsama UYDURMAZ. Yeni `telafiOzetleri` alanı (yalnız GÖRÜNTÜLEME —
+`{bulguId, controlMaddeRef, validUntil}`) Proof Room'un asgari gösterimini
+(bulgu açık + telafi var + kontrol/test referansı + geçerlilik bitişi +
+"kapatmaz" notu + şema sürümü) ham test çıktısı/serbest metin/PII SIZDIRMADAN
+karşılar — "bağımsız incelemeden geçti" AYRI bir alan taşımaz (AKTIF durumuna
+ulaşmış her kayıt guard'la YAPISAL OLARAK zaten bağımsız incelenmiştir).
+
+**API (session client, service_role YOK — kimlik/tenant DB guard'ında):**
+`POST /api/tedarikciler/[id]/bulgular/[findingId]/telafi` (öner: TASLAK
+INSERT + aynı istekte İNCELEMEDE'ye gönder — kimlik atfı istemciden
+güvenilmez, DB guard sabitler), `GET` aynı rota (mevcut kayıtlar + tenant'ın
+PASSED test koşuları seçim listesi), `POST /api/telafi/[id]/karar` (AKTIF/
+REDDEDILDI, `reviewed_by` HER ZAMAN oturumdan okunur), `POST /api/telafi/
+[id]/iptal`. UI `/tedarikciler/[id]` her KRİTİK/YÜKSEK açık bulgu satırında
+"Telafi Edici Kontrol" bloğu (öner→incele→onayla/reddet/iptal, kurucunun
+zorunlu/yasak cümleleri birebir).
+
+**Doğrulama:** 25 PGlite RLS/guard birimi (maker-checker bypass matrisi:
+`submitted_by=reviewed_by`, NULL kimlik, istemci kimlik sahtekarlığı,
+service_role atlayamaz, TASLAK→AKTIF atlama, retroaktif çekirdek-alan
+değişimi, terminal-donukluk ×3) + 16+3 saf motor birimi + canlı smoke
+(16 kontrol — iki gerçek kullanıcı oturumuyla RLS altında: öner→bağımsız
+onay→AKTIF→motor kapsama hesabı→snapshot V2 mühür→red downgrade→iptal
+downgrade→cron canlıda hatasız) + yeni `e2e/dikey-e2-telafi-edici-kontrol.
+spec.ts` (2 senaryo: tam onay akışı + red/iptal downgrade). **Süre-dolumu
+(SURESI_DOLDU) geçişi BİLİNÇLİ OLARAK yalnız PGlite'ta test edildi** — canlı,
+paylaşımlı bir tabloda güvenlik trigger'ını (kısa süreliğine de olsa) devre
+dışı bırakmak gerekirdi; kurucuya seçenek sunuldu, "canlı trigger'a
+dokunma" seçildi (AskUserQuestion kaydı, bu dosyanın §15 raporunda).
+
+**TAM e2e takımı 73/75, 0 skip** (`pnpm e2e:fixtures` ile — fixture reset
+OLMADAN partial koşular sahte "Kısmi"/"Ayşe Yılmaz" kalıntı-durum hataları
+ÜRETİYOR, bu bir ÜRÜN hatası DEĞİL). İKİ kalan başarısızlık bu dilimle
+İLGİSİZ, dokunulmayan dosyalarda: `simulasyon.spec.ts` M18 bağı testi
+(izole+temiz ortamda da tekrarlanabilir başarısız — UI görünürlüğü ile
+`training_completions` INSERT'i arasında bir okuma-yarışı, kodun kendisi
+DEĞİŞTİRİLMEDİ) ve `tedarikciler.spec.ts`'in vendor-portal anket testi (AYNI
+sınıf hata — "Yeni Değerlendirme" tıklamasından hemen sonra bekleme olmadan
+admin client sorgusu; test dosyasının KENDİ kodunda, dokunulmadı). İkisi de
+ayrı borç olarak kayıtlı, koda MÜDAHALE EDİLMEDİ (kural: ilgisiz test'i
+sessizce atlama/gizleme yasağı — burada raporlanıyor). 1442 birim (127
+dosya, +73) + 75 e2e (+2); production build yeşil.
+
+**Bilinçli kapsam dışı (kurucunun kendi listesi, korunuyor):** RTO/RPO
+zinciri, yapılandırılmış SLA/IAM/yedekleme alanları, dördüncü-taraf
+değişiklik bildirimi, sözleşme-düzeyi graf granülerliği, SCITT şeffaflık
+defteri bağlantısı, KMS/JWS/TSA seçimi, hukuk sağlayıcısı seçimi, AI
+sağlayıcısı seçimi, tedarikçi için sayısal risk skoru, telafi ile bulgunun
+OTOMATİK kapanması, talep edenin kendi telafisini onaylaması, dış saldırı/
+hack-back yeteneği.
+
 ### 1.67 Dikey E, E1 — Bulut / Kritik Tedarikçi Güvence Profili ✅ (20 Temmuz)
 
 Kurucunun 20 Temmuz onbirinci talimatı: Dikey E analizi onayı + E1 uygulama
