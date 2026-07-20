@@ -145,12 +145,12 @@ describe("proof_room — token'lı salt-okur erişim (G1)", () => {
     expect(i[0].v).toBeNull();
   });
 
-  it("cross-tenant: A'nın linki B'nin koşusuna işaret ederse null (scope koruması)", async () => {
+  it("cross-tenant: A'nın linki B'nin koşusuna işaret edemez — artık INSERT anında reddedilir (Dikey E2 Kapı 1, proof_room_link_target_guard)", async () => {
     const { runId: bRun } = await kosuVeZincir(seed.B.tenantId);
-    // A kendi kiracısında ama B'nin koşusuna link kurmayı denesin.
-    const token = await linkOlustur(seed.A.userId, seed.A.tenantId, bRun);
-    const { rows } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [token]);
-    expect(rows[0].v).toBeNull(); // RPC, run.tenant_id = link.tenant_id ister
+    // A kendi kiracısında ama B'nin koşusuna link kurmayı denesin — merkezi
+    // cross-tenant guard (20260720280000) INSERT'i doğrudan reddeder;
+    // artık dangling bir link hiç oluşmuyor, read-time null'a bel bağlanmıyor.
+    await expect(linkOlustur(seed.A.userId, seed.A.tenantId, bRun)).rejects.toThrow(/cross-tenant/i);
   });
 });
 
