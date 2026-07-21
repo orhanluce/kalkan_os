@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import type { KritikHizmetTestPaketi } from "@/lib/kritik-hizmet-test-paketi";
 
 interface Tolerans {
   id: string;
@@ -38,6 +39,23 @@ interface KontrolSecenegi {
 
 const TOL_DURUM: Record<string, SemantikDurum> = { TASLAK: "neutral", YURURLUKTE: "success", SUPERSEDED: "neutral" };
 
+// Dikey F, F2: genel durum etiketleri — kurucunun tercih ettiği dil (kesin
+// "tamamen dayanıklıdır" iddiası ÜRETİLMEZ).
+const GENEL_DURUM_ETIKET: Record<string, { metin: string; durum: SemantikDurum }> = {
+  DOGRULANMIS: { metin: "Doğrulanmış güncel test görünümü", durum: "success" },
+  INCELEME_GEREKLI: { metin: "İnceleme gerekli", durum: "warning" },
+  ENGELLENDI: { metin: "Başarısız test nedeniyle engellendi", durum: "danger" },
+  VERI_EKSIK: { metin: "Güncel test bulunamadı", durum: "unknown" },
+  TEST_YOK: { metin: "Kapsamda test tanımı yok", durum: "neutral" },
+};
+
+interface SnapshotSatiri {
+  id: string;
+  created_at: string;
+  paket_hash: string;
+  genel_durum: string | null;
+}
+
 export default function KritikHizmetDetayPage() {
   const params = useParams<{ id: string }>();
   const [hizmet, setHizmet] = useState<{ ad: string; durum: string } | null>(null);
@@ -54,6 +72,13 @@ export default function KritikHizmetDetayPage() {
   const [kontrolSecenekleri, setKontrolSecenekleri] = useState<KontrolSecenegi[]>([]);
   const [kSecim, setKSecim] = useState("");
   const [kGerekce, setKGerekce] = useState("");
+
+  // Dikey F, F2: Kritik Hizmet Test Paketi.
+  const [onizleme, setOnizleme] = useState<KritikHizmetTestPaketi | null>(null);
+  const [onizlemeYukleniyor, setOnizlemeYukleniyor] = useState(false);
+  const [muhurleniyor, setMuhurleniyor] = useState(false);
+  const [snapshotlar, setSnapshotlar] = useState<SnapshotSatiri[]>([]);
+  const [proofLinki, setProofLinki] = useState<string | null>(null);
 
   const yukle = useCallback(async () => {
     const db = createClient();
@@ -78,6 +103,12 @@ export default function KritikHizmetDetayPage() {
     setKontrolBaglari((kb ?? []) as unknown as KontrolBagi[]);
     const { data: ks } = await db.from("controls").select("id, madde_ref").order("madde_ref").limit(100);
     setKontrolSecenekleri((ks ?? []).map((c) => ({ id: c.id, ref: c.madde_ref })));
+    const { data: sn } = await db
+      .from("kritik_hizmet_test_paketi_snapshots")
+      .select("id, created_at, paket_hash, genel_durum:paket->>genelDurum")
+      .eq("critical_service_id", params.id)
+      .order("created_at", { ascending: false });
+    setSnapshotlar((sn ?? []) as unknown as SnapshotSatiri[]);
   }, [params.id]);
 
   useEffect(() => {
@@ -138,6 +169,40 @@ export default function KritikHizmetDetayPage() {
     setKGerekce("");
     await yukle();
   }, [kSecim, kGerekce, tenantId, params.id, yukle]);
+
+  const testPaketiOnizle = useCallback(async () => {
+    setHata(null);
+    setOnizlemeYukleniyor(true);
+    const res = await fetch(`/api/kritik-hizmetler/${params.id}/test-paketi`);
+    const govde = (await res.json().catch(() => ({}))) as { paket?: KritikHizmetTestPaketi; hata?: string };
+    setOnizlemeYukleniyor(false);
+    if (!res.ok || !govde.paket) return setHata(govde.hata ?? "Test paketi önizlenemedi.");
+    setOnizleme(govde.paket);
+  }, [params.id]);
+
+  const testPaketiMuhurle = useCallback(async () => {
+    setHata(null);
+    setMuhurleniyor(true);
+    setProofLinki(null);
+    const res = await fetch(`/api/kritik-hizmetler/${params.id}/test-paketi`, { method: "POST" });
+    const govde = (await res.json().catch(() => ({}))) as { paket?: KritikHizmetTestPaketi; hata?: string };
+    setMuhurleniyor(false);
+    if (!res.ok || !govde.paket) return setHata(govde.hata ?? "Test paketi mühürlenemedi.");
+    setOnizleme(govde.paket);
+    await yukle();
+  }, [params.id, yukle]);
+
+  const proofLinkiOlustur = useCallback(async (snapshotId: string) => {
+    setHata(null);
+    const res = await fetch("/api/proof-room", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ eylem: "olustur", kritikHizmetTestPaketiSnapshotId: snapshotId }),
+    });
+    const govde = (await res.json().catch(() => ({}))) as { url?: string; hata?: string };
+    if (!res.ok || !govde.url) return setHata(govde.hata ?? "Proof Room linki oluşturulamadı.");
+    setProofLinki(govde.url);
+  }, []);
 
   if (!hizmet) return <div className="p-2 text-sm text-muted-foreground">Yükleniyor…</div>;
 
@@ -261,6 +326,106 @@ export default function KritikHizmetDetayPage() {
               Kontrol Bağla
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Dikey F, F2: Kritik Hizmet Test Paketi — mühürlü, tek kritik hizmet için M12 zincirinin fotoğrafı. */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Kritik Hizmet Test Paketi</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 text-sm">
+          <p className="text-xs text-muted-foreground">
+            Bu hizmete DOĞRUDAN veya bağlı kontroller üzerinden bağlı test tanımlarının en güncel sonucunu tek pakette
+            toplar. Yapısal bir özet, kesin bir uyum kararı DEĞİLDİR — tarihsel sonuçlar hiçbir zaman silinmez.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => void testPaketiOnizle()} disabled={onizlemeYukleniyor}>
+              {onizlemeYukleniyor ? "Önizleniyor…" : "Test Paketi Önizle"}
+            </Button>
+            <Button size="sm" onClick={() => void testPaketiMuhurle()} disabled={muhurleniyor}>
+              {muhurleniyor ? "Mühürleniyor…" : "Mühürlü Paket Oluştur"}
+            </Button>
+          </div>
+
+          {onizleme ? (
+            <div className="flex flex-col gap-3 border-t pt-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge durum={GENEL_DURUM_ETIKET[onizleme.genelDurum]?.durum ?? "unknown"}>
+                  {GENEL_DURUM_ETIKET[onizleme.genelDurum]?.metin ?? onizleme.genelDurum}
+                </StatusBadge>
+                <span className="text-xs text-muted-foreground">
+                  {onizleme.kapsam.testTanimiSayisi} test tanımı · {onizleme.kapsam.kontrolSayisi} kontrol ·{" "}
+                  {onizleme.kapsam.dogrudanBagliSayisi} doğrudan · {onizleme.kapsam.kontrolUzerindenBagliSayisi} kontrol üzerinden
+                </span>
+              </div>
+              {onizleme.gerekceler.length > 0 ? (
+                <ul className="list-inside list-disc text-xs text-muted-foreground">
+                  {onizleme.gerekceler.map((g, i) => (
+                    <li key={i}>{g}</li>
+                  ))}
+                </ul>
+              ) : null}
+
+              {onizleme.testler.map((t) => (
+                <div key={t.testDefinitionId} data-testid={`test-paketi-satir-${t.testDefinitionId}`} className="flex flex-col gap-1.5 rounded-md border p-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{t.ad}</span>
+                    <StatusBadge durum="neutral">
+                      {t.bagTuru === "DIRECT" ? "Doğrudan bağlı" : t.bagTuru === "BOTH" ? "Doğrudan + kontrol üzerinden" : "Kontrol üzerinden bağlı"}
+                    </StatusBadge>
+                  </div>
+                  {t.enGuncelKosu ? (
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <StatusBadge durum={t.enGuncelKosu.sonuc === "PASSED" ? "success" : t.enGuncelKosu.sonuc === "FAILED" ? "danger" : "unknown"}>
+                        {t.enGuncelKosu.sonuc}
+                      </StatusBadge>
+                      {t.enGuncelKosu.tazelikDurumu === "BAYAT" ? <StatusBadge durum="warning">Test sonucu süresi dolmuş</StatusBadge> : null}
+                      <span className="text-muted-foreground">{new Date(t.enGuncelKosu.calistiAt).toLocaleString("tr-TR")}</span>
+                    </div>
+                  ) : (
+                    <StatusBadge durum="unknown">Güncel test bulunamadı</StatusBadge>
+                  )}
+                  {t.bulguOzeti.acikBulguIdleri.length > 0 ? (
+                    <StatusBadge durum="warning">Açık bulgu mevcut ({t.bulguOzeti.acikBulguIdleri.length})</StatusBadge>
+                  ) : null}
+                  {t.bulguOzeti.kapanisRetestRunIdleri.length > 0 ? (
+                    <StatusBadge durum="success">Kapanış retest&apos;i doğrulandı</StatusBadge>
+                  ) : null}
+                  <p className="text-xs text-muted-foreground">
+                    Tarihsel sonuç özeti: {t.tarihselOzet.toplamKosu} koşu (PASSED {t.tarihselOzet.sonucDagilimi.PASSED} · FAILED{" "}
+                    {t.tarihselOzet.sonucDagilimi.FAILED} · UNKNOWN {t.tarihselOzet.sonucDagilimi.UNKNOWN} · STALE {t.tarihselOzet.sonucDagilimi.STALE} ·
+                    EXCEPTION {t.tarihselOzet.sonucDagilimi.EXCEPTION})
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {snapshotlar.length > 0 ? (
+            <div className="flex flex-col gap-2 border-t pt-3">
+              <p className="text-xs font-medium text-muted-foreground">Mühürlenmiş paket geçmişi ({snapshotlar.length})</p>
+              {snapshotlar.map((s) => (
+                <div key={s.id} data-testid={`test-paketi-snapshot-${s.id}`} className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="text-muted-foreground">{new Date(s.created_at).toLocaleString("tr-TR")}</span>
+                  <StatusBadge durum={GENEL_DURUM_ETIKET[s.genel_durum ?? ""]?.durum ?? "unknown"}>
+                    {GENEL_DURUM_ETIKET[s.genel_durum ?? ""]?.metin ?? s.genel_durum ?? "—"}
+                  </StatusBadge>
+                  <code className="text-muted-foreground" title={s.paket_hash}>
+                    {s.paket_hash.slice(0, 16)}…
+                  </code>
+                  <Button size="sm" variant="outline" onClick={() => void proofLinkiOlustur(s.id)}>
+                    Proof Room Linki Oluştur
+                  </Button>
+                </div>
+              ))}
+              {proofLinki ? (
+                <a href={proofLinki} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
+                  Proof Room linki: {proofLinki}
+                </a>
+              ) : null}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>

@@ -78,6 +78,28 @@ async function roiLinkOlustur(userId: string, tenantId: string, exportRunId: str
   return rows[0].token as string;
 }
 
+/** Dikey F, F2 — kritik_hizmet_test_paketi_snapshots ekler. */
+async function paketEkle(tenantId: string, userId: string): Promise<string> {
+  const { rows: hizmet } = await db.sql(`insert into public.critical_business_services (tenant_id, ad) values ($1, 'Ödeme') returning id`, [tenantId]);
+  const { rows } = await db.asUser(
+    userId,
+    `insert into public.kritik_hizmet_test_paketi_snapshots (tenant_id, critical_service_id, paket, paket_hash, hesaplama_yontemi)
+     values ($1, $2, $3::jsonb, $4, '{"surum":"v1"}'::jsonb) returning id`,
+    [tenantId, hizmet[0].id, JSON.stringify({ schema: "KALKAN_CRITICAL_SERVICE_TEST_PACKAGE_V1", genelDurum: "DOGRULANMIS" }), "c".repeat(64)],
+  );
+  return rows[0].id as string;
+}
+
+async function paketLinkOlustur(userId: string, tenantId: string, paketId: string, gunSonra = 7): Promise<string> {
+  const { rows } = await db.asUser(
+    userId,
+    `insert into public.proof_room_links (tenant_id, kritik_hizmet_test_paketi_snapshot_id, son_gecerlilik)
+     values ($1, $2, now() + ($3 || ' days')::interval) returning token`,
+    [tenantId, paketId, String(gunSonra)],
+  );
+  return rows[0].token as string;
+}
+
 const A_IKINCI = "a0000000-0000-0000-0000-000000000002";
 
 beforeEach(async () => {
@@ -325,5 +347,56 @@ describe("proof_room — roi_export_run_id dalı (37 Tez Dikey B, Faz 3 kalan di
     expect((t[0].v as Record<string, unknown>).roiExport).toBeUndefined();
     const { rows: r } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [roiToken]);
     expect((r[0].v as Record<string, unknown>).kosu).toBeUndefined();
+  });
+});
+
+describe("proof_room — kritik_hizmet_test_paketi_snapshot_id dalı (Dikey F, F2, BEŞİNCİ hedef)", () => {
+  it("aynı-tenant snapshot'a link kurulur; anonim (oturumsuz) görüntülemede paket/paketHash/hesaplamaYontemi döner ve audit'e düşer", async () => {
+    const paketId = await paketEkle(seed.A.tenantId, seed.A.userId);
+    const token = await paketLinkOlustur(seed.A.userId, seed.A.tenantId, paketId);
+    const { rows } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [token]);
+    const v = rows[0].v as Record<string, unknown>;
+    const paket = v.kritikHizmetTestPaketi as Record<string, unknown>;
+    expect(paket.id).toBe(paketId);
+    expect(paket.paketHash).toBe("c".repeat(64));
+    expect((paket.paket as Record<string, unknown>).genelDurum).toBe("DOGRULANMIS");
+    expect((paket.hesaplamaYontemi as Record<string, unknown>).surum).toBe("v1");
+    const { rows: audit } = await db.sql(
+      `select count(*)::int as n from public.audit_log where eylem = 'proof_room_goruntulendi' and tenant_id = $1`,
+      [seed.A.tenantId],
+    );
+    expect(audit[0].n).toBe(1);
+  });
+
+  it("cross-tenant: A'nın linki B'nin snapshot'ına işaret edemez (INSERT anında reddedilir)", async () => {
+    const paketIdB = await paketEkle(seed.B.tenantId, seed.B.userId);
+    await expect(paketLinkOlustur(seed.A.userId, seed.A.tenantId, paketIdB)).rejects.toThrow(/cross-tenant/i);
+  });
+
+  it("çoklu hedef (aynı anda iki alan dolu) CHECK ile reddedilir", async () => {
+    const { runId } = await kosuVeZincir(seed.A.tenantId);
+    const paketId = await paketEkle(seed.A.tenantId, seed.A.userId);
+    await expect(
+      db.asUser(
+        seed.A.userId,
+        `insert into public.proof_room_links (tenant_id, test_run_id, kritik_hizmet_test_paketi_snapshot_id, son_gecerlilik)
+         values ($1, $2, $3, now() + interval '7 days')`,
+        [seed.A.tenantId, runId, paketId],
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("sıfır hedef CHECK ile reddedilir", async () => {
+    await expect(
+      db.asUser(seed.A.userId, `insert into public.proof_room_links (tenant_id, son_gecerlilik) values ($1, now() + interval '7 days')`, [seed.A.tenantId]),
+    ).rejects.toThrow();
+  });
+
+  it("diğer dört dal (test_run/roi_export/graph_snapshot/cloud_assurance) beşinci hedef eklenmesinden ETKİLENMEZ — regresyon", async () => {
+    const { runId } = await kosuVeZincir(seed.A.tenantId);
+    const testToken = await linkOlustur(seed.A.userId, seed.A.tenantId, runId);
+    const { rows: t } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [testToken]);
+    expect((t[0].v as Record<string, unknown>).kosu).toBeDefined();
+    expect((t[0].v as Record<string, unknown>).kritikHizmetTestPaketi).toBeUndefined();
   });
 });

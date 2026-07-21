@@ -1,8 +1,44 @@
-# DEVAM TALİMATI — kaldığın yerden sürdür (21 Temmuz 2026 güncellemesi — Dikey F F1)
+# DEVAM TALİMATI — kaldığın yerden sürdür (21 Temmuz 2026 güncellemesi — Dikey F F2)
 
 Bu dosya oturumlar arası devir içindir. **Kurucu kalıcı onay verdi:
 "her bitişte onaya gerek yok, V2 PR sırasının SONUNA KADAR devam."** Her PR'ı
 doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine geç.
+
+## -2. DİKEY F, F2 BİTTİ (21 Temmuz 2026) — Kritik Hizmet Test Paketi
+Kurucunun F2 kararları tam uygulandı: `kritik_hizmet_test_paketi_snapshots`
+(UI adı: "Kritik Hizmet Test Paketi") — tek bir kritik hizmet için mevcut M12
+zincirinin (test tanımı → koşu → öneri → bulgu → retest) mühürlü fotoğrafı.
+`test_kampanyasi_snapshots` adı BİLİNÇLİ kullanılmadı (M8 simülasyon/tatbikat
+diliyle karışma riski, kurucu kararı). Kapsam çözümleme İKİ güvenilir
+kaynaktan: `control_test_definitions.critical_service_id` (DOĞRUDAN) +
+`critical_service_controls` (DOLAYLI/kontrol üzerinden), deterministik
+birleşim (aynı tanım iki yoldan gelirse `BOTH`, tekilleşir — `kritik_hizmet_
+adi` serbest metninden ASLA otomatik eşleştirme yok). Paket iki katman
+taşır: güncel görünüm (en son koşu, worst-of yalnız buradan) + tarihsel iz
+özeti (yalnız sayaç/kimlik listeleri — tam geçmiş kopyalanmaz, hiçbir sonuç
+silinmez/örtülmez). `genelDurum` beş ayrı sınıf (DOGRULANMIS/INCELEME_
+GEREKLI/ENGELLENDI/VERI_EKSIK/TEST_YOK) — sayısal güven skoru yok.
+
+Tablo `impact_graph_snapshots`/`cloud_assurance_profile_snapshots`'ın AYNI
+deseni: append-only, maker-checker YOK (yeni bir uyum iddiası değil, zaten
+guard'lı verilerin fotoğrafı), service_role dahil UPDATE koşulsuz reddedilir.
+Proof Room BEŞİNCİ polimorfik hedef (`kritik_hizmet_test_paketi_snapshot_id`)
+— `proof_room_link_target_guard()` ve `proof_room_goruntule()` forward-fix'i
+GÜNCEL sürüm temel alınarak yapıldı, diğer dört dal DEĞİŞMEDİ. UI:
+`/kritik-hizmetler/[id]`'de "Test Paketi Önizle"/"Mühürlü Paket Oluştur" +
+geçmiş listesi; Proof Room sayfası beşinci dalı render ediyor.
+
+**17 saf motor testi + 8 PGlite/RLS testi (snapshot tablosu) + 4 PGlite testi
+(Proof Room 5. dal) + 27/27 canlı Supabase smoke + 1 yeni Chromium e2e; 1495
+birim + 77 e2e, 0 skip.** Bu dilimde bulunan tek e2e
+hatası kendi hatamızdı (yeni test, ürün kodu değil): "Mühürlü Paket Oluştur"
+sonrası "Proof Room Linki Oluştur" `.first()` ile tıklanıyordu — biriken eski
+snapshot satırları varken bu YANLIŞ (eski) satırı seçebiliyordu; POST
+yanıtının kendi `id`'siyle eşleşen `data-testid`'e scope'lanarak düzeltildi
+(Faz B'nin "gerçek POST yanıtını bekle, metin görünürlüğüne güvenme" dersinin
+aynısı). Sonraki: F1'deki gibi F1/F2'nin KENDİSİNDE kapsam dışı bırakılanlar
+(test-program orkestrasyonu, çoklu kritik hizmet kampanyası, M17 köprüsü,
+RTO/RPO bağlama, impact-graph genişlemesi) kurucu kararı bekliyor.
 
 ## -1. DİKEY F, F1 BİTTİ (21 Temmuz 2026)
 Kurucunun F1 talimatı (docs/adr/PR0-dikeyF-f1-test-manifesti-kritik-hizmet-
@@ -38,8 +74,8 @@ hepsi F1'de BİLİNÇLİ kapsam dışı bırakıldı (docs/adr/PR0-dikeyF-f1-...
 ## 0. İLK İŞ (her yeni oturumun başında)
 Yeşil taban doğrula (körlemesine güvenme):
 ```
-pnpm check        # typecheck + lint + vitest  (beklenen: ~1465 birim, 0 skip)
-pnpm e2e          # gerçek Chromium            (beklenen: ~76 e2e, 0 skip, fixture reset dahil)
+pnpm check        # typecheck + lint + vitest  (beklenen: ~1495 birim, 0 skip)
+pnpm e2e          # gerçek Chromium            (beklenen: ~77 e2e, 0 skip, fixture reset dahil)
 cmd /c "pnpm build 2>&1"   # exit 0
 curl.exe -s https://blue-yak-865668.hostingersite.com/health/ready  # hazir/erisilebilir
 ```

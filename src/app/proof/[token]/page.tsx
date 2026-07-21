@@ -18,6 +18,7 @@ import { roiSablonCsvYap, roiSablonXlsxYap, ROI_EXPORT_UYARI_METNI } from "@/lib
 import type { RoiSablonPaketi } from "@/lib/roi-export";
 import type { EtkiGrafi, TekNoktaTespitSonucu, EtkiYayilimSonucu, DugumTuru } from "@/lib/impact-graph";
 import { KAYNAK_TURU_TR_ETIKET, type CloudAssuranceHesaplamaYontemi, type GuvenceProfiliSonucu, type KaynakTuru } from "@/lib/cloud-assurance";
+import type { KritikHizmetTestPaketi } from "@/lib/kritik-hizmet-test-paketi";
 
 // Proof Room — OTURUMSUZ denetçi/regülatör görünümü (G1; nihai §8).
 //
@@ -126,6 +127,14 @@ interface ProofVerisi {
     iliskiliRoiExportId: string | null;
     olusturulmaZamani: string;
   };
+  /** Dikey F, F2: kritik hizmet test paketi — diğer dört dalla AYRIK (BEŞİNCİ hedef). */
+  kritikHizmetTestPaketi?: {
+    id: string;
+    paket: KritikHizmetTestPaketi;
+    paketHash: string;
+    hesaplamaYontemi: KritikHizmetTestPaketi["hesaplamaYontemi"];
+    olusturulmaZamani: string;
+  };
 }
 
 /** proof_room_ledger_malzeme RPC'sinin ham dönüşü — yalnız ANCHORED iken leaves/signedStatement/sth dolu. */
@@ -223,6 +232,16 @@ const GENEL_GUVENCE_DURUM_ETIKET: Record<string, { etiket: string; semantik: Sem
   // Dikey E, E2, Kapı 2: bulgu AÇIK kalır — "çözüldü"/"uygun" DEĞİL, yalnız
   // doğrulanmış telafi edici kontrolle yönetildiğini bildirir.
   KRITIK_BULGU_TELAFI_ALTINDA: { etiket: "Kritik bulgu açık — telafi edici kontrol altında", semantik: "warning" },
+};
+// Dikey F, F2: kritik-hizmetler/[id]/page.tsx'teki GENEL_DURUM_ETIKET ile AYNI
+// etiketler (kasıtlı yineleme — bu sayfanın kendi deseni, kesin "tamamen
+// dayanıklıdır" iddiası ÜRETİLMEZ).
+const KRITIK_HIZMET_GENEL_DURUM_ETIKET: Record<string, { etiket: string; semantik: SemantikDurum }> = {
+  DOGRULANMIS: { etiket: "Doğrulanmış güncel test görünümü", semantik: "success" },
+  INCELEME_GEREKLI: { etiket: "İnceleme gerekli", semantik: "warning" },
+  ENGELLENDI: { etiket: "Başarısız test nedeniyle engellendi", semantik: "danger" },
+  VERI_EKSIK: { etiket: "Güncel test bulunamadı", semantik: "unknown" },
+  TEST_YOK: { etiket: "Kapsamda test tanımı yok", semantik: "neutral" },
 };
 const KATEGORI_DURUM_SEMANTIK: Record<string, SemantikDurum> = {
   DOGRULANMIS: "success",
@@ -383,6 +402,107 @@ export default function ProofRoomPage() {
       <main className="mx-auto max-w-4xl p-6">
         <h1 className="text-xl font-semibold">Proof Room</h1>
         <p className="mt-2 text-sm text-muted-foreground">Link geçersiz veya süresi dolmuş.</p>
+      </main>
+    );
+  }
+
+  if (veri.kritikHizmetTestPaketi) {
+    const { kritikHizmetTestPaketi } = veri;
+    const { paket } = kritikHizmetTestPaketi;
+    const durumEtiket = KRITIK_HIZMET_GENEL_DURUM_ETIKET[paket.genelDurum] ?? { etiket: paket.genelDurum, semantik: "unknown" as SemantikDurum };
+    return (
+      <main className="mx-auto flex max-w-4xl flex-col gap-6 p-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Proof Room — {veri.kurumAdi}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Kritik Hizmet Test Paketi. Erişim süresi: {new Date(veri.sonGecerlilik).toLocaleString("tr-TR")} · Bu görüntüleme denetim
+            izine kaydedildi.
+          </p>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>{paket.criticalService.ad}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            <p role="note" className="text-xs text-muted-foreground">
+              Bu bir kesin uyum kararı değildir — mevcut test sonuçlarının yapısal bir dökümüdür. Mühürlendiği andan
+              sonra bu görünüm asla değişmez; güncel durum için yeni bir paket gerekir.
+            </p>
+            <StatusBadge durum={durumEtiket.semantik}>{durumEtiket.etiket}</StatusBadge>
+            <p>Mühürlenme zamanı: {new Date(kritikHizmetTestPaketi.olusturulmaZamani).toLocaleString("tr-TR")}</p>
+            <p className="text-xs text-muted-foreground" title={kritikHizmetTestPaketi.paketHash}>
+              Paket hash&apos;i (SHA-256): {kritikHizmetTestPaketi.paketHash}
+            </p>
+            <p className="text-xs text-muted-foreground">Şema sürümü: {paket.schema}</p>
+            <p className="text-xs text-muted-foreground">
+              {paket.kapsam.testTanimiSayisi} test tanımı · {paket.kapsam.kontrolSayisi} kontrol · {paket.kapsam.dogrudanBagliSayisi} doğrudan ·{" "}
+              {paket.kapsam.kontrolUzerindenBagliSayisi} kontrol üzerinden bağlı
+            </p>
+            {paket.gerekceler.length > 0 ? (
+              <ul className="list-inside list-disc text-xs text-muted-foreground">
+                {paket.gerekceler.map((g, i) => (
+                  <li key={i}>{g}</li>
+                ))}
+              </ul>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Test tanımları ({paket.testler.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 text-sm">
+            {paket.testler.length === 0 ? (
+              <p className="text-muted-foreground">Kapsamda test tanımı yok.</p>
+            ) : (
+              paket.testler.map((t) => (
+                <div key={t.testDefinitionId} className="flex flex-col gap-1.5 border-b pb-3 last:border-0 last:pb-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{t.ad}</span>
+                    <StatusBadge durum="neutral">
+                      {t.bagTuru === "DIRECT" ? "Doğrudan bağlı" : t.bagTuru === "BOTH" ? "Doğrudan + kontrol üzerinden" : "Kontrol üzerinden bağlı"}
+                    </StatusBadge>
+                  </div>
+                  {t.enGuncelKosu ? (
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <StatusBadge durum={t.enGuncelKosu.sonuc === "PASSED" ? "success" : t.enGuncelKosu.sonuc === "FAILED" ? "danger" : "unknown"}>
+                        {t.enGuncelKosu.sonuc}
+                      </StatusBadge>
+                      {t.enGuncelKosu.tazelikDurumu === "BAYAT" ? <StatusBadge durum="warning">Test sonucu süresi dolmuş</StatusBadge> : null}
+                      <span className="text-muted-foreground">{new Date(t.enGuncelKosu.calistiAt).toLocaleString("tr-TR")}</span>
+                    </div>
+                  ) : (
+                    <StatusBadge durum="unknown">Güncel test bulunamadı</StatusBadge>
+                  )}
+                  {t.bulguOzeti.acikBulguIdleri.length > 0 ? (
+                    <StatusBadge durum="warning">Açık bulgu mevcut ({t.bulguOzeti.acikBulguIdleri.length})</StatusBadge>
+                  ) : null}
+                  {t.bulguOzeti.kapanisRetestRunIdleri.length > 0 ? (
+                    <StatusBadge durum="success">Kapanış retest&apos;i doğrulandı</StatusBadge>
+                  ) : null}
+                  <p className="text-xs text-muted-foreground">
+                    Tarihsel sonuç özeti: {t.tarihselOzet.toplamKosu} koşu (PASSED {t.tarihselOzet.sonucDagilimi.PASSED} · FAILED{" "}
+                    {t.tarihselOzet.sonucDagilimi.FAILED} · UNKNOWN {t.tarihselOzet.sonucDagilimi.UNKNOWN} · STALE {t.tarihselOzet.sonucDagilimi.STALE} ·
+                    EXCEPTION {t.tarihselOzet.sonucDagilimi.EXCEPTION})
+                  </p>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Hesaplama yöntemi</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-xs text-muted-foreground">
+            <p>{paket.hesaplamaYontemi.kapsamCozumleme}</p>
+            <p>{paket.hesaplamaYontemi.guncelKosuSecimi}</p>
+            <p>{paket.hesaplamaYontemi.worstOfKurali}</p>
+            <p>{paket.hesaplamaYontemi.tarihselIzKurali}</p>
+          </CardContent>
+        </Card>
       </main>
     );
   }

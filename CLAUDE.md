@@ -1,6 +1,40 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**Dikey F, F2 BİTTİ (21 Temmuz 2026) — Kritik Hizmet Test Paketi.** F1'in
+Karar 2'sinin ("test programı/kampanya tablosu F2'ye ertelendi") yanıtı:
+`kritik_hizmet_test_paketi_snapshots` (UI adı: "Kritik Hizmet Test Paketi",
+manifest şeması `KALKAN_CRITICAL_SERVICE_TEST_PACKAGE_V1` — kurucunun
+`WARDPROOF_` önerisi, repo'nun `KALKAN_*` standardına uyarlandı) — tek bir
+kritik hizmet için mevcut M12 zincirinin (test tanımı → koşu → öneri → bulgu
+→ retest) mühürlü fotoğrafı. `test_kampanyasi_snapshots`/"kampanya" adı
+BİLİNÇLİ kullanılmadı (M8 simülasyon/tatbikat diliyle karışma riski — kurucu
+kararı). **Yeni test motoru YOK** — `src/lib/kritik-hizmet-test-paketi.ts`
+saf bir projeksiyon: kapsam çözümleme İKİ güvenilir kaynaktan (`control_test_
+definitions.critical_service_id` DOĞRUDAN + `critical_service_controls`
+DOLAYLI), deterministik birleşim (`BOTH` ile tekilleşir, serbest metinden
+otomatik eşleştirme yok). Paket iki katman: güncel görünüm (en son koşu,
+worst-of yalnız buradan) + tarihsel iz özeti (yalnız sayaç/kimlik listeleri —
+tam geçmiş kopyalanmaz, hiçbir sonuç silinmez/örtülmez). `genelDurum` beş
+ayrı sınıf (DOGRULANMIS/INCELEME_GEREKLI/ENGELLENDI/VERI_EKSIK/TEST_YOK),
+sayısal güven skoru YOK. Tablo `impact_graph_snapshots`/`cloud_assurance_
+profile_snapshots`'ın AYNI deseni: append-only, maker-checker YOK (yeni bir
+uyum iddiası değil, fotoğraf), service_role dahil UPDATE koşulsuz reddedilir.
+Proof Room BEŞİNCİ polimorfik hedef eklendi (diğer dört dal değişmeden).
+
+**27/27 canlı Supabase smoke (iki gerçek kullanıcı, doğrudan+dolaylı bağ,
+çoklu koşu, bulgu/retest, cross-tenant reddi) + 1 yeni Chromium e2e + 17 saf
+motor + 12 PGlite/RLS testi; 1495 birim + 77 e2e, 0 skip.** Bu dilimde
+bulunan tek e2e hatası KENDİ yeni testimizdeki bir race'ti (ürün kodu değil):
+"Mühürlü Paket Oluştur" sonrası `.first()` ile en yeni snapshot varsayılıyordu
+— birikmiş eski satırlar varken bu yanlış satırı seçebiliyordu; POST
+yanıtının kendi `id`'siyle eşleşen `data-testid`'e scope'lanarak düzeltildi
+(Faz B'nin "gerçek POST yanıtını bekle" dersinin aynısı — bkz. AŞAĞIDA F1
+notu). **Sıradaki (F1/F2'nin KENDİSİNDE bilinçli kapsam dışı, kurucu kararı
+bekliyor):** test-program orkestrasyonu, çoklu kritik hizmet kampanyası, M17
+`audit_samples` köprüsü, RTO/RPO/`impact_tolerances` bağlama, impact-graph
+genişlemesi.
+
 **Dikey F, F1 BİTTİ (21 Temmuz 2026) — Test Manifesti, Kritik Hizmet Bağı ve
 Yeniden Test Görünürlüğü.** Kurucunun beş kararı ile daraltılmış F1 kapsamı
 (docs/adr/PR0-dikeyF-f1-test-manifesti-kritik-hizmet-retest-2026-07-20.md)
