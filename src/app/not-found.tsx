@@ -7,7 +7,7 @@ export default function NotFound() {
     <div className="mx-auto flex min-h-full w-full max-w-md flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center">
       <span className="flex items-center gap-2.5">
         <WardproofMark />
-        <span className="text-lg font-semibold tracking-tight">Wardproof</span>
+        <span className="text-lg font-semibold tracking-tight">WardProof</span>
       </span>
       <Card className="w-full">
         <CardContent className="flex flex-col items-center gap-2 py-10">

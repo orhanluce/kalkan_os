@@ -10,8 +10,8 @@ import { useAuth } from "@/lib/auth";
 
 function WardproofMark() {
   return (
-    <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-[13px] border border-cyan-200/20 bg-cyan-300/10 text-cyan-200 shadow-[0_0_32px_rgba(59,210,210,0.12)]">
-      <WardproofGlyph className="size-7" />
+    <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-[15px] border border-cyan-200/20 bg-cyan-300/10 text-cyan-200 shadow-[0_0_32px_rgba(59,210,210,0.12)]">
+      <WardproofGlyph className="size-9" />
     </span>
   );
 }
@@ -56,9 +56,9 @@ export default function GirisPage() {
 
       <div className="mx-auto flex min-h-svh w-full max-w-[1540px] flex-col px-5 sm:px-8 lg:px-12">
         <header className="flex items-center justify-between border-b border-white/8 py-6">
-          <a href="/tanitim" aria-label="Wardproof ana sayfa" className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
+          <a href="/tanitim" aria-label="WardProof ana sayfa" className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
             <WardproofMark />
-            <span className="font-heading text-[17px] font-semibold tracking-[-0.02em]">Wardproof</span>
+            <span className="font-heading text-[17px] font-semibold tracking-[-0.02em]">WardProof</span>
           </a>
           <div className="flex items-center gap-2 text-xs font-medium tracking-[0.12em] text-slate-400 uppercase">
             <ShieldCheck className="size-4 text-cyan-300" aria-hidden="true" /> Kurumsal erişim
@@ -75,10 +75,10 @@ export default function GirisPage() {
               <span className="block bg-gradient-to-r from-cyan-200 via-sky-200 to-blue-300 bg-clip-text text-transparent">kanıta bağlayın.</span>
             </h1>
             <p className="mt-7 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
-              Wardproof; mevzuat kaynağından kontrole, test sonucundan denetim kanıtına kadar tüm uyum zincirini tek ve doğrulanabilir bir çalışma alanında birleştirir.
+              WardProof; mevzuat kaynağından kontrole, test sonucundan denetim kanıtına kadar tüm uyum zincirini tek ve doğrulanabilir bir çalışma alanında birleştirir.
             </p>
 
-            <div className="wardproof-enter-delay mt-10 rounded-2xl border border-white/10 bg-white/[0.035] p-4 backdrop-blur-sm sm:p-5" aria-label="Wardproof kanıt zinciri">
+            <div className="wardproof-enter-delay mt-10 rounded-2xl border border-white/10 bg-white/[0.035] p-4 backdrop-blur-sm sm:p-5" aria-label="WardProof kanıt zinciri">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <span className="text-xs font-semibold tracking-[0.16em] text-slate-400 uppercase">Kanıt zinciri</span>
                 <span className="font-mono text-[9px] tracking-[0.1em] text-cyan-300 uppercase sm:text-[10px]">İzlenebilir · Doğrulanabilir</span>
@@ -145,7 +145,7 @@ export default function GirisPage() {
         </div>
 
         <footer className="flex flex-col gap-2 border-t border-white/8 py-5 text-[11px] tracking-[0.08em] text-slate-400 uppercase sm:flex-row sm:items-center sm:justify-between">
-          <span>Wardproof · Continuous compliance</span><span>Finans kuruluşları için tasarlandı</span>
+          <span>WardProof · Continuous compliance</span><span>Finans kuruluşları için tasarlandı</span>
         </footer>
       </div>
     </main>

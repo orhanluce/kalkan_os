@@ -1,4 +1,4 @@
-// Wardproof marka işaretleri (tek kaynak). "WP" hissi jenerik kalkan ikonuna
+// WardProof marka işaretleri (tek kaynak). "WP" hissi jenerik kalkan ikonuna
 // düşmeden verilir: W çizgisi bir zincir/mühür izi gibi iki vuruşta çizilir —
 // üst vuruş tam yoğunlukta, alt vuruş yarı yoğunlukta (kanıt + izi katmanı).
 // Renk currentColor'dan gelir; tema/palet bağlamına çağıran karar verir.

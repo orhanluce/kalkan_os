@@ -66,7 +66,7 @@ export default function ShareLinkGuestPage() {
       <div className="flex items-center justify-between border-b pb-4">
         <span className="flex items-center gap-2.5">
           <WardproofMark />
-          <span className="text-lg font-semibold tracking-tight">Wardproof</span>
+          <span className="text-lg font-semibold tracking-tight">WardProof</span>
         </span>
         <Badge variant="outline">Denetçi Görünümü · salt-okunur</Badge>
       </div>

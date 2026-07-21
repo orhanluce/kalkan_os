@@ -24,7 +24,7 @@ const archivo = Archivo({
 });
 
 export const metadata: Metadata = {
-  title: "Wardproof",
+  title: "WardProof",
   description: "Finans kuruluşları için sürekli uyum ve doğrulanabilir kanıt çalışma alanı.",
 };
 

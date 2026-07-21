@@ -96,7 +96,7 @@ export default function DogrulamaPage() {
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <p>
-            Bu adres, Wardproof tarafından mühürlenmiş bir tatbikat sonucuna karşılık
+            Bu adres, WardProof tarafından mühürlenmiş bir tatbikat sonucuna karşılık
             geliyor. Aşağıdaki <strong>rapor verisi hash&apos;i</strong>, elinizdeki
             raporda yazan değerle aynıysa rapor mühürlendiği andan bu yana
             değiştirilmemiştir.

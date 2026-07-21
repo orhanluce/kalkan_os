@@ -39,11 +39,11 @@ export function NavRail() {
       } w-[72px]`}
     >
       <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
-        {/* Wardproof W işareti (src/components/brand.tsx) — stok kalkan ikonu
+        {/* WardProof W işareti (src/components/brand.tsx) — stok kalkan ikonu
             bilinçli YOK (belge §4.2), glyph iki vuruşlu iz/mühür çizgisidir. */}
         <WardproofMark />
         <span className={`font-heading text-sm font-semibold tracking-tight ${dar ? "xl:hidden" : "hidden xl:inline"}`}>
-          Wardproof
+          WardProof
         </span>
       </div>
 

@@ -28,9 +28,9 @@ import {
 import { WardproofGlyph } from "@/components/brand";
 
 export const metadata: Metadata = {
-  title: "Wardproof — Finans kurumları için sürekli uyum ve kanıt yönetimi",
+  title: "WardProof — Finans kurumları için sürekli uyum ve kanıt yönetimi",
   description:
-    "Wardproof, uyum süreçlerini Excel, e-posta ve klasörlerden çıkarıp izlenebilir, kanıtlı ve denetlenebilir tek bir sisteme taşır.",
+    "WardProof, uyum süreçlerini Excel, e-posta ve klasörlerden çıkarıp izlenebilir, kanıtlı ve denetlenebilir tek bir sisteme taşır.",
 };
 
 // ---------------------------------------------------------------------------
@@ -46,7 +46,7 @@ const NAV_BAGLANTILARI = [
 ];
 
 const DEMO_MAILTO =
-  "mailto:info@wardproof.com?subject=Wardproof%20demo%20talebi";
+  "mailto:info@wardproof.com?subject=WardProof%20demo%20talebi";
 
 // Hero önizlemesindeki durum rozetleri ürünün GERÇEK durum sözlüğüdür
 // (Failed ≠ Unknown ≠ Stale ≠ Exception ≠ Verified) — pazarlama için
@@ -64,6 +64,40 @@ const ONIZLEME_IZ_KAYITLARI = [
   { saat: "09:14", olay: "Kanıt yüklendi · dört göz onayı bekliyor", hash: "b7e0…44f9" },
   { saat: "09:31", olay: "Onay verildi · farklı kullanıcı", hash: "912a…c6b3" },
   { saat: "09:32", olay: "Denetim paketi mühürlendi", hash: "e5d8…07aa" },
+];
+
+// Regülasyon gerçeği — gerçek yükümlülük KATEGORİLERİ (kural 3: belirli madde
+// numarası/gerekliliği UYDURULMAZ; SPK/DORA gerçek çerçevelerdir, kategori
+// düzeyi doğrudur). "Denetim sorusu → WardProof yanıtı" deseni.
+const REGULASYON_GERCEGI = [
+  {
+    yukumluluk: "Sürekli iç kontrol ve kontrol testleri",
+    denetimSorusu: "Kontroller gerçekten çalışıyor mu, en son ne zaman test edildi?",
+    yanit:
+      "Kontrol test motoru sonucu beş ayrı durumla ölçer (Doğrulandı / Kaldı / Bilinmiyor / Bayat / İstisna); her koşu tarihli ve kanıta bağlı.",
+    Ikon: ClipboardCheck,
+  },
+  {
+    yukumluluk: "Görevler ayrılığı (SoD)",
+    denetimSorusu: "Aynı kişi hem talep edip hem onaylayabiliyor mu?",
+    yanit:
+      "SoD motoru çatışan yetkileri kurala bağlar; ihlal, denetim bulgusuna dönüşmeden önce görünür olur.",
+    Ikon: SplitSquareHorizontal,
+  },
+  {
+    yukumluluk: "Kanıt ve onay izlenebilirliği",
+    denetimSorusu: "Kim onayladı, kanıt nerede, mühürlendikten sonra değişti mi?",
+    yanit:
+      "Yalnızca-eklenir kanıt kasası: içerik hash'i, tarih, yükleyen ve dört göz onayı; kayıt sonradan değiştirilemez.",
+    Ikon: Vault,
+  },
+  {
+    yukumluluk: "Mevzuat dayanağı ve denetim izi",
+    denetimSorusu: "Bu kontrol hangi düzenlemeye dayanıyor, dayanağı güncel mi?",
+    yanit:
+      "Her kontrol dayanağına bağlanır; doğrulanmamış bir madde varsa uydurulmaz, açıkça 'doğrulanacak' etiketiyle dürüst kalır.",
+    Ikon: Scale,
+  },
 ];
 
 const SORUNLAR = [
@@ -130,7 +164,7 @@ const COZUMLER = [
   },
   {
     baslik: "Denetim paketi ve doğrulama izi",
-    metin: "Mühürlü paket, Wardproof'a erişmeden bağımsız bir betikle doğrulanabilir.",
+    metin: "Mühürlü paket, WardProof'a erişmeden bağımsız bir betikle doğrulanabilir.",
   },
   {
     baslik: "Mevzuat dayanağı ve sitasyon",
@@ -296,7 +330,7 @@ function BolumBasligi({
 function UrunOnizleme() {
   return (
     <div
-      aria-label="Wardproof ürün önizlemesi — örnek veriler"
+      aria-label="WardProof ürün önizlemesi — örnek veriler"
       className="relative rounded-2xl border border-white/10 bg-[#0b1826]/90 shadow-[0_40px_120px_rgba(0,0,0,.45)] backdrop-blur-sm"
     >
       {/* Pencere çubuğu */}
@@ -402,13 +436,13 @@ export default function TanitimSayfasi() {
         <div className="mx-auto flex h-16 w-full max-w-[1240px] items-center justify-between gap-4 px-5 sm:px-8">
           <a
             href="#"
-            aria-label="Wardproof ana sayfa"
+            aria-label="WardProof ana sayfa"
             className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
           >
-            <span className="grid size-9 shrink-0 place-items-center rounded-[11px] border border-cyan-200/20 bg-cyan-300/10 text-cyan-200">
-              <WardproofGlyph className="size-6" />
+            <span className="grid size-11 shrink-0 place-items-center rounded-[13px] border border-cyan-200/20 bg-cyan-300/10 text-cyan-200">
+              <WardproofGlyph className="size-8" />
             </span>
-            <span className="font-heading text-[16px] font-semibold tracking-[-0.02em]">Wardproof</span>
+            <span className="font-heading text-[19px] font-semibold tracking-[-0.02em]">WardProof</span>
           </a>
           <nav aria-label="Sayfa bölümleri" className="hidden items-center gap-1 lg:flex">
             {NAV_BAGLANTILARI.map((b) => (
@@ -453,7 +487,7 @@ export default function TanitimSayfasi() {
               </span>
             </h1>
             <p className="mt-6 max-w-xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
-              Wardproof, uyum süreçlerini Excel&apos;lerden, e-posta zincirlerinden ve klasörlerden
+              WardProof, uyum süreçlerini Excel&apos;lerden, e-posta zincirlerinden ve klasörlerden
               çıkarır; izlenebilir, kanıtlı ve denetlenebilir tek bir sisteme taşır.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -478,6 +512,66 @@ export default function TanitimSayfasi() {
           <div className="wardproof-enter-delay">
             <UrunOnizleme />
           </div>
+        </section>
+
+        {/* ---------------------------------- REGÜLASYON GERÇEĞİ (neden zorundasınız) */}
+        <section aria-labelledby="regulasyon-baslik" className="border-t border-white/8 py-20 lg:py-24">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="inline-flex items-baseline gap-2.5 font-mono text-[11px] font-medium tracking-[0.28em] text-cyan-300/90 uppercase">
+              <span aria-hidden="true" className="tracking-[0.08em] text-[#d49a6a]/80">
+                Neden şimdi
+              </span>
+              Regülasyon gerçeği
+            </p>
+            <h2
+              id="regulasyon-baslik"
+              className="font-heading mt-4 text-3xl font-semibold tracking-[-0.025em] text-balance sm:text-4xl"
+            >
+              Uyum artık &quot;yılda bir denetim&quot; değil — sürekli ve kanıtlanabilir olmak zorunda
+            </h2>
+            <p className="mt-4 text-base leading-7 text-slate-300/90 sm:text-lg sm:leading-8">
+              Finans kurumları ve regülasyona tabi şirketler; SPK başta olmak üzere sektör
+              düzenlemeleri — Avrupa&apos;ya bağlı kurumlar için ek olarak DORA — kapsamında sürekli
+              iç kontrol, görevler ayrılığı, bilgi güvenliği ve{" "}
+              <strong className="font-semibold text-white">her adımın kanıtlanabilir olması</strong>{" "}
+              yükümlülüğü altında. Denetimde soru artık &quot;yaptınız mı&quot; değil:{" "}
+              <span className="text-cyan-100">
+                &quot;kanıtlayabiliyor musunuz — kim, ne zaman, hangi dayanakla?&quot;
+              </span>
+            </p>
+          </div>
+          <div className="mt-12 grid gap-4 lg:grid-cols-2">
+            {REGULASYON_GERCEGI.map(({ yukumluluk, denetimSorusu, yanit, Ikon }) => (
+              <div
+                key={yukumluluk}
+                className="flex flex-col gap-3 rounded-2xl border border-white/8 bg-white/[0.03] p-5 transition-colors hover:border-white/15 sm:p-6"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-cyan-300/10 text-cyan-200 ring-1 ring-cyan-200/20">
+                    <Ikon className="size-4.5" aria-hidden="true" />
+                  </span>
+                  <h3 className="text-[15px] font-semibold tracking-[-0.01em]">{yukumluluk}</h3>
+                </div>
+                <p className="flex gap-2.5 text-sm leading-6 text-slate-400">
+                  <span className="mt-0.5 shrink-0 font-mono text-[10px] tracking-[0.14em] text-[#e5a155] uppercase">
+                    Denetim
+                  </span>
+                  <span className="italic">&quot;{denetimSorusu}&quot;</span>
+                </p>
+                <p className="flex gap-2.5 text-sm leading-6 text-slate-200">
+                  <span className="mt-0.5 shrink-0 font-mono text-[10px] tracking-[0.14em] text-cyan-300 uppercase">
+                    WardProof
+                  </span>
+                  <span>{yanit}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="mx-auto mt-10 max-w-2xl text-center text-sm leading-7 text-slate-400">
+            Kurumunuzun bugün Excel ve e-postada yürüyen süreçlerini, kısa sürede izlenebilir,
+            kanıtlı ve denetime hazır tek bir sisteme taşırız — ekiplerinizi değiştirmeden, mevcut
+            işleyişin üzerine bir düzen ve kanıt katmanı koyarak.
+          </p>
         </section>
 
         {/* ------------------------------------------------ 2 · SORUN */}
@@ -532,7 +626,7 @@ export default function TanitimSayfasi() {
             id="cozum"
             eyebrow="Çözüm"
             baslik="Mevzuattan kanıta, kopmayan tek zincir"
-            metin="Wardproof her adımı bir sonrakine bağlar: dayanak görünür, test ölçülür, kanıt mühürlenir, denetim bağımsız doğrulanır."
+            metin="WardProof her adımı bir sonrakine bağlar: dayanak görünür, test ölçülür, kanıt mühürlenir, denetim bağımsız doğrulanır."
           />
           <h2 id="cozum-baslik" className="sr-only">
             Çözüm
@@ -693,7 +787,7 @@ export default function TanitimSayfasi() {
             id="guven"
             eyebrow="Güven ve denetlenebilirlik"
             baslik="Güven, sözle değil mimariyle kurulur"
-            metin="Wardproof'un güvence iddiaları ürünün pazarlamasında değil, veri modelinde yaşar. Beş ilke, sistemin her katmanında uygulanır."
+            metin="WardProof'un güvence iddiaları ürünün pazarlamasında değil, veri modelinde yaşar. Beş ilke, sistemin her katmanında uygulanır."
           />
           <h2 id="guven-baslik" className="sr-only">
             Güven ve denetlenebilirlik
@@ -724,7 +818,7 @@ export default function TanitimSayfasi() {
               Pilot programı
             </p>
             <h2 id="cta-baslik" className="font-heading mx-auto mt-4 max-w-2xl text-3xl font-semibold tracking-[-0.03em] text-balance sm:text-4xl">
-              Wardproof&apos;u kurumunuzda pilot olarak deneyin
+              WardProof&apos;u kurumunuzda pilot olarak deneyin
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-slate-300">
               Kapsamı birlikte belirleyelim; süreçlerinizin ne kadarının izlenebilir hale
@@ -757,10 +851,10 @@ export default function TanitimSayfasi() {
               <span className="grid size-7 shrink-0 place-items-center rounded-md border border-cyan-200/20 bg-cyan-300/10 text-cyan-200">
                 <WardproofGlyph className="size-4.5" />
               </span>
-              <span className="text-sm font-semibold tracking-[-0.01em]">Wardproof</span>
+              <span className="text-sm font-semibold tracking-[-0.01em]">WardProof</span>
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-400">
-              Wardproof, kurumların uyum süreçlerini daha izlenebilir hale getirmek için
+              WardProof, kurumların uyum süreçlerini daha izlenebilir hale getirmek için
               geliştiriliyor ve pilot kullanım için hazırlanıyor.
             </p>
           </div>
@@ -777,7 +871,7 @@ export default function TanitimSayfasi() {
         </div>
         <div className="border-t border-white/6">
           <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-2 px-5 py-5 font-mono text-[11px] tracking-[0.08em] text-slate-400 uppercase sm:flex-row sm:items-center sm:justify-between sm:px-8">
-            <span>Wardproof · Continuous compliance</span>
+            <span>WardProof · Continuous compliance</span>
             <span>Finans kuruluşları için tasarlandı</span>
           </div>
         </div>
