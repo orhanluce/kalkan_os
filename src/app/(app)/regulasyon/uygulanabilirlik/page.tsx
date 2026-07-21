@@ -124,7 +124,7 @@ export default function UygulanabilirlikPage() {
       }
 
       const { error } = await db.from("applicability_decisions").insert({
-        tenant_id: (await db.from("profiles").select("tenant_id").eq("id", user.id).single()).data!.tenant_id,
+        tenant_id: (await db.from("profiles").select("tenant_id").eq("id", user.id).single()).data!.tenant_id!,
         obligation_id: yukumluluk.id,
         durum: secim,
         fact_snapshot: JSON.parse(JSON.stringify(snapshot)),

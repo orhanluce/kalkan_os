@@ -4143,6 +4143,63 @@ export type Database = {
           },
         ]
       }
+      onboarding_import_onizlemeleri: {
+        Row: {
+          created_at: string
+          dosya_hash: string
+          durum: string
+          entity_turu: string
+          id: string
+          kayit_sayisi: number
+          kaynak: string
+          normalized_records: Json
+          satir_hatalari: Json
+          tenant_id: string
+          yukleyen: string
+        }
+        Insert: {
+          created_at?: string
+          dosya_hash: string
+          durum?: string
+          entity_turu: string
+          id?: string
+          kayit_sayisi: number
+          kaynak: string
+          normalized_records: Json
+          satir_hatalari?: Json
+          tenant_id: string
+          yukleyen: string
+        }
+        Update: {
+          created_at?: string
+          dosya_hash?: string
+          durum?: string
+          entity_turu?: string
+          id?: string
+          kayit_sayisi?: number
+          kaynak?: string
+          normalized_records?: Json
+          satir_hatalari?: Json
+          tenant_id?: string
+          yukleyen?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_import_onizlemeleri_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_import_onizlemeleri_yukleyen_fkey"
+            columns: ["yukleyen"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_profiles: {
         Row: {
           bank_portal_count_band: string | null
@@ -4983,7 +5040,7 @@ export type Database = {
           id: string
           role: string
           tema_tercihi: string
-          tenant_id: string
+          tenant_id: string | null
         }
         Insert: {
           created_at?: string
@@ -4991,7 +5048,7 @@ export type Database = {
           id: string
           role: string
           tema_tercihi?: string
-          tenant_id: string
+          tenant_id?: string | null
         }
         Update: {
           created_at?: string
@@ -4999,7 +5056,7 @@ export type Database = {
           id?: string
           role?: string
           tema_tercihi?: string
-          tenant_id?: string
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -5155,6 +5212,59 @@ export type Database = {
             columns: ["source_artifact_id"]
             isOneToOne: false
             referencedRelation: "source_artifacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regulation_packages: {
+        Row: {
+          ad: string
+          created_at: string
+          dogrulama_zamani: string | null
+          dogrulayan: string | null
+          hukuk_dogrulama_durumu: string
+          id: string
+          kaynak_url: string | null
+          kod: string
+          madde_ref_kodlari: string[]
+          surum: number
+          updated_at: string
+          yayim_tarihi: string | null
+        }
+        Insert: {
+          ad: string
+          created_at?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          hukuk_dogrulama_durumu?: string
+          id?: string
+          kaynak_url?: string | null
+          kod: string
+          madde_ref_kodlari?: string[]
+          surum?: number
+          updated_at?: string
+          yayim_tarihi?: string | null
+        }
+        Update: {
+          ad?: string
+          created_at?: string
+          dogrulama_zamani?: string | null
+          dogrulayan?: string | null
+          hukuk_dogrulama_durumu?: string
+          id?: string
+          kaynak_url?: string | null
+          kod?: string
+          madde_ref_kodlari?: string[]
+          surum?: number
+          updated_at?: string
+          yayim_tarihi?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulation_packages_dogrulayan_fkey"
+            columns: ["dogrulayan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -7884,6 +7994,199 @@ export type Database = {
           },
         ]
       }
+      tenant_onboarding_acceptances: {
+        Row: {
+          belge_surumu: string
+          created_at: string
+          id: string
+          kabul_edilen_belge: string
+          kabul_zamani: string
+          profile_id: string
+          tenant_id: string
+        }
+        Insert: {
+          belge_surumu: string
+          created_at?: string
+          id?: string
+          kabul_edilen_belge: string
+          kabul_zamani?: string
+          profile_id: string
+          tenant_id: string
+        }
+        Update: {
+          belge_surumu?: string
+          created_at?: string
+          id?: string
+          kabul_edilen_belge?: string
+          kabul_zamani?: string
+          profile_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_onboarding_acceptances_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_onboarding_acceptances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_provisioning: {
+        Row: {
+          created_at: string
+          davet_edilen_eposta: string | null
+          davet_edilen_kullanici_id: string | null
+          durum: string
+          id: string
+          mfa_zorunlu: boolean
+          olusturan: string
+          pilot_baslangic: string | null
+          pilot_bitis: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          davet_edilen_eposta?: string | null
+          davet_edilen_kullanici_id?: string | null
+          durum?: string
+          id?: string
+          mfa_zorunlu?: boolean
+          olusturan: string
+          pilot_baslangic?: string | null
+          pilot_bitis?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          davet_edilen_eposta?: string | null
+          davet_edilen_kullanici_id?: string | null
+          durum?: string
+          id?: string
+          mfa_zorunlu?: boolean
+          olusturan?: string
+          pilot_baslangic?: string | null
+          pilot_bitis?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_provisioning_olusturan_fkey"
+            columns: ["olusturan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_provisioning_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_provisioning_audit: {
+        Row: {
+          aktor: string | null
+          created_at: string
+          id: string
+          onceki_durum: string | null
+          tenant_provisioning_id: string
+          yeni_durum: string
+        }
+        Insert: {
+          aktor?: string | null
+          created_at?: string
+          id?: string
+          onceki_durum?: string | null
+          tenant_provisioning_id: string
+          yeni_durum: string
+        }
+        Update: {
+          aktor?: string | null
+          created_at?: string
+          id?: string
+          onceki_durum?: string | null
+          tenant_provisioning_id?: string
+          yeni_durum?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_provisioning_audit_aktor_fkey"
+            columns: ["aktor"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_provisioning_audit_tenant_provisioning_id_fkey"
+            columns: ["tenant_provisioning_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_provisioning"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_regulation_scope: {
+        Row: {
+          created_at: string
+          id: string
+          regulation_package_id: string
+          secen: string
+          secim_zamani: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          regulation_package_id: string
+          secen: string
+          secim_zamani?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          regulation_package_id?: string
+          secen?: string
+          secim_zamani?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_regulation_scope_regulation_package_id_fkey"
+            columns: ["regulation_package_id"]
+            isOneToOne: false
+            referencedRelation: "regulation_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_regulation_scope_secen_fkey"
+            columns: ["secen"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_regulation_scope_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_subscriptions: {
         Row: {
           baslangic: string
@@ -9095,6 +9398,12 @@ export type Database = {
         Returns: string
       }
       matter_goruntule: { Args: { p_token: string }; Returns: Json }
+      onboarding_import_uygula: {
+        Args: { p_onizleme_id: string; p_uygulayan: string }
+        Returns: {
+          uygulanan_kayit_sayisi: number
+        }[]
+      }
       paylasim_goruntule: { Args: { p_token: string }; Returns: Json }
       policy_istisna_suresi_dolanlari_isle: { Args: never; Returns: undefined }
       proof_room_goruntule: { Args: { p_token: string }; Returns: Json }

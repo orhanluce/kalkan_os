@@ -30,6 +30,7 @@ export async function POST() {
       { status: 403 },
     );
   }
+  if (!profil.tenant_id) return NextResponse.json({ hata: "Kurum bağlamı çözülemedi." }, { status: 400 });
 
   // ENTITLEMENT (V2 PR-2c): SoD değerlendirme YAZMA işlemi tam SoD ister.
   // Starter planı yalnız "gorunum" (okuma) alır → 402. Aboneliği olmayan

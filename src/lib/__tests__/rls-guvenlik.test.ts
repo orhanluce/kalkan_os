@@ -127,7 +127,16 @@ describe("audit_log: istemci yazamaz", () => {
 // kısıtlamıyordu — herhangi bir authenticated kullanıcı role='admin' ile
 // BAŞKASININ tenant'ına profil açıp o kurumu ele geçirebiliyordu.
 describe("profiles: tenant ele geçirme (önceki turda düzeltildi)", () => {
-  it("yeni kullanıcı, profili OLMAYAN bir tenant'a admin olarak katılabilir (bootstrap)", async () => {
+  // Dikey G1 (docs/adr/PR0-dikeyG-g1-pilot-provisioning-onboarding-2026-07-22.md
+  // §2) bu testin ESKİ varsayımını bilinçli olarak TERSİNE ÇEVİRDİ: self-servis
+  // "boş tenant'a kendini admin yap" bootstrap'ı artık KAPALI — herhangi bir
+  // authenticated kullanıcının (UI hiç gerekmeden) yeni bir kurum açıp kendini
+  // admin yapabilmesi, keşif sırasında bulunan gerçek bir açıktı. Tenant/ilk-
+  // admin-profili oluşturmanın TEK yolu artık platform_operator'ın provisioning
+  // rotasıdır (bkz. rls-dikey-g1-onboarding.test.ts testleri 1-2, aynı senaryoyu
+  // AYRINTILI test eder). Bu test AYNI senaryoyu burada da REDDİ doğrulayarak
+  // sabitler — iki dosyada aynı garanti kasıtlı yinelemedir (regresyon güvencesi).
+  it("yeni kullanıcı, profili OLMAYAN bir tenant'a admin olarak KATILAMAZ (G1: self-servis bootstrap kapatıldı)", async () => {
     const yeniUser = "c0000000-0000-0000-0000-000000000009";
     const yeniTenant = "cccccccc-cccc-cccc-cccc-cccccccccccc";
     await db.sql(`insert into auth.users (id) values ($1)`, [yeniUser]);
@@ -135,16 +144,18 @@ describe("profiles: tenant ele geçirme (önceki turda düzeltildi)", () => {
       yeniTenant,
     ]);
 
-    await db.asUser(
-      yeniUser,
-      `insert into public.profiles (id, tenant_id, role) values ($1, $2, 'admin')`,
-      [yeniUser, yeniTenant],
-    );
+    await expect(
+      db.asUser(
+        yeniUser,
+        `insert into public.profiles (id, tenant_id, role) values ($1, $2, 'admin')`,
+        [yeniUser, yeniTenant],
+      ),
+    ).rejects.toThrow(/row-level security/i);
 
     const { rows } = await db.sql(`select count(*)::int as n from public.profiles where id = $1`, [
       yeniUser,
     ]);
-    expect(rows[0].n).toBe(1);
+    expect(rows[0].n).toBe(0);
   });
 
   it("saldırgan, VAR OLAN bir tenant'a admin profili açıp kurumu ELE GEÇİREMEZ", async () => {

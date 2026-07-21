@@ -28,7 +28,7 @@ export async function POST(req: Request) {
 
   // (1) Onay kaydı — kimlik atfı oturum sahibine sabit (RLS with check + guard).
   const { error: onayErr } = await db.from("policy_approvals").insert({
-    tenant_id: (await db.from("profiles").select("tenant_id").eq("id", user.id).single()).data!.tenant_id,
+    tenant_id: (await db.from("profiles").select("tenant_id").eq("id", user.id).single()).data!.tenant_id!,
     policy_version_id: govde.versionId,
     approver: user.id,
     karar,

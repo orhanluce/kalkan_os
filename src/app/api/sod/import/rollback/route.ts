@@ -33,6 +33,7 @@ export async function POST(req: Request) {
       { status: 403 },
     );
   }
+  if (!profil.tenant_id) return NextResponse.json({ hata: "Kurum bağlamı çözülemedi." }, { status: 400 });
 
   // RLS altında oku: başka kiracının manifesti burada zaten görünmez (IDOR yok).
   const { data: manifest } = await db

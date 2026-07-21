@@ -1,6 +1,90 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**Dikey G1 BİTTİ (22 Temmuz 2026) — Kontrollü Pilot Provisioning ve Kurum
+Onboarding.** Dikey F sonrası gap analysis'te bulunan en sert engel kapatıldı:
+kod tabanında `signUp`/`inviteUserByEmail`/`createUser` HİÇ çağrılmıyordu —
+yeni bir kurumu kendi başımıza sisteme sokmanın tek yolu service_role
+script'iydi. G1 bunu değiştirir: `platform_operator` rolü kendi konsolundan
+(`/platform`) pilot tenant açar + ilk kurum yöneticisini davet eder; davet
+edilen Supabase'in kendi invite/parola-belirleme akışıyla (`/ilk-giris`)
+girer; `/onboarding` sayfasında KVKK+şartlar kabulü → kritik hizmet CSV içe
+aktarma önizleme → yalnız hukukça VERIFIED mevzuat paketi seçimi → incelemeye
+gönderme; platform_operator son onayla `PILOT_AKTIF`e geçirir.
+
+**KEŞİFTE BULUNAN GERÇEK AÇIK (G1'den önce kapatıldı):** `20260716120003`'teki
+`tenants_insert_authenticated`/`profiles_insert_self` politikaları, HERHANGİ
+bir authenticated kullanıcının (UI hiç gerekmeden) yeni tenant açıp kendini
+admin yapabilmesini sağlıyordu — M1'in terk edilmiş self-serve bootstrap planı,
+kullanılmayan ama AÇIK bir arka kapıydı. Kapatıldı; yeni yol yalnız
+`platform_operator`'ın provisioning rotası.
+
+**Rol modeli:** `profiles.role` check'ine `platform_operator` eklendi;
+`tenant_id` nullable oldu + `role='platform_operator' ⟺ tenant_id IS NULL`
+CHECK'i. `platform_operator` iş verisini (kontrol/kanıt/bulgu) RLS'ten dolayı
+hiç GÖREMEZ — yeni bir "hariç tut" kuralı icat edilmedi, mevcut tenant-scoped
+politikalar zaten `current_tenant_id()` NULL için sıfır satır döner.
+
+**Yeni tablolar:** `tenant_provisioning` (guard'lı 8 durumlu makine: HAZIRLIK→
+DAVET_GONDERILDI→ILK_GIRIS_TAMAMLANDI→KURULUM_DEVAM_EDIYOR→KURULUM_INCELEMEDE
+→PILOT_AKTIF↔PILOT_DONDURULDU→PILOT_SONA_ERDI terminal) + append-only
+`tenant_provisioning_audit`; `tenant_onboarding_acceptances` (KVKK/şartlar,
+append-only); `onboarding_import_onizlemeleri` + `onboarding_import_uygula`
+RPC (SoD PR-3A/3B'nin BİLİNÇLİ sadeleştirilmiş tekrarı — v1'de rollback zinciri
+yok, yalnız önizle→uygula, maker-checker: yükleyen ≠ uygulayan zorunlu);
+`regulation_packages` + `tenant_regulation_scope` (obligations'ın AYNI beş
+durumlu doğrulama sözleşmesi — hiçbir paket VERIFIED DOĞMAZ, yalnız
+LEGAL_REVIEW'den + dogrulayan atfıyla). "Pilot planı/süresi" YENİ bir billing
+kavramı DEĞİL — mevcut `tenant_subscriptions`/`subscription_events` (V2 PR-2c)
+kullanılır.
+
+**Canlı smoke + e2e sırasında bulunup düzeltilen DÖRT gerçek açık:**
+1. `tenants_select_platform_operator` eksikti — PostgREST'in `INSERT...
+   RETURNING`'i RETURNING'deki satırın SELECT politikasını da sınıyor;
+   platform_operator kendi açtığı tenant'ı geri okuyamıyordu.
+2. `/ilk-giris` proxy'nin (`src/proxy.ts`) `ACIK_YOLLAR` listesinde yoktu —
+   Supabase'in davet linki oturum jetonlarını URL HASH'inde taşır (sunucuya
+   hiç gitmez); sunucu proxy'si `user=null` görüp `/giris`'e düşürüyordu,
+   istemci hiç çalışma şansı bulamadan.
+3. `tenant_provisioning`'de yalnız `platform_operator` için UPDATE politikası
+   vardı — tenant admin kendi kurulumunu (ILK_GIRIS_TAMAMLANDI/KURULUM_
+   DEVAM_EDIYOR/KURULUM_INCELEMEDE) hiç ilerletemiyordu. Yeni politika bu üç
+   hedefle SINIRLI (PILOT_AKTIF/DONDURULDU/SONA_ERDI hâlâ yalnız operatör —
+   RLS'te de, yalnız route'ta değil).
+4. `src/lib/auth.tsx`'in giriş fonksiyonu, `platform_operator`'ın (tenant_id
+   NULL) `profiliYukle()`'den `null` dönmesini "profili yok, hesap geçersiz"
+   ile karıştırıp oturumu kapatıyordu — rol AYRICA kontrol edilip `/platform`e
+   yönlendirildi.
+
+**Operasyonel bulgu (kod değil, altyapı):** Supabase projesinin varsayılan
+e-posta servisi ÇOK DÜŞÜK bir hız sınırına sahip (canlıda gerçekten
+doğrulandı — birkaç `inviteUserByEmail` denemesi "rate limit exceeded"
+döndürdü). **Gerçek pilot davetinden önce özel SMTP sağlayıcı (Supabase
+panelinden) yapılandırılmalı** — aksi halde ilk birkaç davetten sonra
+sistem davet gönderemez hâle gelir. e2e bunu `createUser` (mevcut fixture
+deseni) + `generateLink` (e-posta göndermez) kombinasyonuyla atlatır.
+
+**Kapsam dışı (bilinçli, kurucu G1 kararı):** açık self-servis kayıt ·
+Stripe/iyzico/PayTR/otomatik tahsilat · gerçek üretim connector'ları ·
+tüm mevzuat kütüphanesinin doğrulanması · gerçek çoklu-tenant kullanıcı
+üyeliği (bugün 1 kullanıcı = 1 tenant sabit; aynı e-posta başka tenant'ta
+zaten profili varsa rota AÇIKÇA reddeder, sessizce göz ardı etmez) · K1
+(staging + gerçek restore provası — bloklayıcı çıkış kapısı, OPERASYONEL bir
+prova, bu dilimde YAPILMADI) · K2 (harici cron envanteri — ayrı iş).
+
+**Basitleştirme kararı (raporlandı, gizlenmedi):** ADR'nin 9 adımlı sihirbaz
+taslağı TEK bir `/onboarding` sayfasında (ayrı stepper ekranları değil)
+uygulandı — aynı işlevsellik, daha az UI iskeleti. İçe aktarma yalnız
+KRİTİK_HİZMET için UI'a bağlandı (KONTROL/TEDARIKÇI motor+RPC'de hazır,
+UI'a bağlanmadı — fast-follow).
+
+**1658 birim + genişletilmiş RLS testleri (self-servis kapanışı saldırgan
+testiyle) + 1 yeni Chromium e2e (platform davet→ilk giriş→kurulum→mevzuat
+kapsamı→pilot aktif uçtan uca) + 19/19 hedefli regresyon grubu (iki temiz
+koşu); typecheck/lint/build yeşil.** **Sıradaki (G1'in KENDİSİNDE bilinçli
+kapsam dışı):** Dikey G2 — Commercial Provisioning (self-servis + ödeme),
+yalnız gerçek pilot deneyimi doğrulandıktan SONRA.
+
 **Dikey F, F5.1 BİTTİ (21 Temmuz 2026) — Kurtarma Karşılaştırmasının Kritik
 Hizmet Test Paketine Projeksiyonu.** F5'in bitiminde kurucunun bilinçli
 kapsam-dışı bıraktığı entegrasyon tamamlandı: `test_run_recovery_comparisons`

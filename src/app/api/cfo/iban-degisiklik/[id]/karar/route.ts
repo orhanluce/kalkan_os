@@ -67,7 +67,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   // DOGRULA — reddedilen değişiklik "değer" üretmez). PII yok.
   if (karar === "DOGRULA") {
     const { data: p } = await db.from("profiles").select("tenant_id").eq("id", user.id).maybeSingle();
-    if (p) {
+    if (p?.tenant_id) {
       await db.from("activation_events").insert({ tenant_id: p.tenant_id, event_type: "FIRST_IBAN_VERIFICATION" });
     }
   }

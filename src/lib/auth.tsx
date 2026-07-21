@@ -22,7 +22,7 @@ interface AuthApi {
   currentUser: Profile | null;
   /** İlk oturum kontrolü sürerken true — UI "giriş yapılmamış" diye yanılmasın. */
   yukleniyor: boolean;
-  login: (email: string, sifre: string) => Promise<{ ok: boolean; error: string | null }>;
+  login: (email: string, sifre: string) => Promise<{ ok: boolean; error: string | null; hedefYol?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -40,7 +40,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq("id", userId)
       .maybeSingle();
 
-    if (error || !data) return null;
+    // Dikey G1: tenant_id null ise bu bir platform_operator hesabıdır — ana
+    // uygulama kabuğunun (tenant'a bağlı Profile) hiç kapsamı dışında, kendi
+    // ayrı /platform konsolunu kullanır (bkz. src/app/(platform)).
+    if (error || !data || !data.tenant_id) return null;
 
     // Oturum açıkken profildeki tema tercihi cookie'ye ÜSTÜN gelir
     // (master talimat §6, ADR-T2) — uygula ve cookie'yi senkronla ki
@@ -93,6 +96,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ok: false, error: "E-posta veya şifre hatalı." };
     }
 
+    // Dikey G1: platform_operator'ın tenant_id'si BİLİNÇLİ olarak null'dur
+    // (ADR §3) — profiliYukle bu yüzden onu `null` döndürür (tenant-scoped
+    // Profile'ın kapsamı dışında). Bunu "profili yok, hesap geçersiz" ile
+    // KARIŞTIRMAMAK için rolü AYRICA kontrol ederiz — aksi halde platform
+    // operatörü kendi konsoluna (/platform) hiç giremezdi.
+    const { data: rolKontrol } = await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
+    if (rolKontrol?.role === "platform_operator") {
+      return { ok: true, error: null, hedefYol: "/platform" };
+    }
+
     const profile = await profiliYukle(data.user.id, data.user.email ?? "");
     if (!profile) {
       // Auth kullanıcısı var ama profili yok: yetki bağlamı olmadan
@@ -106,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setCurrentUser(profile);
-    return { ok: true, error: null };
+    return { ok: true, error: null, hedefYol: "/" };
   }
 
   async function logout() {

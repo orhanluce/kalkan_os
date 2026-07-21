@@ -16,6 +16,12 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "playwright-report/**",
     "test-results/**",
+    // Git worktrees (Agent tool isolation:"worktree" runs) live inside the
+    // repo at .claude/worktrees/<name>/ — each is a FULL separate checkout
+    // with its own .next build output. The plain ".next/**" glob above is
+    // root-relative and does not match nested paths, so without this,
+    // ESLint walks and lints another session's entire build artifacts.
+    "**/.claude/worktrees/**",
   ]),
 ]);
 

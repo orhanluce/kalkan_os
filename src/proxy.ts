@@ -49,7 +49,13 @@ import { supabaseAyarlari } from "./lib/supabase/env";
 // /tanitim halka açık ürün tanıtım sayfasıdır (landing): hesabı olmayan
 // ziyaretçi içindir, hiçbir kiracı verisi okumaz. Oturumsuz "/" isteği de
 // aşağıda bu sayfaya REWRITE edilir (redirect değil — adres çubuğu kök kalır).
-const ACIK_YOLLAR = ["/giris", "/paylasim", "/auth", "/dogrula", "/health", "/proof", "/matter", "/tedarikci-erisim", "/tanitim"];
+// /ilk-giris da BİLİNÇLİ açıktır (Dikey G1): Supabase'in davet/parola-
+// sıfırlama linki oturum jetonlarını URL HASH parçasında taşır — bu SUNUCUYA
+// HİÇ GİTMEZ, yalnız istemci JS'i @supabase/ssr ile oturumu KURDUKTAN SONRA
+// görünür hâle gelir. Proxy'nin İLK (sunucu) isteği bu yüzden HER ZAMAN
+// user=null görür; yol açık olmasaydı istemci hiç çalışma şansı bulamadan
+// /giris'e düşerdi (canlı e2e ile yakalandı — /health dersinin aynısı).
+const ACIK_YOLLAR = ["/giris", "/paylasim", "/auth", "/dogrula", "/health", "/proof", "/matter", "/tedarikci-erisim", "/tanitim", "/ilk-giris"];
 
 function acikYolMu(pathname: string): boolean {
   return ACIK_YOLLAR.some((yol) => pathname === yol || pathname.startsWith(`${yol}/`));

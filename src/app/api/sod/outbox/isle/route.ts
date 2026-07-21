@@ -33,6 +33,7 @@ export async function POST() {
       { status: 403 },
     );
   }
+  if (!profil.tenant_id) return NextResponse.json({ hata: "Kurum bağlamı çözülemedi." }, { status: 400 });
   const tenantId = profil.tenant_id;
 
   // RLS altında oku: yalnız bu kiracının bekleyen olayları.

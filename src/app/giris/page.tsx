@@ -45,7 +45,7 @@ export default function GirisPage() {
     }
 
     router.refresh();
-    router.push("/");
+    router.push(result.hedefYol ?? "/");
   }
 
   return (

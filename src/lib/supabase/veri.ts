@@ -125,7 +125,9 @@ export async function fetchKurum(db: Db): Promise<Kurum> {
       : null,
     profiller: (p.data ?? []).map((r) => ({
       id: r.id,
-      tenantId: r.tenant_id,
+      // RLS (profiles_select_same_tenant) yalnız AYNI tenant'ın satırlarını
+      // döndürür — platform_operator (tenant_id null) burada asla görünmez.
+      tenantId: r.tenant_id!,
       role: r.role as Profile["role"],
       fullName: r.full_name ?? "(isimsiz)",
       // E-posta auth.users'ta ve RLS ile client'a AÇILMAZ: bir kullanıcının
