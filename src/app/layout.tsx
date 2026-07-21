@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KALKAN-OS",
-  description: "Sürekli uyum yönetim paneli",
+  title: "Wardproof",
+  description: "Finans kuruluşları için sürekli uyum ve doğrulanabilir kanıt çalışma alanı.",
 };
 
 // Yalnızca fontlar + yerel store/auth — header/nav (app) grubuna, guest
