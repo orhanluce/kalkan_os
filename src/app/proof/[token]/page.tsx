@@ -1085,7 +1085,7 @@ export default function ProofRoomPage() {
         <CardContent className="flex flex-col gap-2 text-sm">
           <p className="text-muted-foreground">
             Paket bu sayfada, sunucudan gelen veriyle üretildi (hash&apos;ler RFC 8785 kanonik
-            JSON&apos;dan). Bağımsız doğrulama: paketi indirin ve KALKAN_OS&apos;a erişmeden{" "}
+            JSON&apos;dan). Bağımsız doğrulama: paketi indirin ve Wardproof&apos;a erişmeden{" "}
             <code>npx tsx scripts/verify-sitasyon.ts paket.json</code> çalıştırın. Paket imzasız,
             hash-bütünlüklüdür.
           </p>
@@ -1115,7 +1115,7 @@ export default function ProofRoomPage() {
         <CardContent className="flex flex-col gap-2 text-sm">
           <p className="text-muted-foreground">
             Bu koşu, append-only bir Merkle defterine (SCITT tarzı) imzalı ifade olarak eklendi.
-            Aşağıdaki kapsama makbuzu, KALKAN-OS&apos;a erişmeden{" "}
+            Aşağıdaki kapsama makbuzu, Wardproof&apos;a erişmeden{" "}
             <code>npx tsx scripts/verify-seffaflik.ts makbuz.json</code> ile bağımsız
             doğrulanabilir — mühür DÜRÜST bir durum taşır: henüz mühürlenmediyse{" "}
             <em>bekliyor</em> denir, sahte &quot;doğrulandı&quot; iddiası üretilmez.
