@@ -413,10 +413,18 @@ olarak VERIFIED verdi (çıkış 0), core-manifest kurcalanınca FAILED (çıkı
 `canonicalize`'ı runtime'dan çıkarmanın asıl ödülü buydu — tsx CLI her şeyi
 çözebiliyor.
 
+**CANLI ALAN ADI: `wardproof.com`** (21 Temmuz 2026, kurucu bildirdi). Deploy
+sağlık kontrolleri artık `wardproof.com` üzerinden yapılır — `/health/live`→200,
+`/health/ready`→200, `/`→307→`/giris` (F3'te doğrulandı). Eski geçici Hostinger
+alan adı `blue-yak-865668.hostingersite.com` ARTIK SERVİS VERMİYOR (ona yapılan
+istekler el sıkışma sonrası ECONNRESET). `www.wardproof.com` şu an 503 (apex
+çalışıyor; `www` DNS/redirect config düzeltmesi bekliyor — ayrı iş).
+
 **Deploy artık DOĞRULANDI (17 Temmuz 2026 akşamı) — Hostinger Business, Node.js
 otomatik dağıtım.** GitHub'dan otomatik çekiyor (`orhanluce/kalkan_os`, `main`),
-build komutu `pnpm run build`, Node 22.x, geçici alan adı
-`blue-yak-865668.hostingersite.com`. **Kanıt, tahmin değil:** kurucunun ekran
+build komutu `pnpm run build`, Node 22.x, (o günkü geçici alan adı
+`blue-yak-865668.hostingersite.com` — artık `wardproof.com`, yukarı bkz).
+**Kanıt, tahmin değil:** kurucunun ekran
 görüntüsü giriş yapılmış panoyu, gerçek kiracı verisini (17 kontrol, durum
 dağılımı) gösterdi; ayrıca curl ile middleware yönlendirmesi (`/` → 307 →
 `/giris`) ve `/dogrula/[hash]` rotasının 200 döndüğü doğrulandı.

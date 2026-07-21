@@ -36,17 +36,16 @@ nicel RTO/RPO bağlama — önce `test_runs`'a ölçüm veri sözleşmesi kurulm
 karşılaştırma motoru ANCAK ondan sonra. Diğer açık dallar: M17 örnekleme
 köprüsü, impact-graph genişlemesi, gerçek test-program orkestrasyonu.
 
-**AÇIK NOKTA — deploy health bu ortamdan DOĞRULANAMADI (dürüstlük notu):**
-commit `f65c9df` main'e push'landı (remote HEAD teyitli), Hostinger otomatik
-deploy tetiklendi. Ancak `blue-yak-865668.hostingersite.com` sağlık uçlarına
-bu makineden yapılan HER istek (curl/schannel, .NET, node/OpenSSL — üçü de)
-TLS el sıkışması TAMAMLANDIKTAN SONRA `ECONNRESET` ile düştü (~18 dk boyunca);
-aynı ağdan GitHub 200 dönüyor. El sıkışma sonrası TCP reset, normal bir app
-restart'ının 502/503'ünden farklı — ya devam eden/başarısız bir yeniden-build
-ya da bu ortam↔host arası bir ağ reset'i. Yerel `pnpm run build` YEŞİL, tüm
-testler yeşil. **Kurucu tarayıcıdan `/` → giriş yönlendirmesini teyit etmeli;
-canlı sağlık TARAFIMIZDAN doğrulanmış SAYILMAMALI** (kural: kanıtsız "sağlıklı"
-denmez).
+**DEPLOY HEALTH DOĞRULANDI (çözüldü) — YENİ ALAN ADI: `wardproof.com`.**
+Kurucu bildirdi: site adı artık `wardproof.com`. Önceki oturumdaki
+`ECONNRESET` gizemi bununla ÇÖZÜLDÜ — eski `blue-yak-865668.hostingersite.com`
+artık servis vermiyor, deploy custom alan adına taşındı. Commit `f65c9df` canlı
+ve sağlıklı: `wardproof.com/health/live` → **200**, `/health/ready` → **200**,
+`/` → **307 → /giris** (beklenen yönlendirme). **AÇIK NOKTA (F3 dışı):**
+`www.wardproof.com` → **503/timeout** (apex çalışıyor, `www` varyantı DNS/
+redirect config düzeltmesi bekliyor — ayrı iş). Tüm deploy sağlık kontrolleri
+artık `wardproof.com` üzerinden yapılmalı (eski Hostinger geçici alan adı
+DEĞİL).
 
 ## -2. DİKEY F, F2 BİTTİ (21 Temmuz 2026) — Kritik Hizmet Test Paketi
 Kurucunun F2 kararları tam uygulandı: `kritik_hizmet_test_paketi_snapshots`
