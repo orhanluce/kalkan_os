@@ -263,20 +263,27 @@ const GUVEN_ILKELERI = [
 function BolumBasligi({
   id,
   eyebrow,
+  kayit,
   baslik,
   metin,
 }: {
   id?: string;
   eyebrow: string;
+  /** Defter-kaydı işareti (ürünün gerçek dili: append-only iz). Dekor değil,
+      yapı bilgisi — sayfa da bir kayıt zinciri gibi okunur. */
+  kayit: string;
   baslik: string;
   metin?: string;
 }) {
   return (
     <div id={id} className="mx-auto max-w-3xl scroll-mt-28 text-center">
-      <p className="font-mono text-[11px] font-medium tracking-[0.28em] text-cyan-300/90 uppercase">
+      <p className="inline-flex items-baseline gap-2.5 font-mono text-[11px] font-medium tracking-[0.28em] text-cyan-300/90 uppercase">
+        <span aria-hidden="true" className="tracking-[0.08em] text-[#d49a6a]/80">
+          {kayit}
+        </span>
         {eyebrow}
       </p>
-      <h2 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-balance sm:text-4xl">
+      <h2 className="font-heading mt-4 text-3xl font-semibold tracking-[-0.025em] text-balance sm:text-4xl">
         {baslik}
       </h2>
       {metin ? (
@@ -401,7 +408,7 @@ export default function TanitimSayfasi() {
             <span className="grid size-9 shrink-0 place-items-center rounded-[11px] border border-cyan-200/20 bg-cyan-300/10 text-cyan-200">
               <WardproofGlyph className="size-6" />
             </span>
-            <span className="text-[16px] font-semibold tracking-[-0.02em]">Wardproof</span>
+            <span className="font-heading text-[16px] font-semibold tracking-[-0.02em]">Wardproof</span>
           </a>
           <nav aria-label="Sayfa bölümleri" className="hidden items-center gap-1 lg:flex">
             {NAV_BAGLANTILARI.map((b) => (
@@ -439,7 +446,7 @@ export default function TanitimSayfasi() {
               <span className="size-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,.8)]" />
               Sürekli uyum çalışma alanı
             </div>
-            <h1 className="text-[clamp(2.4rem,4.6vw,3.9rem)] leading-[1.04] font-semibold tracking-[-0.045em] text-balance">
+            <h1 className="font-heading text-[clamp(2.4rem,4.6vw,3.9rem)] leading-[1.04] font-semibold tracking-[-0.035em] text-balance">
               Finans kurumları için sürekli uyum ve{" "}
               <span className="bg-gradient-to-r from-cyan-200 via-sky-200 to-blue-300 bg-clip-text text-transparent">
                 kanıt yönetimi
@@ -476,6 +483,7 @@ export default function TanitimSayfasi() {
         {/* ------------------------------------------------ 2 · SORUN */}
         <section aria-labelledby="sorun-baslik" className="border-t border-white/8 py-20 lg:py-24">
           <BolumBasligi
+            kayit="Kayıt 01 / 06"
             id="sorun"
             eyebrow="Sorun"
             baslik="Denetim günü her şey dağınıksa, uyum bir iddiadan ibarettir"
@@ -520,6 +528,7 @@ export default function TanitimSayfasi() {
         {/* ------------------------------------------------ 3 · ÇÖZÜM */}
         <section aria-labelledby="cozum-baslik" className="border-t border-white/8 py-20 lg:py-24">
           <BolumBasligi
+            kayit="Kayıt 02 / 06"
             id="cozum"
             eyebrow="Çözüm"
             baslik="Mevzuattan kanıta, kopmayan tek zincir"
@@ -572,6 +581,7 @@ export default function TanitimSayfasi() {
         {/* ------------------------------------------------ 4 · MODÜLLER */}
         <section aria-labelledby="moduller-baslik" className="border-t border-white/8 py-20 lg:py-24">
           <BolumBasligi
+            kayit="Kayıt 03 / 06"
             id="moduller"
             eyebrow="Ürün modülleri"
             baslik="Uyumun her parçası için ayrı bir oda, hepsi aynı zincirde"
@@ -598,6 +608,7 @@ export default function TanitimSayfasi() {
         {/* ------------------------------------------------ 5 · KİMLER İÇİN */}
         <section aria-labelledby="kimler-baslik" className="border-t border-white/8 py-20 lg:py-24">
           <BolumBasligi
+            kayit="Kayıt 04 / 06"
             eyebrow="Kimler için"
             baslik="Uyumu kanıtla yönetmek zorunda olan herkes için"
           />
@@ -622,6 +633,7 @@ export default function TanitimSayfasi() {
         {/* ------------------------------------------------ 6 · PLANLAR */}
         <section aria-labelledby="planlar-baslik" className="border-t border-white/8 py-20 lg:py-24">
           <BolumBasligi
+            kayit="Kayıt 05 / 06"
             id="planlar"
             eyebrow="Plan türleri"
             baslik="Kurumunuzun ölçeğine göre kapsam"
@@ -677,6 +689,7 @@ export default function TanitimSayfasi() {
         {/* ------------------------------------------------ 7 · GÜVEN */}
         <section aria-labelledby="guven-baslik" className="border-t border-white/8 py-20 lg:py-24">
           <BolumBasligi
+            kayit="Kayıt 06 / 06"
             id="guven"
             eyebrow="Güven ve denetlenebilirlik"
             baslik="Güven, sözle değil mimariyle kurulur"
@@ -710,7 +723,7 @@ export default function TanitimSayfasi() {
             <p className="font-mono text-[11px] font-medium tracking-[0.28em] text-cyan-300/90 uppercase">
               Pilot programı
             </p>
-            <h2 id="cta-baslik" className="mx-auto mt-4 max-w-2xl text-3xl font-semibold tracking-[-0.03em] text-balance sm:text-4xl">
+            <h2 id="cta-baslik" className="font-heading mx-auto mt-4 max-w-2xl text-3xl font-semibold tracking-[-0.03em] text-balance sm:text-4xl">
               Wardproof&apos;u kurumunuzda pilot olarak deneyin
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-slate-300">

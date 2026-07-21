@@ -58,7 +58,7 @@ export default function GirisPage() {
         <header className="flex items-center justify-between border-b border-white/8 py-6">
           <a href="/tanitim" aria-label="Wardproof ana sayfa" className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
             <WardproofMark />
-            <span className="text-[17px] font-semibold tracking-[-0.02em]">Wardproof</span>
+            <span className="font-heading text-[17px] font-semibold tracking-[-0.02em]">Wardproof</span>
           </a>
           <div className="flex items-center gap-2 text-xs font-medium tracking-[0.12em] text-slate-400 uppercase">
             <ShieldCheck className="size-4 text-cyan-300" aria-hidden="true" /> Kurumsal erişim
@@ -70,7 +70,7 @@ export default function GirisPage() {
             <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-cyan-200/15 bg-cyan-300/6 px-3 py-1.5 text-xs font-medium tracking-[0.08em] text-cyan-100 uppercase">
               <span className="size-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,.8)]" /> Sürekli uyum çalışma alanı
             </div>
-            <h1 id="wardproof-baslik" className="max-w-[780px] text-[clamp(2.65rem,5.3vw,5.8rem)] leading-[0.96] font-semibold tracking-[-0.055em] text-balance">
+            <h1 id="wardproof-baslik" className="font-heading max-w-[780px] text-[clamp(2.65rem,5.3vw,5.8rem)] leading-[0.96] font-semibold tracking-[-0.055em] text-balance">
               Uyum iddiasını
               <span className="block bg-gradient-to-r from-cyan-200 via-sky-200 to-blue-300 bg-clip-text text-transparent">kanıta bağlayın.</span>
             </h1>
@@ -110,7 +110,7 @@ export default function GirisPage() {
               <div className="mb-8 flex items-start justify-between gap-5">
                 <div>
                   <p className="mb-2 text-xs font-semibold tracking-[0.14em] text-cyan-300 uppercase">Güvenli çalışma alanı</p>
-                  <h2 id="giris-baslik" className="text-2xl font-semibold tracking-[-0.035em]">Hesabınıza giriş yapın</h2>
+                  <h2 id="giris-baslik" className="font-heading text-2xl font-semibold tracking-[-0.035em]">Hesabınıza giriş yapın</h2>
                   <p className="mt-2 text-sm leading-6 text-slate-400">Kurum hesabınızla kaldığınız yerden devam edin.</p>
                 </div>
                 <span className="grid size-11 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/5 text-cyan-200"><FileCheck2 className="size-5" aria-hidden="true" /></span>

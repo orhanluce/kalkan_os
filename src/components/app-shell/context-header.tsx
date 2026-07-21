@@ -23,7 +23,7 @@ export function ContextHeader() {
       {/* Mobilde rail görünmez — marka burada gösterilir. */}
       <span className="flex items-center gap-2 md:hidden">
         <WardproofMark className="size-7" glyphClassName="size-4.5" />
-        <span className="text-sm font-semibold tracking-tight">Wardproof</span>
+        <span className="font-heading text-sm font-semibold tracking-tight">Wardproof</span>
       </span>
       {kurum.tenant && (
         <span className="hidden truncate text-sm text-muted-foreground md:inline" title={kurum.tenant.name}>

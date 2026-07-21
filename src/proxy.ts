@@ -92,17 +92,19 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // GEÇİCİ GERİ ALIM (21 Temmuz 2026 gece): "/" için tanıtım sayfasına
-  // REWRITE canlıda (Hostinger) ~20 saniyede bir yeniden başlama döngüsüne
-  // yol açtı (runtime log: sürekli "Ready in 0ms", hiçbir hata metni yok —
-  // klasik sağlık-kontrolü/süpervizör davranışı). En olası neden: platformun
-  // kök adrese attığı sağlık kontrolü artık hızlı bir yönlendirme yerine
-  // tam bir sayfa render'ı görüyor. Kök tekrar eski davranışına (redirect
-  // → /giris) döndürüldü; /tanitim adresi hâlâ doğrudan erişilebilir ve
-  // ACIK_YOLLAR'da açık kalıyor. Kök teşhis doğrulanınca (bkz. proxy.ts
-  // git geçmişi, 0996146) landing'i köke bağlamanın daha güvenli bir yolu
-  // (ör. statik export, farklı sağlık-kontrolü yolu) ayrı bir dilimde
-  // ele alınacak.
+  // Oturumsuz "/" → tanıtım sayfası, REDIRECT ile (rewrite DEĞİL — bilinçli).
+  // Tarihçe: 0996146 rewrite kullandı; canlıda restart-loop görülünce geri
+  // alındı (902c125). Loop tamamen revert edilmiş kodda da sürdüğü için kök
+  // neden kod değildi; yine de bu sürüm, 902c125 notunun istediği "daha
+  // güvenli mekanizma"dır: kökte hiçbir sayfa render edilmez, olası bir
+  // platform sağlık kontrolü /giris-redirect dönemiyle birebir aynı maliyette
+  // anlık 307 görür. Tek fark adres çubuğunun /tanitim göstermesi.
+  if (!user && request.nextUrl.pathname === "/") {
+    const hedef = request.nextUrl.clone();
+    hedef.pathname = "/tanitim";
+    return NextResponse.redirect(hedef);
+  }
+
   if (!user && !acikYolMu(request.nextUrl.pathname)) {
     const hedef = request.nextUrl.clone();
     hedef.pathname = "/giris";

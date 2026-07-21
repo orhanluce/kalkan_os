@@ -42,7 +42,7 @@ export function NavRail() {
         {/* Wardproof W işareti (src/components/brand.tsx) — stok kalkan ikonu
             bilinçli YOK (belge §4.2), glyph iki vuruşlu iz/mühür çizgisidir. */}
         <WardproofMark />
-        <span className={`text-sm font-semibold tracking-tight ${dar ? "xl:hidden" : "hidden xl:inline"}`}>
+        <span className={`font-heading text-sm font-semibold tracking-tight ${dar ? "xl:hidden" : "hidden xl:inline"}`}>
           Wardproof
         </span>
       </div>

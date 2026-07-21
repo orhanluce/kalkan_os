@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo, Geist, Geist_Mono } from "next/font/google";
 import { ClientProviders } from "@/components/store-provider";
 import { TEMA_INLINE_SCRIPT } from "@/lib/tema";
 import "./globals.css";
@@ -12,6 +12,15 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Display/başlık yüzü (tasarım dili): Archivo — kurumsal grotesk, latin-ext
+// (ğışöüç) tam destekli. Gövde Geist'te kalır; Archivo yalnız başlıklarda
+// (--font-heading → font-heading utility) konuşur. Türkçe UI için subset şart.
+const archivo = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin", "latin-ext"],
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -33,7 +42,7 @@ export default function RootLayout({
     <html
       lang="tr"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
         {/* Hydration flash önleme: tema, gövde içeriği paint edilmeden ÖNCE

@@ -13,7 +13,9 @@
      yerde kullanılMIYORdu. Doğrusu next/font'un ürettiği değişkendir. */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  /* Başlık yüzü: Archivo (layout.tsx yükler). Gövde Geist'te kalır — display
+     yalnız başlıklarda konuşur, tüm yüzeyler tek tip aileden görünür. */
+  --font-heading: var(--font-archivo), var(--font-geist-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -181,6 +183,14 @@
   }
   html {
     @apply font-sans;
+  }
+  /* Tek tasarım dili: TÜM başlıklar display yüzünde (Archivo) konuşur —
+     landing, giriş ve 40+ uygulama içi sayfa başlığı tek aileden görünür.
+     Gövde metni Geist'te kalır; hiyerarşi font değişimiyle de okunur. */
+  h1,
+  h2,
+  h3 {
+    @apply font-heading;
   }
 }
 
