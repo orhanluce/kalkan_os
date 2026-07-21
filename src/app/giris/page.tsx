@@ -3,17 +3,15 @@
 import { ArrowRight, Check, Eye, EyeOff, FileCheck2, LockKeyhole, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { WardproofGlyph } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
 
 function WardproofMark() {
   return (
-    <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-[13px] border border-cyan-200/20 bg-cyan-300/10 shadow-[0_0_32px_rgba(59,210,210,0.12)]">
-      <svg className="size-7" viewBox="0 0 32 32" fill="none">
-        <path d="M5.5 8.5 9.2 23.2l6.8-6.1 6.8 6.1 3.7-14.7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-200" />
-        <path d="M9.2 23.2 16 8.8l6.8 14.4" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="text-blue-300" />
-      </svg>
+    <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-[13px] border border-cyan-200/20 bg-cyan-300/10 text-cyan-200 shadow-[0_0_32px_rgba(59,210,210,0.12)]">
+      <WardproofGlyph className="size-7" />
     </span>
   );
 }
@@ -58,7 +56,7 @@ export default function GirisPage() {
 
       <div className="mx-auto flex min-h-svh w-full max-w-[1540px] flex-col px-5 sm:px-8 lg:px-12">
         <header className="flex items-center justify-between border-b border-white/8 py-6">
-          <a href="https://wardproof.com" aria-label="Wardproof ana sayfa" className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
+          <a href="/tanitim" aria-label="Wardproof ana sayfa" className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
             <WardproofMark />
             <span className="text-[17px] font-semibold tracking-[-0.02em]">Wardproof</span>
           </a>
