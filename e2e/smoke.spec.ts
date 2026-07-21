@@ -5,13 +5,19 @@ test("home page boots and renders the app shell", async ({ page }) => {
   await expect(page.locator("body")).toBeVisible();
 });
 
-test("oturumsuz kök adres tanıtım sayfasını sunar (rewrite — adres çubuğu / kalır)", async ({ page }) => {
-  // proxy.ts: oturumsuz "/" isteği /tanitim'e REWRITE edilir (redirect değil).
-  // Regresyon kilidi: wardproof.com açılınca giriş formu değil ürün anlatımı.
-  await page.goto("/");
-  expect(new URL(page.url()).pathname).toBe("/");
+test("tanıtım sayfası doğrudan adresinde erişilebilir (oturumsuz)", async ({ page }) => {
+  // "/" için tanıtıma REWRITE canlıda (Hostinger) yeniden başlama döngüsüne
+  // yol açtı ve geri alındı (bkz. proxy.ts notu, 21 Temmuz 2026 gece) — kök
+  // artık eskisi gibi /giris'e yönleniyor, /tanitim doğrudan adresinde durur.
+  await page.goto("/tanitim");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("sürekli uyum");
   await expect(page.getByRole("link", { name: "Demo Talep Et" }).first()).toBeVisible();
+});
+
+test("oturumsuz kök adres /giris'e yönlenir", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForURL("**/giris");
+  expect(new URL(page.url()).pathname).toBe("/giris");
 });
 
 test("health endpoint'leri OTURUMSUZ 200 döner (izleme oturum açamaz)", async ({ request }) => {

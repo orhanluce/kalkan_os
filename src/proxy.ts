@@ -92,16 +92,17 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Oturumsuz ziyaretçi kök adrese gelirse tanıtım sayfası SUNULUR (rewrite):
-  // wardproof.com açılınca giriş formuna değil ürün anlatımına düşer. Bu bir
-  // koruma değildir (yukarıdaki güvenlik sınırı notu) — pano zaten oturumsuz
-  // render edilmez, veri RLS arkasındadır.
-  if (!user && request.nextUrl.pathname === "/") {
-    const hedef = request.nextUrl.clone();
-    hedef.pathname = "/tanitim";
-    return NextResponse.rewrite(hedef);
-  }
-
+  // GEÇİCİ GERİ ALIM (21 Temmuz 2026 gece): "/" için tanıtım sayfasına
+  // REWRITE canlıda (Hostinger) ~20 saniyede bir yeniden başlama döngüsüne
+  // yol açtı (runtime log: sürekli "Ready in 0ms", hiçbir hata metni yok —
+  // klasik sağlık-kontrolü/süpervizör davranışı). En olası neden: platformun
+  // kök adrese attığı sağlık kontrolü artık hızlı bir yönlendirme yerine
+  // tam bir sayfa render'ı görüyor. Kök tekrar eski davranışına (redirect
+  // → /giris) döndürüldü; /tanitim adresi hâlâ doğrudan erişilebilir ve
+  // ACIK_YOLLAR'da açık kalıyor. Kök teşhis doğrulanınca (bkz. proxy.ts
+  // git geçmişi, 0996146) landing'i köke bağlamanın daha güvenli bir yolu
+  // (ör. statik export, farklı sağlık-kontrolü yolu) ayrı bir dilimde
+  // ele alınacak.
   if (!user && !acikYolMu(request.nextUrl.pathname)) {
     const hedef = request.nextUrl.clone();
     hedef.pathname = "/giris";
