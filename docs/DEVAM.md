@@ -8,6 +8,18 @@ açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1/F2/F3'te bu iki-fa
 disiplini tutarlı uygulandı).
 
 ## -4. DİKEY F, F4 BİTTİ (21 Temmuz 2026) — Kurtarma Ölçümü Yakalama
+
+**AÇIK NOKTA — deploy health (dürüstlük notu):** commit `231403a` main'e
+push'landı; iki migration canlı Supabase'e uygulandı; 1554 birim + 79 e2e (iki
+temiz koşu) + 15/15 canlı smoke + typecheck/lint/build YEŞİL. ANCAK
+`wardproof.com` push'tan ~20 dk sonra hâlâ **Hostinger'ın kendi 503'ünü
+(`server: hcdn`) döndürüyor** — Node konteyneri ayakta değil (yavaş yeniden-
+build ya da paylaşımlı hostta build OOM/başarısızlığı; deploy log'una erişimimiz
+yok). Yerel `pnpm run build` yeşil olduğundan kod tarafı sağlam; bu bir hosting
+kaynak/deploy sorunu olabilir. **Canlı sağlık TARAFIMIZDAN doğrulanmadı** —
+kurucu Hostinger deploy log'unu kontrol etmeli / gerekiyorsa yeniden deploy
+tetiklemeli. `/health/live`,`/health/ready`,`/` üçü de 503.
+
 Kurucunun "Kararlarım"ıyla (ADR `PR0-dikeyF-f4-kurtarma-olcumu-yakalama-2026-
 07-21.md`) ayrı immutable tablo `test_run_recovery_measurements` (migration
 `20260721030000`): koşuya bağlı ölçülen kesinti/veri-kaybı; ham olay zamanları
