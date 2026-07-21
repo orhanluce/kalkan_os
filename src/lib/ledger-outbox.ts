@@ -47,6 +47,7 @@ import {
   roiExportPublishedManifestHash,
   roiExportPublishedManifestKur,
 } from "./roi-export-ledger";
+import { RECOVERY_MEASUREMENT_KIND, kurtarmaOlcumuHash, type TestRunRecoveryMeasurement } from "./recovery-measurement";
 import { LocalDevSigner } from "./manifest-signature";
 import { ifadeYaprakHash, imzaliIfadeOlustur } from "./transparency";
 import type { Database } from "./supabase/database.types";
@@ -278,6 +279,22 @@ async function manifestKur(db: Db, artifactTable: string, artifactId: string): P
       yayinlanmaZamani: e.onay_zamani,
     });
     return { kind: ROI_EXPORT_PUBLISHED_KIND, hash: await roiExportPublishedManifestHash(manifest) };
+  }
+
+  if (artifactTable === "test_run_recovery_measurements") {
+    const { data: m } = await db
+      .from("test_run_recovery_measurements")
+      .select("id, olcum, olcum_hash")
+      .eq("id", artifactId)
+      .maybeSingle();
+    if (!m) return null;
+    // Savunma derinliği (DSAR deseni): mühürlü payload'ın kendi hash'ine
+    // körlemesine güvenmek yerine kanonik olarak YENİDEN hesapla ve karşılaştır.
+    const yenidenHesap = await kurtarmaOlcumuHash(m.olcum as unknown as TestRunRecoveryMeasurement);
+    if (yenidenHesap !== m.olcum_hash) {
+      throw new Error(`Kurtarma olcumu ${artifactId}: kayıtlı olcum_hash yeniden hesaplanan ile uyuşmuyor (${m.olcum_hash} != ${yenidenHesap})`);
+    }
+    return { kind: RECOVERY_MEASUREMENT_KIND, hash: m.olcum_hash };
   }
 
   return null;

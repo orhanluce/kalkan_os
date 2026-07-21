@@ -7950,6 +7950,126 @@ export type Database = {
         }
         Relationships: []
       }
+      test_run_recovery_measurements: {
+        Row: {
+          beyan_eden: string | null
+          beyan_kesinti_saat: number | null
+          beyan_veri_kaybi_saat: number | null
+          created_at: string
+          declarant_present: boolean
+          evidence_id: string | null
+          girdi_modu: string
+          hizmet_geri_geldi_at: string | null
+          id: string
+          kesinti_baslangic_at: string | null
+          kurtarma_noktasi_at: string | null
+          measured_at: string
+          olculen_kesinti_saat: number | null
+          olculen_veri_kaybi_saat: number | null
+          olcum: Json
+          olcum_hash: string
+          olcum_kaynagi: string
+          recorded_at: string
+          son_tutarli_veri_at: string | null
+          source_event_id: string | null
+          source_payload_hash: string | null
+          source_system: string | null
+          supersedes_measurement_id: string | null
+          tenant_id: string
+          test_run_id: string
+        }
+        Insert: {
+          beyan_eden?: string | null
+          beyan_kesinti_saat?: number | null
+          beyan_veri_kaybi_saat?: number | null
+          created_at?: string
+          declarant_present?: boolean
+          evidence_id?: string | null
+          girdi_modu: string
+          hizmet_geri_geldi_at?: string | null
+          id?: string
+          kesinti_baslangic_at?: string | null
+          kurtarma_noktasi_at?: string | null
+          measured_at: string
+          olculen_kesinti_saat?: number | null
+          olculen_veri_kaybi_saat?: number | null
+          olcum: Json
+          olcum_hash: string
+          olcum_kaynagi: string
+          recorded_at?: string
+          son_tutarli_veri_at?: string | null
+          source_event_id?: string | null
+          source_payload_hash?: string | null
+          source_system?: string | null
+          supersedes_measurement_id?: string | null
+          tenant_id: string
+          test_run_id: string
+        }
+        Update: {
+          beyan_eden?: string | null
+          beyan_kesinti_saat?: number | null
+          beyan_veri_kaybi_saat?: number | null
+          created_at?: string
+          declarant_present?: boolean
+          evidence_id?: string | null
+          girdi_modu?: string
+          hizmet_geri_geldi_at?: string | null
+          id?: string
+          kesinti_baslangic_at?: string | null
+          kurtarma_noktasi_at?: string | null
+          measured_at?: string
+          olculen_kesinti_saat?: number | null
+          olculen_veri_kaybi_saat?: number | null
+          olcum?: Json
+          olcum_hash?: string
+          olcum_kaynagi?: string
+          recorded_at?: string
+          son_tutarli_veri_at?: string | null
+          source_event_id?: string | null
+          source_payload_hash?: string | null
+          source_system?: string | null
+          supersedes_measurement_id?: string | null
+          tenant_id?: string
+          test_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_run_recovery_measurements_beyan_eden_fkey"
+            columns: ["beyan_eden"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_run_recovery_measurements_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "evidences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_run_recovery_measurements_supersedes_measurement_id_fkey"
+            columns: ["supersedes_measurement_id"]
+            isOneToOne: false
+            referencedRelation: "test_run_recovery_measurements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_run_recovery_measurements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_run_recovery_measurements_test_run_id_fkey"
+            columns: ["test_run_id"]
+            isOneToOne: false
+            referencedRelation: "test_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       test_runs: {
         Row: {
           bagimsiz_onaylayan: string | null

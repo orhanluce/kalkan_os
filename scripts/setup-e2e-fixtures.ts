@@ -155,6 +155,12 @@ async function main() {
   //    (E2E: MFA tüm ayrıcalıklı hesaplarda zorunlu) her koşuda birikip
   //    ".single()" varsayan üç ayrı e2e testini (kontrol-test/legal-basis/
   //    proof-room) ve sod.spec.ts'in kendi dropdown'ını patlatıyordu.
+  //    ÜÇÜNCÜ AYNI SINIF AÇIK (Dikey F, F4): `test_run_recovery_measurements.
+  //    test_run_id` → test_runs ON DELETE RESTRICT. control_test_definitions
+  //    silinince test_runs CASCADE ile gitmeli, ama bir koşuya kurtarma ölçümü
+  //    bağlandıysa (kurtarma-olcumu.spec) restrict bu CASCADE'i bloklar →
+  //    control_test_definitions silme SESSİZCE başarısız → aynı 4 test patlar.
+  //    O yüzden ölçümler control_test_definitions'tan ÖNCE silinir.
   for (const tablo of [
     "evidences",
     "findings",
@@ -166,6 +172,7 @@ async function main() {
     "sod_atamalari",
     "sod_degerlendirme_calistirmalari",
     "policy_exceptions",
+    "test_run_recovery_measurements",
     "control_test_definitions",
     "critical_business_services",
   ]) {

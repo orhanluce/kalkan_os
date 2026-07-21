@@ -7,6 +7,32 @@ doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine g
 açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1/F2/F3'te bu iki-faz
 disiplini tutarlı uygulandı).
 
+## -4. DİKEY F, F4 BİTTİ (21 Temmuz 2026) — Kurtarma Ölçümü Yakalama
+Kurucunun "Kararlarım"ıyla (ADR `PR0-dikeyF-f4-kurtarma-olcumu-yakalama-2026-
+07-21.md`) ayrı immutable tablo `test_run_recovery_measurements` (migration
+`20260721030000`): koşuya bağlı ölçülen kesinti/veri-kaybı; ham olay zamanları
+birincil, süreler SUNUCUDA türetilir (`generated always as stored` — istemci
+yazamaz); süre-yalnız beyan ayrı ve etiketli. Güvenilirlik katmanı MANUEL_BEYAN
+(form; beyan_eden auth.uid'e sabit) / OTOMATIK_OLCUM (yalnız service_role; DB
+guard sahte yükseltmeyi reddeder). **KARŞILAŞTIRMA YOK, impact_tolerances
+tüketilmez**, `comparisonPerformed:false`. İmmutable + supersede (lineer);
+kanıt: canonicalHash→JWS→ledger outbox (RECOVERY_MEASUREMENT)→SCITT. Proof Room
+mevcut test_run dalı ilişkisel genişledi (minimize, ham beyan_eden yok; altıncı
+hedef AÇILMADI). UI `/controls/[id]` kontrol testi koşusunun altında "Kurtarma
+Ölçümü" bölümü + "kullanıcı beyanıdır" uyarısı.
+
+**17 saf + 17 PGlite/RLS + 1 Proof Room PGlite (regresyon) + 15/15 canlı smoke
++ 1 Chromium e2e; 1554 birim + 79 e2e, 0 skip; typecheck/lint/build yeşil.**
+Tam suite koşusu ÜÇÜNCÜ kez aynı sınıf fixture açığı yakaladı (F4 mantığı
+değil): yeni `test_run_recovery_measurements.test_run_id → test_runs ON DELETE
+RESTRICT` `setup-e2e-fixtures.ts`'in test_runs cascade temizliğini blokluyordu;
+tablo temizlik listesine `control_test_definitions`'tan ÖNCE eklendi (policy_
+exceptions/SoD deseni). Kurtarma bölümü TEMBEL yüklendi (havuz baskısını önler).
+`baslangic_at/bitis_at` semantiği (testin çalışma penceresi) kurtarma için
+yanlış olduğu doğrulandı → ayrı alanlar. **Sıradaki (F4 dışı, kurucu kararı
+bekliyor):** gerçek nicel karşılaştırma motoru (ölçüm ↔ impact_tolerances),
+tier-farkında; yeterli ölçüm olgunluğu sonrası.
+
 ## -3. DİKEY F, F3 BİTTİ (21 Temmuz 2026) — Onaylı Etki Toleransının Görünürlüğü
 Kurucunun "Seçenek A: sığ fakat dürüst bağlama" kararı tam uygulandı
 (docs/adr/PR0-dikeyF-f3-etki-toleransi-gorunurlugu-2026-07-21.md). `impact_

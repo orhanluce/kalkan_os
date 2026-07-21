@@ -1,6 +1,55 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**Dikey F, F4 BİTTİ (21 Temmuz 2026) — Kurtarma Ölçümü Yakalama ve Provenance
+Katmanı.** F3'ün açtığı sıradaki karar: gerçek nicel karşılaştırmadan ÖNCE,
+ölçülen kesinti/veri-kaybı verisi güvenilir/immutable/kanıtlı biçimde
+KAYDEDİLMELİ. Kurucunun "Kararlarım"ıyla (ADR
+`docs/adr/PR0-dikeyF-f4-kurtarma-olcumu-yakalama-2026-07-21.md`) yeni AYRI
+immutable tablo `test_run_recovery_measurements` (migration `20260721030000`):
+koşuya FK + ham olay zamanları (`kesinti_baslangic_at`/`hizmet_geri_geldi_at`/
+`son_tutarli_veri_at`/`kurtarma_noktasi_at`) + SUNUCU-türetilmiş süreler
+(`olculen_*_saat` Postgres `generated always as stored` — istemci yazamaz) +
+süre-yalnız beyan (`beyan_*_saat`, AÇIKÇA beyan) + provenance + supersede soyu.
+**KARŞILAŞTIRMA MOTORU YOK, `impact_tolerances` TÜKETİLMEZ** — hiçbir "RTO/RPO
+karşılandı/aşıldı/tolerans içinde/hedef sağlandı" ifadesi üretilmez; mühürlü
+payload'da `comparisonPerformed: false`.
+
+Güvenilirlik katmanı iki değer: `MANUEL_BEYAN` (kullanıcı formu; beyan_eden
+`auth.uid()`'e sabitlenir) ve `OTOMATIK_OLCUM` (yalnız service_role INSERT
+edebilir — DB guard `auth.role() <> 'service_role'` iken reddeder, "sahte
+yükseltme" imkansız; zorunlu source_system+source_event_id+evidence_id). Bu
+dilimde gerçek connector YOK → fiilen üretilenler MANUEL_BEYAN, ama otomatik
+katmanın güvenlik sözleşmesi şimdiden kurulu. UI/Proof Room AÇIKÇA "bu kayıt
+kullanıcı beyanıdır; otomatik sistem ölçümü değildir" der; kanıt eklenmesi
+beyanı ölçüme DÖNÜŞTÜRMEZ. İmmutable (UPDATE service_role dahil reddedilir);
+düzeltme = yeni INSERT + `supersedes_measurement_id` (LİNEER zincir, partial
+unique; "güncel" TÜRETİLİR). Cross-tenant test_run/evidence/supersede DB'de
+reddedilir; kendini supersede + farklı-koşu supersede reddedilir. Kanıt zinciri
+mevcut makineyle: RFC 8785 `canonicalHash` → JWS → generic ledger outbox
+(`RECOVERY_MEASUREMENT` kind) → SCITT anchor. **Ledger durumu ile ölçüm kaynağı
+AYRI olgular:** imza/ledger başarısızlığı bir kaydı "otomatik ölçüm"e YÜKSELTMEZ.
+Proof Room mevcut `test_run_id` dalı İLİŞKİSEL genişletildi (güncel ölçüm
+minimize; ham beyan_eden YOK) — altıncı polimorfik hedef AÇILMADI.
+
+**17 saf motor testi + 17 PGlite/RLS testi + 1 yeni Proof Room PGlite testi
+(regresyon dahil) + 15/15 canlı Supabase smoke (generated süreler, ANCHORED
+ledger, immutable, supersede, minimize Proof Room, cross-tenant, OTOMATIK
+provenance) + 1 yeni Chromium e2e; 1554 birim + 79 e2e, 0 skip; typecheck/lint/
+build yeşil.** `baslangic_at`/`bitis_at`'ın (testin ÇALIŞMA penceresi, UI ikisine
+`now` yazıyor) kurtarma penceresi için SEMANTİK OLARAK YANLIŞ olduğu doğrulandı
+— o yüzden ayrı alanlar. Tam suite koşusunda ÜÇÜNCÜ kez aynı sınıf açık
+yakalandı+düzeltildi (F4 mantığı değil): yeni `test_run_recovery_measurements.
+test_run_id → test_runs ON DELETE RESTRICT`, `setup-e2e-fixtures.ts`'in test_
+runs cascade temizliğini blokluyordu (bir koşuya ölçüm bağlanınca) → aynı 4
+test (kontrol-test/legal-basis/proof-room/sod) "E2E: MFA..." tanımı
+bulunamadığı için patlıyordu; tablo fixture temizlik listesine control_test_
+definitions'tan ÖNCE eklendi (policy_exceptions/SoD ile aynı desen). Ayrıca
+kurtarma-ölçümü bölümü TEMBEL yüklendi (bölüm kapalıyken fetch yok — havuz
+baskısını önler). **Sıradaki (F4 dışı, kurucu kararı bekliyor):** gerçek
+nicel karşılaştırma motoru (ölçüm ↔ `impact_tolerances`), tier-farkında —
+ancak yeterli ölçüm olgunluğu + kurucu kararıyla.
+
 **Dikey F, F3 BİTTİ (21 Temmuz 2026) — Onaylı Etki Toleransının Test Paketinde
 Görünürlüğü.** Kurucunun "Seçenek A: sığ fakat dürüst bağlama" kararı tam
 uygulandı: mevcut `impact_tolerances` (M13, o güne dek HİÇ tüketilmiyordu —

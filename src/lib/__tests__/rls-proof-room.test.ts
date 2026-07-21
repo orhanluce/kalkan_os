@@ -200,6 +200,36 @@ describe("proof_room — test_run_id dalı V2/V3 manifest özeti (Dikey F, F1)",
     expect(JSON.stringify(v)).not.toContain(seed.A.userId); // kullanıcı kimliği raw dönmez
   });
 
+  it("Dikey F, F4: güncel kurtarma ölçümü minimize döner (ham beyan_eden YOK, karşılaştırma YOK); ölçüm yoksa null", async () => {
+    const { runId } = await kosuVeZincir(seed.A.tenantId);
+    // Ölçüm yokken kurtarmaOlcumu null.
+    const tokenBos = await linkOlustur(seed.A.userId, seed.A.tenantId, runId);
+    const { rows: bos } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [tokenBos]);
+    expect((bos[0].v as Record<string, unknown>).kurtarmaOlcumu).toBeNull();
+
+    // Bir ölçüm ekle (beyan_eden = A.userId, ham dönmemeli).
+    await db.asUser(
+      seed.A.userId,
+      `insert into public.test_run_recovery_measurements
+        (tenant_id, test_run_id, olcum_kaynagi, girdi_modu, kesinti_baslangic_at, hizmet_geri_geldi_at, olcum, olcum_hash, measured_at)
+       values ($1,$2,'MANUEL_BEYAN','EVENT_TIMESTAMPS','2026-07-10T08:00:00Z','2026-07-10T12:00:00Z',$3::jsonb,$4,'2026-07-10T13:00:00Z')`,
+      [seed.A.tenantId, runId, JSON.stringify({ schema: "WARDPROOF_TEST_RUN_RECOVERY_MEASUREMENT_V1" }), "a".repeat(64)],
+    );
+    const token = await linkOlustur(seed.A.userId, seed.A.tenantId, runId);
+    const { rows } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [token]);
+    const v = rows[0].v as Record<string, unknown>;
+    const olcum = v.kurtarmaOlcumu as Record<string, unknown>;
+    expect(olcum).not.toBeNull();
+    expect(olcum.olcumKaynagi).toBe("MANUEL_BEYAN");
+    expect(Number(olcum.olculenKesintiSaat)).toBe(4);
+    expect(olcum.karsilastirmaYapildi).toBe(false);
+    expect(olcum.birim).toBe("SAAT");
+    // Minimizasyon: ham beyan_eden UUID'si ve "karşılandı" ifadesi YOK.
+    const json = JSON.stringify(v);
+    expect(json).not.toContain(seed.A.userId);
+    expect(json).not.toContain("karşılandı");
+  });
+
   it("critical_service_id FK doluysa kritikHizmetIdDogrulanmis true olur", async () => {
     const { rows: hizmet } = await db.sql(
       `insert into public.critical_business_services (tenant_id, ad) values ($1, 'Ödeme') returning id`,

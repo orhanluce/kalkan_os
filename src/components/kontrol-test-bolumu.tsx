@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { StatusBadge } from "@/components/durum/status-badge";
+import { KurtarmaOlcumuBolumu } from "@/components/kurtarma-olcumu-bolumu";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -472,6 +473,9 @@ export function KontrolTestBolumu({
                       ) : null}
                     </div>
                   )}
+
+                  {/* Dikey F, F4: kurtarma ölçümü yakalama (koşuya bağlı; karşılaştırma YOK). */}
+                  {sonRun && <KurtarmaOlcumuBolumu testRunId={sonRun.id} />}
 
                   {tanimOnerisi && (
                     <div className="mt-3 rounded-md border border-amber-400/40 bg-amber-400/10 p-2">

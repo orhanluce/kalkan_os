@@ -84,6 +84,19 @@ interface ProofVerisi {
   iliskiselBaglantilar?: { kabulEdilmisBulgu: { findingId: string; onem: string; durum: string } | null };
   /** Dikey F, F1: İLİŞKİSEL, TARİHSEL (manifest DEĞİL) — bu koşuyla GERÇEKTEN kapanmış bulgu(lar). */
   kapanisBaglantisi?: { kapananBulgular: { findingId: string; kapaninZamani: string | null }[] };
+  /** Dikey F, F4: GÜNCEL kurtarma ölçümü (minimize; ham beyan_eden YOK; karşılaştırma YOK). */
+  kurtarmaOlcumu?: {
+    olcumKaynagi: string;
+    girdiModu: string;
+    olculenKesintiSaat: number | null;
+    olculenVeriKaybiSaat: number | null;
+    beyanKesintiSaat: number | null;
+    beyanVeriKaybiSaat: number | null;
+    birim: string;
+    olcumHash: string;
+    olcumZamani: string;
+    karsilastirmaYapildi: false;
+  } | null;
   legalSnapshot?: { karar: string; snapshot: CanonicalDeger } | null;
   kaynakZinciri?: ProofZincirSatiri[];
   applicability?: {
@@ -951,6 +964,40 @@ export default function ProofRoomPage() {
                 bu da manifestin değil, bulgunun kendi kapanış kaydının bir yansımasıdır.
               </p>
             ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* Dikey F, F4: kurtarma ölçümü (varsa) — kullanıcı beyanı, nicel karşılaştırma YOK. */}
+      {veri.kurtarmaOlcumu ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Kurtarma Ölçümü</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            <StatusBadge durum="warning">Kullanıcı beyanı (otomatik ölçüm değil)</StatusBadge>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <dt>Kesinti süresi</dt>
+              <dd>
+                {(veri.kurtarmaOlcumu.girdiModu === "EVENT_TIMESTAMPS" ? veri.kurtarmaOlcumu.olculenKesintiSaat : veri.kurtarmaOlcumu.beyanKesintiSaat) === null
+                  ? "—"
+                  : `${Number(veri.kurtarmaOlcumu.girdiModu === "EVENT_TIMESTAMPS" ? veri.kurtarmaOlcumu.olculenKesintiSaat : veri.kurtarmaOlcumu.beyanKesintiSaat)} saat`}
+              </dd>
+              <dt>Veri kaybı</dt>
+              <dd>
+                {(veri.kurtarmaOlcumu.girdiModu === "EVENT_TIMESTAMPS" ? veri.kurtarmaOlcumu.olculenVeriKaybiSaat : veri.kurtarmaOlcumu.beyanVeriKaybiSaat) === null
+                  ? "—"
+                  : `${Number(veri.kurtarmaOlcumu.girdiModu === "EVENT_TIMESTAMPS" ? veri.kurtarmaOlcumu.olculenVeriKaybiSaat : veri.kurtarmaOlcumu.beyanVeriKaybiSaat)} saat`}
+              </dd>
+              <dt>Birim</dt>
+              <dd>{veri.kurtarmaOlcumu.birim}</dd>
+              <dt>Ölçüm zamanı</dt>
+              <dd>{new Date(veri.kurtarmaOlcumu.olcumZamani).toLocaleString("tr-TR")}</dd>
+            </dl>
+            <p role="note" className="text-xs text-muted-foreground">
+              Bu değerler kullanıcı beyanıdır; otomatik sistem ölçümü değildir. Kurumun onaylı hedefleriyle (RTO/RPO) nicel karşılaştırma
+              yapılmamıştır.
+            </p>
           </CardContent>
         </Card>
       ) : null}
