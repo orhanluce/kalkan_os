@@ -22,6 +22,7 @@ export async function POST(req: Request) {
     roiExportRunId?: string;
     graphSnapshotId?: string;
     cloudAssuranceProfileId?: string;
+    kritikHizmetTestPaketiSnapshotId?: string;
     linkId?: string;
     gecerlilikGun?: number;
   };
@@ -42,8 +43,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ iptal: true });
   }
 
-  if (!govde.testRunId && !govde.roiExportRunId && !govde.graphSnapshotId && !govde.cloudAssuranceProfileId) {
-    return NextResponse.json({ hata: "testRunId, roiExportRunId, graphSnapshotId veya cloudAssuranceProfileId zorunlu." }, { status: 400 });
+  if (
+    !govde.testRunId &&
+    !govde.roiExportRunId &&
+    !govde.graphSnapshotId &&
+    !govde.cloudAssuranceProfileId &&
+    !govde.kritikHizmetTestPaketiSnapshotId
+  ) {
+    return NextResponse.json(
+      { hata: "testRunId, roiExportRunId, graphSnapshotId, cloudAssuranceProfileId veya kritikHizmetTestPaketiSnapshotId zorunlu." },
+      { status: 400 },
+    );
   }
 
   const gun = Math.min(Math.max(govde.gecerlilikGun ?? 7, 1), 90);
@@ -58,6 +68,7 @@ export async function POST(req: Request) {
     roi_export_run_id?: string;
     graph_snapshot_id?: string;
     cloud_assurance_profile_id?: string;
+    kritik_hizmet_test_paketi_snapshot_id?: string;
   } = {
     tenant_id: "",
     olusturan: user.id,
@@ -89,14 +100,26 @@ export async function POST(req: Request) {
     }
     tenantId = snapshot.tenant_id;
     govdeYaz.graph_snapshot_id = snapshot.id;
-  } else {
+  } else if (govde.cloudAssuranceProfileId) {
     // RLS: başka kiracının güvence profili burada zaten görünmez.
-    const { data: profil } = await db.from("cloud_assurance_profile_snapshots").select("id, tenant_id").eq("id", govde.cloudAssuranceProfileId!).maybeSingle();
+    const { data: profil } = await db.from("cloud_assurance_profile_snapshots").select("id, tenant_id").eq("id", govde.cloudAssuranceProfileId).maybeSingle();
     if (!profil) {
       return NextResponse.json({ hata: "Güvence profili bulunamadı." }, { status: 404 });
     }
     tenantId = profil.tenant_id;
     govdeYaz.cloud_assurance_profile_id = profil.id;
+  } else {
+    // RLS: başka kiracının test paketi burada zaten görünmez.
+    const { data: paket } = await db
+      .from("kritik_hizmet_test_paketi_snapshots")
+      .select("id, tenant_id")
+      .eq("id", govde.kritikHizmetTestPaketiSnapshotId!)
+      .maybeSingle();
+    if (!paket) {
+      return NextResponse.json({ hata: "Test paketi bulunamadı." }, { status: 404 });
+    }
+    tenantId = paket.tenant_id;
+    govdeYaz.kritik_hizmet_test_paketi_snapshot_id = paket.id;
   }
   govdeYaz.tenant_id = tenantId;
 

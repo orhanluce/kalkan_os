@@ -3808,6 +3808,61 @@ export type Database = {
           },
         ]
       }
+      kritik_hizmet_test_paketi_snapshots: {
+        Row: {
+          created_at: string
+          critical_service_id: string
+          hesaplama_yontemi: Json
+          id: string
+          olusturan: string | null
+          paket: Json
+          paket_hash: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          critical_service_id: string
+          hesaplama_yontemi: Json
+          id?: string
+          olusturan?: string | null
+          paket: Json
+          paket_hash: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          critical_service_id?: string
+          hesaplama_yontemi?: Json
+          id?: string
+          olusturan?: string | null
+          paket?: Json
+          paket_hash?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kritik_hizmet_test_paketi_snapshots_critical_service_id_fkey"
+            columns: ["critical_service_id"]
+            isOneToOne: false
+            referencedRelation: "critical_business_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kritik_hizmet_test_paketi_snapshots_olusturan_fkey"
+            columns: ["olusturan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kritik_hizmet_test_paketi_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ledger_outbox: {
         Row: {
           artifact_id: string
@@ -4960,6 +5015,7 @@ export type Database = {
           graph_snapshot_id: string | null
           id: string
           iptal_edildi: boolean
+          kritik_hizmet_test_paketi_snapshot_id: string | null
           olusturan: string | null
           roi_export_run_id: string | null
           son_gecerlilik: string
@@ -4973,6 +5029,7 @@ export type Database = {
           graph_snapshot_id?: string | null
           id?: string
           iptal_edildi?: boolean
+          kritik_hizmet_test_paketi_snapshot_id?: string | null
           olusturan?: string | null
           roi_export_run_id?: string | null
           son_gecerlilik: string
@@ -4986,6 +5043,7 @@ export type Database = {
           graph_snapshot_id?: string | null
           id?: string
           iptal_edildi?: boolean
+          kritik_hizmet_test_paketi_snapshot_id?: string | null
           olusturan?: string | null
           roi_export_run_id?: string | null
           son_gecerlilik?: string
@@ -5006,6 +5064,13 @@ export type Database = {
             columns: ["graph_snapshot_id"]
             isOneToOne: false
             referencedRelation: "impact_graph_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proof_room_links_kritik_hizmet_test_paketi_snapshot_id_fkey"
+            columns: ["kritik_hizmet_test_paketi_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "kritik_hizmet_test_paketi_snapshots"
             referencedColumns: ["id"]
           },
           {

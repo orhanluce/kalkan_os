@@ -81,8 +81,15 @@ function s(sonuc: TestSonuc, gerekce: string): TestSonucu {
   return { sonuc, gerekce };
 }
 
-/** Gözlem, tazelik penceresinden eski mi? */
-function bayatMi(gozlemZamani: string, tazelikGun: number, asOf: Date): boolean {
+/**
+ * Bir zaman damgası, tazelik penceresinden eski mi? `testDegerlendir` bunu
+ * bir koşunun KENDİ gözlem anına göre kullanır (sonuç o anda donar — sonradan
+ * geriye dönük STALE'e çevrilmez). Dışa açık: Dikey F2'nin projeksiyon motoru
+ * aynı hesabı `calisti_at` ile, snapshot alma anına (`asOf`) göre yeniden
+ * kullanır — "bu PASSED sonuç HÂLÂ taze mi" sorusu farklı bir zaman noktasında
+ * (mühürleme anı) sorulur, motor kopyalanmaz.
+ */
+export function bayatMi(gozlemZamani: string, tazelikGun: number, asOf: Date): boolean {
   const yas = asOf.getTime() - new Date(gozlemZamani).getTime();
   return yas > tazelikGun * 24 * 60 * 60 * 1000;
 }
