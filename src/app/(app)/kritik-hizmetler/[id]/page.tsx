@@ -66,6 +66,23 @@ const ETKI_TOLERANSI_ETIKET: Record<string, { metin: string; durum: SemantikDuru
   BIRDEN_FAZLA_AKTIF_TOLERANS: { metin: "Birden fazla yürürlükte tolerans kaydı bulundu", durum: "warning" },
 };
 
+// Dikey F, F5.1: RTO/RPO karşılaştırma sonucu — kurtarma-olcumu-bolumu.tsx'teki
+// AYNI beş durum/etiket (kasıtlı yineleme, ayrı bileşen).
+const KURTARMA_KARSILASTIRMA_SONUC_DURUM: Record<string, SemantikDurum> = {
+  KARSILADI: "success",
+  ASTI: "danger",
+  OLCUM_YOK: "neutral",
+  TOLERANS_YOK: "neutral",
+  KARSILASTIRILAMAZ: "warning",
+};
+const KURTARMA_KARSILASTIRMA_SONUC_ETIKET: Record<string, string> = {
+  KARSILADI: "Karşıladı",
+  ASTI: "Aştı",
+  OLCUM_YOK: "Ölçüm yok",
+  TOLERANS_YOK: "Tolerans yok",
+  KARSILASTIRILAMAZ: "Karşılaştırılamaz",
+};
+
 export default function KritikHizmetDetayPage() {
   const params = useParams<{ id: string }>();
   const [hizmet, setHizmet] = useState<{ ad: string; durum: string } | null>(null);
@@ -438,6 +455,31 @@ export default function KritikHizmetDetayPage() {
                     {t.tarihselOzet.sonucDagilimi.FAILED} · UNKNOWN {t.tarihselOzet.sonucDagilimi.UNKNOWN} · STALE {t.tarihselOzet.sonucDagilimi.STALE} ·
                     EXCEPTION {t.tarihselOzet.sonucDagilimi.EXCEPTION})
                   </p>
+                  {/* Dikey F, F5.1: F5'in mühürlü karşılaştırma özeti — ilişkisel
+                      okuma, yeni motor yok. "Ölçüm var, karşılaştırma yok" NÖTR
+                      bilgidir (kurucunun kararı: genelDurum'u ETKİLEMEZ). */}
+                  {t.kurtarmaKarsilastirmaOzeti ? (
+                    <div data-testid={`kurtarma-karsilastirma-ozeti-${t.testDefinitionId}`} className="flex flex-col gap-1 rounded-md border border-dashed p-2 text-xs">
+                      {t.kurtarmaKarsilastirmaOzeti.bilgiDurumu === "OLCUM_VAR_KARSILASTIRMA_YOK" ? (
+                        <p className="text-muted-foreground">{t.kurtarmaKarsilastirmaOzeti.bilgiMetni}</p>
+                      ) : (
+                        <>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-muted-foreground">RTO</span>
+                            <StatusBadge durum={KURTARMA_KARSILASTIRMA_SONUC_DURUM[t.kurtarmaKarsilastirmaOzeti.rto?.sonuc ?? ""] ?? "unknown"}>
+                              {KURTARMA_KARSILASTIRMA_SONUC_ETIKET[t.kurtarmaKarsilastirmaOzeti.rto?.sonuc ?? ""] ?? t.kurtarmaKarsilastirmaOzeti.rto?.sonuc}
+                            </StatusBadge>
+                            <span className="text-muted-foreground">RPO</span>
+                            <StatusBadge durum={KURTARMA_KARSILASTIRMA_SONUC_DURUM[t.kurtarmaKarsilastirmaOzeti.rpo?.sonuc ?? ""] ?? "unknown"}>
+                              {KURTARMA_KARSILASTIRMA_SONUC_ETIKET[t.kurtarmaKarsilastirmaOzeti.rpo?.sonuc ?? ""] ?? t.kurtarmaKarsilastirmaOzeti.rpo?.sonuc}
+                            </StatusBadge>
+                          </div>
+                          <p className="text-muted-foreground">{t.kurtarmaKarsilastirmaOzeti.rto?.aciklama}</p>
+                          <p className="text-muted-foreground">{t.kurtarmaKarsilastirmaOzeti.rpo?.aciklama}</p>
+                        </>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>

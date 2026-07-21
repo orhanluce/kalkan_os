@@ -372,3 +372,184 @@ describe("kritikHizmetTestPaketiOlustur — F3: etki toleransı görünürlüğ�
     expect(paket.genelDurum).toBe("ENGELLENDI");
   });
 });
+
+describe("kritikHizmetTestPaketiOlustur — F5.1: kurtarma karşılaştırması projeksiyonu (yeni motor yok, ilişkisel okuma)", () => {
+  const passedTestGirdi = (recoveryComparisons?: KritikHizmetTestPaketiGirdisi["recoveryComparisons"]): KritikHizmetTestPaketiGirdisi =>
+    temelGirdi({
+      testTanimlari: [{ id: "t1", controlId: "c1", tur: "RESTORE_TEST", ad: "Yedekten geri yükleme", tazelikGun: null, criticalServiceId: "svc-1" }],
+      kosular: [{ id: "r1", testDefinitionId: "t1", seq: 1, sonuc: "PASSED", calistiAt: "2026-07-10T00:00:00.000Z", evidenceId: null }],
+      recoveryComparisons,
+    });
+
+  it("F5.1-1) recoveryComparisons hiç verilmezse (undefined) her testin özeti null, genelDurum F2/F3 davranışıyla aynı", () => {
+    const paket = kritikHizmetTestPaketiOlustur(passedTestGirdi(undefined));
+    expect(paket.testler[0].kurtarmaKarsilastirmaOzeti).toBeNull();
+    expect(paket.genelDurum).toBe("DOGRULANMIS");
+  });
+
+  it("F5.1-2) ölçüm hiç yoksa (olcumVar:false) özet null kalır — bilgi eksikliği değil", () => {
+    const paket = kritikHizmetTestPaketiOlustur(passedTestGirdi([{ testRunId: "r1", olcumVar: false, olcumKaynagi: null, karsilastirma: null }]));
+    expect(paket.testler[0].kurtarmaKarsilastirmaOzeti).toBeNull();
+    expect(paket.genelDurum).toBe("DOGRULANMIS");
+  });
+
+  it("F5.1-3) kurucunun kesin kararı: ölçüm var ama karşılaştırma yoksa NÖTR bilgi — genelDurum ASLA INCELEME_GEREKLI/VERI_EKSIK olmaz", () => {
+    const paket = kritikHizmetTestPaketiOlustur(
+      passedTestGirdi([{ testRunId: "r1", olcumVar: true, olcumKaynagi: "MANUEL_BEYAN", karsilastirma: null }]),
+    );
+    expect(paket.testler[0].kurtarmaKarsilastirmaOzeti?.bilgiDurumu).toBe("OLCUM_VAR_KARSILASTIRMA_YOK");
+    expect(paket.testler[0].kurtarmaKarsilastirmaOzeti?.bilgiMetni).toBe("Kurtarma ölçümü mevcut; tolerans karşılaştırması oluşturulmamış.");
+    expect(paket.genelDurum).toBe("DOGRULANMIS");
+    expect(paket.genelDurum).not.toBe("INCELEME_GEREKLI");
+    expect(paket.genelDurum).not.toBe("VERI_EKSIK");
+  });
+
+  it("F5.1-4) OTOMATIK_OLCUM + RTO ASTI → ENGELLENDI", () => {
+    const paket = kritikHizmetTestPaketiOlustur(
+      passedTestGirdi([
+        {
+          testRunId: "r1",
+          olcumVar: true,
+          olcumKaynagi: "OTOMATIK_OLCUM",
+          karsilastirma: { rto: { sonuc: "ASTI", aciklama: "Ölçülen değer hedefi aştı." }, rpo: { sonuc: "KARSILADI", aciklama: "Ölçülen değer hedefin içinde." } },
+        },
+      ]),
+    );
+    expect(paket.genelDurum).toBe("ENGELLENDI");
+    expect(paket.gerekceler.some((g) => g.includes("otomatik ölçülen"))).toBe(true);
+  });
+
+  it("F5.1-5) OTOMATIK_OLCUM + yalnız RPO ASTI → ENGELLENDI (RTO/RPO bağımsız, ikisi de tetikler)", () => {
+    const paket = kritikHizmetTestPaketiOlustur(
+      passedTestGirdi([
+        {
+          testRunId: "r1",
+          olcumVar: true,
+          olcumKaynagi: "OTOMATIK_OLCUM",
+          karsilastirma: { rto: { sonuc: "KARSILADI", aciklama: "Ölçülen değer hedefin içinde." }, rpo: { sonuc: "ASTI", aciklama: "Ölçülen değer hedefi aştı." } },
+        },
+      ]),
+    );
+    expect(paket.genelDurum).toBe("ENGELLENDI");
+  });
+
+  it("F5.1-6) MANUEL_BEYAN + ASTI → en fazla INCELEME_GEREKLI (ENGELLENDI DEĞİL)", () => {
+    const paket = kritikHizmetTestPaketiOlustur(
+      passedTestGirdi([
+        {
+          testRunId: "r1",
+          olcumVar: true,
+          olcumKaynagi: "MANUEL_BEYAN",
+          karsilastirma: { rto: { sonuc: "ASTI", aciklama: "Beyan edilen değer hedefi aşıyor." }, rpo: { sonuc: "KARSILADI", aciklama: "Beyan edilen değer hedefin içinde." } },
+        },
+      ]),
+    );
+    expect(paket.genelDurum).toBe("INCELEME_GEREKLI");
+    expect(paket.gerekceler.some((g) => g.includes("kullanıcı beyanı"))).toBe(true);
+  });
+
+  it("F5.1-7) MANUEL_BEYAN ASTI, base zaten ENGELLENDI (FAILED test) ise ENGELLENDI'yi iyileştirmez", () => {
+    const girdi = temelGirdi({
+      testTanimlari: [{ id: "t1", controlId: "c1", tur: "RESTORE_TEST", ad: "T1", tazelikGun: null, criticalServiceId: "svc-1" }],
+      kosular: [{ id: "r1", testDefinitionId: "t1", seq: 1, sonuc: "FAILED", calistiAt: "2026-07-10T00:00:00.000Z", evidenceId: null }],
+      recoveryComparisons: [
+        {
+          testRunId: "r1",
+          olcumVar: true,
+          olcumKaynagi: "MANUEL_BEYAN",
+          karsilastirma: { rto: { sonuc: "ASTI", aciklama: "Beyan edilen değer hedefi aşıyor." }, rpo: { sonuc: "OLCUM_YOK", aciklama: "Bu boyut için ölçüm veya beyan yok." } },
+        },
+      ],
+    });
+    const paket = kritikHizmetTestPaketiOlustur(girdi);
+    expect(paket.genelDurum).toBe("ENGELLENDI");
+  });
+
+  it("F5.1-8) KARSILADI genelDurum'u YÜKSELTMEZ — INCELEME_GEREKLI zaten iken DOGRULANMIS'e dönmez", () => {
+    const girdi = temelGirdi({
+      testTanimlari: [
+        { id: "t1", controlId: "c1", tur: "RESTORE_TEST", ad: "T1", tazelikGun: null, criticalServiceId: "svc-1" },
+        { id: "t2", controlId: "c2", tur: "MANUAL_PROCEDURE", ad: "T2", tazelikGun: null, criticalServiceId: "svc-1" },
+      ],
+      kosular: [
+        { id: "r1", testDefinitionId: "t1", seq: 1, sonuc: "PASSED", calistiAt: "2026-07-10T00:00:00.000Z", evidenceId: null },
+        { id: "r2", testDefinitionId: "t2", seq: 1, sonuc: "UNKNOWN", calistiAt: "2026-07-10T00:00:00.000Z", evidenceId: null },
+      ],
+      recoveryComparisons: [
+        {
+          testRunId: "r1",
+          olcumVar: true,
+          olcumKaynagi: "OTOMATIK_OLCUM",
+          karsilastirma: { rto: { sonuc: "KARSILADI", aciklama: "Ölçülen değer hedefin içinde." }, rpo: { sonuc: "KARSILADI", aciklama: "Ölçülen değer hedefin içinde." } },
+        },
+      ],
+    });
+    const paket = kritikHizmetTestPaketiOlustur(girdi);
+    expect(paket.genelDurum).toBe("INCELEME_GEREKLI");
+  });
+
+  it("F5.1-9) OLCUM_YOK/TOLERANS_YOK/KARSILASTIRILAMAZ yalnız bağlamsal bilgidir — genelDurum'u etkilemez", () => {
+    for (const sonuc of ["OLCUM_YOK", "TOLERANS_YOK", "KARSILASTIRILAMAZ"] as const) {
+      const paket = kritikHizmetTestPaketiOlustur(
+        passedTestGirdi([
+          {
+            testRunId: "r1",
+            olcumVar: true,
+            olcumKaynagi: "MANUEL_BEYAN",
+            karsilastirma: { rto: { sonuc, aciklama: "bağlamsal bilgi" }, rpo: { sonuc, aciklama: "bağlamsal bilgi" } },
+          },
+        ]),
+      );
+      expect(paket.genelDurum).toBe("DOGRULANMIS");
+    }
+  });
+
+  it("F5.1-10) paket kendi sonuç cümlesini üretmez — F5'in mühürlü aciklama metni AYNEN taşınır", () => {
+    const aciklama = "Beyan edilen değer hedefi aşıyor (5 saat / hedef 4 saat).";
+    const paket = kritikHizmetTestPaketiOlustur(
+      passedTestGirdi([
+        {
+          testRunId: "r1",
+          olcumVar: true,
+          olcumKaynagi: "MANUEL_BEYAN",
+          karsilastirma: { rto: { sonuc: "ASTI", aciklama }, rpo: { sonuc: "OLCUM_YOK", aciklama: "Bu boyut için ölçüm veya beyan yok." } },
+        },
+      ]),
+    );
+    expect(paket.testler[0].kurtarmaKarsilastirmaOzeti?.rto?.aciklama).toBe(aciklama);
+  });
+
+  it("F5.1-11) hiçbir yerde çıplak 'RTO/RPO karşılandı' üretilmez (ASTI/ENGELLENDI durumunda da)", () => {
+    const paket = kritikHizmetTestPaketiOlustur(
+      passedTestGirdi([
+        {
+          testRunId: "r1",
+          olcumVar: true,
+          olcumKaynagi: "OTOMATIK_OLCUM",
+          karsilastirma: { rto: { sonuc: "ASTI", aciklama: "Ölçülen değer hedefi aştı." }, rpo: { sonuc: "KARSILADI", aciklama: "Ölçülen değer hedefin içinde." } },
+        },
+      ]),
+    );
+    const json = JSON.stringify(paket);
+    expect(json).not.toContain("RTO karşılandı");
+    expect(json).not.toContain("RPO karşılandı");
+  });
+
+  it("F5.1-12) determinizm: aynı girdi aynı çıktıyı üretir", () => {
+    const g = () =>
+      passedTestGirdi([
+        {
+          testRunId: "r1",
+          olcumVar: true,
+          olcumKaynagi: "OTOMATIK_OLCUM",
+          karsilastirma: { rto: { sonuc: "ASTI", aciklama: "x" }, rpo: { sonuc: "KARSILADI", aciklama: "y" } },
+        },
+      ]);
+    expect(kritikHizmetTestPaketiOlustur(g())).toEqual(kritikHizmetTestPaketiOlustur(g()));
+  });
+
+  it("F5.1-13) eski V2 (F5.1 öncesi) tüketicisi gibi davranış: alan hiç yokken savunmacı okunur, hata yok", () => {
+    const paket = kritikHizmetTestPaketiOlustur(temelGirdi());
+    expect(() => JSON.stringify(paket)).not.toThrow();
+  });
+});

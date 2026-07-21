@@ -1,6 +1,62 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**Dikey F, F5.1 BİTTİ (21 Temmuz 2026) — Kurtarma Karşılaştırmasının Kritik
+Hizmet Test Paketine Projeksiyonu.** F5'in bitiminde kurucunun bilinçli
+kapsam-dışı bıraktığı entegrasyon tamamlandı: `test_run_recovery_comparisons`
+artık F2/F3'ün Kritik Hizmet Test Paketi'ne İLİŞKİSEL projekte ediliyor.
+**Yeni karşılaştırma motoru YOK** — `kritik-hizmet-test-paketi.ts` yalnız
+F5'in ZATEN VAR olan merkezi sözleşmelerini (`test_run_kurtarma_olcumu_guncel`
++ `test_run_kurtarma_karsilastirmasi_guncel`) test başına İLİŞKİSEL okur.
+**Kurucunun kesin kararları tam uygulandı:**
+- OTOMATIK_OLCUM + RTO/RPO'dan biri ASTI → paket **ENGELLENDI** (worst-of'un
+  yeni objektif tabanı, mevcut ENGELLENDI'yi iyileştirmez).
+- MANUEL_BEYAN + ASTI → paket **en fazla INCELEME_GEREKLI** (ENGELLENDI
+  DEĞİL — daha zayıf güvenilirlik sinyali).
+- KARSILADI genelDurum'u ASLA yükseltmez.
+- OLCUM_YOK/TOLERANS_YOK/KARSILASTIRILAMAZ yalnız bağlamsal bilgi.
+- **Kurucunun kesin kararı (madde 3):** güncel ölçüm var ama güncel
+  karşılaştırma YOKSA bu NÖTR bir bilgidir — "Kurtarma ölçümü mevcut; tolerans
+  karşılaştırması oluşturulmamış." metniyle taşınır, ne `INCELEME_GEREKLI` ne
+  `VERI_EKSIK` üretir, paket durumunu DÜŞÜRMEZ (F4'ün "karşılaştırma
+  opsiyoneldir" tasarım ilkesiyle tutarlı — opsiyonel adımı fiilen zorunlu
+  kılan bir ceza icat edilmedi).
+- Paket kendi sonuç cümlesini üretmez — F5'in mühürlü `aciklama` metni (MANUEL_
+  BEYAN/OTOMATIK_OLCUM diliyle) AYNEN taşınır.
+
+**Şema V2 additive** (kurucu onaylı): `kurtarmaKarsilastirmaOzeti?` yeni alanı
+PER-TEST (`KritikHizmetTestDurumu` içinde — F5'in kurtarma karşılaştırmasının
+kritik-hizmet-genelinde değil, TEST TANIMI/KOŞUSU bazında var olması nedeniyle;
+kurucunun taslak örneği paket-seviyesi gibi görünüyordu, bu yerleşim kararı
+açıkça raporlandı) eklendi; V1/eski-V2 kayıtlar okunabilir kalır, yeniden
+hash'lenmez, backfill yapılmaz. **Migration YOK** — paket zaten opak JSONB
+(`kritik_hizmet_test_paketi_snapshots.paket`), yeni alan otomatik akar; Proof
+Room'un `'paket', v_paket.paket` pass-through'u da hiç değişmedi.
+
+**İki geçişli route çözümleme** (`test-paketi/route.ts`): saf motorun kendi
+"güncel koşu" seçimini YENİDEN YAZMAMAK için — birinci geçiş recoveryComparisons
+OLMADAN çalışır (motorun `enGuncelKosu.testRunId`'lerini okur), yalnız O id'ler
+için F5 RPC'leri çağrılır, ikinci geçişte nihai paket üretilir. Üçüncü bir
+"güncel kayıt" kopyası YAZILMADI (F5 Karar B'nin devamı).
+
+**Yol boyunca bulunup düzeltilen GERÇEK açık (F5'in kendisinde, F5.1 sırasında
+yakalandı):** `/api/kontrol-test/run/[runId]/kurtarma-karsilastirmasi` GET
+rotası merkezi RPC'nin düz özet satırını (`rto_sonucu` gibi skaler kolonlar)
+doğrudan `karsilastirma` olarak dönüyordu — UI bileşeni iç içe `rto.aciklama`
+BEKLİYORDU (ilk karşılaştırmada crash riski). Proof Room'un zaten kullandığı
+"ikinci select ile mühürlü JSONB'yi çek" deseni bu GET rotasına da uygulandı.
+
+**13 yeni saf motor testi (F5.1-1..13) + genişletilmiş e2e** (`e2e/kritik-
+hizmet-test-paketi.spec.ts`'e üçüncü test): iki test tanımlı adanmış kritik
+hizmet — biri MANUEL_BEYAN ASTI (paket İNCELEME_GEREKLI, ENGELLENDI DEĞİL),
+biri yalnız ölçüm (NÖTR bilgi metni tam olarak görünür, paket durumu
+düşmez) — mühürleme + anonim Proof Room'da AYNI özet minimize görünür. **1623
+birim + 19/19 hedefli Dikey F/paylaşılan-fixture e2e (iki temiz koşu);
+typecheck/lint/build yeşil.**
+
+**Dikey F (F1→F5.1) şu an açık bekleyen bir karar taşımıyor** — kurucunun
+F5.1 kapanış mesajında yeni bir sonraki dilim işaret edilmedi.
+
 **Dikey F, F5 BİTTİ (21 Temmuz 2026) — Kurtarma Ölçümü ile Onaylı Etki
 Toleransının Güvenli Karşılaştırılması.** Kurucunun A-D dört mimari kararı +
 F5 artefakt kararlarıyla (ADR `docs/adr/PR0-dikeyF-f5-kurtarma-karsilastirmasi-

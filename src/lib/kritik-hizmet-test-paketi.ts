@@ -17,6 +17,7 @@
 // her durumda INCELEME_GEREKLI'ye düşülür — asla sahte bir "doğrulanmış"
 // iddiası üretilmez.
 import { bayatMi, type TestSonuc } from "./control-test";
+import type { KarsilastirmaSonucu, OlcumKaynagi } from "./recovery-comparison";
 
 /** Eski sürüm — okunabilir kalır, yeniden hash'lenmez, yeni paket ÜRETMEZ. */
 export const KRITIK_HIZMET_TEST_PAKETI_SCHEMA_V1 = "KALKAN_CRITICAL_SERVICE_TEST_PACKAGE_V1";
@@ -121,12 +122,59 @@ export interface KritikHizmetTestPaketiGirdisi {
    * BULUNAMADI, genelDurum'u ETKİLEMEZ).
    */
   impactTolerances?: ImpactToleranceInput[];
+  /**
+   * Dikey F, F5.1 (kurucunun 21 Temmuz 2026 "Kararlarım"ı): bu tenant'ın
+   * `kosular` listesindeki koşulara ait kurtarma ölçümü/karşılaştırması bilgisi
+   * — test_run_id anahtarlı, TÜM koşular için (yalnız güncel koşu DEĞİL; motor
+   * kendi `enGuncelKosu` seçimini zaten yapar, çağıran hangi koşunun güncel
+   * olduğunu YENİDEN HESAPLAMAZ — bkz. route'taki iki-geçişli çözümleme).
+   * OPSİYONEL — verilmezse (eski F2/F3 çağıranları) her testin
+   * `kurtarmaKarsilastirmaOzeti` alanı `null` kalır, genelDurum ETKİLENMEZ.
+   */
+  recoveryComparisons?: {
+    testRunId: string;
+    /** test_run_kurtarma_olcumu_guncel GUNCEL_KAYIT_VAR mı — bu koşu için GEÇERLİ bir ölçüm var mı. */
+    olcumVar: boolean;
+    olcumKaynagi: OlcumKaynagi | null;
+    /**
+     * test_run_kurtarma_karsilastirmasi_guncel GUNCEL_KAYIT_VAR ise mühürlü
+     * `karsilastirma` JSONB'sinden okunan rto/rpo — motor bu metni YENİDEN
+     * ÜRETMEZ, F5'in kendi mühürlü `aciklama`sını AYNEN taşır.
+     */
+    karsilastirma: {
+      rto: { sonuc: KarsilastirmaSonucu; aciklama: string };
+      rpo: { sonuc: KarsilastirmaSonucu; aciklama: string };
+    } | null;
+  }[];
 }
 
 export interface KanitOzeti {
   evidenceId: string;
   hashSha256: string | null;
   suresiGecmis: boolean | null;
+}
+
+/**
+ * Dikey F, F5.1: bir test tanımının GÜNCEL koşusuna bağlı kurtarma ölçümü/
+ * karşılaştırması bilgisi — kurucunun kararı gereği "ölçüm var, karşılaştırma
+ * yok" durumu SALT BİLGİDİR (genelDurum'u etkilemez, ne INCELEME_GEREKLI ne
+ * VERI_EKSIK üretir). Karşılaştırma varsa rto/rpo'nun `aciklama` metni F5'in
+ * mühürlü metnidir — paket kendi cümlesini üretmez.
+ */
+export type KurtarmaKarsilastirmaBilgiDurumu = "OLCUM_VAR_KARSILASTIRMA_YOK" | "KARSILASTIRMA_VAR";
+
+export interface KurtarmaKarsilastirmaMetrikOzeti {
+  sonuc: KarsilastirmaSonucu;
+  aciklama: string;
+}
+
+export interface KurtarmaKarsilastirmaOzeti {
+  bilgiDurumu: KurtarmaKarsilastirmaBilgiDurumu;
+  olcumKaynagi: OlcumKaynagi | null;
+  rto: KurtarmaKarsilastirmaMetrikOzeti | null;
+  rpo: KurtarmaKarsilastirmaMetrikOzeti | null;
+  /** Yalnız OLCUM_VAR_KARSILASTIRMA_YOK durumunda dolu — genelDurum'u ETKİLEMEZ. */
+  bilgiMetni: string | null;
 }
 
 export interface KritikHizmetTestDurumu {
@@ -154,6 +202,13 @@ export interface KritikHizmetTestDurumu {
     sonKosuAt: string | null;
     sonucDagilimi: Record<TestSonuc, number>;
   };
+  /**
+   * Dikey F, F5.1 — OPSİYONEL: eski V2 (F5.1 öncesi) kayıtlarda YOK, `null`
+   * ise "güncel koşu için kurtarma ölçümü hiç kaydedilmemiş" (bugünküyle
+   * birebir aynı, bilgi eksikliği değil — motor bu alanı ARTIK HER ZAMAN
+   * doldurur, ama eski depolanmış JSONB'de anahtar yoktur).
+   */
+  kurtarmaKarsilastirmaOzeti?: KurtarmaKarsilastirmaOzeti | null;
 }
 
 export interface KritikHizmetTestPaketi {
@@ -182,6 +237,8 @@ export interface KritikHizmetTestPaketi {
     worstOfKurali: string;
     tarihselIzKurali: string;
     etkiToleransiYontemi: string;
+    /** Dikey F, F5.1 — OPSİYONEL: eski V2 kayıtlarda YOK. */
+    kurtarmaKarsilastirmaYontemi?: string;
   };
 }
 
@@ -273,6 +330,35 @@ function etkiToleransiOzetiHesapla(kayitlar: ImpactToleranceInput[] | undefined)
 }
 
 /**
+ * Dikey F, F5.1 (kurucunun 21 Temmuz 2026 kararı): "ölçüm var, karşılaştırma
+ * yok" NÖTR bir bilgidir — ne INCELEME_GEREKLI ne VERI_EKSIK üretir, yalnız
+ * bilgi metniyle taşınır. Ölçüm hiç yoksa (bugünküyle aynı) `null` döner.
+ */
+function kurtarmaKarsilastirmaOzetiHesapla(
+  giris: NonNullable<KritikHizmetTestPaketiGirdisi["recoveryComparisons"]>[number] | undefined,
+): KurtarmaKarsilastirmaOzeti | null {
+  if (!giris || !giris.olcumVar) return null;
+
+  if (!giris.karsilastirma) {
+    return {
+      bilgiDurumu: "OLCUM_VAR_KARSILASTIRMA_YOK",
+      olcumKaynagi: giris.olcumKaynagi,
+      rto: null,
+      rpo: null,
+      bilgiMetni: "Kurtarma ölçümü mevcut; tolerans karşılaştırması oluşturulmamış.",
+    };
+  }
+
+  return {
+    bilgiDurumu: "KARSILASTIRMA_VAR",
+    olcumKaynagi: giris.olcumKaynagi,
+    rto: { sonuc: giris.karsilastirma.rto.sonuc, aciklama: giris.karsilastirma.rto.aciklama },
+    rpo: { sonuc: giris.karsilastirma.rpo.sonuc, aciklama: giris.karsilastirma.rpo.aciklama },
+    bilgiMetni: null,
+  };
+}
+
+/**
  * Kritik hizmetin GÜNCEL test kapsamını + mühürlenmiş paketi projekte eder.
  *
  * Kapsam çözümleme (kural 11 — uydurma yok): bir test tanımı yalnız İKİ
@@ -298,6 +384,7 @@ export function kritikHizmetTestPaketiOlustur(girdi: KritikHizmetTestPaketiGirdi
     .sort((a, b) => a.tanim.id.localeCompare(b.tanim.id));
 
   const kanitMap = new Map(girdi.kanitlar.map((k) => [k.id, k]));
+  const recoveryComparisonMap = new Map((girdi.recoveryComparisons ?? []).map((r) => [r.testRunId, r]));
 
   const testler: KritikHizmetTestDurumu[] = kapsamdakiTanimlar.map(({ tanim, bagTuru }) => {
     const kosularBu = girdi.kosular
@@ -344,6 +431,7 @@ export function kritikHizmetTestPaketiOlustur(girdi: KritikHizmetTestPaketiGirdi
         kapanisRetestRunIdleri: [...new Set(bulgularBu.map((b) => b.kapatmaRetestRunId).filter((x): x is string => !!x))].sort(),
         bagimsizKapanmayanBulguIdleri: bulgularBu.filter((b) => b.durum === "kapali" && !b.kapatanBelirtildi).map((b) => b.id).sort(),
       },
+      kurtarmaKarsilastirmaOzeti: enGuncel ? kurtarmaKarsilastirmaOzetiHesapla(recoveryComparisonMap.get(enGuncel.id)) : null,
       tarihselOzet: {
         toplamKosu: kosularBu.length,
         ilkKosuAt: kosularBu.length > 0 ? kosularBu[kosularBu.length - 1].calistiAt : null,
@@ -354,7 +442,7 @@ export function kritikHizmetTestPaketiOlustur(girdi: KritikHizmetTestPaketiGirdi
   });
 
   const etkiToleransiOzeti = etkiToleransiOzetiHesapla(girdi.impactTolerances);
-  const { genelDurum, gerekceler } = genelDurumHesapla(testler, etkiToleransiOzeti);
+  const { genelDurum, gerekceler } = kurtarmaKarsilastirmaEtkisiUygula(genelDurumHesapla(testler, etkiToleransiOzeti), testler);
 
   return {
     schema: KRITIK_HIZMET_TEST_PAKETI_SCHEMA,
@@ -378,8 +466,44 @@ export function kritikHizmetTestPaketiOlustur(girdi: KritikHizmetTestPaketiGirdi
       tarihselIzKurali: "Tam koşu geçmişi kopyalanmaz — yalnız sayaç/kimlik listeleri (toplam/sonuç dağılımı/ilk-son tarih/bulgu-retest kimlikleri).",
       etkiToleransiYontemi:
         "Onaylı etki toleransı gösterilmiştir. Test koşusunda yapılandırılmış gerçek kesinti/veri kaybı ölçümü bulunmadığından nicel uygunluk karşılaştırması yapılmamıştır.",
+      kurtarmaKarsilastirmaYontemi:
+        "OTOMATIK_OLCUM + ASTI (RTO veya RPO) → ENGELLENDI. MANUEL_BEYAN + ASTI → en fazla INCELEME_GEREKLI (ENGELLENDI'yi iyileştirmez). KARSILADI genelDurum'u YÜKSELTMEZ. Ölçüm var ama karşılaştırma yoksa NÖTR bilgi — genelDurum'u ETKİLEMEZ.",
     },
   };
+}
+
+/**
+ * Dikey F, F5.1 (kurucunun 21 Temmuz 2026 kararı): worst-of'un doğal uzantısı.
+ * OTOMATIK_OLCUM kaynaklı bir ASTI (RTO veya RPO) sonucu objektif/provenance'lı
+ * bir aşımdır — ENGELLENDI'ye yükseltir (worst-of'un yeni bir tabanı, mevcut
+ * ENGELLENDI'yi "iyileştirmez"). MANUEL_BEYAN kaynaklı bir ASTI daha zayıf bir
+ * sinyaldir — yalnız DOGRULANMIS'i INCELEME_GEREKLI'ye düşürür, daha kötü bir
+ * durumu değiştirmez. KARSILADI/OLCUM_YOK/TOLERANS_YOK/KARSILASTIRILAMAZ ve
+ * "ölçüm var karşılaştırma yok" (bilgiDurumu) genelDurum'u HİÇ ETKİLEMEZ —
+ * yalnız test bazında bilgi olarak (`kurtarmaKarsilastirmaOzeti`) taşınır.
+ */
+function kurtarmaKarsilastirmaEtkisiUygula(
+  base: { genelDurum: KritikHizmetTestPaketiGenelDurum; gerekceler: string[] },
+  testler: KritikHizmetTestDurumu[],
+): { genelDurum: KritikHizmetTestPaketiGenelDurum; gerekceler: string[] } {
+  const asanTestler = testler.filter((t) => {
+    const o = t.kurtarmaKarsilastirmaOzeti;
+    if (!o || o.bilgiDurumu !== "KARSILASTIRMA_VAR") return false;
+    return o.rto?.sonuc === "ASTI" || o.rpo?.sonuc === "ASTI";
+  });
+  if (asanTestler.length === 0) return base;
+
+  const otomatikAsanTestler = asanTestler.filter((t) => t.kurtarmaKarsilastirmaOzeti?.olcumKaynagi === "OTOMATIK_OLCUM");
+  const gerekceler = [...base.gerekceler];
+
+  if (otomatikAsanTestler.length > 0) {
+    gerekceler.push(`${otomatikAsanTestler.length} test tanımının otomatik ölçülen kurtarma süresi/veri kaybı onaylı toleransı aştı.`);
+    return { genelDurum: "ENGELLENDI", gerekceler };
+  }
+
+  gerekceler.push(`${asanTestler.length} test tanımının beyan edilen kurtarma süresi/veri kaybı onaylı toleransı aştı (kullanıcı beyanı, otomatik ölçüm değil).`);
+  if (base.genelDurum === "ENGELLENDI") return { genelDurum: "ENGELLENDI", gerekceler };
+  return { genelDurum: "INCELEME_GEREKLI", gerekceler };
 }
 
 /**

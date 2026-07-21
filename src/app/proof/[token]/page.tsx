@@ -572,6 +572,29 @@ export default function ProofRoomPage() {
                     {t.tarihselOzet.sonucDagilimi.FAILED} · UNKNOWN {t.tarihselOzet.sonucDagilimi.UNKNOWN} · STALE {t.tarihselOzet.sonucDagilimi.STALE} ·
                     EXCEPTION {t.tarihselOzet.sonucDagilimi.EXCEPTION})
                   </p>
+                  {/* Dikey F, F5.1: F5'in mühürlü karşılaştırma özeti, minimize. */}
+                  {t.kurtarmaKarsilastirmaOzeti ? (
+                    <div className="flex flex-col gap-1 rounded-md border border-dashed p-2 text-xs">
+                      {t.kurtarmaKarsilastirmaOzeti.bilgiDurumu === "OLCUM_VAR_KARSILASTIRMA_YOK" ? (
+                        <p className="text-muted-foreground">{t.kurtarmaKarsilastirmaOzeti.bilgiMetni}</p>
+                      ) : (
+                        <>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-muted-foreground">RTO</span>
+                            <StatusBadge durum={KARSILASTIRMA_SEMANTIK[t.kurtarmaKarsilastirmaOzeti.rto?.sonuc ?? ""] ?? "unknown"}>
+                              {KARSILASTIRMA_ETIKET[t.kurtarmaKarsilastirmaOzeti.rto?.sonuc ?? ""] ?? t.kurtarmaKarsilastirmaOzeti.rto?.sonuc}
+                            </StatusBadge>
+                            <span className="text-muted-foreground">RPO</span>
+                            <StatusBadge durum={KARSILASTIRMA_SEMANTIK[t.kurtarmaKarsilastirmaOzeti.rpo?.sonuc ?? ""] ?? "unknown"}>
+                              {KARSILASTIRMA_ETIKET[t.kurtarmaKarsilastirmaOzeti.rpo?.sonuc ?? ""] ?? t.kurtarmaKarsilastirmaOzeti.rpo?.sonuc}
+                            </StatusBadge>
+                          </div>
+                          <p className="text-muted-foreground">{t.kurtarmaKarsilastirmaOzeti.rto?.aciklama}</p>
+                          <p className="text-muted-foreground">{t.kurtarmaKarsilastirmaOzeti.rpo?.aciklama}</p>
+                        </>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               ))
             )}

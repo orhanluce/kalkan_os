@@ -1,11 +1,53 @@
-# DEVAM TALİMATI — kaldığın yerden sürdür (21 Temmuz 2026 güncellemesi — Dikey F F5)
+# DEVAM TALİMATI — kaldığın yerden sürdür (21 Temmuz 2026 güncellemesi — Dikey F F5.1)
 
 Bu dosya oturumlar arası devir içindir. **Kurucu kalıcı onay verdi:
 "her bitişte onaya gerek yok, V2 PR sırasının SONUNA KADAR devam."** Her PR'ı
 doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine geç.
 **AMA:** her GERÇEKTEN YENİ mimari karar için önce KODSUZ analiz sun, kurucunun
-açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1-F5'te bu iki-faz
+açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1-F5.1'de bu iki-faz
 disiplini tutarlı uygulandı).
+
+## -6. DİKEY F, F5.1 BİTTİ (21 Temmuz 2026) — Kurtarma Karşılaştırmasının
+Kritik Hizmet Test Paketine Projeksiyonu
+
+F5'in bilinçli kapsam dışı bıraktığı entegrasyon tamamlandı — kurucunun üç
+kesin kararıyla (madde 1-3, aşağıda) + sekiz ek kural. **Yeni motor YOK**:
+`kritik-hizmet-test-paketi.ts` yalnız F5'in merkezi sözleşmelerini
+(`test_run_kurtarma_olcumu_guncel` + `test_run_kurtarma_karsilastirmasi_guncel`)
+test tanımı bazında İLİŞKİSEL okur.
+
+**Kurucunun kesin kararları:**
+1. OTOMATIK_OLCUM + RTO/RPO ASTI → **ENGELLENDI**.
+2. MANUEL_BEYAN + ASTI → **en fazla INCELEME_GEREKLI** (ENGELLENDI değil).
+3. **Güncel ölçüm var, güncel karşılaştırma YOK → NÖTR bilgi** ("Kurtarma
+   ölçümü mevcut; tolerans karşılaştırması oluşturulmamış."), ne İNCELEME_
+   GEREKLI ne VERI_EKSIK üretir, paket durumunu DÜŞÜRMEZ — F4'ün "karşılaştırma
+   opsiyoneldir" ilkesiyle tutarlı (opsiyonel adımı fiilen zorunlu kılan bir
+   ceza icat edilmedi). Bu, ilk taslağımdaki "INCELEME_GEREKLI" önerisinin
+   kurucu tarafından açıkça REDDEDİLİP düzeltildiği tek karardı.
+
+Ayrıca: KARSILADI genelDurum'u yükseltmez; OLCUM_YOK/TOLERANS_YOK/
+KARSILASTIRILAMAZ yalnız bağlamsal bilgi; paket kendi cümlesini üretmez (F5'in
+mühürlü `aciklama` metni AYNEN taşınır).
+
+**Şema V2 additive** (kurucu onaylı, migration YOK — paket zaten opak JSONB):
+`kurtarmaKarsilastirmaOzeti?` PER-TEST alanı (kurucunun taslak örneği paket-
+seviyesi gibi görünüyordu; TEST TANIMI bazında yerleştirme kararı açıkça
+raporlandı, düzeltilmedi). Route **iki geçişli** çalışır — motorun kendi
+"güncel koşu" seçimi YENİDEN YAZILMADI, yalnız o id'ler için F5 RPC'leri
+çağrılır.
+
+**Yol boyunca bulunup düzeltilen GERÇEK açık (F5'in kendisinde):**
+`/api/kontrol-test/run/[runId]/kurtarma-karsilastirmasi` GET rotası merkezi
+RPC'nin düz özet satırını doğrudan döndürüyordu — UI iç içe `rto.aciklama`
+bekliyordu (crash riski). Proof Room'un "ikinci select" deseni GET'e de
+uygulandı.
+
+**13 yeni saf motor testi + genişletilmiş e2e (iki test tanımlı adanmış
+kritik hizmet: MANUEL_BEYAN ASTI → İNCELEME_GEREKLI, yalnız-ölçüm → NÖTR bilgi
+metni) + mühürleme + anonim Proof Room'da aynı özet. 1623 birim + 19/19
+hedefli Dikey F/paylaşılan-fixture e2e (iki temiz koşu); typecheck/lint/build
+yeşil.** Dikey F (F1→F5.1) şu an açık bekleyen bir karar taşımıyor.
 
 ## -5. DİKEY F, F5 BİTTİ (21 Temmuz 2026) — Kurtarma Ölçümü ile Onaylı Etki
 Toleransının Güvenli Karşılaştırılması

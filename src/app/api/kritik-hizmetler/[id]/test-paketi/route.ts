@@ -8,9 +8,69 @@
 import { NextResponse } from "next/server";
 import { canonicalHash, type CanonicalDeger } from "@/lib/canonical";
 import { kritikHizmetTestPaketiOlustur, type KritikHizmetTestPaketiGirdisi } from "@/lib/kritik-hizmet-test-paketi";
+import type { KarsilastirmaSonucu } from "@/lib/recovery-comparison";
 import type { TestSonuc } from "@/lib/control-test";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
+
+/**
+ * Dikey F, F5.1: YENİ bir karşılaştırma motoru YOK — F5'in ZATEN VAR olan
+ * merkezi sözleşmelerini (test_run_kurtarma_olcumu_guncel + test_run_
+ * kurtarma_karsilastirmasi_guncel) her koşu için İLİŞKİSEL çağırır. "Güncel
+ * koşu" seçimi burada YENİDEN HESAPLANMAZ — çağıran, saf motorun (`kosular`
+ * girdisinden) zaten belirlediği `enGuncelKosu.testRunId`'leri geçirir; bu
+ * fonksiyon yalnız O koşular için ölçüm/karşılaştırma durumunu okur.
+ */
+async function recoveryComparisonlariCoz(
+  db: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
+  testRunIds: string[],
+): Promise<NonNullable<KritikHizmetTestPaketiGirdisi["recoveryComparisons"]>> {
+  const sonuclar = await Promise.all(
+    testRunIds.map(async (testRunId) => {
+      const { data: guncelOlcum } = await db
+        .rpc("test_run_kurtarma_olcumu_guncel", { p_test_run_id: testRunId, p_tenant_id: tenantId })
+        .single();
+      if (!guncelOlcum || guncelOlcum.durum !== "GUNCEL_KAYIT_VAR") {
+        return { testRunId, olcumVar: false, olcumKaynagi: null, karsilastirma: null };
+      }
+
+      const { data: guncelKarsilastirma } = await db
+        .rpc("test_run_kurtarma_karsilastirmasi_guncel", { p_test_run_id: testRunId, p_tenant_id: tenantId })
+        .single();
+      if (!guncelKarsilastirma || guncelKarsilastirma.durum !== "GUNCEL_KAYIT_VAR") {
+        return {
+          testRunId,
+          olcumVar: true,
+          olcumKaynagi: guncelOlcum.olcum_kaynagi as "MANUEL_BEYAN" | "OTOMATIK_OLCUM",
+          karsilastirma: null,
+        };
+      }
+
+      // Mühürlü TAM payload'dan rto/rpo.aciklama — F5'in kendi metni AYNEN
+      // taşınır (Proof Room/kurtarma-karsilastirmasi GET rotasındaki AYNI
+      // "ikinci select" deseni).
+      const { data: sealed } = await db
+        .from("test_run_recovery_comparisons")
+        .select("karsilastirma")
+        .eq("id", guncelKarsilastirma.id)
+        .single();
+      const karsilastirma = sealed?.karsilastirma as
+        | { rto: { sonuc: KarsilastirmaSonucu; aciklama: string }; rpo: { sonuc: KarsilastirmaSonucu; aciklama: string } }
+        | undefined;
+
+      return {
+        testRunId,
+        olcumVar: true,
+        olcumKaynagi: guncelOlcum.olcum_kaynagi as "MANUEL_BEYAN" | "OTOMATIK_OLCUM",
+        karsilastirma: karsilastirma
+          ? { rto: { sonuc: karsilastirma.rto.sonuc, aciklama: karsilastirma.rto.aciklama }, rpo: { sonuc: karsilastirma.rpo.sonuc, aciklama: karsilastirma.rpo.aciklama } }
+          : null,
+      };
+    }),
+  );
+  return sonuclar;
+}
 
 async function girdiOlustur(
   db: Awaited<ReturnType<typeof createClient>>,
@@ -108,6 +168,31 @@ async function girdiOlustur(
   };
 }
 
+/**
+ * İKİ GEÇİŞLİ çözümleme (Dikey F, F5.1): birinci geçiş recoveryComparisons
+ * OLMADAN çalışır — saf motorun kendi `enGuncelKosu` seçimini (test başına en
+ * güncel koşu) BİR KEZ hesaplatıp OKUR. Bu "güncel koşu" mantığı burada
+ * YENİDEN YAZILMAZ (kural: üçüncü bir kopya yok) — yalnız motorun ürettiği
+ * sonuçtan test_run_id'ler çıkarılır, o id'ler için (yalnız o id'ler için,
+ * tüm tarihsel koşular için DEĞİL) F5'in merkezi RPC'leri çağrılır, ikinci
+ * geçişte aynı girdi + recoveryComparisons ile paket NİHAİ olarak üretilir.
+ */
+async function paketOlustur(
+  db: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
+  criticalServiceId: string,
+): Promise<{ paket: ReturnType<typeof kritikHizmetTestPaketiOlustur> } | null> {
+  const girdi = await girdiOlustur(db, criticalServiceId);
+  if (!girdi) return null;
+
+  const onizleme = kritikHizmetTestPaketiOlustur(girdi);
+  const guncelRunIds = [...new Set(onizleme.testler.map((t) => t.enGuncelKosu?.testRunId).filter((x): x is string => !!x))];
+  const recoveryComparisons = guncelRunIds.length > 0 ? await recoveryComparisonlariCoz(db, tenantId, guncelRunIds) : [];
+
+  const paket = kritikHizmetTestPaketiOlustur({ ...girdi, recoveryComparisons });
+  return { paket };
+}
+
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: criticalServiceId } = await params;
   const db = await createClient();
@@ -116,11 +201,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   } = await db.auth.getUser();
   if (!user) return NextResponse.json({ hata: "Oturum gerekli." }, { status: 401 });
 
-  const girdi = await girdiOlustur(db, criticalServiceId);
-  if (!girdi) return NextResponse.json({ hata: "Kritik hizmet bulunamadı." }, { status: 404 });
+  const { data: profil } = await db.from("profiles").select("tenant_id").eq("id", user.id).maybeSingle();
+  if (!profil?.tenant_id) return NextResponse.json({ hata: "Kurum bağlamı çözülemedi." }, { status: 400 });
 
-  const paket = kritikHizmetTestPaketiOlustur(girdi);
-  return NextResponse.json({ onizleme: true, paket });
+  const sonuc = await paketOlustur(db, profil.tenant_id, criticalServiceId);
+  if (!sonuc) return NextResponse.json({ hata: "Kritik hizmet bulunamadı." }, { status: 404 });
+
+  return NextResponse.json({ onizleme: true, paket: sonuc.paket });
 }
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -136,10 +223,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
   if (!profilRow.tenant_id) return NextResponse.json({ hata: "Kurum bağlamı çözülemedi." }, { status: 400 });
 
-  const girdi = await girdiOlustur(db, criticalServiceId);
-  if (!girdi) return NextResponse.json({ hata: "Kritik hizmet bulunamadı." }, { status: 404 });
-
-  const paket = kritikHizmetTestPaketiOlustur(girdi);
+  const sonuc = await paketOlustur(db, profilRow.tenant_id, criticalServiceId);
+  if (!sonuc) return NextResponse.json({ hata: "Kritik hizmet bulunamadı." }, { status: 404 });
+  const { paket } = sonuc;
   const paketHash = await canonicalHash(paket as unknown as CanonicalDeger);
 
   const { data: kayit, error } = await db
