@@ -36,7 +36,9 @@ async function manuelEkle(tenantId: string, runId: string, userId: string, extra
     hizmet_geri_geldi_at: "2026-07-10T12:00:00.000Z",
     olcum: OLCUM,
     olcum_hash: HASH,
-    measured_at: "2026-07-10T13:00:00.000Z",
+    // Dikey F, F5 Karar D: kesinti olay zamanı doluyken measured_at ona EŞİT
+    // olmalı (trrm_measured_at_olay_tutarli, 20260721060000).
+    measured_at: "2026-07-10T12:00:00.000Z",
     ...extra,
   } as Record<string, unknown>;
   const keys = Object.keys(cols);
@@ -87,7 +89,7 @@ describe("test_run_recovery_measurements — kaynak + kimlik", () => {
     const ins = await db.sql(
       `insert into public.test_run_recovery_measurements
         (tenant_id, test_run_id, olcum_kaynagi, girdi_modu, kesinti_baslangic_at, hizmet_geri_geldi_at, evidence_id, source_system, source_event_id, olcum, olcum_hash, measured_at)
-       values ($1,$2,'OTOMATIK_OLCUM','EVENT_TIMESTAMPS','2026-07-10T08:00:00Z','2026-07-10T12:00:00Z',$3,'mon','evt-9',$4::jsonb,$5,'2026-07-10T13:00:00Z') returning id`,
+       values ($1,$2,'OTOMATIK_OLCUM','EVENT_TIMESTAMPS','2026-07-10T08:00:00Z','2026-07-10T12:00:00Z',$3,'mon','evt-9',$4::jsonb,$5,'2026-07-10T12:00:00Z') returning id`,
       [seed.A.tenantId, run, ev[0].id, OLCUM, HASH],
     );
     await db.sql(`select set_config('request.jwt.claim.role','',false)`);
@@ -142,6 +144,104 @@ describe("test_run_recovery_measurements — generated süreler + CHECK'ler", ()
     await expect(
       manuelEkle(seed.A.tenantId, run, seed.A.userId, { girdi_modu: "DURATION_DECLARATION", kesinti_baslangic_at: null, hizmet_geri_geldi_at: null }),
     ).rejects.toThrow();
+  });
+
+  // Dikey F, F5 hazırlık — Karar D: measured_at yaşam döngüsü (20260721060000).
+  it("hizmet_geri_geldi_at doluyken measured_at ondan FARKLI olamaz (trrm_measured_at_olay_tutarli)", async () => {
+    const run = await kosuKur(seed.A.tenantId);
+    await expect(manuelEkle(seed.A.tenantId, run, seed.A.userId, { measured_at: "2026-07-10T13:00:00.000Z" })).rejects.toThrow();
+  });
+
+  it("measured_at, recorded_at'ten makul olmayan ölçüde ileri olamaz (trrm_measured_at_gelecek_degil)", async () => {
+    const run = await kosuKur(seed.A.tenantId);
+    await expect(
+      manuelEkle(seed.A.tenantId, run, seed.A.userId, {
+        kesinti_baslangic_at: null,
+        hizmet_geri_geldi_at: null,
+        son_tutarli_veri_at: "2026-07-10T07:00:00.000Z",
+        kurtarma_noktasi_at: "2026-07-10T08:00:00.000Z",
+        measured_at: "2099-01-01T00:00:00.000Z",
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("hizmet_geri_geldi_at boşsa (yalnız veri-kaybı) measured_at SERBEST — pencereyle birebir eşleşmesi gerekmez", async () => {
+    const run = await kosuKur(seed.A.tenantId);
+    const { rows } = await manuelEkle(seed.A.tenantId, run, seed.A.userId, {
+      kesinti_baslangic_at: null,
+      hizmet_geri_geldi_at: null,
+      son_tutarli_veri_at: "2026-07-10T07:00:00.000Z",
+      kurtarma_noktasi_at: "2026-07-10T08:00:00.000Z",
+      measured_at: "2026-07-10T09:00:00.000Z",
+    });
+    expect(rows[0].id).toBeTruthy();
+  });
+});
+
+// Dikey F, F5 hazırlık — Karar B: merkezi "güncel TRRM" fonksiyonu
+// (test_run_kurtarma_olcumu_guncel, 20260721070000). "ORDER BY ... LIMIT 1"
+// kabul edilmedi — anomali (KAYIT_YOK/BIRDEN_FAZLA_GUNCEL_KAYIT) GÖRÜNÜR olmalı.
+describe("test_run_kurtarma_olcumu_guncel — merkezi sözleşme (Dikey F, F5 Karar B)", () => {
+  async function guncelOku(runId: string, tenantId: string) {
+    const { rows } = await db.sql(`select * from public.test_run_kurtarma_olcumu_guncel($1, $2)`, [runId, tenantId]);
+    return rows[0] as Record<string, unknown>;
+  }
+
+  it("GUNCEL_KAYIT_VAR: tek yaprak (supersede edilmemiş kayıt) doğru döner", async () => {
+    const run = await kosuKur(seed.A.tenantId);
+    const { rows } = await manuelEkle(seed.A.tenantId, run, seed.A.userId);
+    const sonuc = await guncelOku(run, seed.A.tenantId);
+    expect(sonuc.durum).toBe("GUNCEL_KAYIT_VAR");
+    expect(sonuc.id).toBe(rows[0].id);
+    expect(Number(sonuc.olculen_kesinti_saat)).toBe(4);
+  });
+
+  it("KAYIT_YOK: bu koşuya hiç ölçüm bağlı değilse", async () => {
+    const run = await kosuKur(seed.A.tenantId);
+    const sonuc = await guncelOku(run, seed.A.tenantId);
+    expect(sonuc.durum).toBe("KAYIT_YOK");
+    expect(sonuc.id).toBeNull();
+  });
+
+  it("supersede edilen kayıt güncel SAYILMAZ; yeni kayıt (supersedes ile) güncel olur", async () => {
+    const run = await kosuKur(seed.A.tenantId);
+    const { rows: ilk } = await manuelEkle(seed.A.tenantId, run, seed.A.userId);
+    const { rows: ikinci } = await manuelEkle(seed.A.tenantId, run, seed.A.userId, { supersedes_measurement_id: ilk[0].id });
+    const sonuc = await guncelOku(run, seed.A.tenantId);
+    expect(sonuc.durum).toBe("GUNCEL_KAYIT_VAR");
+    expect(sonuc.id).toBe(ikinci[0].id);
+  });
+
+  it("BIRDEN_FAZLA_GUNCEL_KAYIT: aynı koşuya birbirini supersede ETMEYEN iki bağımsız ölçüm — RASTGELE SEÇİLMEZ", async () => {
+    const run = await kosuKur(seed.A.tenantId);
+    await manuelEkle(seed.A.tenantId, run, seed.A.userId);
+    await manuelEkle(seed.A.tenantId, run, seed.A.userId); // ikinci, BAĞIMSIZ kök (supersedes yok)
+    const sonuc = await guncelOku(run, seed.A.tenantId);
+    expect(sonuc.durum).toBe("BIRDEN_FAZLA_GUNCEL_KAYIT");
+    expect(sonuc.id).toBeNull(); // belirsizlikte rastgele bir kayıt DÖNMEZ
+  });
+
+  it("cross-tenant: B'nin test_run'ı + A'nın tenant_id'siyle sorgulanırsa KAYIT_YOK (sızıntı yok)", async () => {
+    const runB = await kosuKur(seed.B.tenantId);
+    await manuelEkle(seed.B.tenantId, runB, seed.B.userId);
+    // A'nın tenant_id'siyle B'nin koşusunu sorgula — hiçbir satır eşleşmemeli.
+    const sonuc = await guncelOku(runB, seed.A.tenantId);
+    expect(sonuc.durum).toBe("KAYIT_YOK");
+    expect(sonuc.id).toBeNull();
+  });
+
+  it("Proof Room: BIRDEN_FAZLA_GUNCEL_KAYIT durumunda kurtarmaOlcumu null döner (rastgele kayıt gösterilmez)", async () => {
+    const run = await kosuKur(seed.A.tenantId);
+    await manuelEkle(seed.A.tenantId, run, seed.A.userId);
+    await manuelEkle(seed.A.tenantId, run, seed.A.userId);
+    const { rows: link } = await db.asUser(
+      seed.A.userId,
+      `insert into public.proof_room_links (tenant_id, test_run_id, son_gecerlilik) values ($1, $2, now() + interval '1 day') returning token`,
+      [seed.A.tenantId, run],
+    );
+    const { rows } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [link[0].token]);
+    const v = rows[0].v as Record<string, unknown>;
+    expect(v.kurtarmaOlcumu).toBeNull();
   });
 });
 

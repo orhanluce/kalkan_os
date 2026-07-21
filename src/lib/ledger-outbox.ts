@@ -48,6 +48,7 @@ import {
   roiExportPublishedManifestKur,
 } from "./roi-export-ledger";
 import { RECOVERY_MEASUREMENT_KIND, kurtarmaOlcumuHash, type TestRunRecoveryMeasurement } from "./recovery-measurement";
+import { RECOVERY_COMPARISON_KIND, kurtarmaKarsilastirmasiHash, type RecoveryComparison } from "./recovery-comparison";
 import { LocalDevSigner } from "./manifest-signature";
 import { ifadeYaprakHash, imzaliIfadeOlustur } from "./transparency";
 import type { Database } from "./supabase/database.types";
@@ -295,6 +296,22 @@ async function manifestKur(db: Db, artifactTable: string, artifactId: string): P
       throw new Error(`Kurtarma olcumu ${artifactId}: kayıtlı olcum_hash yeniden hesaplanan ile uyuşmuyor (${m.olcum_hash} != ${yenidenHesap})`);
     }
     return { kind: RECOVERY_MEASUREMENT_KIND, hash: m.olcum_hash };
+  }
+
+  if (artifactTable === "test_run_recovery_comparisons") {
+    const { data: c } = await db
+      .from("test_run_recovery_comparisons")
+      .select("id, karsilastirma, karsilastirma_hash")
+      .eq("id", artifactId)
+      .maybeSingle();
+    if (!c) return null;
+    // Savunma derinliği (aynı desen): mühürlü payload'ın kendi hash'ine
+    // körlemesine güvenmek yerine kanonik olarak YENİDEN hesapla ve karşılaştır.
+    const yenidenHesap = await kurtarmaKarsilastirmasiHash(c.karsilastirma as unknown as RecoveryComparison);
+    if (yenidenHesap !== c.karsilastirma_hash) {
+      throw new Error(`Kurtarma karsilastirmasi ${artifactId}: kayıtlı karsilastirma_hash yeniden hesaplanan ile uyuşmuyor (${c.karsilastirma_hash} != ${yenidenHesap})`);
+    }
+    return { kind: RECOVERY_COMPARISON_KIND, hash: c.karsilastirma_hash };
   }
 
   return null;

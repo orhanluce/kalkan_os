@@ -475,7 +475,7 @@ export function KontrolTestBolumu({
                   )}
 
                   {/* Dikey F, F4: kurtarma ölçümü yakalama (koşuya bağlı; karşılaştırma YOK). */}
-                  {sonRun && <KurtarmaOlcumuBolumu testRunId={sonRun.id} />}
+                  {sonRun && <KurtarmaOlcumuBolumu testRunId={sonRun.id} criticalServiceId={tanim.critical_service_id} />}
 
                   {tanimOnerisi && (
                     <div className="mt-3 rounded-md border border-amber-400/40 bg-amber-400/10 p-2">

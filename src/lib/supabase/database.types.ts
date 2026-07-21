@@ -3548,6 +3548,7 @@ export type Database = {
           max_veri_kaybi_saat: number | null
           onay_zamani: string | null
           onaylayan: string | null
+          superseded_at: string | null
           surum: number
           tenant_id: string
           updated_at: string
@@ -3563,6 +3564,7 @@ export type Database = {
           max_veri_kaybi_saat?: number | null
           onay_zamani?: string | null
           onaylayan?: string | null
+          superseded_at?: string | null
           surum: number
           tenant_id: string
           updated_at?: string
@@ -3578,6 +3580,7 @@ export type Database = {
           max_veri_kaybi_saat?: number | null
           onay_zamani?: string | null
           onaylayan?: string | null
+          superseded_at?: string | null
           surum?: number
           tenant_id?: string
           updated_at?: string
@@ -7950,6 +7953,116 @@ export type Database = {
         }
         Relationships: []
       }
+      test_run_recovery_comparisons: {
+        Row: {
+          created_at: string
+          critical_service_id: string
+          id: string
+          impact_tolerance_id: string
+          karsilastirma: Json
+          karsilastirma_hash: string
+          olcum_kaynagi: string
+          olusturan: string | null
+          recovery_measurement_id: string
+          rpo_sonucu: string
+          rto_sonucu: string
+          supersedes_comparison_id: string | null
+          tenant_id: string
+          test_run_id: string
+          tolerans_max_kesinti_saat: number | null
+          tolerans_max_veri_kaybi_saat: number | null
+          tolerans_surumu: number
+        }
+        Insert: {
+          created_at?: string
+          critical_service_id: string
+          id?: string
+          impact_tolerance_id: string
+          karsilastirma: Json
+          karsilastirma_hash: string
+          olcum_kaynagi: string
+          olusturan?: string | null
+          recovery_measurement_id: string
+          rpo_sonucu: string
+          rto_sonucu: string
+          supersedes_comparison_id?: string | null
+          tenant_id: string
+          test_run_id: string
+          tolerans_max_kesinti_saat?: number | null
+          tolerans_max_veri_kaybi_saat?: number | null
+          tolerans_surumu: number
+        }
+        Update: {
+          created_at?: string
+          critical_service_id?: string
+          id?: string
+          impact_tolerance_id?: string
+          karsilastirma?: Json
+          karsilastirma_hash?: string
+          olcum_kaynagi?: string
+          olusturan?: string | null
+          recovery_measurement_id?: string
+          rpo_sonucu?: string
+          rto_sonucu?: string
+          supersedes_comparison_id?: string | null
+          tenant_id?: string
+          test_run_id?: string
+          tolerans_max_kesinti_saat?: number | null
+          tolerans_max_veri_kaybi_saat?: number | null
+          tolerans_surumu?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_run_recovery_comparisons_critical_service_id_fkey"
+            columns: ["critical_service_id"]
+            isOneToOne: false
+            referencedRelation: "critical_business_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_run_recovery_comparisons_impact_tolerance_id_fkey"
+            columns: ["impact_tolerance_id"]
+            isOneToOne: false
+            referencedRelation: "impact_tolerances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_run_recovery_comparisons_olusturan_fkey"
+            columns: ["olusturan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_run_recovery_comparisons_recovery_measurement_id_fkey"
+            columns: ["recovery_measurement_id"]
+            isOneToOne: false
+            referencedRelation: "test_run_recovery_measurements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_run_recovery_comparisons_supersedes_comparison_id_fkey"
+            columns: ["supersedes_comparison_id"]
+            isOneToOne: false
+            referencedRelation: "test_run_recovery_comparisons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_run_recovery_comparisons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_run_recovery_comparisons_test_run_id_fkey"
+            columns: ["test_run_id"]
+            isOneToOne: false
+            referencedRelation: "test_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       test_run_recovery_measurements: {
         Row: {
           beyan_eden: string | null
@@ -8902,6 +9015,31 @@ export type Database = {
           redaksiyon_mi: boolean
         }[]
       }
+      impact_tolerance_asof: {
+        Args: { p_as_of: string; p_critical_service_id: string }
+        Returns: {
+          created_at: string
+          critical_service_id: string
+          durum: string
+          id: string
+          max_kesinti_saat: number | null
+          max_mutabakat_farki: string | null
+          max_veri_kaybi_saat: number | null
+          onay_zamani: string | null
+          onaylayan: string | null
+          superseded_at: string | null
+          surum: number
+          tenant_id: string
+          updated_at: string
+          yonetim_onayi: boolean
+        }
+        SetofOptions: {
+          from: "*"
+          to: "impact_tolerances"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       kanit_suresi_dolanlari_isle: { Args: never; Returns: number }
       kontrol_son_test_sonuclari: {
         Args: { target_control_id: string }
@@ -9006,6 +9144,55 @@ export type Database = {
       tenant_has_profiles: {
         Args: { target_tenant_id: string }
         Returns: boolean
+      }
+      test_run_kurtarma_karsilastirmasi_guncel: {
+        Args: { p_tenant_id: string; p_test_run_id: string }
+        Returns: {
+          created_at: string
+          critical_service_id: string
+          durum: string
+          id: string
+          impact_tolerance_id: string
+          karsilastirma_hash: string
+          olcum_kaynagi: string
+          recovery_measurement_id: string
+          rpo_sonucu: string
+          rto_sonucu: string
+          supersedes_comparison_id: string
+          tenant_id: string
+          test_run_id: string
+          tolerans_max_kesinti_saat: number
+          tolerans_max_veri_kaybi_saat: number
+          tolerans_surumu: number
+        }[]
+      }
+      test_run_kurtarma_olcumu_guncel: {
+        Args: { p_tenant_id: string; p_test_run_id: string }
+        Returns: {
+          beyan_kesinti_saat: number
+          beyan_veri_kaybi_saat: number
+          created_at: string
+          declarant_present: boolean
+          durum: string
+          evidence_id: string
+          girdi_modu: string
+          hizmet_geri_geldi_at: string
+          id: string
+          kesinti_baslangic_at: string
+          kurtarma_noktasi_at: string
+          measured_at: string
+          olculen_kesinti_saat: number
+          olculen_veri_kaybi_saat: number
+          olcum_hash: string
+          olcum_kaynagi: string
+          recorded_at: string
+          son_tutarli_veri_at: string
+          source_event_id: string
+          source_system: string
+          supersedes_measurement_id: string
+          tenant_id: string
+          test_run_id: string
+        }[]
       }
       tpr_sozlesme_dolanlari_isle: { Args: never; Returns: undefined }
       transparency_dogrulama_durumu: {

@@ -84,3 +84,93 @@ describe("critical service & impact tolerance — RLS + invariant (M13)", () => 
     expect(rows[0].third_party_id).toBe(tp[0].id);
   });
 });
+
+// Dikey F, F5 hazırlık — Karar A: impact_tolerances.superseded_at forward-fix
+// (20260721050000). Emsal: applicability_decisions bitemporal deseni.
+describe("impact_tolerances — superseded_at (Dikey F, F5 Karar A)", () => {
+  async function yururluge(id: string, onayZamani: string) {
+    return db.sql(
+      `update public.impact_tolerances set durum = 'YURURLUKTE', yonetim_onayi = true, onaylayan = $2, onay_zamani = $3 where id = $1`,
+      [id, seed.A.userId, onayZamani],
+    );
+  }
+  async function supprese(id: string) {
+    return db.sql(`update public.impact_tolerances set durum = 'SUPERSEDED' where id = $1`, [id]);
+  }
+
+  it("yeni sürüm YURURLUKTE olunca, süprese edilmiş+damgasız sürümün superseded_at'i SUNUCU tarafında dolar", async () => {
+    const sid = await hizmetEkle(seed.A.tenantId);
+    const t1 = await toleransEkle(seed.A.tenantId, sid, 1);
+    await yururluge(t1, "2026-01-01T00:00:00Z");
+    await supprese(t1); // istemcinin mevcut iki-adımlı akışı: önce eskiyi kapat
+    const t2 = await toleransEkle(seed.A.tenantId, sid, 2);
+    await yururluge(t2, "2026-06-01T00:00:00Z");
+    const { rows } = await db.sql(`select superseded_at from public.impact_tolerances where id = $1`, [t1]);
+    expect(new Date(rows[0].superseded_at as string).toISOString()).toBe("2026-06-01T00:00:00.000Z");
+  });
+
+  it("superseded_at bir kez yazıldıktan sonra DEĞİŞTİRİLEMEZ (geri alınamaz)", async () => {
+    const sid = await hizmetEkle(seed.A.tenantId);
+    const t1 = await toleransEkle(seed.A.tenantId, sid, 1);
+    await yururluge(t1, "2026-01-01T00:00:00Z");
+    await supprese(t1);
+    const t2 = await toleransEkle(seed.A.tenantId, sid, 2);
+    await yururluge(t2, "2026-06-01T00:00:00Z"); // t1.superseded_at otomatik dolar
+    await expect(db.sql(`update public.impact_tolerances set superseded_at = null where id = $1`, [t1])).rejects.toThrow(/degistirilemez/);
+    await expect(
+      db.sql(`update public.impact_tolerances set superseded_at = '2027-01-01T00:00:00Z' where id = $1`, [t1]),
+    ).rejects.toThrow(/degistirilemez/);
+  });
+
+  it("superseded_at, kaydın KENDİ onay_zamanindan ÖNCE olamaz", async () => {
+    const sid = await hizmetEkle(seed.A.tenantId);
+    const t1 = await toleransEkle(seed.A.tenantId, sid, 1);
+    await yururluge(t1, "2026-06-01T00:00:00Z");
+    await supprese(t1);
+    await expect(
+      db.sql(`update public.impact_tolerances set superseded_at = '2026-01-01T00:00:00Z' where id = $1`, [t1]),
+    ).rejects.toThrow(/once olamaz/);
+  });
+
+  it("yeni sürümün onay_zamani, kapatılacak önceki sürümün onay_zamanindan ÖNCE ise reddedilir (kronoloji ihlali)", async () => {
+    const sid = await hizmetEkle(seed.A.tenantId);
+    const t1 = await toleransEkle(seed.A.tenantId, sid, 1);
+    await yururluge(t1, "2026-06-01T00:00:00Z");
+    await supprese(t1);
+    const t2 = await toleransEkle(seed.A.tenantId, sid, 2);
+    await expect(yururluge(t2, "2026-01-01T00:00:00Z")).rejects.toThrow(/once olamaz/);
+  });
+
+  it("SUPERSEDED kayıtta superseded_at DIŞINDA hiçbir alan değişemez", async () => {
+    const sid = await hizmetEkle(seed.A.tenantId);
+    const t1 = await toleransEkle(seed.A.tenantId, sid, 1);
+    await yururluge(t1, "2026-01-01T00:00:00Z");
+    await supprese(t1);
+    await expect(db.sql(`update public.impact_tolerances set max_kesinti_saat = 99 where id = $1`, [t1])).rejects.toThrow(/duzenlenemez/);
+  });
+
+  it("impact_tolerance_asof: onay_zamani DAHİL, superseded_at HARİÇ sınır semantiği", async () => {
+    const sid = await hizmetEkle(seed.A.tenantId);
+    const t1 = await toleransEkle(seed.A.tenantId, sid, 1);
+    await yururluge(t1, "2026-01-01T00:00:00Z");
+    await supprese(t1);
+    const t2 = await toleransEkle(seed.A.tenantId, sid, 2);
+    await yururluge(t2, "2026-06-01T00:00:00Z");
+
+    // Tam onay_zamani anı -> o sürüm DAHİL (t1).
+    const { rows: tamOnayAni } = await db.sql(`select id from public.impact_tolerance_asof($1, '2026-01-01T00:00:00Z') as t`, [sid]);
+    expect(tamOnayAni[0]?.id).toBe(t1);
+
+    // t1 ve t2 arası -> hâlâ t1 (t2 henüz yürürlüğe girmedi).
+    const { rows: arada } = await db.sql(`select id from public.impact_tolerance_asof($1, '2026-03-01T00:00:00Z') as t`, [sid]);
+    expect(arada[0]?.id).toBe(t1);
+
+    // Tam t2'nin onay_zamani anı (=t1'in superseded_at'i) -> t1 ARTIK GEÇERSİZ, t2 DAHİL.
+    const { rows: gecisAni } = await db.sql(`select id from public.impact_tolerance_asof($1, '2026-06-01T00:00:00Z') as t`, [sid]);
+    expect(gecisAni[0]?.id).toBe(t2);
+
+    // t1'in onay_zamanindan ÖNCE -> hiç yürürlükte sürüm yok (null).
+    const { rows: oncesi } = await db.sql(`select id from public.impact_tolerance_asof($1, '2025-01-01T00:00:00Z') as t`, [sid]);
+    expect(oncesi[0]?.id).toBeNull();
+  });
+});

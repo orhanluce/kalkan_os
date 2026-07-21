@@ -27,6 +27,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ runId: string 
   } = await db.auth.getUser();
   if (!user) return NextResponse.json({ hata: "Oturum gerekli." }, { status: 401 });
 
+  const { data: profil } = await db.from("profiles").select("tenant_id").eq("id", user.id).maybeSingle();
+  if (!profil?.tenant_id) return NextResponse.json({ hata: "Kurum bağlamı çözülemedi." }, { status: 400 });
+
   const { data: olcumler } = await db
     .from("test_run_recovery_measurements")
     .select(
@@ -35,11 +38,18 @@ export async function GET(_req: Request, ctx: { params: Promise<{ runId: string 
     .eq("test_run_id", runId)
     .order("created_at", { ascending: false });
 
+  // Dikey F, F5 Karar B: "güncel" TEK merkezi DB fonksiyonundan çözülür —
+  // burada AYRICA yeniden hesaplanmaz (tek sözleşme, iki yerde tekrar yok).
+  // Anomali (BIRDEN_FAZLA_GUNCEL_KAYIT/ZINCIR_HATASI) durumunda hiçbir satır
+  // "güncel" işaretlenmez — rastgele seçim yapılmaz, durum İSTEMCİYE taşınır.
+  const { data: guncelSonuc } = await db
+    .rpc("test_run_kurtarma_olcumu_guncel", { p_test_run_id: runId, p_tenant_id: profil.tenant_id })
+    .single();
+  const guncelId = guncelSonuc?.durum === "GUNCEL_KAYIT_VAR" ? guncelSonuc.id : null;
+
   const liste = olcumler ?? [];
-  // "Güncel" = kimse supersede etmemiş (türetilir, stored bayrak yok).
-  const supersededIdleri = new Set(liste.map((o) => o.supersedes_measurement_id).filter((x): x is string => !!x));
-  const zenginlestirilmis = liste.map((o) => ({ ...o, guncel: !supersededIdleri.has(o.id) }));
-  return NextResponse.json({ olcumler: zenginlestirilmis });
+  const zenginlestirilmis = liste.map((o) => ({ ...o, guncel: o.id === guncelId }));
+  return NextResponse.json({ olcumler: zenginlestirilmis, guncelDurum: guncelSonuc?.durum ?? "KAYIT_YOK" });
 }
 
 export async function POST(req: Request, ctx: { params: Promise<{ runId: string }> }) {
@@ -71,7 +81,26 @@ export async function POST(req: Request, ctx: { params: Promise<{ runId: string 
 
   const measurementId = yeniId();
   const recordedAt = new Date().toISOString();
-  const measuredAt = str(govde.measuredAt) ?? recordedAt;
+
+  // Dikey F, F5 hazırlık — Karar D: measured_at ASLA sessizce recorded_at'e
+  // düşürülmez. Kesinti olay zamanları varsa (hizmet_geri_geldi_at dolu)
+  // ölçüm zamanı SUNUCU tarafında ondan türetilir (tek kaynak, istemci
+  // değeri yok sayılır); aksi halde (yalnız veri-kaybı penceresi veya
+  // süre-yalnız beyan) kullanıcının AÇIKÇA girdiği bir zaman ZORUNLUDUR.
+  const hizmetGeriGeldiAt = str(govde.hizmetGeriGeldiAt);
+  let measuredAt: string;
+  if (inputMode === "EVENT_TIMESTAMPS" && hizmetGeriGeldiAt !== null) {
+    measuredAt = hizmetGeriGeldiAt;
+  } else {
+    const kullaniciGirdisi = str(govde.measuredAt);
+    if (kullaniciGirdisi === null) {
+      return NextResponse.json(
+        { hata: "Ölçüm zamanı (measured_at) bu girdi için zorunludur.", kod: "MEASURED_AT_EKSIK" },
+        { status: 400 },
+      );
+    }
+    measuredAt = kullaniciGirdisi;
+  }
 
   let payload;
   try {
@@ -83,7 +112,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ runId: string 
       inputMode,
       outage: {
         startedAt: str(govde.kesintiBaslangicAt),
-        restoredAt: str(govde.hizmetGeriGeldiAt),
+        restoredAt: hizmetGeriGeldiAt,
         declaredHours: num(govde.beyanKesintiSaat),
       },
       dataLoss: {

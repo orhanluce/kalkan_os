@@ -32,7 +32,7 @@ test("F2: kritik hizmet test paketi — önizleme → mühürleme → tarihsel �
   const testAdi = `F2-e2e: erişim incelemesi ${Date.now()}`;
   await page.getByLabel("Test adı").fill(testAdi);
   await page.getByRole("combobox", { name: "Kritik hizmete bağlı (opsiyonel)" }).click();
-  await page.getByRole("option", { name: "E2E Kritik Hizmet" }).click();
+  await page.getByRole("option", { name: "E2E Kritik Hizmet", exact: true }).click();
   await page.getByRole("button", { name: "Ekle", exact: true }).click();
   const testSatiri = page.locator("li").filter({ hasText: testAdi });
   await expect(testSatiri).toBeVisible({ timeout: 10_000 });

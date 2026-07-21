@@ -161,6 +161,20 @@ async function main() {
   //    bağlandıysa (kurtarma-olcumu.spec) restrict bu CASCADE'i bloklar →
   //    control_test_definitions silme SESSİZCE başarısız → aynı 4 test patlar.
   //    O yüzden ölçümler control_test_definitions'tan ÖNCE silinir.
+  //    DÖRDÜNCÜ AYNI SINIF AÇIK (Dikey F, F5 — tam regresyon SIRASINDA
+  //    yakalandı): `test_run_recovery_comparisons`ın test_run_id/recovery_
+  //    measurement_id/critical_service_id'si de RESTRICT — listede HİÇ
+  //    yoktu. Bir karşılaştırma var olduğu sürece hem measurements'ın hem
+  //    critical_business_services'ın toplu DELETE'i (tüm kiracı için TEK
+  //    transaction) SESSİZCE başarısız oluyor, aynı "E2E: MFA..." + "E2E
+  //    Kritik Hizmet" birikme sınıfını yeniden tetikliyordu. Karşılaştırmalar
+  //    ikisinden de ÖNCE silinir.
+  //    BEŞİNCİ AYNI SINIF (aynı regresyon koşusunda, F5'ten BAĞIMSIZ, F2
+  //    borcu): `kritik_hizmet_test_paketi_snapshots.critical_service_id` de
+  //    RESTRICT — bir mühürlü paket ("E2E Kritik Hizmet"e bağlı) var olduğu
+  //    sürece critical_business_services toplu DELETE'i başarısız oluyor,
+  //    "E2E Kritik Hizmet" birikiyordu (F2/F3 spec'i her çalıştığında bir
+  //    snapshot mühürlüyor). critical_business_services'tan ÖNCE silinir.
   for (const tablo of [
     "evidences",
     "findings",
@@ -172,8 +186,10 @@ async function main() {
     "sod_atamalari",
     "sod_degerlendirme_calistirmalari",
     "policy_exceptions",
+    "test_run_recovery_comparisons",
     "test_run_recovery_measurements",
     "control_test_definitions",
+    "kritik_hizmet_test_paketi_snapshots",
     "critical_business_services",
   ]) {
     await db.from(tablo).delete().eq("tenant_id", tenant.id);

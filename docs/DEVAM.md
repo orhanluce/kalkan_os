@@ -1,11 +1,93 @@
-# DEVAM TALİMATI — kaldığın yerden sürdür (21 Temmuz 2026 güncellemesi — Dikey F F3)
+# DEVAM TALİMATI — kaldığın yerden sürdür (21 Temmuz 2026 güncellemesi — Dikey F F5)
 
 Bu dosya oturumlar arası devir içindir. **Kurucu kalıcı onay verdi:
 "her bitişte onaya gerek yok, V2 PR sırasının SONUNA KADAR devam."** Her PR'ı
 doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine geç.
 **AMA:** her GERÇEKTEN YENİ mimari karar için önce KODSUZ analiz sun, kurucunun
-açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1/F2/F3'te bu iki-faz
+açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1-F5'te bu iki-faz
 disiplini tutarlı uygulandı).
+
+## -5. DİKEY F, F5 BİTTİ (21 Temmuz 2026) — Kurtarma Ölçümü ile Onaylı Etki
+Toleransının Güvenli Karşılaştırılması
+
+Kurucunun çok ayrıntılı "Kararlarım" mesajıyla (A-D + F5 artefakt kararları)
+tam uygulandı; ADR `docs/adr/PR0-dikeyF-f5-kurtarma-karsilastirmasi-2026-07-21.md`.
+**F2/F3 paketine BİLİNÇLİ SIZMADI** — kurucunun kararı gereği bu entegrasyon
+ayrı bir gelecek dilim olan "Dikey F5.1"e bırakıldı.
+
+**A) `impact_tolerances.superseded_at` forward-fix** (migration `20260721050000`):
+NULL→timestamp tek yönlü geçiş, kendi `onay_zamani`sinden önce olamaz, yeni
+sürümün `onay_zamani`'sı kapatılan sürümden önce olamaz, aktivasyonda sunucu
+otomatik doldurur. **Bitemporal as-of** `impact_tolerance_asof(critical_service_
+id, as_of)`: `onay_zamani <= as_of AND (superseded_at IS NULL OR as_of <
+superseded_at)` (onay_zamani dahil, superseded_at hariç) — CANLI veri tek satır
+olduğundan backfill NO-OP oldu (anomali yok, doğrulandı).
+
+**D) `measured_at` yaşam döngüsü** (migration `20260721060000`): iki `NOT VALID`
+CHECK — gelecek-zaman reddi + olay-zamanı-tutarlılığı (`hizmet_geri_geldi_at`
+varsa `measured_at` ONA EŞİT olmalı). **Canlı veri bir GERÇEK açık doğruladı**
+(motivasyon): bir satırda `measured_at` yanlışlıkla `recorded_at`'e eşitti çünkü
+UI hiç göndermiyordu — route sessizce varsayılan atıyordu. Rota + `KurtarmaOlcumuBolumu`
+düzeltildi: olay zamanları modunda `measured_at` OTOMATİK `hizmetGeriGeldiAt`'ten
+türetilir (alan gizlenir); süre-beyanı modunda AÇIK VE ZORUNLU alan. Tek debris
+satırı `NOT VALID` ile İSTİSNA edildi (immutable tablo — silinmedi/uydurulmadı).
+
+**B) Merkezi "güncel kayıt" sözleşmesi** — `ORDER BY...LIMIT 1` ASLA kullanılmadı
+("en yeni" ≠ "geçerli supersede yaprağı"). Dört-durumlu (`GUNCEL_KAYIT_VAR/
+KAYIT_YOK/BIRDEN_FAZLA_GUNCEL_KAYIT/ZINCIR_HATASI`) SQL fonksiyonu İKİ kez
+(migration `20260721070000`: `test_run_kurtarma_olcumu_guncel`; `20260721080000`:
+`test_run_kurtarma_karsilastirmasi_guncel`) — F5 üçüncü bir kopya YAZMADI.
+
+**F5 artefaktı** — yeni immutable tablo `test_run_recovery_comparisons`
+(migration `20260721080000`): sabit FK'ler + tolerans eşikleri MÜHÜRLENİR
+(yalnız FK değil — sonraki tolerans revizyonu geçmiş sonucu DEĞİŞTİRMEZ, canlı
+smoke'ta uçtan uca kanıtlandı). RTO/RPO BAĞIMSIZ beş durum (`KARSILADI/ASTI/
+OLCUM_YOK/TOLERANS_YOK/KARSILASTIRILAMAZ`). Güvenilirlik dili motor içinde
+mühürlü `aciklama` metniyle taşınır (MANUEL_BEYAN: "beyan edilen değer...";
+OTOMATIK_OLCUM: "ölçülen değer..." — asla çıplak "RTO/RPO karşılandı"). Ledger/
+JWS durumu MATEMATİK SONUÇTAN AYRI bir boyut olarak gösterilir (henüz anchor
+edilmemiş bir karşılaştırma GERÇEK sonucunu yine de gösterir + ayrı bütünlük
+notu taşır). Cross-tenant + kritik-hizmet-bağlantısı guard'ı (`trrc_tenant_
+guard`) YENİ bir guard sınıfı: test_run'ın `control_test_definitions`'ının,
+karşılaştırılan kritik hizmete GERÇEKTEN (DIRECT veya VIA) bağlı olduğunu ayrıca
+doğrular. Proof Room mevcut test_run dalına ilişkisel genişledi (migration
+`20260721090000`, minimize — ham FK yok; altıncı hedef AÇILMADI).
+
+**Uygulama sırasında bulunup düzeltilen GERÇEK açık (bug, F5 mantığından
+bağımsız değil ama önemli):** ilk motor tasarımı `tolerance.durum !== 'YURURLUKTE'
+→ KARSILASTIRILAMAZ` kontrolü yapıyordu — bu YANLIŞTI: bitemporal as-of eşleşmesi,
+GEÇMİŞTE geçerli olan ama ŞU AN `durum='SUPERSEDED'` olan bir tolerans sürümünü
+doğru biçimde döndürebilir. Kural düzeltildi: `!yonetimOnayi || onayZamani ===
+null` ("gerçekten onaylanmış mıydı" — "şu an yürürlükte mi" değil). Kurucuya
+AÇIKÇA bildirildi, motor + testler (yeni 7b testi) düzeltildi.
+
+**DÖRDÜNCÜ + BEŞİNCİ "AYNI SINIF" fixture açığı** (tam regresyon SIRASINDA
+yakalandı, F5 mantığından bağımsız): `test_run_recovery_comparisons`ın (yeni)
+ve `kritik_hizmet_test_paketi_snapshots`ın (F2 borcu, şimdi ortaya çıktı)
+`critical_service_id`/`test_run_id` alanları RESTRICT ama `setup-e2e-fixtures.
+ts` temizlik listesinde HİÇ yoktu — toplu DELETE'i sessizce bloklayıp "E2E: MFA..."
++ "E2E Kritik Hizmet" birikmesine yol açıyordu (kontrol-test/legal-basis/
+proof-room/sod patladı). İkisi de listeye doğru sırayla eklendi, iki temiz
+koşuyla doğrulandı. **Ayrıca F5'ten TAMAMEN BAĞIMSIZ, önceden var olan 5 e2e
+hatası** (bulut-pak/dikey-e1/dikey-e2/tedarikci-anket-sablonu/tedarikci-
+degerlendirme) iki ayrı tam-suite koşusunda AYNI ŞEKİLDE tekrarlandı — muhtemelen
+aynı sınıf bir başka fixture açığı, ayrı bir spawn_task ile işaretlendi, F5
+kapsamına DAHİL EDİLMEDİ.
+
+**18/18 hedefli Dikey F + paylaşılan-fixture regresyon grubu (iki temiz koşu)
++ 1610 birim + typecheck/lint/build yeşil.** Yeni e2e `e2e/kurtarma-
+karsilastirmasi.spec.ts`: PASSED koşu → olay-zamanlı ölçüm → Karşılaştır →
+RTO/RPO bağımsız "Karşıladı" rozetleri → dil doğru ("Beyan edilen", çıplak
+"RTO/RPO karşılandı" YOK) → tolerans v2'ye geçse de DONMUŞ eski sonuç → anonim
+Proof Room minimize görünüm. Yol boyunca ayrıca GERÇEK bir GET rotası hatası
+bulundu: `/api/kontrol-test/run/[runId]/kurtarma-karsilastirmasi` GET, merkezi
+RPC'nin düz özet satırını (`rto_sonucu` vb.) doğrudan `karsilastirma` olarak
+dönüyordu — UI bileşeni iç içe `rto.aciklama` BEKLİYORDU (canlıda ilk tıklamada
+crash). Proof Room'un zaten kullandığı "ikinci select ile mühürlü JSONB'yi çek"
+deseni GET rotasına da uygulandı.
+
+**Sıradaki (F5'in KENDİSİNDE bilinçli kapsam dışı, kurucu kararı bekliyor):**
+Dikey F5.1 — F5'in F2/F3 Kritik Hizmet Test Paketi'ne İLİŞKİSEL bağlanması.
 
 ## -4. DİKEY F, F4 BİTTİ (21 Temmuz 2026) — Kurtarma Ölçümü Yakalama
 

@@ -1,6 +1,70 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**Dikey F, F5 BİTTİ (21 Temmuz 2026) — Kurtarma Ölçümü ile Onaylı Etki
+Toleransının Güvenli Karşılaştırılması.** Kurucunun A-D dört mimari kararı +
+F5 artefakt kararlarıyla (ADR `docs/adr/PR0-dikeyF-f5-kurtarma-karsilastirmasi-
+2026-07-21.md`) tam uygulandı. **F2/F3 paketine BİLİNÇLİ SIZMADI** — entegrasyon
+ayrı bir gelecek dilim "Dikey F5.1"e bırakıldı (kurucunun açık kararı).
+
+**A) `impact_tolerances.superseded_at` forward-fix** (`20260721050000`): NULL→
+timestamp tek yönlü, kronoloji guard'lı, sunucu aktivasyonda otomatik doldurur.
+Bitemporal `impact_tolerance_asof(critical_service_id, as_of)`: `onay_zamani <=
+as_of AND (superseded_at IS NULL OR as_of < superseded_at)` (onay dahil,
+supersede hariç). Canlı backfill NO-OP (tek satır, hiç supersede edilmemiş).
+
+**D) `measured_at` yaşam döngüsü** (`20260721060000`): iki `NOT VALID` CHECK
+(gelecek-zaman reddi + olay-zamanı-tutarlılığı). Canlı veri GERÇEK bir açığı
+doğruladı: bir satırda UI `measuredAt` hiç göndermiyordu, rota sessizce
+`recordedAt`'e düşüyordu. Rota + `KurtarmaOlcumuBolumu` düzeltildi: olay
+zamanları modunda `measured_at` OTOMATİK `hizmetGeriGeldiAt`'ten türetilir
+(alan gizlenir); süre-beyanı modunda AÇIK VE ZORUNLU. Tek debris satırı `NOT
+VALID` ile istisna edildi (immutable tablo, silinmedi).
+
+**B) Merkezi "güncel kayıt" sözleşmesi** — `ORDER BY...LIMIT 1` KULLANILMADI
+("en yeni" ≠ "geçerli supersede yaprağı"). Dört-durumlu (`GUNCEL_KAYIT_VAR/
+KAYIT_YOK/BIRDEN_FAZLA_GUNCEL_KAYIT/ZINCIR_HATASI`) SQL fonksiyonu İKİ kez
+kullanıldı (`test_run_kurtarma_olcumu_guncel` `20260721070000`; `test_run_
+kurtarma_karsilastirmasi_guncel` `20260721080000`) — üçüncü bir kopya YOK.
+
+**F5 artefaktı** — yeni immutable `test_run_recovery_comparisons`
+(`20260721080000`): tolerans eşikleri MÜHÜRLENİR (sonraki tolerans revizyonu
+geçmiş sonucu DEĞİŞTİRMEZ — canlı smoke'ta uçtan uca kanıtlandı). RTO/RPO
+BAĞIMSIZ beş durum (`KARSILADI/ASTI/OLCUM_YOK/TOLERANS_YOK/KARSILASTIRILAMAZ`).
+Güvenilirlik dili motor içinde mühürlü `aciklama` metniyle taşınır (MANUEL_
+BEYAN: "beyan edilen değer..."; OTOMATIK_OLCUM: "ölçülen değer..." — asla çıplak
+"RTO/RPO karşılandı"). Ledger/JWS durumu MATEMATİK SONUÇTAN AYRI boyut. Cross-
+tenant + kritik-hizmet-bağlantısı guard'ı (`trrc_tenant_guard`) YENİ sınıf: test_
+run'ın tanımının, karşılaştırılan kritik hizmete GERÇEKTEN (DIRECT/VIA) bağlı
+olduğunu doğrular. Proof Room mevcut test_run dalına ilişkisel genişledi
+(`20260721090000`, minimize; altıncı hedef AÇILMADI).
+
+**Uygulama sırasında bulunup düzeltilen GERÇEK mantık açığı:** ilk motor
+`tolerance.durum !== 'YURURLUKTE' → KARSILASTIRILAMAZ` kontrolü yapıyordu — bu
+YANLIŞTI (bitemporal as-of eşleşmesi geçmişte geçerli ama ŞU AN SUPERSEDED bir
+sürümü doğru döndürebilir). Düzeltme: `!yonetimOnayi || onayZamani === null`
+("gerçekten onaylanmış mıydı", "şu an yürürlükte mi" değil) — kurucuya açıkça
+bildirildi, motor+testler düzeltildi.
+
+**DÖRDÜNCÜ+BEŞİNCİ "AYNI SINIF" fixture açığı** (tam regresyon sırasında
+yakalandı): `test_run_recovery_comparisons` (yeni) ve `kritik_hizmet_test_
+paketi_snapshots` (F2 borcu) RESTRICT FK'leri temizlik listesinde yoktu →
+"E2E: MFA..."+"E2E Kritik Hizmet" birikmesi (kontrol-test/legal-basis/proof-
+room/sod patladı). İkisi de doğru sırayla eklendi, iki temiz koşuyla
+doğrulandı. F5'ten TAMAMEN BAĞIMSIZ, önceden var olan 5 e2e hatası (bulut-pak/
+dikey-e1/dikey-e2/tedarikci-anket-sablonu/tedarikci-degerlendirme) ayrı bir
+göreve işaretlendi, F5 kapsamına dahil edilmedi.
+
+**18/18 hedefli Dikey F + paylaşılan-fixture regresyon grubu (iki temiz koşu)
++ 1610 birim + typecheck/lint/build yeşil.** Yeni `e2e/kurtarma-karsilastirmasi.
+spec.ts`. Yol boyunca GET rotası hatası bulundu: `/api/kontrol-test/run/[runId]/
+kurtarma-karsilastirmasi` GET merkezi RPC'nin düz özet satırını doğrudan
+`karsilastirma` olarak dönüyordu — UI iç içe `rto.aciklama` bekliyordu (ilk
+tıklamada crash). Proof Room'un "ikinci select ile mühürlü JSONB'yi çek"
+deseni GET rotasına da uygulandı. **Sıradaki (F5'in KENDİSİNDE bilinçli
+kapsam dışı, kurucu kararı bekliyor):** Dikey F5.1 — F2/F3 paketine ilişkisel
+bağlanma.
+
 **Dikey F, F4 BİTTİ (21 Temmuz 2026) — Kurtarma Ölçümü Yakalama ve Provenance
 Katmanı.** F3'ün açtığı sıradaki karar: gerçek nicel karşılaştırmadan ÖNCE,
 ölçülen kesinti/veri-kaybı verisi güvenilir/immutable/kanıtlı biçimde

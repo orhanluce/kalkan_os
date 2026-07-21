@@ -97,6 +97,20 @@ interface ProofVerisi {
     olcumZamani: string;
     karsilastirmaYapildi: false;
   } | null;
+  /** Dikey F, F5: GÜNCEL kurtarma karşılaştırması (minimize; ham FK'ler YOK). */
+  kurtarmaKarsilastirmasi?: {
+    rtoSonucu: string;
+    rtoAciklama: string | null;
+    rpoSonucu: string;
+    rpoAciklama: string | null;
+    toleransMaxKesintiSaat: number | null;
+    toleransMaxVeriKaybiSaat: number | null;
+    toleransSurumu: number;
+    olcumKaynagi: string;
+    karsilastirmaHash: string;
+    ledgerDurumu: string;
+    olusturulmaZamani: string;
+  } | null;
   legalSnapshot?: { karar: string; snapshot: CanonicalDeger } | null;
   kaynakZinciri?: ProofZincirSatiri[];
   applicability?: {
@@ -172,6 +186,22 @@ const KARAR_SEMANTIK: Record<string, SemantikDurum> = {
   ALLOW: "success",
   ALLOW_WITH_WARNING: "warning",
   BLOCK: "danger",
+};
+
+// Dikey F, F5: RTO/RPO karşılaştırma sonucu — beş AYRI durum, birleştirilemez.
+const KARSILASTIRMA_SEMANTIK: Record<string, SemantikDurum> = {
+  KARSILADI: "success",
+  ASTI: "danger",
+  OLCUM_YOK: "neutral",
+  TOLERANS_YOK: "neutral",
+  KARSILASTIRILAMAZ: "warning",
+};
+const KARSILASTIRMA_ETIKET: Record<string, string> = {
+  KARSILADI: "Karşıladı",
+  ASTI: "Aştı",
+  OLCUM_YOK: "Ölçüm yok",
+  TOLERANS_YOK: "Tolerans yok",
+  KARSILASTIRILAMAZ: "Karşılaştırılamaz",
 };
 
 const DOGRULAMA_ETIKET: Record<string, string> = {
@@ -998,6 +1028,58 @@ export default function ProofRoomPage() {
               Bu değerler kullanıcı beyanıdır; otomatik sistem ölçümü değildir. Kurumun onaylı hedefleriyle (RTO/RPO) nicel karşılaştırma
               yapılmamıştır.
             </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* Dikey F, F5: onaylı hedefle nicel karşılaştırma (varsa) — RTO/RPO
+          BAĞIMSIZ, kaynağa göre dil ayrımı korunur ("beyan edilen değer" vs
+          "ölçülen değer"); ledger durumu matematiksel sonucu DEĞİŞTİRMEZ. */}
+      {veri.kurtarmaKarsilastirmasi ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Onaylı Hedefle Karşılaştırma</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 text-sm">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">RTO</span>
+                <StatusBadge durum={KARSILASTIRMA_SEMANTIK[veri.kurtarmaKarsilastirmasi.rtoSonucu] ?? "unknown"}>
+                  {KARSILASTIRMA_ETIKET[veri.kurtarmaKarsilastirmasi.rtoSonucu] ?? veri.kurtarmaKarsilastirmasi.rtoSonucu}
+                </StatusBadge>
+              </div>
+              {veri.kurtarmaKarsilastirmasi.rtoAciklama ? <p className="text-xs text-muted-foreground">{veri.kurtarmaKarsilastirmasi.rtoAciklama}</p> : null}
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">RPO</span>
+                <StatusBadge durum={KARSILASTIRMA_SEMANTIK[veri.kurtarmaKarsilastirmasi.rpoSonucu] ?? "unknown"}>
+                  {KARSILASTIRMA_ETIKET[veri.kurtarmaKarsilastirmasi.rpoSonucu] ?? veri.kurtarmaKarsilastirmasi.rpoSonucu}
+                </StatusBadge>
+              </div>
+              {veri.kurtarmaKarsilastirmasi.rpoAciklama ? <p className="text-xs text-muted-foreground">{veri.kurtarmaKarsilastirmasi.rpoAciklama}</p> : null}
+            </div>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <dt>Onaylı hedef (kesinti)</dt>
+              <dd>{veri.kurtarmaKarsilastirmasi.toleransMaxKesintiSaat === null ? "—" : `${veri.kurtarmaKarsilastirmasi.toleransMaxKesintiSaat} saat`}</dd>
+              <dt>Onaylı hedef (veri kaybı)</dt>
+              <dd>{veri.kurtarmaKarsilastirmasi.toleransMaxVeriKaybiSaat === null ? "—" : `${veri.kurtarmaKarsilastirmasi.toleransMaxVeriKaybiSaat} saat`}</dd>
+              <dt>Tolerans sürümü</dt>
+              <dd>v{veri.kurtarmaKarsilastirmasi.toleransSurumu}</dd>
+              <dt>Karşılaştırma zamanı</dt>
+              <dd>{new Date(veri.kurtarmaKarsilastirmasi.olusturulmaZamani).toLocaleString("tr-TR")}</dd>
+            </dl>
+            <div className="flex items-center gap-2">
+              <StatusBadge durum={LEDGER_DURUM_SEMANTIK[veri.kurtarmaKarsilastirmasi.ledgerDurumu] ?? "unknown"}>
+                {LEDGER_DURUM_ETIKET[veri.kurtarmaKarsilastirmasi.ledgerDurumu] ?? veri.kurtarmaKarsilastirmasi.ledgerDurumu}
+              </StatusBadge>
+            </div>
+            {veri.kurtarmaKarsilastirmasi.ledgerDurumu !== "ANCHORED" ? (
+              <p role="note" className="text-xs text-muted-foreground">
+                Bütünlük kaydı henüz anchor edilmedi — bu, karşılaştırmanın matematiksel sonucunu ETKİLEMEZ; yalnız kaydın değiştirilmediğine
+                dair bağımsız mühür henüz tamamlanmadı.
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}

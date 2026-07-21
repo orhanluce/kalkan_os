@@ -212,7 +212,7 @@ describe("proof_room — test_run_id dalı V2/V3 manifest özeti (Dikey F, F1)",
       seed.A.userId,
       `insert into public.test_run_recovery_measurements
         (tenant_id, test_run_id, olcum_kaynagi, girdi_modu, kesinti_baslangic_at, hizmet_geri_geldi_at, olcum, olcum_hash, measured_at)
-       values ($1,$2,'MANUEL_BEYAN','EVENT_TIMESTAMPS','2026-07-10T08:00:00Z','2026-07-10T12:00:00Z',$3::jsonb,$4,'2026-07-10T13:00:00Z')`,
+       values ($1,$2,'MANUEL_BEYAN','EVENT_TIMESTAMPS','2026-07-10T08:00:00Z','2026-07-10T12:00:00Z',$3::jsonb,$4,'2026-07-10T12:00:00Z')`,
       [seed.A.tenantId, runId, JSON.stringify({ schema: "WARDPROOF_TEST_RUN_RECOVERY_MEASUREMENT_V1" }), "a".repeat(64)],
     );
     const token = await linkOlustur(seed.A.userId, seed.A.tenantId, runId);

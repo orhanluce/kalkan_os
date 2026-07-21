@@ -29,7 +29,10 @@ function temel(overrides: Partial<KurtarmaOlcumuGirdisi> = {}): KurtarmaOlcumuGi
     dataLoss: { lastConsistentDataAt: "2026-07-10T07:00:00.000Z", recoveryPointAt: "2026-07-10T08:00:00.000Z", declaredHours: null },
     provenance: { evidenceId: null, sourceSystem: null, sourceEventId: null, sourcePayloadHash: null, declarantPresent: true },
     supersedesMeasurementId: null,
-    measuredAt: "2026-07-10T13:00:00.000Z",
+    // Karar D: kesinti olay zamanları mevcutken measuredAt = outage.restoredAt
+    // olmak ZORUNDA (OLCUM_ZAMANI_TUTARSIZ) — bu yüzden varsayılan burada
+    // outage.restoredAt ile BİREBİR aynı.
+    measuredAt: "2026-07-10T12:00:00.000Z",
     recordedAt: "2026-07-21T10:00:00.000Z",
     ...overrides,
   };
@@ -122,6 +125,48 @@ describe("kurtarmaOlcumuOlustur — doğrulama reddi", () => {
   });
 });
 
+// Dikey F, F5 hazırlık — Karar D: measured_at yaşam döngüsü.
+describe("kurtarmaOlcumuOlustur — measured_at yaşam döngüsü (Karar D)", () => {
+  it("18) measured_at, recorded_at'ten makul olmayan ölçüde ileri olamaz (GELECEK_ZAMAN)", () => {
+    kodBekle(
+      () =>
+        kurtarmaOlcumuOlustur(
+          temel({
+            outage: { startedAt: null, restoredAt: null, declaredHours: null },
+            measuredAt: "2026-07-21T10:30:00.000Z", // recordedAt'ten 30 dk ileri — tolerans 5 dk
+            recordedAt: "2026-07-21T10:00:00.000Z",
+          }),
+        ),
+      "GELECEK_ZAMAN",
+    );
+  });
+
+  it("19) recorded_at'ten 5 dk tolerans içindeki measured_at KABUL edilir (saat kayması payı)", () => {
+    const p = kurtarmaOlcumuOlustur(
+      temel({
+        outage: { startedAt: null, restoredAt: null, declaredHours: null },
+        measuredAt: "2026-07-21T10:03:00.000Z",
+        recordedAt: "2026-07-21T10:00:00.000Z",
+      }),
+    );
+    expect(p.measuredAt).toBe("2026-07-21T10:03:00.000Z");
+  });
+
+  it("20) kesinti olay zamanları mevcutken measured_at, hizmetin geri geldiği andan FARKLI olamaz (OLCUM_ZAMANI_TUTARSIZ)", () => {
+    kodBekle(() => kurtarmaOlcumuOlustur(temel({ measuredAt: "2026-07-10T13:00:00.000Z" })), "OLCUM_ZAMANI_TUTARSIZ");
+  });
+
+  it("21) yalnız veri-kaybı boyutu varsa (kesinti yok) measured_at SERBEST kullanıcı girdisi olabilir", () => {
+    const p = kurtarmaOlcumuOlustur(
+      temel({
+        outage: { startedAt: null, restoredAt: null, declaredHours: null },
+        measuredAt: "2026-07-10T09:30:00.000Z", // dataLoss penceresiyle birebir eşleşmesi ZORUNLU değil
+      }),
+    );
+    expect(p.measuredAt).toBe("2026-07-10T09:30:00.000Z");
+  });
+});
+
 describe("kurtarmaOlcumuOlustur — determinizm + hash", () => {
   it("14) aynı girdi aynı payload'ı üretir", () => {
     expect(kurtarmaOlcumuOlustur(temel())).toEqual(kurtarmaOlcumuOlustur(temel()));
@@ -132,7 +177,9 @@ describe("kurtarmaOlcumuOlustur — determinizm + hash", () => {
     const h2 = await kurtarmaOlcumuHash(kurtarmaOlcumuOlustur(temel()));
     expect(h1).toBe(h2);
     expect(h1).toMatch(/^[0-9a-f]{64}$/);
-    const h3 = await kurtarmaOlcumuHash(kurtarmaOlcumuOlustur(temel({ outage: { startedAt: "2026-07-10T08:00:00.000Z", restoredAt: "2026-07-10T10:00:00.000Z", declaredHours: null } })));
+    const h3 = await kurtarmaOlcumuHash(
+      kurtarmaOlcumuOlustur(temel({ outage: { startedAt: "2026-07-10T08:00:00.000Z", restoredAt: "2026-07-10T10:00:00.000Z", declaredHours: null }, measuredAt: "2026-07-10T10:00:00.000Z" })),
+    );
     expect(h3).not.toBe(h1);
   });
 
