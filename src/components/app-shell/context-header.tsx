@@ -5,6 +5,7 @@
 // çalışmayan ikon koymak yerine yer bırakıyoruz (ölü UI eklenmez).
 import Link from "next/link";
 import { CircleHelp } from "lucide-react";
+import { WardproofMark } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { useAuth } from "@/lib/auth";
@@ -20,7 +21,10 @@ export function ContextHeader() {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur-sm md:px-6">
       {/* Mobilde rail görünmez — marka burada gösterilir. */}
-      <span className="text-sm font-semibold tracking-tight md:hidden">KALKAN-OS</span>
+      <span className="flex items-center gap-2 md:hidden">
+        <WardproofMark className="size-7" glyphClassName="size-4.5" />
+        <span className="text-sm font-semibold tracking-tight">Wardproof</span>
+      </span>
       {kurum.tenant && (
         <span className="hidden truncate text-sm text-muted-foreground md:inline" title={kurum.tenant.name}>
           {kurum.tenant.name}

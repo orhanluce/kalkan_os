@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { WardproofMark } from "@/components/brand";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -63,7 +64,10 @@ export default function ShareLinkGuestPage() {
   return (
     <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col gap-6 px-6 py-8">
       <div className="flex items-center justify-between border-b pb-4">
-        <span className="text-lg font-semibold tracking-tight">KALKAN-OS</span>
+        <span className="flex items-center gap-2.5">
+          <WardproofMark />
+          <span className="text-lg font-semibold tracking-tight">Wardproof</span>
+        </span>
         <Badge variant="outline">Denetçi Görünümü · salt-okunur</Badge>
       </div>
 

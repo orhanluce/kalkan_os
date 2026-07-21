@@ -9,6 +9,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useState } from "react";
+import { WardproofMark } from "@/components/brand";
 import { useLocalStore } from "@/lib/store";
 import { useIstemcideMi } from "@/lib/use-istemci";
 import { navGruplari, aktifMi } from "./nav-items";
@@ -38,16 +39,11 @@ export function NavRail() {
       } w-[72px]`}
     >
       <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
-        {/* Mühür geometrisinden logo işareti: dolu kare içinde kalkan hissi
-            veren köşe kesiği — stok kalkan ikonu bilinçli YOK (belge §4.2). */}
-        <span
-          aria-hidden
-          className="grid size-8 shrink-0 place-items-center rounded-md bg-primary font-mono text-sm font-bold text-primary-foreground"
-        >
-          K
-        </span>
+        {/* Wardproof W işareti (src/components/brand.tsx) — stok kalkan ikonu
+            bilinçli YOK (belge §4.2), glyph iki vuruşlu iz/mühür çizgisidir. */}
+        <WardproofMark />
         <span className={`text-sm font-semibold tracking-tight ${dar ? "xl:hidden" : "hidden xl:inline"}`}>
-          KALKAN-OS
+          Wardproof
         </span>
       </div>
 

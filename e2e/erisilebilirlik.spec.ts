@@ -58,3 +58,9 @@ test("AA taraması: giriş ekranı (oturumsuz)", async ({ page }) => {
   await page.waitForLoadState("networkidle");
   await tara(page, "giris");
 });
+
+test("AA taraması: tanıtım sayfası (oturumsuz kök)", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await tara(page, "tanitim");
+});

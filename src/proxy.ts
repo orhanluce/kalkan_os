@@ -46,7 +46,10 @@ import { supabaseAyarlari } from "./lib/supabase/env";
 // kaydının salt-okur özetini görür; kapsam/süre/iptal tedarikci_goruntule
 // RPC'sinde. Bilinçli olarak `/tedarikciler` (yönetim, oturum ister) İLE
 // KARIŞMAYAN ayrı bir kelime — startsWith çakışması yok ama okunurluk için de.
-const ACIK_YOLLAR = ["/giris", "/paylasim", "/auth", "/dogrula", "/health", "/proof", "/matter", "/tedarikci-erisim"];
+// /tanitim halka açık ürün tanıtım sayfasıdır (landing): hesabı olmayan
+// ziyaretçi içindir, hiçbir kiracı verisi okumaz. Oturumsuz "/" isteği de
+// aşağıda bu sayfaya REWRITE edilir (redirect değil — adres çubuğu kök kalır).
+const ACIK_YOLLAR = ["/giris", "/paylasim", "/auth", "/dogrula", "/health", "/proof", "/matter", "/tedarikci-erisim", "/tanitim"];
 
 function acikYolMu(pathname: string): boolean {
   return ACIK_YOLLAR.some((yol) => pathname === yol || pathname.startsWith(`${yol}/`));
@@ -88,6 +91,16 @@ export async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Oturumsuz ziyaretçi kök adrese gelirse tanıtım sayfası SUNULUR (rewrite):
+  // wardproof.com açılınca giriş formuna değil ürün anlatımına düşer. Bu bir
+  // koruma değildir (yukarıdaki güvenlik sınırı notu) — pano zaten oturumsuz
+  // render edilmez, veri RLS arkasındadır.
+  if (!user && request.nextUrl.pathname === "/") {
+    const hedef = request.nextUrl.clone();
+    hedef.pathname = "/tanitim";
+    return NextResponse.rewrite(hedef);
+  }
 
   if (!user && !acikYolMu(request.nextUrl.pathname)) {
     const hedef = request.nextUrl.clone();
