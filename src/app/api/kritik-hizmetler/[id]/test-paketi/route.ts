@@ -55,6 +55,15 @@ async function girdiOlustur(
       ? await db.from("evidences").select("id, hash_sha256, gecerlilik_bitis").in("id", evidenceIdSeti)
       : { data: [] as { id: string; hash_sha256: string | null; gecerlilik_bitis: string | null }[] };
 
+  // Dikey F, F3: bu kritik hizmetin TÜM tolerans sürümleri (TASLAK/YURURLUKTE/
+  // SUPERSEDED). İstemciden tolerans id'sine güvenilmez — aktif/onaylı kaydı
+  // saf motor deterministik çözer. RLS aynı tenant'a kapar; ayrıca
+  // critical_service_id ile daraltılır (başka hizmetin toleransı sızmaz).
+  const { data: tolerablar } = await db
+    .from("impact_tolerances")
+    .select("id, surum, durum, max_kesinti_saat, max_veri_kaybi_saat, yonetim_onayi, onaylayan, onay_zamani")
+    .eq("critical_service_id", criticalServiceId);
+
   return {
     criticalService: { id: hizmet.id, ad: hizmet.ad, durum: hizmet.durum },
     asOf: new Date().toISOString(),
@@ -83,6 +92,18 @@ async function girdiOlustur(
       onem: b.onem as "acil" | "kritik" | "yuksek" | "orta" | "dusuk",
       kapatmaRetestRunId: b.kapatma_retest_run_id,
       kapatanBelirtildi: b.kapatan !== null,
+    })),
+    impactTolerances: (tolerablar ?? []).map((t) => ({
+      id: t.id,
+      version: t.surum,
+      durum: t.durum as "TASLAK" | "YURURLUKTE" | "SUPERSEDED",
+      maxKesintiSaat: t.max_kesinti_saat,
+      maxVeriKaybiSaat: t.max_veri_kaybi_saat,
+      yonetimOnayi: t.yonetim_onayi,
+      // Ham kimlik motora GİRMEZ — yalnız "atanmış mı" (Proof Room'a mühürlenen
+      // paket zaten kimlik taşımamalı, ADR §5).
+      onaylayanBelirtildi: t.onaylayan !== null,
+      onayZamani: t.onay_zamani,
     })),
   };
 }

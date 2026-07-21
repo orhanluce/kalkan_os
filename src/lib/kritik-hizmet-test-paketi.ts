@@ -18,9 +18,53 @@
 // iddiası üretilmez.
 import { bayatMi, type TestSonuc } from "./control-test";
 
-export const KRITIK_HIZMET_TEST_PAKETI_SCHEMA = "KALKAN_CRITICAL_SERVICE_TEST_PACKAGE_V1";
+/** Eski sürüm — okunabilir kalır, yeniden hash'lenmez, yeni paket ÜRETMEZ. */
+export const KRITIK_HIZMET_TEST_PAKETI_SCHEMA_V1 = "KALKAN_CRITICAL_SERVICE_TEST_PACKAGE_V1";
+// Dikey F, F3: etkiToleransiOzeti eklendi — payload gerçekliği değişti, V2.
+export const KRITIK_HIZMET_TEST_PAKETI_SCHEMA = "KALKAN_CRITICAL_SERVICE_TEST_PACKAGE_V2";
 
 export type KritikHizmetTestBagTuru = "DIRECT" | "VIA_CRITICAL_SERVICE_CONTROL" | "BOTH";
+
+/**
+ * Dikey F, F3 (docs/adr/PR0-dikeyF-f3-etki-toleransi-gorunurlugu-2026-07-21.md):
+ * onaylı etki toleransının VARLIĞI — nicel karşılaştırma DEĞİL. `test_runs`'ta
+ * yapılandırılmış bir kesinti/veri-kaybı ÖLÇÜMÜ olmadığı için "RTO karşılandı"
+ * gibi bir hüküm asla üretilmez (kural 11).
+ */
+export type EtkiToleransiDurumu =
+  | "TOLERANS_TANIMLI_VE_ONAYLI"
+  | "TOLERANS_TANIMLI_FAKAT_ONAYSIZ"
+  | "TOLERANS_BULUNAMADI"
+  | "TOLERANS_VERISI_EKSIK"
+  | "BIRDEN_FAZLA_AKTIF_TOLERANS";
+
+/** Ham girdi — impact_tolerances'ın ZATEN VAR olan bir satırı. */
+export interface ImpactToleranceInput {
+  id: string;
+  version: number;
+  durum: "TASLAK" | "YURURLUKTE" | "SUPERSEDED";
+  maxKesintiSaat: number | null;
+  maxVeriKaybiSaat: number | null;
+  yonetimOnayi: boolean;
+  /** Ham kimlik değil — yalnız "atanmış mı" (F1'in hazirlayanBelirtildi deseni). */
+  onaylayanBelirtildi: boolean;
+  onayZamani: string | null;
+}
+
+export interface EtkiToleransiOzeti {
+  durum: EtkiToleransiDurumu;
+  toleranceId: string | null;
+  version: number | null;
+  maxKesintiSaat: number | null;
+  maxVeriKaybiSaat: number | null;
+  onayDurumu: "TASLAK" | "YURURLUKTE" | "SUPERSEDED" | null;
+  onaylayanBelirtildi: boolean;
+  onayZamani: string | null;
+  birim: "SAAT";
+  /** HER ZAMAN false — bu dilimde gerçek ölçüm yok, motor kendi kendini denetler. */
+  karsilastirmaYapildi: false;
+  aciklamaKodu: "GERCEK_OLCUM_YOK" | "ONAYLI_TOLERANS_YOK" | "TOLERANS_EKSIK" | "AKTIF_KAYIT_CAKISMASI" | null;
+}
 
 export type KritikHizmetTestPaketiGenelDurum =
   | "DOGRULANMIS"
@@ -70,6 +114,13 @@ export interface KritikHizmetTestPaketiGirdisi {
     /** Bağımsız kapanış durumu — ham kimlik değil, yalnız "atanmış mı". */
     kapatanBelirtildi: boolean;
   }[];
+  /**
+   * Dikey F, F3: bu kritik hizmete ait impact_tolerances kayıtları (TÜM
+   * sürümler — TASLAK/YURURLUKTE/SUPERSEDED). OPSİYONEL — verilmezse (eski
+   * F2 çağıranları) sonuç birebir F2 davranışıyla aynı kalır (TOLERANS_
+   * BULUNAMADI, genelDurum'u ETKİLEMEZ).
+   */
+  impactTolerances?: ImpactToleranceInput[];
 }
 
 export interface KanitOzeti {
@@ -118,12 +169,19 @@ export interface KritikHizmetTestPaketi {
   testler: KritikHizmetTestDurumu[];
   genelDurum: KritikHizmetTestPaketiGenelDurum;
   gerekceler: string[];
+  /**
+   * Dikey F, F3 — OPSİYONEL alan: eski V1 kayıtlarda YOK (motor onları asla
+   * üretmedi), UI/Proof Room bu yokluğu "bu sürümde bilgi yok" ile savunmacı
+   * okur. Motor bu alanı ARTIK HER ZAMAN doldurur (undefined DÖNMEZ).
+   */
+  etkiToleransiOzeti?: EtkiToleransiOzeti;
   hesaplamaYontemi: {
     surum: string;
     kapsamCozumleme: string;
     guncelKosuSecimi: string;
     worstOfKurali: string;
     tarihselIzKurali: string;
+    etkiToleransiYontemi: string;
   };
 }
 
@@ -138,6 +196,80 @@ const BOS_SONUC_DAGILIMI: Record<TestSonuc, number> = {
 function tazelikDurumuHesapla(calistiAt: string, tazelikGun: number | null, asOf: Date): TazelikDurumu {
   if (tazelikGun === null) return "BILINMIYOR";
   return bayatMi(calistiAt, tazelikGun, asOf) ? "BAYAT" : "TAZE";
+}
+
+/**
+ * Onaylı etki toleransının VARLIĞINI çözer — NİCEL karşılaştırma yapmaz
+ * (`karsilastirmaYapildi` her zaman false, ADR §2). `impact_tolerances_tek_
+ * yururlukte` unique partial index'i DB'de birden fazla YURURLUKTE kaydını
+ * yapısal olarak imkansız kılar; motor yine de bu olasılığı SAVUNMACI ele
+ * alır — rastgele bir kayıt seçmez, yeni bir politika icat etmeden yalnız
+ * `BIRDEN_FAZLA_AKTIF_TOLERANS` döner.
+ */
+function etkiToleransiOzetiHesapla(kayitlar: ImpactToleranceInput[] | undefined): EtkiToleransiOzeti {
+  const BOS: Pick<EtkiToleransiOzeti, "toleranceId" | "version" | "maxKesintiSaat" | "maxVeriKaybiSaat" | "onayDurumu" | "onaylayanBelirtildi" | "onayZamani"> = {
+    toleranceId: null,
+    version: null,
+    maxKesintiSaat: null,
+    maxVeriKaybiSaat: null,
+    onayDurumu: null,
+    onaylayanBelirtildi: false,
+    onayZamani: null,
+  };
+
+  if (!kayitlar || kayitlar.length === 0) {
+    return { ...BOS, durum: "TOLERANS_BULUNAMADI", birim: "SAAT", karsilastirmaYapildi: false, aciklamaKodu: "ONAYLI_TOLERANS_YOK" };
+  }
+
+  const yururlukteler = kayitlar.filter((k) => k.durum === "YURURLUKTE");
+  if (yururlukteler.length > 1) {
+    return { ...BOS, durum: "BIRDEN_FAZLA_AKTIF_TOLERANS", birim: "SAAT", karsilastirmaYapildi: false, aciklamaKodu: "AKTIF_KAYIT_CAKISMASI" };
+  }
+
+  if (yururlukteler.length === 1) {
+    const k = yururlukteler[0];
+    const ozet: EtkiToleransiOzeti = {
+      durum: "TOLERANS_TANIMLI_VE_ONAYLI",
+      toleranceId: k.id,
+      version: k.version,
+      maxKesintiSaat: k.maxKesintiSaat,
+      maxVeriKaybiSaat: k.maxVeriKaybiSaat,
+      onayDurumu: k.durum,
+      onaylayanBelirtildi: k.onaylayanBelirtildi,
+      onayZamani: k.onayZamani,
+      birim: "SAAT",
+      karsilastirmaYapildi: false,
+      aciklamaKodu: "GERCEK_OLCUM_YOK",
+    };
+    // NULL sıfır değildir — ikisi de null ise hedef fiilen boş onaylanmış demektir.
+    if (k.maxKesintiSaat === null && k.maxVeriKaybiSaat === null) {
+      return { ...ozet, durum: "TOLERANS_VERISI_EKSIK", aciklamaKodu: "TOLERANS_EKSIK" };
+    }
+    return ozet;
+  }
+
+  // YURURLUKTE yok — en güncel (en yüksek sürüm) TASLAK var mı? Onaylı hedef
+  // GİBİ gösterilmez (durum ayrı), ama önerilen değerler yine de görünür.
+  const taslaklar = kayitlar.filter((k) => k.durum === "TASLAK").sort((a, b) => b.version - a.version);
+  if (taslaklar.length > 0) {
+    const k = taslaklar[0];
+    return {
+      durum: "TOLERANS_TANIMLI_FAKAT_ONAYSIZ",
+      toleranceId: k.id,
+      version: k.version,
+      maxKesintiSaat: k.maxKesintiSaat,
+      maxVeriKaybiSaat: k.maxVeriKaybiSaat,
+      onayDurumu: k.durum,
+      onaylayanBelirtildi: k.onaylayanBelirtildi,
+      onayZamani: k.onayZamani,
+      birim: "SAAT",
+      karsilastirmaYapildi: false,
+      aciklamaKodu: null,
+    };
+  }
+
+  // Yalnız SUPERSEDED kayıtlar var — fiilen yürürlükte/onaylı bir hedef yok.
+  return { ...BOS, durum: "TOLERANS_BULUNAMADI", birim: "SAAT", karsilastirmaYapildi: false, aciklamaKodu: "ONAYLI_TOLERANS_YOK" };
 }
 
 /**
@@ -221,7 +353,8 @@ export function kritikHizmetTestPaketiOlustur(girdi: KritikHizmetTestPaketiGirdi
     };
   });
 
-  const { genelDurum, gerekceler } = genelDurumHesapla(testler);
+  const etkiToleransiOzeti = etkiToleransiOzetiHesapla(girdi.impactTolerances);
+  const { genelDurum, gerekceler } = genelDurumHesapla(testler, etkiToleransiOzeti);
 
   return {
     schema: KRITIK_HIZMET_TEST_PAKETI_SCHEMA,
@@ -236,24 +369,60 @@ export function kritikHizmetTestPaketiOlustur(girdi: KritikHizmetTestPaketiGirdi
     testler,
     genelDurum,
     gerekceler,
+    etkiToleransiOzeti,
     hesaplamaYontemi: {
-      surum: "kritik-hizmet-test-paketi-v1",
+      surum: "kritik-hizmet-test-paketi-v2",
       kapsamCozumleme: "DIRECT (control_test_definitions.critical_service_id) + VIA_CRITICAL_SERVICE_CONTROL (critical_service_controls.control_id) — deterministik birleşim, serbest metinle eşleştirme yok.",
       guncelKosuSecimi: "Her test tanımı için en yüksek calisti_at; eşitlikte en yüksek seq (append-only sıra).",
       worstOfKurali: "FAILED > (UNKNOWN/EXCEPTION/STALE/BAYAT/eksik-koşu) > PASSED+TAZE. Belirsizlikte INCELEME_GEREKLI — asla sahte DOGRULANMIS üretilmez.",
       tarihselIzKurali: "Tam koşu geçmişi kopyalanmaz — yalnız sayaç/kimlik listeleri (toplam/sonuç dağılımı/ilk-son tarih/bulgu-retest kimlikleri).",
+      etkiToleransiYontemi:
+        "Onaylı etki toleransı gösterilmiştir. Test koşusunda yapılandırılmış gerçek kesinti/veri kaybı ölçümü bulunmadığından nicel uygunluk karşılaştırması yapılmamıştır.",
     },
   };
 }
 
-function genelDurumHesapla(testler: KritikHizmetTestDurumu[]): { genelDurum: KritikHizmetTestPaketiGenelDurum; gerekceler: string[] } {
+/**
+ * Dikey F, F3 (ADR §7): tolerans durumu ASLA yeni bir "üstünlük" yaratmaz —
+ * yalnız zaten-DOGRULANMIS bir sonucu INCELEME_GEREKLI'ye düşürebilir. Diğer
+ * her durumda (ENGELLENDI/VERI_EKSIK/TEST_YOK/zaten-INCELEME_GEREKLI) worst-of
+ * sonucu OLDUĞU GİBİ korunur — tolerans bilgisi bunları "iyileştirmez".
+ */
+function etkiToleransiGerekceUygula(
+  base: { genelDurum: KritikHizmetTestPaketiGenelDurum; gerekceler: string[] },
+  etkiToleransiOzeti: EtkiToleransiOzeti,
+): { genelDurum: KritikHizmetTestPaketiGenelDurum; gerekceler: string[] } {
+  if (etkiToleransiOzeti.durum !== "TOLERANS_TANIMLI_FAKAT_ONAYSIZ" && etkiToleransiOzeti.durum !== "BIRDEN_FAZLA_AKTIF_TOLERANS") {
+    return base;
+  }
+
+  const gerekceler = [...base.gerekceler];
+  if (etkiToleransiOzeti.durum === "TOLERANS_TANIMLI_FAKAT_ONAYSIZ") {
+    gerekceler.push("Etki toleransı yalnız taslak — yönetim onayı yok.");
+  } else {
+    gerekceler.push("Birden fazla aktif etki toleransı kaydı çakışıyor — tekil onaylı hedef çözülemedi.");
+  }
+
+  if (base.genelDurum === "DOGRULANMIS") {
+    return { genelDurum: "INCELEME_GEREKLI", gerekceler };
+  }
+  return { genelDurum: base.genelDurum, gerekceler };
+}
+
+function genelDurumHesapla(
+  testler: KritikHizmetTestDurumu[],
+  etkiToleransiOzeti: EtkiToleransiOzeti,
+): { genelDurum: KritikHizmetTestPaketiGenelDurum; gerekceler: string[] } {
   if (testler.length === 0) {
-    return { genelDurum: "TEST_YOK", gerekceler: ["Kapsamda hiç test tanımı yok."] };
+    return etkiToleransiGerekceUygula({ genelDurum: "TEST_YOK", gerekceler: ["Kapsamda hiç test tanımı yok."] }, etkiToleransiOzeti);
   }
 
   const kosusuzTanimlar = testler.filter((t) => t.enGuncelKosu === null);
   if (kosusuzTanimlar.length === testler.length) {
-    return { genelDurum: "VERI_EKSIK", gerekceler: ["Kapsamdaki hiçbir test tanımının koşusu yok."] };
+    return etkiToleransiGerekceUygula(
+      { genelDurum: "VERI_EKSIK", gerekceler: ["Kapsamdaki hiçbir test tanımının koşusu yok."] },
+      etkiToleransiOzeti,
+    );
   }
 
   const gerekceler: string[] = [];
@@ -265,7 +434,7 @@ function genelDurumHesapla(testler: KritikHizmetTestDurumu[]): { genelDurum: Kri
   const failedTanimlar = testler.filter((t) => t.enGuncelKosu?.sonuc === "FAILED");
   if (failedTanimlar.length > 0) {
     gerekceler.push(`${failedTanimlar.length} test tanımının en güncel koşusu FAILED.`);
-    return { genelDurum: "ENGELLENDI", gerekceler };
+    return etkiToleransiGerekceUygula({ genelDurum: "ENGELLENDI", gerekceler }, etkiToleransiOzeti);
   }
 
   const belirsizTanimlar = testler.filter(
@@ -286,9 +455,9 @@ function genelDurumHesapla(testler: KritikHizmetTestDurumu[]): { genelDurum: Kri
   }
 
   if (kosusuzTanimlar.length > 0 || belirsizTanimlar.length > 0 || acikKritikBulgular.length > 0) {
-    return { genelDurum: "INCELEME_GEREKLI", gerekceler };
+    return etkiToleransiGerekceUygula({ genelDurum: "INCELEME_GEREKLI", gerekceler }, etkiToleransiOzeti);
   }
 
   gerekceler.push("Kapsamdaki tüm test tanımlarının en güncel koşusu PASSED ve taze.");
-  return { genelDurum: "DOGRULANMIS", gerekceler };
+  return etkiToleransiGerekceUygula({ genelDurum: "DOGRULANMIS", gerekceler }, etkiToleransiOzeti);
 }

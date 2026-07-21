@@ -243,6 +243,14 @@ const KRITIK_HIZMET_GENEL_DURUM_ETIKET: Record<string, { etiket: string; semanti
   VERI_EKSIK: { etiket: "Güncel test bulunamadı", semantik: "unknown" },
   TEST_YOK: { etiket: "Kapsamda test tanımı yok", semantik: "neutral" },
 };
+// Dikey F, F3: onaylı etki toleransının VARLIĞI — "RTO/RPO karşılandı" ASLA üretilmez.
+const ETKI_TOLERANSI_PROOF_ETIKET: Record<string, { etiket: string; semantik: SemantikDurum }> = {
+  TOLERANS_TANIMLI_VE_ONAYLI: { etiket: "Onaylı etki toleransı mevcut", semantik: "success" },
+  TOLERANS_TANIMLI_FAKAT_ONAYSIZ: { etiket: "Etki toleransı onay bekliyor", semantik: "warning" },
+  TOLERANS_BULUNAMADI: { etiket: "Etki toleransı tanımlanmamış", semantik: "neutral" },
+  TOLERANS_VERISI_EKSIK: { etiket: "Etki toleransı verisi eksik", semantik: "unknown" },
+  BIRDEN_FAZLA_AKTIF_TOLERANS: { etiket: "Birden fazla yürürlükte tolerans kaydı bulundu", semantik: "warning" },
+};
 const KATEGORI_DURUM_SEMANTIK: Record<string, SemantikDurum> = {
   DOGRULANMIS: "success",
   UYGULANMAZ: "neutral",
@@ -445,6 +453,41 @@ export default function ProofRoomPage() {
                 ))}
               </ul>
             ) : null}
+          </CardContent>
+        </Card>
+
+        {/* Dikey F, F3: Etki Toleransı — mühürlü paketin İÇİNDEKİ minimize özet. V1 snapshot'ta bu alan YOKtur. */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Etki Toleransı</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            {paket.etkiToleransiOzeti ? (
+              <>
+                <StatusBadge durum={ETKI_TOLERANSI_PROOF_ETIKET[paket.etkiToleransiOzeti.durum]?.semantik ?? "unknown"}>
+                  {ETKI_TOLERANSI_PROOF_ETIKET[paket.etkiToleransiOzeti.durum]?.etiket ?? paket.etkiToleransiOzeti.durum}
+                </StatusBadge>
+                {paket.etkiToleransiOzeti.durum === "TOLERANS_TANIMLI_VE_ONAYLI" ||
+                paket.etkiToleransiOzeti.durum === "TOLERANS_TANIMLI_FAKAT_ONAYSIZ" ? (
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <dt>Azami kesinti süresi (RTO)</dt>
+                    <dd>{paket.etkiToleransiOzeti.maxKesintiSaat === null ? "Tanımlanmamış" : `${paket.etkiToleransiOzeti.maxKesintiSaat} saat`}</dd>
+                    <dt>Azami veri kaybı (RPO)</dt>
+                    <dd>{paket.etkiToleransiOzeti.maxVeriKaybiSaat === null ? "Tanımlanmamış" : `${paket.etkiToleransiOzeti.maxVeriKaybiSaat} saat`}</dd>
+                    <dt>Sürüm</dt>
+                    <dd>{paket.etkiToleransiOzeti.version ?? "—"}</dd>
+                    <dt>Onay durumu</dt>
+                    <dd>{paket.etkiToleransiOzeti.onayDurumu ?? "—"}</dd>
+                  </dl>
+                ) : null}
+                <p role="note" className="text-xs text-muted-foreground">
+                  Bu değerler kurumun onaylı hedeflerini gösterir. Test koşularında yapılandırılmış gerçek kesinti ve veri kaybı ölçümü
+                  bulunmadığından hedeflerle nicel karşılaştırma yapılmamıştır.
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">Bu snapshot sürümünde etki toleransı bilgisi bulunmamaktadır.</p>
+            )}
           </CardContent>
         </Card>
 

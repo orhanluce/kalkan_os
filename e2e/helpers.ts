@@ -21,7 +21,8 @@ function ortamDegeri(anahtar: string): string {
 export async function girisYap(page: Page): Promise<void> {
   await page.goto("/giris");
   await page.getByLabel("E-posta").fill(ortamDegeri("E2E_USER_EMAIL"));
-  await page.getByLabel("Şifre").fill(ortamDegeri("E2E_USER_PASSWORD"));
+  // "Şifre" hem input'u hem "Şifreyi göster" butonunu eşler — textbox rolüyle daralt.
+  await page.getByRole("textbox", { name: "Şifre" }).fill(ortamDegeri("E2E_USER_PASSWORD"));
   await page.getByRole("button", { name: "Giriş Yap" }).click();
   // Giriş sonrası pano, auth + üç paralel Supabase sorgusunun (store,
   // kütüphane, kurum) hepsini bekler. Varsayılan 5sn zaman aşımı bazen
@@ -38,7 +39,7 @@ export async function girisYap(page: Page): Promise<void> {
 export async function ikinciKullaniciGirisYap(page: Page): Promise<void> {
   await page.goto("/giris");
   await page.getByLabel("E-posta").fill(ortamDegeri("E2E_USER2_EMAIL"));
-  await page.getByLabel("Şifre").fill(ortamDegeri("E2E_USER2_PASSWORD"));
+  await page.getByRole("textbox", { name: "Şifre" }).fill(ortamDegeri("E2E_USER2_PASSWORD"));
   await page.getByRole("button", { name: "Giriş Yap" }).click();
   await expect(page.getByRole("heading", { name: E2E_KURUM_ADI })).toBeVisible({ timeout: 15_000 });
 }

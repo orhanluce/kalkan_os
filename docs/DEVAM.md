@@ -1,8 +1,40 @@
-# DEVAM TALİMATI — kaldığın yerden sürdür (21 Temmuz 2026 güncellemesi — Dikey F F2)
+# DEVAM TALİMATI — kaldığın yerden sürdür (21 Temmuz 2026 güncellemesi — Dikey F F3)
 
 Bu dosya oturumlar arası devir içindir. **Kurucu kalıcı onay verdi:
 "her bitişte onaya gerek yok, V2 PR sırasının SONUNA KADAR devam."** Her PR'ı
 doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine geç.
+**AMA:** her GERÇEKTEN YENİ mimari karar için önce KODSUZ analiz sun, kurucunun
+açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1/F2/F3'te bu iki-faz
+disiplini tutarlı uygulandı).
+
+## -3. DİKEY F, F3 BİTTİ (21 Temmuz 2026) — Onaylı Etki Toleransının Görünürlüğü
+Kurucunun "Seçenek A: sığ fakat dürüst bağlama" kararı tam uygulandı
+(docs/adr/PR0-dikeyF-f3-etki-toleransi-gorunurlugu-2026-07-21.md). `impact_
+tolerances` (M13, o güne dek HİÇ tüketilmiyordu — altıncı erteleme) F2 paketine
++ UI + Proof Room'a bağlandı. **NİCEL KARŞILAŞTIRMA YOK:** `test_runs`'ta
+yapılandırılmış kesinti/veri-kaybı ÖLÇÜMÜ olmadığından "RTO/RPO karşılandı",
+"tolerans içinde/aşıldı", yüzdesel başarı, güven skoru ASLA üretilmez;
+`karsilastirmaYapildi` HER ZAMAN `false`. Saf motor geriye dönük genişletildi
+(`impactTolerances?` opsiyonel — verilmezse F2 sonucu birebir aynı). Beş durum
+sınıfı; birden fazla YURURLUKTE savunmacı ele alınır (rastgele seçim yok); NULL
+≠ sıfır. Genel duruma etki: onaylı tolerans DOGRULANMIS tetiklemez, yokluğu
+ENGELLENDI üretmez; yalnız onaysız/çakışma gerekçe ekler + DOGRULANMIS→
+INCELEME_GEREKLI düşürür (ENGELLENDI iyileştirilmez). Şema V1→V2; V1 kayıtlar
+değiştirilmez/yeniden hash'lenmez/backfill YOK. **Proof Room migration'ı
+GEREKMEDİ** — özet mühürlü `paket`'in içine gömülü ve zaten minimize/PII'siz
+(`onaylayanBelirtildi` boolean), beşinci dal olduğu gibi döndürür; altıncı dal
+açılmadı. `valid_from/valid_until` `impact_tolerances`'ta YOK (kurucu taslağı
+düzeltildi → `onay_zamani`/`durum`).
+
+**17 yeni saf test + 5 yeni PGlite/RLS + 18/18 canlı smoke + 1 Chromium e2e;
+1519 birim + 78 e2e, 0 skip; typecheck/lint/build yeşil.** Yol boyunca gerçek
+ön-var regresyon (F3 değil): "Şifreyi göster" butonu `helpers.ts`'in
+`getByLabel("Şifre")`'ini iki elemana çözüyordu — 17 iki-kullanıcı testi
+`ikinciKullaniciGirisYap`'ta patladı; `getByRole("textbox")` ile daraltıldı.
+**Sıradaki (F3'ün KENDİSİNDE kapsam dışı, kurucu kararı bekliyor):** gerçek
+nicel RTO/RPO bağlama — önce `test_runs`'a ölçüm veri sözleşmesi kurulmalı,
+karşılaştırma motoru ANCAK ondan sonra. Diğer açık dallar: M17 örnekleme
+köprüsü, impact-graph genişlemesi, gerçek test-program orkestrasyonu.
 
 ## -2. DİKEY F, F2 BİTTİ (21 Temmuz 2026) — Kritik Hizmet Test Paketi
 Kurucunun F2 kararları tam uygulandı: `kritik_hizmet_test_paketi_snapshots`

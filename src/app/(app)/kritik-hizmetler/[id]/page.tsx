@@ -56,6 +56,16 @@ interface SnapshotSatiri {
   genel_durum: string | null;
 }
 
+// Dikey F, F3: onaylı etki toleransının VARLIĞI — nicel karşılaştırma DEĞİL.
+// "RTO/RPO karşılandı" gibi hiçbir hüküm ÜRETİLMEZ (kural 11, ADR §2).
+const ETKI_TOLERANSI_ETIKET: Record<string, { metin: string; durum: SemantikDurum }> = {
+  TOLERANS_TANIMLI_VE_ONAYLI: { metin: "Onaylı etki toleransı mevcut", durum: "success" },
+  TOLERANS_TANIMLI_FAKAT_ONAYSIZ: { metin: "Etki toleransı onay bekliyor", durum: "warning" },
+  TOLERANS_BULUNAMADI: { metin: "Etki toleransı tanımlanmamış", durum: "neutral" },
+  TOLERANS_VERISI_EKSIK: { metin: "Etki toleransı verisi eksik", durum: "unknown" },
+  BIRDEN_FAZLA_AKTIF_TOLERANS: { metin: "Birden fazla yürürlükte tolerans kaydı bulundu", durum: "warning" },
+};
+
 export default function KritikHizmetDetayPage() {
   const params = useParams<{ id: string }>();
   const [hizmet, setHizmet] = useState<{ ad: string; durum: string } | null>(null);
@@ -365,6 +375,37 @@ export default function KritikHizmetDetayPage() {
                     <li key={i}>{g}</li>
                   ))}
                 </ul>
+              ) : null}
+
+              {/* Dikey F, F3: Etki Toleransı — onaylı hedeflerin VARLIĞI, nicel karşılaştırma YOK. */}
+              {onizleme.etkiToleransiOzeti ? (
+                <div data-testid="etki-toleransi-karti" className="flex flex-col gap-2 rounded-md border border-dashed p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium">Etki Toleransı</span>
+                    <StatusBadge durum={ETKI_TOLERANSI_ETIKET[onizleme.etkiToleransiOzeti.durum]?.durum ?? "unknown"}>
+                      {ETKI_TOLERANSI_ETIKET[onizleme.etkiToleransiOzeti.durum]?.metin ?? onizleme.etkiToleransiOzeti.durum}
+                    </StatusBadge>
+                  </div>
+                  {onizleme.etkiToleransiOzeti.durum === "TOLERANS_TANIMLI_VE_ONAYLI" ||
+                  onizleme.etkiToleransiOzeti.durum === "TOLERANS_TANIMLI_FAKAT_ONAYSIZ" ? (
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      <dt>Azami kesinti süresi (RTO)</dt>
+                      <dd>{onizleme.etkiToleransiOzeti.maxKesintiSaat === null ? "Tanımlanmamış" : `${onizleme.etkiToleransiOzeti.maxKesintiSaat} saat`}</dd>
+                      <dt>Azami veri kaybı (RPO)</dt>
+                      <dd>{onizleme.etkiToleransiOzeti.maxVeriKaybiSaat === null ? "Tanımlanmamış" : `${onizleme.etkiToleransiOzeti.maxVeriKaybiSaat} saat`}</dd>
+                      <dt>Sürüm</dt>
+                      <dd>{onizleme.etkiToleransiOzeti.version ?? "—"}</dd>
+                      <dt>Onay durumu</dt>
+                      <dd>{onizleme.etkiToleransiOzeti.onayDurumu ?? "—"}</dd>
+                      <dt>Onay zamanı</dt>
+                      <dd>{onizleme.etkiToleransiOzeti.onayZamani ? new Date(onizleme.etkiToleransiOzeti.onayZamani).toLocaleString("tr-TR") : "—"}</dd>
+                    </dl>
+                  ) : null}
+                  <p className="text-xs text-muted-foreground">
+                    Bu değerler kurumun onaylı hedeflerini gösterir. Test koşularında yapılandırılmış gerçek kesinti ve veri kaybı ölçümü
+                    bulunmadığından hedeflerle nicel karşılaştırma yapılmamıştır.
+                  </p>
+                </div>
               ) : null}
 
               {onizleme.testler.map((t) => (

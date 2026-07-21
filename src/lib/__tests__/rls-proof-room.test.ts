@@ -400,3 +400,61 @@ describe("proof_room — kritik_hizmet_test_paketi_snapshot_id dalı (Dikey F, F
     expect((t[0].v as Record<string, unknown>).kritikHizmetTestPaketi).toBeUndefined();
   });
 });
+
+describe("proof_room — Dikey F, F3: V2 tolerans özeti mühürlü paketle döner, V1'de yok", () => {
+  async function paketEkleVersiyonlu(tenantId: string, userId: string, paket: object, hash: string): Promise<string> {
+    const { rows: hizmet } = await db.sql(`insert into public.critical_business_services (tenant_id, ad) values ($1, 'Ödeme') returning id`, [tenantId]);
+    const { rows } = await db.asUser(
+      userId,
+      `insert into public.kritik_hizmet_test_paketi_snapshots (tenant_id, critical_service_id, paket, paket_hash, hesaplama_yontemi)
+       values ($1, $2, $3::jsonb, $4, '{"surum":"kritik-hizmet-test-paketi-v2"}'::jsonb) returning id`,
+      [tenantId, hizmet[0].id, JSON.stringify(paket), hash],
+    );
+    return rows[0].id as string;
+  }
+
+  it("V2 snapshot: anonim görüntülemede mühürlü etkiToleransiOzeti (minimize) döner; ham onaylayan kimliği YOK, 'RTO karşılandı' YOK", async () => {
+    const v2Paket = {
+      schema: "KALKAN_CRITICAL_SERVICE_TEST_PACKAGE_V2",
+      genelDurum: "INCELEME_GEREKLI",
+      etkiToleransiOzeti: {
+        durum: "TOLERANS_TANIMLI_VE_ONAYLI",
+        toleranceId: "tol-xyz",
+        version: 2,
+        maxKesintiSaat: 4,
+        maxVeriKaybiSaat: 1,
+        onayDurumu: "YURURLUKTE",
+        onaylayanBelirtildi: true,
+        birim: "SAAT",
+        karsilastirmaYapildi: false,
+      },
+    };
+    const paketId = await paketEkleVersiyonlu(seed.A.tenantId, seed.A.userId, v2Paket, "d".repeat(64));
+    const token = await paketLinkOlustur(seed.A.userId, seed.A.tenantId, paketId);
+    const { rows } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [token]);
+    const v = rows[0].v as Record<string, unknown>;
+    const paket = (v.kritikHizmetTestPaketi as Record<string, unknown>).paket as Record<string, unknown>;
+    const tol = paket.etkiToleransiOzeti as Record<string, unknown>;
+    expect(tol.durum).toBe("TOLERANS_TANIMLI_VE_ONAYLI");
+    expect(tol.maxKesintiSaat).toBe(4);
+    expect(tol.karsilastirmaYapildi).toBe(false);
+    // Kimlik minimizasyonu: yalnız boolean, ham UUID yok.
+    expect(tol.onaylayanBelirtildi).toBe(true);
+    expect(tol.onaylayan).toBeUndefined();
+    // Nicel uygunluk hükmü ASLA sızmaz.
+    const json = JSON.stringify(v);
+    expect(json).not.toContain("RTO karşılandı");
+    expect(json).not.toContain("RPO karşılandı");
+    expect(json).not.toContain(seed.A.userId);
+  });
+
+  it("V1 snapshot: mühürlü payload'da etkiToleransiOzeti YOK — savunmacı okunur, güncel DB'den zenginleştirilmez", async () => {
+    const v1Paket = { schema: "KALKAN_CRITICAL_SERVICE_TEST_PACKAGE_V1", genelDurum: "DOGRULANMIS" };
+    const paketId = await paketEkleVersiyonlu(seed.A.tenantId, seed.A.userId, v1Paket, "e".repeat(64));
+    const token = await paketLinkOlustur(seed.A.userId, seed.A.tenantId, paketId);
+    const { rows } = await db.asAnon(`select public.proof_room_goruntule($1) as v`, [token]);
+    const v = rows[0].v as Record<string, unknown>;
+    const paket = (v.kritikHizmetTestPaketi as Record<string, unknown>).paket as Record<string, unknown>;
+    expect(paket.etkiToleransiOzeti).toBeUndefined();
+  });
+});

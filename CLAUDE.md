@@ -1,6 +1,52 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**Dikey F, F3 BİTTİ (21 Temmuz 2026) — Onaylı Etki Toleransının Test Paketinde
+Görünürlüğü.** Kurucunun "Seçenek A: sığ fakat dürüst bağlama" kararı tam
+uygulandı: mevcut `impact_tolerances` (M13, o güne dek HİÇ tüketilmiyordu —
+altıncı ertelemeydi) F2 Kritik Hizmet Test Paketi + UI + Proof Room görünümüne
+BAĞLANDI. **NİCEL KARŞILAŞTIRMA YOK (kural 11 + doğruluk ilkesi):** `test_runs`
+şemasında yapılandırılmış bir kesinti/veri-kaybı ÖLÇÜMÜ olmadığı için (RESTORE_
+TEST bile jenerik `iddiaKarsilandi` mantığıyla değerlendiriliyor) "RTO
+karşılandı"/"RPO karşılandı"/"tolerans içinde"/"tolerans aşıldı"/yüzdesel
+başarı/sayısal güven skoru ASLA üretilmez — `karsilastirmaYapildi` alanı HER
+ZAMAN `false` (motorun kendi kendini denetleyen dürüstlük bayrağı). Saf motor
+(`kritik-hizmet-test-paketi.ts`) geriye dönük genişletildi: OPSİYONEL
+`impactTolerances?` girdisi verilmezse (eski F2 çağıranları) sonuç BİREBİR F2
+davranışıyla aynı kalır. Beş AYRI durum sınıfı (TOLERANS_TANIMLI_VE_ONAYLI/
+TOLERANS_TANIMLI_FAKAT_ONAYSIZ/TOLERANS_BULUNAMADI/TOLERANS_VERISI_EKSIK/
+BIRDEN_FAZLA_AKTIF_TOLERANS). `impact_tolerances_tek_yururlukte` partial unique
+index birden fazla YURURLUKTE'yi yapısal olarak imkansız kılar; motor yine de
+SAVUNMACI ele alır — rastgele seçmez, `BIRDEN_FAZLA_AKTIF_TOLERANS` döner.
+`NULL` sıfır değildir (RTO dolu/RPO boş ayrı gösterilir). Genel pakete etki:
+onaylı tolerans DOGRULANMIS tetiklemez, yokluğu ENGELLENDI üretmez; yalnız
+ONAYSIZ TASLAK veya ÇAKIŞMA gerekçeye eklenir ve mevcut sonuç DOGRULANMIS ise
+INCELEME_GEREKLI'ye düşürülür (worst-of'un doğal uzantısı, yeni politika icat
+edilmedi; ENGELLENDI asla "iyileştirilmez").
+
+Şema V1→V2 (`KALKAN_CRITICAL_SERVICE_TEST_PACKAGE_V2`): V1 sabiti korunur —
+eski kayıtlar okunabilir, yeniden hash'lenmez, VERİ MIGRATION'IYLA
+ZENGİNLEŞTİRİLMEZ; `etkiToleransiOzeti` TS'te opsiyonel, V1 JSON'da yok, UI/
+Proof Room "bu sürümde bilgi yok" ile savunmacı okur. **Proof Room için YENİ
+migration GEREKMEDİ:** özet, mühürlü `paket` JSONB'sinin İÇİNE mühürlenir ve
+tür gereği zaten Proof-Room-güvenli (`onaylayanBelirtildi` boolean, ham
+onaylayan UUID'si YOK; `toleranceId` kullanıcı değil artifact kimliği) — beşinci
+dal olduğu gibi döndürür, altıncı dal AÇILMADI. `impact_tolerances`'ta
+`valid_from`/`valid_until` YOK (kurucu taslağının düzeltilmesi — o alanlar farklı
+bir tabloda; `onay_zamani`/`durum` kullanıldı). Kesinlikle AYRI bir gelecek
+dikey: gerçek nicel bağlama — önce `test_runs`'a ölçüm veri sözleşmesi kurulmalı,
+karşılaştırma motoru ANCAK ondan sonra.
+
+**17 yeni saf motor testi (F3-1..17) + 5 yeni PGlite/RLS testi (tolerans tenant
+izolasyonu, tek-yürürlükte, V1/V2 birlikte-okuma+immutability, Proof Room V2
+minimize özet/V1 savunmacı) + 18/18 canlı Supabase smoke + 1 yeni Chromium e2e;
+1519 birim + 78 e2e, 0 skip; typecheck/lint/build yeşil.** Yol boyunca bulunup
+düzeltilen GERÇEK ön-var regresyon (F3 değil): giriş formuna eklenmiş "Şifreyi
+göster" butonu `e2e/helpers.ts`'in `getByLabel("Şifre")`'ini iki elemana
+(input + buton) çözüyordu — tam e2e suite'in 17 dört-göz/maker-checker testi
+`ikinciKullaniciGirisYap`'ta patladı; `getByRole("textbox", {name:"Şifre"})`
+ile daraltıldı (F3 mantığından bağımsız, tam suite koşusu SAYESİNDE yakalandı).
+
 **Dikey F, F2 BİTTİ (21 Temmuz 2026) — Kritik Hizmet Test Paketi.** F1'in
 Karar 2'sinin ("test programı/kampanya tablosu F2'ye ertelendi") yanıtı:
 `kritik_hizmet_test_paketi_snapshots` (UI adı: "Kritik Hizmet Test Paketi",
