@@ -36,6 +36,18 @@ nicel RTO/RPO bağlama — önce `test_runs`'a ölçüm veri sözleşmesi kurulm
 karşılaştırma motoru ANCAK ondan sonra. Diğer açık dallar: M17 örnekleme
 köprüsü, impact-graph genişlemesi, gerçek test-program orkestrasyonu.
 
+**AÇIK NOKTA — deploy health bu ortamdan DOĞRULANAMADI (dürüstlük notu):**
+commit `f65c9df` main'e push'landı (remote HEAD teyitli), Hostinger otomatik
+deploy tetiklendi. Ancak `blue-yak-865668.hostingersite.com` sağlık uçlarına
+bu makineden yapılan HER istek (curl/schannel, .NET, node/OpenSSL — üçü de)
+TLS el sıkışması TAMAMLANDIKTAN SONRA `ECONNRESET` ile düştü (~18 dk boyunca);
+aynı ağdan GitHub 200 dönüyor. El sıkışma sonrası TCP reset, normal bir app
+restart'ının 502/503'ünden farklı — ya devam eden/başarısız bir yeniden-build
+ya da bu ortam↔host arası bir ağ reset'i. Yerel `pnpm run build` YEŞİL, tüm
+testler yeşil. **Kurucu tarayıcıdan `/` → giriş yönlendirmesini teyit etmeli;
+canlı sağlık TARAFIMIZDAN doğrulanmış SAYILMAMALI** (kural: kanıtsız "sağlıklı"
+denmez).
+
 ## -2. DİKEY F, F2 BİTTİ (21 Temmuz 2026) — Kritik Hizmet Test Paketi
 Kurucunun F2 kararları tam uygulandı: `kritik_hizmet_test_paketi_snapshots`
 (UI adı: "Kritik Hizmet Test Paketi") — tek bir kritik hizmet için mevcut M12
