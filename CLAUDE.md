@@ -1,6 +1,21 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**Dikey G1.1 kararlaştırıldı (22 Temmuz 2026) — Pilot Operasyon Hazırlığı:
+kod DEĞİL, iki operasyonel kapı.** G1 canlı/kabul edildikten sonra kurucu G2'ye
+(self-servis + ödeme) DOĞRUDAN geçilmemesine karar verdi — önce iki bloklayıcı
+çıkış kapısı: **(1) özel SMTP** (Supabase'in varsayılan e-posta servisi canlı
+G1 testinde hız sınırına gerçekten çarptı — kabul kriterleri + doğrulama
+script'i iskeleti `docs/operasyon/OZEL_SMTP_KURULUMU.md`) ve **(2) K1 gerçek
+restore provası** (kurucunun tam kanıt zinciri + G1 tablolarına özgü doğrulama
+kalemleri `docs/operasyon/YEDEKLEME_GERI_YUKLEME.md` §5'e işlendi). **İkisi de
+Claude'un YÜRÜTEMEYECEĞİ işlerdir** (harici sağlayıcı hesabı/DNS/staging ortamı
+kurucunun/ekibin erişimi gerektirir) — bu oturumda yalnız runbook/checklist/
+doğrulama iskeleti hazırlandı, kod/migration YOK. Doğru sıra (kurucunun kararı):
+özel SMTP → K1 restore provası → ilk kontrollü pilot tenant → onboarding
+gözlemi → kullanıcı geri bildirimi → G2 kodsuz analiz. **G2 kodsuz analizi
+dahi bu ikisi kapanmadan başlamaz.**
+
 **Dikey G1 BİTTİ (22 Temmuz 2026) — Kontrollü Pilot Provisioning ve Kurum
 Onboarding.** Dikey F sonrası gap analysis'te bulunan en sert engel kapatıldı:
 kod tabanında `signUp`/`inviteUserByEmail`/`createUser` HİÇ çağrılmıyordu —
