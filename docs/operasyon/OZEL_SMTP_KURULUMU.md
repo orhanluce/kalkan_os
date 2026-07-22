@@ -165,6 +165,81 @@ async function main() {
 main().catch((e) => { console.error(e); process.exit(1); });
 ```
 
+## 3.5 Üretim kurulum planı — Supabase SMTP bağlantısı + test matrisi (22
+Temmuz 2026, kodsuz — kurucu onayı bekliyor, CANLI AYAR DEĞİŞTİRİLMEDİ)
+
+**Not — Supabase Auth panelinin kendisi bu oturumda DOĞRUDAN incelenemedi:**
+bağlı Supabase MCP bağlantısı WardProof'un projesine (`jgunbctnoprklseusaee`)
+değil, başka bir hesaptaki farklı projelere (Finanskor.com, EquScore)
+bakıyor — bu yanlış projede sorgu çalıştırma riskini önlemek için
+KULLANILMADI. Aşağıdaki adımlar kod/DNS/route incelemesinden ve §0-§1.6.1'in
+zaten doğrulanmış durumundan türetildi; Supabase panelinin BUGÜN gerçekten
+ne gösterdiği kurucu tarafından teyit edilmeli.
+
+### 3.5.1 Sıralı adımlar
+
+1. **Resend API key üret** (Resend dashboard → API Keys → Sending access,
+   `wardproof.com`'a scope'lu). Key'i güvenli bir yerde tutun — bu adımdan
+   sonraki hiçbir adımda repo'ya/commit'e YAZILMAZ.
+2. **Supabase Dashboard → Authentication → Emails (SMTP Settings) → Enable
+   Custom SMTP** açın, §1.5 Adım B'deki tabloyu birebir girin (host
+   `smtp.resend.com`, port 587, user `resend` literal, password=1. adımdaki
+   key, sender `info@wardproof.com`, sender name `WardProof`).
+3. **Supabase Dashboard → Authentication → URL Configuration** kontrol edin:
+   `Site URL` = `https://wardproof.com`, `Redirect URLs` allow-list'inde
+   `https://wardproof.com/**` bulunmalı. **Eski geçici Hostinger domaini
+   (`blue-yak-865668.hostingersite.com`) veya `localhost`/`127.0.0.1`
+   satırları varsa temizlenmeli** — bu, davet/reset linklerinin doğru
+   domaine gitmesinin GERÇEK kapısı (kodun kendisi `redirectTo`'yu
+   isteğin origin'inden dinamik kurar, bkz. §3.5.2 — ama Supabase'in
+   redirect allow-list'i bunu yine de reddedebilir/izin verebilir).
+4. Kaydedin, DEĞİŞTİRMEDEN önce §2'nin "canlı ayar" maddelerini kurucunun
+   kendisinin uyguladığını doğrulayın (bu belge yalnız planı yazar,
+   uygulamaz).
+5. §3'teki `scripts/smoke-ozel-smtp.ts` iskeletini gerçek bir test
+   e-postasıyla çalıştırın, aşağıdaki test matrisini (§3.5.3) geçin.
+6. Hepsi geçince bu belgeye (§2 checklist) tarih+sonuç işlenir, kapı
+   "geçti" sayılır (§4).
+
+### 3.5.2 Redirect URL kontrolü — kod tarafı zaten doğru, panel tarafı doğrulanmalı
+
+`src/app/api/platform/tenants/route.ts:79` — gerçek davet rotası:
+```ts
+redirectTo: `${new URL(req.url).origin}/ilk-giris`
+```
+**Sabit kodlanmış bir domain YOK** — istekin kendi origin'i kullanılıyor.
+Bu iyi bir tasarım (dev/staging/prod otomatik doğru domaine gider) AMA bunun
+GÜVENLİ olması için iki koşul kurucu tarafından doğrulanmalı: (a) davetler
+HER ZAMAN `https://wardproof.com/platform`den tetiklenmeli (başka bir
+origin'den — örn. yerel geliştirme ortamından — canlı bir davet ASLA
+gönderilmemeli), (b) Supabase'in Redirect URL allow-list'i (§3.5.1 madde 3)
+yalnız `https://wardproof.com/**`i izin vermeli — böylece yanlış bir
+origin'den tetiklenen bir davet bile Supabase tarafında reddedilir (ikinci
+bir güvenlik katmanı). `supabase/config.toml`'daki `site_url =
+"http://127.0.0.1:3000"` YALNIZ yerel `supabase start` içindir, ÜRETİM
+projesinin panel ayarını YANSITMAZ — üretim ayarı panelden ayrıca
+doğrulanmalı.
+
+### 3.5.3 Test matrisi
+
+| # | Senaryo | Beklenen | Nasıl doğrulanır |
+|---|---|---|---|
+| 1 | Davet e-postası (`inviteUserByEmail`) | Gelir, gönderen `WardProof <info@wardproof.com>`, link `https://wardproof.com/ilk-giris` | `scripts/smoke-ozel-smtp.ts` |
+| 2 | Parola sıfırlama (`resetPasswordForEmail`) | Aynı gönderici kimliği, doğru redirect | Gerçek kullanıcıyla manuel deneme |
+| 3 | E-posta doğrulama şablonu | Bu dilimde tetiklenmiyor ama şablon Resend/Supabase'te AYNI göndericiyi kullanmalı | Panelden şablon önizleme |
+| 4 | Yanlış origin'den davet denemesi | Supabase Redirect URL allow-list REDDETMELİ | Yerel ortamdan bilerek bir davet denenip 4xx görülmesi |
+| 5 | Resend rate-limit/bounce senaryosu | Resend dashboard'da hata görünür, WardProof UI'ı sessizce "başarılı" göstermemeli | Resend dashboard → Logs (gerçek gönderim sonrası) |
+| 6 | Eski domain/marka sızıntısı | E-posta içeriğinde `hostingersite.com` veya "Wardproof"/"KALKAN-OS" GEÇMEMELİ | Gelen e-postanın manuel okunması |
+
+### 3.5.4 Güvenlik ve secret yönetimi
+
+- Resend API key **hiçbir dosyaya, commit'e, log'a YAZILMAZ** — yalnız
+  Supabase panelinin kendi (şifreli) SMTP password alanına girilir.
+- `scripts/smoke-ozel-smtp.ts` test e-postası adresi de commit'e girmez
+  (script zaten `process.argv[2]`'den okuyor, dosyaya gömülmüyor).
+- Bu belge ve ilgili commit'ler API key/parola İÇERMEZ — yalnız alan
+  adları/host/port gibi genel yapılandırma bilgisi taşır.
+
 ## 4. Kapı geçince
 
 Bu belgeye bir "Doğrulandı" bölümü + tarih + kurucunun onayı eklenir; G1.1
