@@ -1,6 +1,22 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**Özel SMTP sağlayıcı/gönderici kararı SABİTLENDİ (22 Temmuz 2026) — kod
+DEĞİL, kararın kendisi.** Kurucu G1.1'in SMTP kapısı için (yukarı bkz.) somut
+kararını verdi: sağlayıcı **Resend**, domain `wardproof.com` (yalnız domain
+seviyesinde doğrulanır, `info@` ayrıca doğrulanmaz), gönderici **TÜM** Supabase
+Auth e-postaları (davet/ilk-giriş parola belirleme/şifre sıfırlama/güvenlik
+bildirimi) için AYNI `WardProof <info@wardproof.com>` kimliği — pilot
+aşamasında `no-reply@`/`security@`/`support@` ayrıştırması BİLİNÇLİ
+ertelendi. Karar + Resend'in resmi belgelerinden doğrulanmış Supabase SMTP
+alan eşlemesi (host `smtp.resend.com`, user sabit `resend`, şifre=API key) +
+22 Temmuz DNS temel-çizgisi (SPF şu an yalnız Hostinger için, DKIM yok — ikisi
+de beklenen, Resend doğrulaması henüz yapılmadı) `docs/operasyon/
+OZEL_SMTP_KURULUMU.md` §0/§1.5/§1.6'ya işlendi. **Kalan iş hâlâ kurucunun
+kendisinde:** Resend hesabı açma + domain doğrulama + üretilen SPF/DKIM
+kayıtlarını DNS'e ekleme + Supabase paneline bağlama — Claude bunları
+YÜRÜTEMEZ.
+
 **Dikey H ve Dikey I roadmap'e girdi + landing sayfası AI/kriptografi kartları
 tamamlandı (22 Temmuz 2026, KOD YOK bu turda).** Kurucunun "sitede AI ve chain
 teknolojisinden bahsedelim ama abartmadan" talebine karşılık: (1) `/tanitim`

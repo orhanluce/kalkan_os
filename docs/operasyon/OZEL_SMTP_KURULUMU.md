@@ -1,11 +1,32 @@
 # Özel SMTP Kurulumu (Dikey G1.1 — kurucunun 22 Temmuz 2026 kararı)
 
-**Durum: HENÜZ YAPILMADI.** İlk gerçek pilot davetinden önce ZORUNLU
-bloklayıcı çıkış kapısı. Bu bir kod görevi DEĞİLDİR — Supabase proje
-panelinde, bir e-posta sağlayıcısı hesabında ve `wardproof.com`'un DNS
-kayıtlarında yapılan bir yapılandırmadır; Claude bu adımları YÜRÜTEMEZ
-(harici sağlayıcı hesabı/kimlik bilgisi/DNS erişimi gerektirir), yalnız
-doğrulama scripti/checklist hazırlayabilir.
+**Durum: HENÜZ YAPILMADI (yapılandırma tarafı) — SEÇİM YAPILDI (22 Temmuz
+2026).** İlk gerçek pilot davetinden önce ZORUNLU bloklayıcı çıkış kapısı.
+Bu bir kod görevi DEĞİLDİR — Supabase proje panelinde, sağlayıcı hesabında
+ve `wardproof.com`'un DNS kayıtlarında yapılan bir yapılandırmadır; Claude bu
+adımları YÜRÜTEMEZ (harici sağlayıcı hesabı/kimlik bilgisi/DNS erişimi
+gerektirir), yalnız doğrulama scripti/checklist hazırlayabilir ve DNS'in
+GÜNCEL halini salt-okur sorgulayabilir.
+
+## 0. Kararlaştırılan seçim (kurucunun 22 Temmuz 2026 kararı)
+
+- **Sağlayıcı:** Resend.
+- **Domain:** `wardproof.com` (Resend'de domain-seviyesi doğrulanacak;
+  `info@wardproof.com` adresinin AYRICA doğrulanması gerekmiyor — Resend
+  doğrulamayı domain seviyesinde yapar, doğrulanmış domain üzerindeki
+  herhangi bir yerel-parça göndericisi kullanılabilir).
+- **Gönderici adresi (tüm Supabase Auth e-postaları için AYNI):**
+  `info@wardproof.com`.
+- **Gönderici adı:** `WardProof`.
+- **Kapsam — davet, ilk-giriş parola belirleme, şifre sıfırlama, güvenlik
+  bildirimi dahil DÖRDÜ DE** aynı `WardProof <info@wardproof.com>`
+  kimliğini kullanır — pilot aşamasında ayrı adres yönetimi bilinçli olarak
+  YAPILMIYOR.
+- **Bilinçli ertelenen (gelecek, hacim artınca):** `no-reply@wardproof.com`
+  (otomatik sistem mesajları), `security@wardproof.com` (güvenlik
+  bildirimleri), `support@wardproof.com` (müşteri desteği) — bugün TEK
+  `info@` adresi yeterli, ayrıştırma yalnız gerçek hacim/ihtiyaç ortaya
+  çıkınca yapılır.
 
 ## 1. Neden zorunlu (kanıtlanmış gerçek)
 
@@ -17,14 +38,59 @@ döndürdü (bkz. `docs/adr/PR0-dikeyG-g1-pilot-provisioning-onboarding-
 içindir" diye işaretlenen bir sınırdır — gerçek pilot davetleri için
 kullanılamaz.
 
+## 1.5 Resend kurulum adımları (sağlayıcının kendi belgelerinden doğrulandı,
+22 Temmuz 2026)
+
+**Adım A — Resend'de domain doğrulama:** Resend dashboard → Domains →
+`wardproof.com` ekle. Resend, domain için gereken SPF (TXT) ve DKIM (TXT,
+1024-bit — Resend 2048-bit desteklemiyor) kayıtlarını KENDİSİ üretir ve
+"Records" sekmesinde gösterir; **bu değerler hesaba özgüdür, buraya
+uydurulmaz** — kurucu Resend panelinden kopyalayıp `wardproof.com` DNS'ine
+(Hostinger DNS yönetimi) ekler. DMARC zaten `p=none` olarak mevcut (§DNS
+durumu altta) — SPF/DKIM doğrulandıktan sonra `p=quarantine`'a yükseltmek
+tercih meselesi, zorunlu değil.
+
+**Adım B — Supabase Authentication → SMTP Settings alan eşlemesi:**
+
+| Supabase alanı | Değer |
+|---|---|
+| SMTP server host | `smtp.resend.com` |
+| Port | `587` (STARTTLS) veya `465` (implicit TLS) — ikisi de Resend'de destekli |
+| User | `resend` (sabit literal — kullanıcı adı DEĞİL, Resend'in kendi kuralı) |
+| Password | Resend API key (Resend dashboard → API Keys) |
+| Sender/From address | `info@wardproof.com` |
+| Sender name | `WardProof` |
+
+**Adım C — DNS'i doğrula:** aşağıdaki §"DNS durumu" bölümündeki sorguları
+Resend domain doğrulaması SONRASI tekrar çalıştır; SPF include'unun/DKIM
+TXT'inin göründüğünü teyit et.
+
+## 1.6 DNS durumu (22 Temmuz 2026 anlık görüntü — Google DNS-over-HTTPS ile
+salt-okur sorgulandı, `dig`/`nslookup` bu ortamda yok)
+
+| Kayıt | Bulunan değer |
+|---|---|
+| SPF (TXT, `wardproof.com`) | `v=spf1 include:_spf.mail.hostinger.com ~all` — yalnız Hostinger'ın kendi postası için; Resend include'u HENÜZ YOK |
+| DMARC (TXT, `_dmarc.wardproof.com`) | `v=DMARC1; p=none` — izleme modu, mevcut |
+| MX | `mx1.hostinger.com` (öncelik 5), `mx2.hostinger.com` (öncelik 10) |
+| DKIM (yaygın selector'lar denendi: default/selector1/selector2/google/resend/sendgrid/mailgun/ses) | HİÇBİRİ bulunamadı — beklenen, Resend domain doğrulaması henüz yapılmadı |
+
+**Not:** bu bir denetim değil, yalnız "kurulumdan önceki temel çizgi" —
+Resend domain doğrulaması sonrası §1.5 Adım C'deki sorgular tekrar
+çalıştırılıp SPF/DKIM'in göründüğü teyit edilmeli.
+
 ## 2. Kabul kriterleri (kurucunun listesi — hepsi geçmeden kapı AÇILMAZ)
 
-- [ ] Özel SMTP sağlayıcısı Supabase projesine bağlanmış (Authentication →
-      Email Templates / SMTP Settings).
-- [ ] SPF kaydı `wardproof.com` DNS'inde yapılandırılmış.
-- [ ] DKIM kaydı yapılandırılmış.
-- [ ] DMARC kaydı yapılandırılmış (tercihen — kurucunun notu: "tercihen"
-      diyor, SPF/DKIM'den farklı olarak zorunlu değil ama önerilir).
+- [x] Sağlayıcı, domain, gönderici adresi/adı kararlaştırıldı (§0, 22 Temmuz
+      2026) — Resend / `wardproof.com` / `info@wardproof.com` / `WardProof`.
+- [ ] Resend'de `wardproof.com` domain doğrulaması TAMAMLANDI (§1.5 Adım A).
+- [ ] Özel SMTP sağlayıcısı Supabase projesine bağlanmış (§1.5 Adım B).
+- [ ] SPF kaydı `wardproof.com` DNS'inde Resend'in ürettiği include ile
+      GÜNCELLENMİŞ (mevcut kayıt yalnız Hostinger'ın kendi postası için,
+      bkz. §"DNS durumu" — Resend include'u EKLENMELİ, üzerine yazılmamalı).
+- [ ] DKIM kaydı (Resend'in ürettiği TXT) yapılandırılmış.
+- [ ] DMARC kaydı yapılandırılmış (zaten `p=none` var — tercihen, kurucunun
+      notu: SPF/DKIM'den farklı olarak zorunlu değil ama önerilir).
 - [ ] Davet e-postası (`inviteUserByEmail`) gerçek bir alıcıya test edilmiş.
 - [ ] Parola sıfırlama e-postası (`resetPasswordForEmail` / recovery)
       gerçek bir alıcıya test edilmiş.
@@ -73,7 +139,7 @@ async function main() {
     redirectTo: "https://wardproof.com/ilk-giris",
   });
   console.log(`inviteUserByEmail: ${Date.now() - t0}ms`, error ? `HATA: ${error.message}` : `OK, user=${data.user?.id}`);
-  console.log("Şimdi gelen kutunuzu kontrol edin: gönderen adresi, marka adı (WardProof), ve /ilk-giris'e yönlenen linki doğrulayın.");
+  console.log("Şimdi gelen kutunuzu kontrol edin: gönderen \"WardProof <info@wardproof.com>\" mi, ve /ilk-giris'e yönlenen link doğru mu?");
   console.log("Doğruladıktan sonra test kullanıcısını silin:");
   if (data?.user?.id) console.log(`  await db.auth.admin.deleteUser("${data.user.id}")`);
 }
