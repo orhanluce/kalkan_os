@@ -51,10 +51,11 @@ export interface NavGrubu {
  */
 export function navGruplari(organizationType: string | null | undefined): NavGrubu[] {
   const cfo = organizationType ? cfoOdakliMi(organizationType as OrganizationType) : false;
-  // Regülasyon grubu REGULATED ve KARMA'da görünür (CORPORATE_FINANCE'ta değil
-  // — regülasyon corpus'u CFO Starter navigasyonunu boğmamalı, V2 §6.2).
+  // Resmî kaynak sicili GLOBAL katalogdur ve her ürün hattında görünür.
+  // Doğrulama/uygulanabilirlik/DORA iş akışları ise REGULATED ve KARMA'ya
+  // özgü kalır; CFO Starter navigasyonu ileri regülasyon akışlarıyla boğulmaz.
   const hat = organizationType ? urunHatti(organizationType as OrganizationType) : null;
-  const regulasyonGorunur = hat === "REGULATED" || hat === "KARMA";
+  const ileriRegulasyonGorunur = hat === "REGULATED" || hat === "KARMA";
   const finansGrubu: NavGrubu = {
     baslik: "Finans",
     ogeler: [
@@ -63,19 +64,35 @@ export function navGruplari(organizationType: string | null | undefined): NavGru
     ],
   };
   const regulasyonGrubu: NavGrubu = {
-    baslik: "Regülasyon",
+    baslik: "Mevzuat",
     ogeler: [
-      { href: "/regulasyon/kaynaklar", etiket: "Kaynaklar", Ikon: Library },
-      { href: "/regulasyon/dogrulama", etiket: "Doğrulama Kuyruğu", Ikon: ShieldCheck },
-      { href: "/regulasyon/uygulanabilirlik", etiket: "Uygulanabilirlik", Ikon: ScrollText },
-      { href: "/dora-roi", etiket: "DORA RoI Export", Ikon: FileSpreadsheet },
+      {
+        href: "/regulasyon/kaynaklar",
+        etiket: "Kanun ve Yönetmelikler",
+        Ikon: Library,
+      },
+      ...(ileriRegulasyonGorunur
+        ? [
+            {
+              href: "/regulasyon/dogrulama",
+              etiket: "Doğrulama Kuyruğu",
+              Ikon: ShieldCheck,
+            },
+            {
+              href: "/regulasyon/uygulanabilirlik",
+              etiket: "Uygulanabilirlik",
+              Ikon: ScrollText,
+            },
+            { href: "/dora-roi", etiket: "DORA RoI Export", Ikon: FileSpreadsheet },
+          ]
+        : []),
     ],
   };
   return [
     { baslik: null, ogeler: [{ href: "/", etiket: "Pano", Ikon: LayoutDashboard }] },
     // CFO odaklıysa Finans grubu en üstte (ödeme/IBAN/SoD kurumun ana derdi).
     ...(cfo ? [finansGrubu] : []),
-    ...(regulasyonGorunur ? [regulasyonGrubu] : []),
+    regulasyonGrubu,
     {
       baslik: "Güvence",
       ogeler: [
