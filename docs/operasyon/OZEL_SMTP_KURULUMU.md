@@ -79,16 +79,35 @@ salt-okur sorgulandı, `dig`/`nslookup` bu ortamda yok)
 Resend domain doğrulaması sonrası §1.5 Adım C'deki sorgular tekrar
 çalıştırılıp SPF/DKIM'in göründüğü teyit edilmeli.
 
+### 1.6.1 DOĞRULANDI (22 Temmuz 2026, ikinci sorgu — Resend domain doğrulaması sonrası)
+
+Resend'in ürettiği kayıtlar Hostinger DNS'ine doğru yerleştirildi (ilk
+denemede kök `@`'a yazılmıştı — Resend'in bunları `send` alt-domaininde
+istediği fark edilip düzeltildi) ve Google DNS-over-HTTPS ile bağımsız
+olarak yeniden sorgulanıp TEYİT edildi:
+
+| Kayıt | Doğrulanan değer |
+|---|---|
+| Root SPF (`@`) | `v=spf1 include:_spf.mail.hostinger.com ~all` — Hostinger'a GERİ DÖNDÜ (ilk denemede yanlışlıkla üzerine yazılmıştı) |
+| `send.wardproof.com` SPF (TXT) | `v=spf1 include:amazonses.com ~all` ✅ |
+| `send.wardproof.com` MX | `feedback-smtp.eu-west-1.amazonses.com` (öncelik 10) ✅ |
+| `resend._domainkey` DKIM (TXT) | Tam public key mevcut (`p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCB...`) ✅ |
+| DMARC | `v=DMARC1; p=none` (değişmedi, izleme modu) |
+
+**Resend'de domain doğrulaması TAMAMLANDI.** Sıradaki: Supabase Authentication
+→ SMTP Settings bağlantısı (§1.5 Adım B).
+
 ## 2. Kabul kriterleri (kurucunun listesi — hepsi geçmeden kapı AÇILMAZ)
 
 - [x] Sağlayıcı, domain, gönderici adresi/adı kararlaştırıldı (§0, 22 Temmuz
       2026) — Resend / `wardproof.com` / `info@wardproof.com` / `WardProof`.
-- [ ] Resend'de `wardproof.com` domain doğrulaması TAMAMLANDI (§1.5 Adım A).
+- [x] Resend'de `wardproof.com` domain doğrulaması TAMAMLANDI (§1.6.1, 22
+      Temmuz 2026 — bağımsız DNS sorgusuyla teyitli).
 - [ ] Özel SMTP sağlayıcısı Supabase projesine bağlanmış (§1.5 Adım B).
-- [ ] SPF kaydı `wardproof.com` DNS'inde Resend'in ürettiği include ile
-      GÜNCELLENMİŞ (mevcut kayıt yalnız Hostinger'ın kendi postası için,
-      bkz. §"DNS durumu" — Resend include'u EKLENMELİ, üzerine yazılmamalı).
-- [ ] DKIM kaydı (Resend'in ürettiği TXT) yapılandırılmış.
+- [x] SPF kaydı yapılandırılmış (`send.wardproof.com` üzerinde Resend
+      include'u + root `@` Hostinger'da korunuyor, §1.6.1).
+- [x] DKIM kaydı (Resend'in ürettiği TXT, `resend._domainkey`) yapılandırılmış
+      (§1.6.1).
 - [ ] DMARC kaydı yapılandırılmış (zaten `p=none` var — tercihen, kurucunun
       notu: SPF/DKIM'den farklı olarak zorunlu değil ama önerilir).
 - [ ] Davet e-postası (`inviteUserByEmail`) gerçek bir alıcıya test edilmiş.
