@@ -2889,8 +2889,24 @@ typecheck hatası da düzeltildi).
 Supabase MCP kullanılmadı, pg_cron canlıda değiştirilmedi, migration
 production'a UYGULANMADI, deploy yapılmadı, K1 durumuna dokunulmadı.
 **`K2_LIVE_VALIDATION_PENDING`:** migration'ın production'a uygulanması +
-canlı smoke testi + K2'nin dış-tetik kararının (`ADR-dis-cron.md`) kendisi
-hâlâ kurucuyu bekliyor.
+canlı smoke testi hâlâ kurucuyu bekliyor.
+
+#### 1.75.1 Dış tetik kararı KAPANDI (22 Temmuz 2026, aynı gün — kod yok)
+
+Kurucu `ADR-dis-cron.md`'nin A/B/C sorusunu kapattı (tam metin K2 ADR
+§14): **şimdilik Seçenek C** (mevcut oto-drenaj + manuel drenaj) — yeni
+servis token'lı route AÇILMAZ, Edge Function KURULMAZ, pg_cron+pg_net
+çağrısı YAPILMAZ. **İlk gerçek pilot başlamadan hemen önce veya pilot
+onboarding sırasında Seçenek A'ya** (pg_cron + pg_net → servis token'lı
+tek TS drenaj route'u) geçilecek — 12 zorunlu kabul kriteri K2 ADR §14'te
+(token yalnız güvenli store'da, constant-time doğrulama, rate-limit,
+audit, payload minimizasyonu, yalnız-drenaj route'u, kill-switch,
+duplicate/orphan/idempotency testleri, token rotasyon runbook'u, canlı
+smoke, backlog görünürlüğü). **Seçenek B REDDEDİLDİ** (yeni Edge Function
+altyapısı + ikinci motor riski, A'ya karşı ek değer yok). K2 canlı
+otomatik tetik doğrulaması yapılmadığı için tamamen KAPALI sayılmaz —
+`K2_LIVE_VALIDATION_PENDING` sürüyor; production migration onayı da bu
+turda VERİLMEDİ.
 
 ---
 

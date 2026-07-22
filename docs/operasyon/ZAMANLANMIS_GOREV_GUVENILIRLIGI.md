@@ -7,6 +7,22 @@ canlı doğrulama `K2_LIVE_VALIDATION_PENDING`. Tam mimari analiz:
 Bu belge, `ledger_outbox` (kanıt zinciri kuyruğu) ile ilgili günlük
 operasyon sorularının kısa cevaplarını taşır.
 
+## 0. Dış tetik kararı (kurucu, 22 Temmuz 2026 — K2 ADR §14)
+
+**Şu aşamada Seçenek C yürürlükte:** drenaj yalnız sayfa-açılışı
+oto-drenajı + manuel buton ile tetiklenir. Yeni servis token'lı route YOK,
+Edge Function YOK, pg_cron+pg_net→Hostinger çağrısı YOK — bunlardan birini
+"eksik/unutulmuş" sanmayın, bilinçli karardır. **İlk gerçek pilot
+başlamadan hemen önce veya pilot onboarding sırasında Seçenek A'ya**
+(pg_cron + pg_net → servis token'lı tek TS drenaj route'u) geçilecek —
+geçişin 12 zorunlu kabul kriteri K2 ADR §14'te (token güvenliği,
+constant-time doğrulama, rate-limit, audit, kill-switch, duplicate/orphan
+testleri, token rotasyon runbook'u, canlı smoke, backlog görünürlüğü...).
+Seçenek B (Edge Function) reddedildi. Operasyonel sonuç: **bugün outbox
+gecikirse ilk kontrol "en son ne zaman biri paneli açtı/manuel drenaj
+bastı" sorusudur** — otomatik tetik yoktur, gecikme tek başına arıza
+değildir (§1'deki alarm eşikleri yine de izlenmeli).
+
 ## 1. Job backlog nasıl kontrol edilir
 
 ```sql

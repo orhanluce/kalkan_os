@@ -7,6 +7,31 @@ doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine g
 açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1-G1'de bu iki-faz
 disiplini tutarlı uygulandı).
 
+## -16. K2 dış tetik kararı KAPANDI: şimdilik C, pilot öncesi A (22 Temmuz 2026, KOD YOK)
+
+Kurucu, `ADR-dis-cron.md`'nin açık A/B/C sorusunu kapattı (tam metin K2
+ADR §14): **şu aşamada Seçenek C** (mevcut oto-drenaj + manuel drenaj)
+yürürlükte kalır — yeni servis token'lı route AÇILMAZ, Edge Function
+KURULMAZ, pg_cron+pg_net→Hostinger çağrısı YAPILMAZ. **İlk gerçek pilot
+başlamadan hemen önce veya pilot onboarding sırasında Seçenek A'ya**
+(pg_cron + pg_net → servis token'lı tek TS drenaj route'u) geçilecek —
+A'ya geçişin 12 ZORUNLU kabul kriteri K2 ADR §14'te listeli (route
+tasarımı, token yalnız güvenli store'da, constant-time doğrulama,
+rate-limit, audit, payload minimizasyonu, yalnız-drenaj, kill-switch
+varsayılan/etkili, duplicate/orphan/idempotency testleri, token rotasyon
+runbook'u, canlı smoke, backlog+son-başarılı-çalışma görünürlüğü) — bu
+kriterler karşılanmadan A uygulanmaz. **Seçenek B REDDEDİLDİ** (yeni Edge
+Function altyapısı, ikinci motor riski, A'ya karşı ek değer yok).
+
+**Bu turda:** canlı migration UYGULANMADI (kurucu production migration
+onayını da açıkça VERMEDİ), pg_cron/pg_net değişmedi, servis token
+oluşturulmadı, route açılmadı, deploy yapılmadı — yalnız 4 belge
+güncellendi (K2 ADR §14/§17, ROADMAP §1.75.1, bu giriş, runbook §0).
+**Durum: `K2_LOCAL_READY` korunuyor + `K2_LIVE_VALIDATION_PENDING`
+sürüyor.** Sıradaki gerçek adımlar: kurucunun production migration planı/
+onayı → kontrollü migration → consumer kapalı smoke → kontrollü açılış →
+duplicate/stale/backlog testleri → K2 kapanışı (kurucunun verdiği sıra).
+
 ## -15. K2 — Kritik Zamanlanmış Görev Güvenilirliği, repo-içi kısım BİTTİ: K2_LOCAL_READY (22 Temmuz 2026, Supabase'den bağımsız)
 
 Tam analiz: `docs/adr/PR0-K2-kritik-zamanlanmis-gorev-guvenilirligi-2026-
