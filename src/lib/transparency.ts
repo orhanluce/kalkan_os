@@ -1,7 +1,10 @@
-// SCITT tarzı şeffaflık defteri — imzalı ifadeleri append-only, Merkle
-// destekli bir kütüğe yazar ve ÇEVRİMDIŞI doğrulanabilir kapsama (inclusion)
-// makbuzu üretir (docs/ROADMAP.md M5.5 Merkle'yi YENİDEN KULLANIR; nihai
-// talimat §8 Gate G3).
+// Merkle tabanlı append-only şeffaflık defteri yaklaşımı — imzalı ifadeleri
+// append-only, Merkle destekli bir kütüğe yazar ve ÇEVRİMDIŞI doğrulanabilir
+// kapsama (inclusion) makbuzu üretir (docs/ROADMAP.md M5.5 Merkle'yi YENİDEN
+// KULLANIR; nihai talimat §8 Gate G3). RFC 9162 (Certificate Transparency;
+// önceki RFC 6962'nin yerini alır) yapılarından ve gelişmekte olan SCITT
+// (IETF) mimarisinden esinlenir — tam standart uyumluluğu İDDİA EDİLMEZ,
+// "SCITT sertifikalı" veya "RFC 9162 uyumlu" denmez.
 //
 // NE İSPATLAR (DÜRÜSTÇE): "bu imzalı ifade, kütüğün N. konumuna eklendi ve
 // imzalı ağaç başı (STH) yayınlandığından beri kütük değişmedi." Kapsama
@@ -14,7 +17,7 @@
 // "dış zaman damgalı" DEMEZ — durum türetimi bu ayrımı korur.
 //
 // KRİPTO YENİDEN KULLANIMI: hiçbir ilkel burada yeniden yazılmadı. Merkle/proof
-// merkle.ts'ten (RFC 6962), imza manifest-signature.ts'ten (ES256 detached JWS),
+// merkle.ts'ten (RFC 9162), imza manifest-signature.ts'ten (ES256 detached JWS),
 // kanonik JSON canonical.ts'ten (RFC 8785) gelir.
 
 import { canonicalJson, type CanonicalDeger } from "./canonical";
@@ -45,7 +48,7 @@ export interface SignedStatement {
   imza: DetachedImza;
 }
 
-/** İmzalı ağaç başı (RFC 6962 STH / SCITT checkpoint): defterin o anki kökü. */
+/** İmzalı ağaç başı (RFC 9162 STH / SCITT checkpoint): defterin o anki kökü. */
 export interface AgacBasi {
   schema: typeof STH_SCHEMA;
   treeSize: number;

@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   ArrowRight,
   BookOpenCheck,
+  Bot,
   Building2,
   CheckCircle2,
   ClipboardCheck,
@@ -12,6 +13,7 @@ import {
   Gauge,
   HelpCircle,
   Landmark,
+  Link2,
   LineChart,
   Lock,
   Mail,
@@ -209,6 +211,12 @@ const MODULLER = [
     Ikon: Scale,
   },
   {
+    baslik: "AI Güvence",
+    metin:
+      "AI sistemlerini risk sınıfı, sahiplik ve kullanım amacıyla kayıt altına alır. Yazma yetkili ajan işlemleri insan onayı ister; AI karar makbuzları taslak doğar, hükmü yalnız yetkili kullanıcı verir.",
+    Ikon: Bot,
+  },
+  {
     baslik: "Raporlama ve YK Çıktıları",
     metin: "Yönetim kurulu ve denetçi için özet çıktılar; her sayı gerekçesini taşır.",
     Ikon: LineChart,
@@ -287,6 +295,12 @@ const GUVEN_ILKELERI = [
     metin:
       "Bulgu kabulü, istisna onayı ve kapanış gibi kararlar iki ayrı insan ister. Sistem öneri üretir; hükmü insan verir.",
     Ikon: UserCheck,
+  },
+  {
+    baslik: "Kriptografik Şeffaflık Defteri",
+    metin:
+      "Kritik kayıtlar deterministik biçimde kanonikleştirilir, hash'lenir ve imzalanır. Merkle tabanlı şeffaflık defteri yaklaşımıyla kayıt bütünlüğü, WardProof'a güvenmeden, bağımsız bir araçla yeniden doğrulanabilir.",
+    Ikon: Link2,
   },
 ];
 
@@ -793,13 +807,8 @@ export default function TanitimSayfasi() {
             Güven ve denetlenebilirlik
           </h2>
           <div className="mx-auto mt-12 grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {GUVEN_ILKELERI.map(({ baslik, metin, Ikon }, index) => (
-              <div
-                key={baslik}
-                className={`rounded-2xl border border-white/8 bg-white/[0.03] p-5 ${
-                  index === GUVEN_ILKELERI.length - 1 ? "sm:col-span-2 lg:col-span-1" : ""
-                }`}
-              >
+            {GUVEN_ILKELERI.map(({ baslik, metin, Ikon }) => (
+              <div key={baslik} className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
                 <span className="mb-4 grid size-9 place-items-center rounded-lg bg-emerald-400/8 text-emerald-300 ring-1 ring-emerald-300/20">
                   <Ikon className="size-4.5" aria-hidden="true" />
                 </span>
