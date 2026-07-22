@@ -7,6 +7,35 @@ doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine g
 açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1-G1'de bu iki-faz
 disiplini tutarlı uygulandı).
 
+## -10. Dikey K — Enterprise Readiness ve Otomatik Kanıt Altyapısı Analizi (22 Temmuz 2026, KOD YOK)
+
+Kodsuz, ikinci-tur mimari analiz — Dikey J'nin YERİNE değil, ÜZERİNE.
+Üç paralel repo-araştırması (evidence-control modeli, test/manifest/
+ledger/Proof Room hattı, güvenlik/secret/tenant izolasyonu) `docs/adr/
+PR0-dikeyK-enterprise-readiness-otomatik-kanit-altyapisi-2026-07-22.md`'de
+sentezlendi. **En önemli bulgu:** "bir kanıt, dört çerçeve" REFERANS değil
+ÇOĞALTMA (`store.tsx`'te her eşdeğer kontrol için ayrı `evidences` satırı)
+— `evidences.kaynak_kontrol_id` borcu bunu çözmüyor, çözdüğü DAHA DAR bir
+sorun (çoğaltılmış kopyanın orijinalini izlemek, `previous_evidence_id`
+ile AYNI self-referencing idiom). **Evidence-control ilişkisi FAZLI karar:**
+Faz 0 = self-referencing FK (düşük risk, connector'sız bile değerli), Faz 1
+= junction table (`obligation_control_mappings` idiomu, Entra MVP kapsamı
+netleşince AYRI kurucu kararı). Alternatif C (test-run'dan türetme)
+REDDEDİLDİ — repo gerçeğiyle çelişiyor. **Entra ID MVP:** 3 kontrol
+(MFA kaydı/CA politikası/ayrıcalıklı rol) Microsoft Learn'den doğrulandı,
+2 aday doğrulanmadı → sonraki dilim. **Connector error semantiği:** yeni
+`TestSonuc` durumu GEREKMİYOR, kural 13'ün 5 durumu kapalı kalıyor.
+**Secret/OAuth:** repoda hiç yok (sıfır); Supabase Vault kural 4 gereği
+kullanılamaz. **K2 bağımlılığı doğrulandı:** tek seferlik "Şimdi Topla"
+K2'siz geliştirilebilir, sürekli polling K2 kapanmadan başlamaz. ROADMAP.md
+§1.72'ye işlendi; §1.71 (Dikey J) YÜRÜRLÜKTEN KALKMADI, yalnız Proof
+Room'un gerçek 5-dal tarifi düzeltildi. **Açık kurucu kararları (5):**
+evidence-control fazlaması onayı, Entra MVP kapsamı (3 vs 5), secret
+storage'ın Dikey I I1 ile birleştirilip birleştirilmeyeceği, connector
+insan-onay sıklığı, K2'nin A/B/C kararı. **Öncelik sırası DEĞİŞMEDİ:**
+özel SMTP → K1 → K2 → mevzuat paketi → pilot → geri bildirim
+tamamlanmadan Dikey K'nın Faz 0'ı bile açılmaz.
+
 ## -9. Dikey J — Otomatik Kanıt Toplama roadmap tanımı + landing vizyon notu (22 Temmuz 2026, KOD YOK)
 
 Kodsuz bir konumlandırma turu, vertikal BİTTİ değil. Kurucunun "WardProof'un

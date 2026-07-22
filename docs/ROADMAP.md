@@ -553,12 +553,16 @@ gate sırasıyla): M34 Policy Lifecycle (G2), M35 TPRM/ICT (G4), M36
 PrivacyOps (G6), M37 AI Assurance (G5), M38 Regulatory Engagement (G7),
 M39 Connector Hub (G3), M40 Risk/Board (G8), M41 Partner Network (G7).**
 Mevcut milestone numaraları değişmedi; rapor formatı artık nihai §15.
-**(22 Temmuz 2026 eki, kod yok):** M37'nin üzerine üç ek gelecek dikey
+**(22 Temmuz 2026 eki, kod yok):** M37'nin üzerine dört ek gelecek dikey
 tanımlandı — §1.69 **Dikey H — AI Yönetişimi ve Güvence** (H1-H5), §1.70
-**Dikey I — Kriptografik Kanıt ve Şeffaflık Defteri** (I1-I5) ve §1.71
+**Dikey I — Kriptografik Kanıt ve Şeffaflık Defteri** (I1-I5), §1.71
 **Dikey J — Otomatik Kanıt Toplama ve Sürekli Güvence Katmanı** (M08/M39
-placeholder'larının ilk detaylı mimarisi); üçü de pilot operasyon
-önceliğinin (CLAUDE.md kural 20) GERİSİNDE.
+placeholder'larının ilk detaylı mimarisi) ve §1.72 **Dikey K — Enterprise
+Readiness ve Otomatik Kanıt Altyapısı Analizi** (Dikey J'yi üç paralel
+repo-araştırmasıyla derinleştiren ikinci tur — junction-table kararı,
+Entra ID MVP'nin Microsoft belgesiyle doğrulanması, OAuth/secret/K2
+bağımlılığı); dördü de pilot operasyon önceliğinin (CLAUDE.md kural 20)
+GERİSİNDE.
 
 ### 1.21 G1 kapanış dilimi — Proof Room ✅ (18 Temmuz gece)
 
@@ -2649,6 +2653,68 @@ kullanıyoruz" dili (connector mekanik bir API istemcisidir, AI değildir).
 **Öncelik sırası DEĞİŞMEDİ (kural 20):** özel SMTP → K1 → K2 → mevzuat
 paketi → pilot → geri bildirim tamamlanmadan Dikey J'nin kodsuz analizi
 bile açılmaz.
+
+### 1.72 Mimari karar kaydı — 22 Temmuz 2026 (Dikey K — Enterprise Readiness ve Otomatik Kanıt Altyapısı Analizi, KOD YOK — Dikey J'yi derinleştiren ikinci turlu analiz)
+
+Kurucunun "Faz 0 pilot öncesi zorunlu / Faz 1-4 ölçekleme sonrası" ürün
+geliştirme planı önerisine karşılık, üç paralel repo-araştırma turuyla
+(evidence-control modeli, test/manifest/ledger/Proof Room hattı, güvenlik/
+secret/tenant izolasyonu) derinleştirilmiş bir kodsuz analiz. Tam belge
+`docs/adr/PR0-dikeyK-enterprise-readiness-otomatik-kanit-altyapisi-2026-07-
+22.md`'de. **Dikey K, Dikey J'nin YERİNE geçmez — onu düzeltir/derinleştirir**
+(Proof Room'un gerçek 5 dalının nullable FK sütunları olduğu, Dikey J'nin
+"applicability/sitasyon/tolerans" tarifinin bunların İÇİNDEKİ alt alanlar
+olduğu netleştirildi).
+
+**En önemli düzeltici bulgu:** "bir kanıt, dört çerçeve" bir REFERANS
+mekanizması değil, ÇOĞALTMA — her eşdeğer kontrol için ayrı, bağımsız bir
+`evidences` satırı INSERT ediliyor (`store.tsx`), yalnız dosya baytı
+content-addressed storage'da dedup oluyor. `evidences.kaynak_kontrol_id`
+borcu bu yüzden kullanıcının varsaydığı sorunu ("bir kanıt N kontrolü
+desteklesin") ÇÖZMÜYOR — o zaten (verimsizce) çalışıyor. Asıl çözdüğü
+DAHA DAR bir sorun: çoğaltılmış bir kopyanın hangi orijinalden geldiğini
+kaydetmek — `previous_evidence_id`/`redaksiyon_kaynak_id` ile AYNI
+self-referencing lineage idiomunun dördüncü örneği olarak.
+
+**Evidence-control ilişki kararı — FAZLI öneri:** Faz 0 (düşük risk, hiçbir
+okuyucuyu bozmaz) = self-referencing `kaynak_kontrol_id` (Alternatif A,
+düzeltilmiş: `controls`'a değil `evidences`'e referans). Faz 1 (Entra MVP
+kapsamı netleşince, AYRI kurucu kararı) = gerçek çoktan-çoğa junction table
+(Alternatif B, `obligation_control_mappings`'in doğrulama-durumu idiomuyla).
+Alternatif C (kanıt yalnız test run'a bağlı, kontrol türetilir) REDDEDİLDİ
+— repo gerçeğiyle çelişiyor (`test_runs` zaten `control_id`'yi DOĞRUDAN
+taşıyor, türetmiyor) ve connector'ın test-öncesi kanıt biriktirmesini
+imkânsız kılıyor.
+
+**Entra ID MVP — 3 kontrol Microsoft Learn'den doğrulandı** (MFA kayıt
+durumu, Conditional Access politika varlığı, ayrıcalıklı rol üyeliği — her
+biri endpoint+permission+application-permission desteğiyle), 2 aday
+(eski kimlik doğrulama yöntemleri, inaktif ayrıcalıklı hesap) BU TURDA
+doğrulanmadı, uydurulmadı — "sonraki dilim" olarak işaretlendi.
+
+**Connector error semantiği:** yeni bir `TestSonuc` durumu GEREKMİYOR —
+kural 13'ün 5 durumu kapalı kalır; connector arıza TÜRÜ (auth/rate-limit/
+timeout) `Gozlem.toplamaHatasi`'nın yanına yeni bir `toplamaHataKategori`
+alt-alanıyla taşınır, motor değişmez.
+
+**Secret/OAuth:** repoda service-to-service OAuth ve secret/vault/
+encryption-at-rest HİÇ YOK (genişletilmedi, gerçekten sıfır). Supabase
+Vault kural 4 (taşınabilirlik) gereği KULLANILAMAZ — bu Dikey K'nın icat
+ettiği bir kısıt değil, projenin önceden çizdiği sınır. Platform operatör
+sızıntısı EK KOD OLMADAN önlenir: mevcut `tenant_id = current_tenant_id()`
+RLS idiomu + platform_operator'a bypass GRANT edilmemesi yeterli (G1'de
+zaten negatif test edilmiş mekanizma).
+
+**Scheduler/K2:** `ledger_outbox`'u drenaj eden hiçbir pg_cron işi YOK
+(9 gerçek iş var, hiçbiri bu değil) — drenaj yalnız route-tetikli/manuel.
+K2 (`docs/adr/ADR-dis-cron.md`, üç seçenek A/B/C) AÇIK KARAR, bugün C
+(mevcut route-tetikli drenaj) fiilen yürürlükte. **Tek seferlik "Şimdi
+Topla" K2'siz geliştirilebilir; sürekli/periyodik connector polling K2
+kapanmadan BAŞLAMAZ** — kullanıcının öncelik sırasını doğruluyor, bozmuyor.
+
+**Öncelik sırası DEĞİŞMEDİ (kural 20):** özel SMTP → K1 → K2 → mevzuat
+paketi → ilk pilot → geri bildirim tamamlanmadan Dikey K'nın KENDİSİNDE
+önerilen hiçbir adım (Faz 0 evidence şeması dahil) açılmaz.
 
 ---
 

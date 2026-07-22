@@ -1,6 +1,32 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**Dikey K — Enterprise Readiness ve Otomatik Kanıt Altyapısı Analizi
+BİTTİ (22 Temmuz 2026, KOD YOK) — Dikey J'yi derinleştiren ikinci tur.**
+Kurucunun "Faz 0 pilot öncesi / Faz 1-4 ölçekleme sonrası" ürün planına
+karşılık, üç paralel repo-araştırmasıyla (evidence-control, test/manifest/
+ledger/Proof Room, güvenlik/secret/tenant izolasyonu) sentezlenmiş kodsuz
+analiz: `docs/adr/PR0-dikeyK-enterprise-readiness-otomatik-kanit-
+altyapisi-2026-07-22.md`. **En önemli düzeltici bulgu:** "bir kanıt, dört
+çerçeve" bir REFERANS değil, ÇOĞALTMA (`store.tsx` her eşdeğer kontrol için
+ayrı `evidences` satırı INSERT ediyor) — `evidences.kaynak_kontrol_id`
+borcu bunu çözmez, çözdüğü DAHA DAR bir sorun (çoğaltılmış kopyanın
+orijinalini izlemek). Evidence-control ilişkisi için FAZLI karar önerildi:
+Faz 0 self-referencing FK (düşük risk), Faz 1 junction table (Entra MVP
+netleşince ayrı karar). Entra ID MVP'nin 3 kontrolü (MFA kaydı/CA
+politikası/ayrıcalıklı rol) Microsoft Learn'den doğrulandı, 2 aday
+doğrulanmadan "sonraki dilim" işaretlendi (uydurulmadı). Connector arızası
+için yeni bir `TestSonuc` durumu GEREKMEDİĞİ, mevcut `Gozlem.
+toplamaBasarisiz`'in zaten yeterli olduğu doğrulandı. Secret/OAuth
+altyapısının repoda SIFIR olduğu, Supabase Vault'un kural 4 gereği
+kullanılamayacağı netleşti. K2'nin (dış cron, AÇIK KARAR) periyodik
+connector polling'in kesin ön koşulu olduğu doğrulandı — tek seferlik
+"Şimdi Topla" K2'siz geliştirilebilir. ROADMAP.md §1.72'ye işlendi, kural
+21-24 eklendi (connector arızası≠FAILED, otomatik kanıt≠otomatik uyum,
+secret/tenant izolasyonu, şema-genişletme disiplini). **Dikey J
+YÜRÜRLÜKTEN KALKMADI** — yalnız Proof Room'un gerçek 5-dal tarifi (nullable
+FK sütunları) düzeltildi. **Öncelik sırası DEĞİŞMEDİ (kural 20).**
+
 **Dikey J — Otomatik Kanıt Toplama ve Sürekli Güvence Katmanı roadmap'e
 girdi + landing vizyon notu (22 Temmuz 2026, KOD YOK).** Kurucunun "WardProof'un
 manuel-kanıt-yükleme aracı olmadığını, otomatik kanıt toplamaya doğru
@@ -903,3 +929,19 @@ Yönetim Kurulu Beyanı modülü onun yerini almalı ama henüz bağlanmadı.
    zamanlanmış görev güvencesi → hukukça doğrulanmış ilk mevzuat paketi → ilk kontrollü pilot
    → pilot geri bildirimi — bu sıra tamamlanmadan Dikey H (AI Yönetişimi) ve Dikey I
    (Kriptografik Kanıt/KMS) kodsuz analizi bile açılmaz, G2 (self-servis+ödeme) hiç açılmaz.
+21. Connector/otomatik toplama arızası (kimlik doğrulama hatası, zaman aşımı, rate-limit,
+   kaynak bulunamadı) ASLA `FAILED` üretmez — kural 13'ün `Gozlem.toplamaBasarisiz` gatesi
+   zaten bunun için yazıldı, yeni bir `TestSonuc` durumu icat edilmez; arıza türü yalnız
+   `Gozlem` içinde bir alt-alan (metadata) olarak taşınır.
+22. Otomatik kanıt toplama ≠ otomatik uyum kararı: bir connector veri ÇEKER, kontrol
+   eşlemesini önerebilir, ama PASSED/FAILED/UYUMLU'ya asla kendisi karar veremez — kural
+   11/16 connector'lar için de aynen geçerlidir, connector bir istisna yaratmaz.
+23. Connector/entegrasyon secret'ları (client secret, refresh token, API key) Supabase
+   Vault'ta SAKLANMAZ (kural 4'ün — taşınabilirlik/VII-128.10 md.26 — doğrudan sonucu);
+   platform_operator'a bu tür bir tabloda AÇIK bypass RLS politikası verilmez — standart
+   `tenant_id = current_tenant_id()` idiomu ve NULL tenant_id mekanizması yeterlidir, yeni
+   bir "hariç tut" kuralı icat edilmez.
+24. Evidence-control ilişkisini genişletirken (bkz. Dikey K) mevcut okuyucuları (`veri.ts`,
+   `proof_room_goruntule`, kontrol detay sayfası) sessizce bozacak bir şema değişikliği tek
+   PR'da yapılmaz — düşük riskli/additive adım (self-referencing FK) ile geniş kapsamlı
+   refactor (junction table) AYRI kurucu kararları olarak ele alınır.
