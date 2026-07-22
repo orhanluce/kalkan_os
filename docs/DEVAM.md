@@ -7,6 +7,35 @@ doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine g
 açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1-G1'de bu iki-faz
 disiplini tutarlı uygulandı).
 
+## -12. K1 hazırlık analizi TAMAMLANDI — prova HENÜZ BAŞLAMADI (22 Temmuz 2026, KOD YOK)
+
+Kodsuz analiz + runbook: `docs/adr/PR0-K1-production-like-staging-backup-
+restore-hazirlik-2026-07-22.md` + `docs/operasyon/YEDEKLEME_GERI_YUKLEME.md`
+§6. Bu turda hiçbir Supabase projesi oluşturulmadı, backup alınmadı,
+restore denenmedi, DB'ye bağlanılmadı, migration/seed çalıştırılmadı,
+Storage kopyalanmadı, Auth kullanıcısı oluşturulmadı, DNS/Hostinger/SMTP/
+cron değiştirilmedi, secret okunmadı/yazılmadı.
+
+**En önemli bulgu:** bugün ayrı bir staging Supabase projesi YOK — "test
+izolasyonu" bugün yalnız tenant-seviyesinde (`E2E Test Kurumu A.Ş.`
+deseni). K1 bunun ÜZERİNE değil, YANINA yeni bir proje-seviyesi izolasyon
+katmanı kurar. **İki risk bu OTURUMDA (SMTP kapanışı sırasında) gerçekten
+yaşandı**, varsayım değil: yanlış Supabase hesabına bağlı MCP oturumu, ve
+production Auth URL Configuration'ın localhost'a düşmesi — ikisi de K1
+runbook'unun güvenlik uyarılarına işlendi.
+
+**Sonraki kullanıcı işlemleri (bkz. ADR §14, tam liste):** doğru production
+project ref teyidi, Supabase planının PITR/backup özelliğini gerçekten
+desteklediğinin panelden doğrulanması, yeni staging projesi açma kararı ve
+işlemi, staging'in kendi Auth URL Configuration'ının ayrı kurulması.
+
+**Onay noktası:** kurucu ADR §15'teki 5 kararı (kalıcı/geçici staging;
+managed backup+pg_dump kombinasyonu; Storage yedek yöntemi; staging SMTP
+davranışı; restore-sonrası ledger_outbox'ın izole signer ile çalıştırılması)
+kapatıp açık "K1 provasına başla" talimatı vermeden gerçek prova
+BAŞLAMAZ — bu, F1-G1'de kurulan iki-faz (kodsuz analiz → kurucu kararı →
+tam uygulama) disiplininin aynısı.
+
 ## -11. Özel SMTP kapısı KAPANDI + Entra ID Connector MVP'yi tamamlayan zorunlu dikey ilan edildi (22 Temmuz 2026)
 
 **Özel SMTP — G1.1'in yarısı BİTTİ, canlıda uçtan uca doğrulandı.** Resend

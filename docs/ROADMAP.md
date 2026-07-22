@@ -2765,6 +2765,45 @@ yalnız CLAUDE.md (kural 20 güncellendi + yeni kural 25), ROADMAP.md (bu
 girdi) ve `docs/adr/PR0-dikeyJ-otomatik-kanit-toplama-2026-07-22.md`
 (founder decision bölümü) güncellendi.
 
+### 1.74 K1 — Production-like Staging ve Gerçek Backup/Restore Provası Hazırlık Analizi TAMAMLANDI (22 Temmuz 2026, KOD YOK — provanın KENDİSİ hâlâ yapılmadı)
+
+Tam analiz: `docs/adr/PR0-K1-production-like-staging-backup-restore-
+hazirlik-2026-07-22.md`. `docs/operasyon/YEDEKLEME_GERI_YUKLEME.md` §6'ya
+çalıştırılabilir bir runbook (güvenlik uyarıları, komut şablonları, panel
+adımları, test matrisi referansı, rollback/cleanup, kanıt paketi şablonu)
+eklendi.
+
+**En önemli bulgu:** bugün "test ortamı" kavramı proje-seviyesinde değil,
+TENANT-seviyesinde izolasyon (`scripts/setup-e2e-fixtures.ts`'in "E2E Test
+Kurumu A.Ş." deseni) — hiçbir ikinci Supabase projesi (staging) yok, K1
+bunu YENİ, DAHA GÜÇLÜ bir izolasyon katmanı olarak sıfırdan kurar.
+**İki risk bu OTURUMDA gerçekten yaşandı** (varsayım değil): (1) bağlı
+Supabase MCP bağlantısının doğru projeye değil, başka bir hesaptaki
+projelere baktığı (SMTP kapanışı sırasında), (2) Auth URL Configuration'ın
+production'da localhost'a düşmesi (`OZEL_SMTP_KURULUMU.md` §3.6) — ikisi
+de K1 runbook'unun güvenlik uyarılarına (§6.2) doğrudan işlendi, ayrı
+Supabase PROJESİ kullanmanın bu riski YAPISAL olarak ortadan kaldırdığı
+gösterildi.
+
+Backup yöntemi karşılaştırması (managed backup/PITR, `pg_dump`, Supabase
+CLI dump, uygulama-seviyesi export, Storage export) sonucu önerilen mimari:
+ANA yöntem managed backup + bağımsız doğrulama `pg_dump` + zorunlu
+tamamlayıcı Storage export — hiçbiri Storage dosya içeriklerini tek başına
+kapsamıyor, `auth`/`cron` şemalarının pg_dump kapsamı AÇIKÇA belirtilmezse
+kaçabileceği bulundu (varsayılmadı, ADR'de işaretli). Kriptografik/ledger
+restore riski ayrıca analiz edildi: `ledger_outbox`'ın backup-anı
+`PROCESSING` satırları restore-sonrası tekrar claim edilirse
+`transparency_ledger_entries`'te uniqueness guard'ının olmaması nedeniyle
+orphan-leaf riski taşıdığı (Dikey K'nın önceki bulgusuyla aynı sınıf)
+yeniden teyit edildi ve K1'in test matrisine (H2) eklendi.
+
+**Öncelik sırası DEĞİŞMEDİ:** özel SMTP (TAMAMLANDI) → **K1 (hazırlık
+analizi TAMAMLANDI, prova HENÜZ YAPILMADI)** → K2 → mevzuat paketi → ilk
+pilot → geri bildirim → Entra ID Connector MVP. K1'in gerçek provası
+(staging oluşturma, backup alma, restore) kurucunun §15'teki 5 kararı
+onaylamasını ve açık "başla" talimatını bekliyor — bu turda hiçbir
+Supabase projesi oluşturulmadı, backup alınmadı, restore denenmedi.
+
 ---
 
 ## 2. Veri modeli çekirdeği (M1'de şema olarak yazılacak)

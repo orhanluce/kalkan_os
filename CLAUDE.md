@@ -1,6 +1,30 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**K1 — Production-like Staging ve Gerçek Backup/Restore Provası hazırlık
+analizi TAMAMLANDI (22 Temmuz 2026, KOD YOK — provanın kendisi hâlâ
+yapılmadı).** Tam analiz `docs/adr/PR0-K1-production-like-staging-backup-
+restore-hazirlik-2026-07-22.md`'de; `docs/operasyon/YEDEKLEME_GERI_
+YUKLEME.md` §6'ya çalıştırılabilir bir runbook (güvenlik uyarıları, komut
+şablonları, panel adımları, rollback/cleanup, kanıt paketi) eklendi. **En
+önemli bulgu:** bugün ayrı bir staging Supabase projesi YOK — "test
+izolasyonu" bugün yalnız tenant-seviyesinde (`E2E Test Kurumu A.Ş.`
+deseni, `scripts/setup-e2e-fixtures.ts`); K1 bunun üzerine değil, yanına
+yeni bir proje-seviyesi izolasyon katmanı kurar. **İki risk bu OTURUMDA
+(SMTP kapanışı sırasında) gerçekten yaşandı, varsayım değil:** yanlış
+Supabase hesabına bağlı MCP oturumu, ve production Auth URL
+Configuration'ın localhost'a düşmesi — ikisi de yeni kural 26/27'ye ve K1
+runbook'unun güvenlik uyarılarına işlendi. Backup yöntemi karşılaştırması
+(managed backup/PITR ana + `pg_dump` bağımsız doğrulama + Storage export
+zorunlu tamamlayıcı) ve kriptografik/ledger restore riski (backup-anı
+`PROCESSING` outbox satırlarının restore-sonrası orphan-leaf riski, Dikey
+K'nın önceki bulgusuyla aynı sınıf) ADR'de detaylı. **Öncelik sırası
+DEĞİŞMEDİ, yeni kural 26-30 eklendi** (yanlış proje bağlantısı, prod veri
+sızıntısı, restore öncesi açık onay, secret redaction, restore güven
+sınırı). Kurucunun ADR §15'teki 5 kararı onaylayıp açık "başla" talimatı
+vermesi bekleniyor — bu turda hiçbir Supabase projesi oluşturulmadı,
+backup alınmadı, restore denenmedi.
+
 **Özel SMTP kapısı TAMAMLANDI + Entra ID Connector MVP'yi tamamlayan
 zorunlu dikey ilan edildi (22 Temmuz 2026, bu ikinci madde KOD YOK).**
 G1.1'in SMTP yarısı canlıda uçtan uca doğrulandı — Resend bağlandı, gerçek
@@ -989,3 +1013,24 @@ Yönetim Kurulu Beyanı modülü onun yerini almalı ama henüz bağlanmadı.
    `proof_room_goruntule`, kontrol detay sayfası) sessizce bozacak bir şema değişikliği tek
    PR'da yapılmaz — düşük riskli/additive adım (self-referencing FK) ile geniş kapsamlı
    refactor (junction table) AYRI kurucu kararları olarak ele alınır.
+26. Herhangi bir Supabase/CLI/MCP komutundan önce BAĞLI OLUNAN proje ref'i AÇIKÇA teyit
+   edilir — "muhtemelen doğru proje" ile devam edilmez. Bu varsayımsal bir risk değil: bu
+   repo'da MCP oturumunun yanlış hesaba baktığı GERÇEKTEN yaşandı (K1 ADR §3). Production ve
+   staging/restore hedefi için AYRI env dosyaları kullanılır, aynı dosyada iki projenin
+   bilgisi TUTULMAZ.
+27. Gerçek müşteri/pilot verisi staging veya restore-test ortamına ASLA kontrolsüz
+   kopyalanmaz — yalnız sentetik/atılabilir test verisi (K1 ADR §8, `setup-e2e-fixtures.ts`
+   deseninin genişlemesi) kullanılır.
+28. Production veya staging üzerinde yıkıcı işlem (backup alma, restore başlatma, proje
+   oluşturma, DNS/SMTP/cron değiştirme, canlı Supabase ayarı değiştirme) kurucunun AÇIK,
+   o işleme özel onayı olmadan yapılmaz — kodsuz analiz/runbook hazırlığı bu onayın YERİNE
+   geçmez (K1'in iki-faz disiplini: önce analiz, sonra kurucu kararı, sonra uygulama).
+29. Hiçbir secret (service_role key, DB parolası, API key, connection string, token) sohbete,
+   commit'e, log'a veya belgeye yazılmaz/istenmez — yalnız adı ve saklandığı mekanizma
+   (panel/`.env.*.local`) belirtilir; secret'lar yalnız panel veya güvenli environment store'a
+   girilir.
+30. Restore işleminin KENDİSİ yeni bir ledger event'i veya yeni bir güven/doğrulama olayı
+   DEĞİLDİR — yalnız var olan kriptografik güvenceyi TAŞIR. Restore SONRASI yeniden üretilen
+   herhangi bir imza/ledger kaydı (örn. backup-anı `PENDING`/`PROCESSING` outbox satırlarının
+   yeniden işlenmesi) restore ÖNCESİ üretilenlerle KARIŞTIRILMAZ, kanıt paketinde ayrı
+   listelenir (K1 ADR §10).
