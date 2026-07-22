@@ -1,9 +1,10 @@
 # ADR — K1: Production-like Staging ve Gerçek Backup/Restore Provası Hazırlık Analizi
 
-**Tarih:** 22 Temmuz 2026 (güncelleme: 22 Temmuz 2026, §15 — 5 kurucu kararı KAPANDI)
+**Tarih:** 22 Temmuz 2026 (güncelleme: 22 Temmuz 2026, §15 — 5 kurucu kararı KAPANDI; §16 — kurucu nihai kararı: erteleme)
 **Durum:** MİMARİ ANALİZ + KARAR SEÇENEKLERİ KABUL EDİLDİ, BEŞ KARAR KAPANDI
-(§15) — provanın KENDİSİ hâlâ BAŞLAMADI, ayrı açık "başla" talimatı
-bekliyor. Bu turda (analiz + karar kapanışı) migration yazılmadı, staging/
+(§15). **K1 HENÜZ KAPALI DEĞİL** — production tam dump alınmadan, K1 restore
+provası izole staging hazır olana kadar ertelendi (§16). Bu turda (analiz +
+karar kapanışı) migration yazılmadı, staging/
 Supabase projesi oluşturulmadı, backup alınmadı, restore denenmedi, DB'ye
 bağlanılmadı, seed/migration çalıştırılmadı, Storage kopyalanmadı, Auth
 kullanıcısı oluşturulmadı, DNS/Hostinger/SMTP/cron değiştirilmedi,
@@ -474,3 +475,22 @@ kendisi hâlâ ayrı, açık bir "başla" talimatı bekliyor (bu belgenin üstü
 
 Her beş karar `docs/operasyon/YEDEKLEME_GERI_YUKLEME.md` §6 runbook'una ve
 ROADMAP/DEVAM'daki açık karar listelerine işlendi.
+
+## 16. Kurucu nihai kararı — erteleme (22 Temmuz 2026)
+
+Staging'in hesap-geneli ücretsiz proje limitine takılması üzerine denenen
+tek alternatif (production'a karşı bağımsız `pg_dump`) da kurucu tarafından
+reddedildi — gerekçe: dump gerçek production kişisel verisi içerir, izole
+bir restore hedefi yok, tek başına K1'i kapatmaz, risk/getiri oranı bu
+aşamada uygun değil. **Production tam dump alınmadan, K1 restore provası
+izole staging hazır olana kadar ertelendi.** K1 bu durumda **KAPALI
+DEĞİLDİR** — izole staging projesi için bütçe/erişim sağlandığında gerçek
+restore provası yeniden açılacaktır.
+
+**Kurucunun 22 Temmuz 2026 tarihli nihai kaydı (aynen):** *"K1 hazırlık ve
+karar aşaması tamamlandı; gerçek production-like staging ve backup/restore
+provası Supabase ortam engeli nedeniyle ertelendi. K1 açık operasyonel
+borçtur ve gerçek pilot müşteri verisi alınmadan önce kapatılmalıdır."*
+K1 **DONE/KAPANDI olarak işaretlenmez**; öncelik sırasındaki yeri (kural
+20) ve §13'teki kabul kriterleri DEĞİŞMEDEN kalır — Supabase engeli
+kalktığında AYNI kriterlerle yeniden açılır.

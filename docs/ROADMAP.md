@@ -2829,6 +2829,23 @@ başla" talimatı gerekiyor; bu turda da hiçbir Supabase projesi
 oluşturulmadı, secret istenmedi/değiştirilmedi, cron açılmadı,
 production/staging canlı ayarı yapılmadı.
 
+#### 1.74.2 Kurucu nihai kararı — erteleme (22 Temmuz 2026)
+
+Staging hesap-geneli ücretsiz proje limitine takıldı; tek alternatif olan
+production'a karşı bağımsız `pg_dump` de kurucu tarafından reddedildi
+(gerekçe: gerçek kişisel veri içerir, izole restore hedefi yok, tek başına
+K1'i kapatmaz, risk/getiri oranı uygun değil). **Production tam dump
+alınmadan, K1 restore provası izole staging hazır olana kadar ertelendi.**
+K1 **KAPALI DEĞİLDİR** — izole staging için bütçe/erişim sağlandığında
+gerçek restore provası yeniden açılacaktır (ADR §16).
+
+**Kurucunun 22 Temmuz 2026 tarihli nihai kaydı (aynen):** *"K1 hazırlık ve
+karar aşaması tamamlandı; gerçek production-like staging ve backup/restore
+provası Supabase ortam engeli nedeniyle ertelendi. K1 açık operasyonel
+borçtur ve gerçek pilot müşteri verisi alınmadan önce kapatılmalıdır."*
+K1 DONE/KAPANDI olarak işaretlenmez; kural 20'deki öncelik sırasındaki yeri
+ve ADR §13'teki kabul kriterleri DEĞİŞMEDEN kalır.
+
 ---
 
 ## 2. Veri modeli çekirdeği (M1'de şema olarak yazılacak)

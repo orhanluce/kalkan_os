@@ -123,12 +123,21 @@ geçerli): tarih, ortam, ölçülen RTO, bulunan sorunlar, bağımsız inceleyen
 adı/tarihi.
 
 **Durum: HAZIRLIK ANALİZİ TAMAMLANDI + BEŞ KURUCU KARARI KAPANDI (22 Temmuz
-2026), PROVANIN KENDİSİ HENÜZ BAŞLAMADI.** Tam mimari analiz + karşılaştırma
-+ kapanan kararlar: `docs/adr/PR0-K1-production-like-staging-backup-restore-
-hazirlik-2026-07-22.md` §15 (özet §6.0 aşağıda). Dikey G2'ye geçmeden önce
-ve gerçek müşteri (pilot) verisi sisteme girmeden önce PROVANIN KENDİSİ
-zorunlu — karar kapanmış olmak provanın BAŞLADIĞI anlamına gelmez, ayrı bir
-açık "başla" talimatı gerekir. Bu belge yalnız YAZILI/ÇALIŞTIRILABİLİR bir
+2026), K1 HENÜZ KAPALI DEĞİL.** Tam mimari analiz + karşılaştırma + kapanan
+kararlar: `docs/adr/PR0-K1-production-like-staging-backup-restore-
+hazirlik-2026-07-22.md` §15 (özet §6.0 aşağıda). **Production tam dump
+alınmadan, K1 restore provası izole staging hazır olana kadar ertelendi**
+(ADR §16 — staging hesap-geneli ücretsiz proje limitine takıldı, tek
+alternatif olan bağımsız `pg_dump` de kurucu tarafından reddedildi: gerçek
+kişisel veri içerir, izole restore hedefi yok, tek başına K1'i kapatmaz).
+**Kurucunun 22 Temmuz 2026 tarihli nihai kaydı (aynen):** *"K1 hazırlık ve
+karar aşaması tamamlandı; gerçek production-like staging ve backup/restore
+provası Supabase ortam engeli nedeniyle ertelendi. K1 açık operasyonel
+borçtur ve gerçek pilot müşteri verisi alınmadan önce kapatılmalıdır."*
+K1 DONE/KAPANDI olarak işaretlenmez; öncelik sırasındaki yeri ve kabul
+kriterleri değişmeden kalır.
+Dikey G2'ye geçmeden önce ve gerçek müşteri (pilot) verisi sisteme girmeden
+önce PROVANIN KENDİSİ zorunlu — bu belge yalnız YAZILI/ÇALIŞTIRILABİLİR bir
 runbook'tur, aşağıdaki hiçbir adım bu ADR/runbook güncellemesi sırasında
 UYGULANMADI.
 

@@ -7,6 +7,28 @@ doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine g
 açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1-G1'de bu iki-faz
 disiplini tutarlı uygulandı).
 
+## -14. K1 provası ERTELENDİ — kurucu nihai kararı (22 Temmuz 2026)
+
+Staging, hesap-geneli 2-ücretsiz-proje limitine takıldı (Free planda ek
+proje açılamadı). Tek alternatif olan production'a karşı bağımsız
+`pg_dump` de kurucu tarafından reddedildi: dump gerçek kişisel veri
+içerir, izole restore hedefi yok, tek başına K1'i kapatmaz, risk/getiri
+oranı uygun değil. **Production tam dump alınmadan, K1 restore provası
+izole staging hazır olana kadar ertelendi.** K1 **KAPALI DEĞİLDİR** —
+hazırlık analizi + beş mimari karar kapandı, ama gerçek staging/restore
+provası yapılmadı. İzole staging projesi için bütçe/erişim sağlandığında
+yeniden açılacak (`docs/adr/PR0-K1-...md` §16). **Sıradaki gerçek adım:**
+kurucunun staging için bütçe/erişim kararı — o güne kadar K1 bu durumda
+bekler, yeni analiz/script üretilmez.
+
+**Kurucunun 22 Temmuz 2026 tarihli nihai kaydı (aynen):** *"K1 hazırlık ve
+karar aşaması tamamlandı; gerçek production-like staging ve backup/restore
+provası Supabase ortam engeli nedeniyle ertelendi. K1 açık operasyonel
+borçtur ve gerçek pilot müşteri verisi alınmadan önce kapatılmalıdır."*
+K1 DONE/KAPANDI olarak işaretlenmez, açık operasyonel borç ve pilot
+öncesi kapanması gereken kapı olarak kalır; öncelik sırasındaki yeri ve
+kabul kriterleri DEĞİŞMEDEN kalır.
+
 ## -13. K1 ADR §15'in beş kararı KAPANDI — prova HÂLÂ BAŞLAMADI (22 Temmuz 2026, KOD YOK)
 
 Aynı gün, K1 hazırlık analizinin (§-12) hemen üzerine kurucu beş kararı
