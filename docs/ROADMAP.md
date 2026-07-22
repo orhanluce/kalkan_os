@@ -553,6 +553,10 @@ gate sırasıyla): M34 Policy Lifecycle (G2), M35 TPRM/ICT (G4), M36
 PrivacyOps (G6), M37 AI Assurance (G5), M38 Regulatory Engagement (G7),
 M39 Connector Hub (G3), M40 Risk/Board (G8), M41 Partner Network (G7).**
 Mevcut milestone numaraları değişmedi; rapor formatı artık nihai §15.
+**(22 Temmuz 2026 eki, kod yok):** M37'nin üzerine iki ek gelecek dikey
+tanımlandı — §1.69 **Dikey H — AI Yönetişimi ve Güvence** (H1-H5) ve §1.70
+**Dikey I — Kriptografik Kanıt ve Şeffaflık Defteri** (I1-I5); ikisi de
+pilot operasyon önceliğinin (CLAUDE.md kural 20) GERİSİNDE.
 
 ### 1.21 G1 kapanış dilimi — Proof Room ✅ (18 Temmuz gece)
 
@@ -2477,6 +2481,129 @@ kurucunun kendi kararı olmadan silinecek/kapatılacak bir şey değil.
 KALKAN-OS kiracısının kendi ticker'ı için OKTAGON-R'ın `scores` tablosundan sektör yüzdelik
 karşılaştırması okuması — "kurumunuzun kanıtlı uyum skoru X, sektör ortalaması Y" gibi. Bu, iki
 Supabase projesi arasında salt-okunur bir referans olur, kod birleşimi değil.
+
+### 1.69 Mimari karar kaydı — 22 Temmuz 2026 (Dikey H — AI Yönetişimi ve Güvence Katmanı, KOD YOK — yalnız roadmap tanımı)
+
+Kurucunun "sitede AI'dan bahsedelim ama abartmayalım" talebinden doğan
+netleştirme: WardProof'un AI'a yaklaşımı "AI kullanıyoruz" değil "kurumunuzun
+AI sistemlerini yönetişime tabi tutuyoruz" çerçevesidir (kural 11'in doğal
+uzantısı, CLAUDE.md kural 16-17). Bu dikey, M37 AI Assurance & Agent
+Governance'ın (`/ai-guvence`, §1.26/§1.36/§1.45 — HÂLİHAZIRDA ÜRETİMDE)
+üzerine, KOD YAZILMADAN, gelecek beş alt aşamayı tanımlar. Sıra kurucunun
+mutlak pilot önceliğinin (CLAUDE.md kural 20: özel SMTP → K1 → K2 → mevzuat
+paketi → pilot → geri bildirim) GERİSİNDEDİR — H1 kodsuz analizi bile bu
+sıra bitmeden açılmaz.
+
+**H1 — AI Sistem Envanteri (mevcut `ai_systems`'ın olası genişlemesi):** ad,
+kullanım amacı, kurum içi sahibi, sağlayıcı, model ailesi/sürümü, veri
+sınıfları, bağlı kritik hizmet, kullanıcı/etkilenen taraflar, kurum-içi/
+üçüncü-taraf ayrımı, üretim/pilot/test/kapalı durumu, insan gözetimi
+sorumlusu. Alanların çoğu `ai_systems`de zaten var (risk_sinifi, rol, durum);
+kritik-hizmet bağı ve etkilenen-taraf alanları YENİ olur.
+
+**H2 — AI Risk ve Uygulanabilirlik Değerlendirmesi:** risk sınıfı, kullanım
+bağlamı, veri hassasiyeti, otomatik karar seviyesi, insan etkisi,
+açıklanabilirlik ihtiyacı, üçüncü taraf bağımlılığı, model değişikliği
+etkisi. **Kural 3/13'ün AI'a genişlemesi:** hukuki sınıflandırma OTOMATİK
+kesinleştirilmez; taslak değerlendirme (AI/kural motoru üretebilir) ile
+uzman/hukuk onayı (insan verir) ayrımı `applicability.ts`nin (M22) UNKNOWN≠
+NOT_APPLICABLE disiplinine paralel kurulur — eksik olgu belirsizlik üretir,
+kesinlik uydurulmaz.
+
+**H3 — AI Kontrol ve Test Manifesti:** kontrol alanları (veri kalitesi,
+ayrımcılık/adalet, mahremiyet, güvenlik, model dayanıklılığı, halüsinasyon,
+prompt injection, yetkisiz veri kullanımı, açıklanabilirlik, insan gözetimi,
+model/prompt değişiklik yönetimi, üçüncü taraf sağlayıcı riski); test zinciri
+model/sürüm → test veri seti → yöntem → kabul eşiği → ölçülen sonuç → kanıt →
+bulgu → düzeltme → yeniden test — M12'nin kontrol test motorunun (`Failed≠
+Unknown≠Stale≠Exception`, kural 13) AYNI disiplinle AI'a uygulanmış hâli;
+yeni bir test altyapısı İCAT EDİLMEZ.
+
+**H4 — Model/Prompt/Çıktı Provenance ve İnsan Onayı:** model+sürüm, prompt/
+şablon sürümü, kullanılan kaynaklar, üretim zamanı, parametreler, çıktı
+hash'i, insan incelemesi, kabul/red, override kaydı — mevcut
+`ai_execution_receipts`in (SUGGESTED doğar, insan kabul/red eder) alan
+kümesinin genişlemesi. **Kural 16'nın somutlaşması:** AI çıktısı doğrudan
+PASSED/UYUMLU/DOĞRULANDI/BULGU_KAPANDI/RTO-RPO_KARŞILANDI üretemez — yalnız
+öneri üretir, kesin durum değişikliği insan onayı + (kritik olduğunda)
+maker-checker ister.
+
+**H5 — WardProof İçinde Kontrollü Yardımcı AI (yalnız H1-H4 kurulduktan
+SONRA değerlendirilir):** mevzuat değişikliği etki taslağı, kontrol-kanıt
+aday eşleştirmesi, eksik/bayat kanıt tespiti, bulgu özetleme, denetim
+yönetici özeti taslağı, kontrollü doğal dil arama, onboarding sınıflandırması.
+Her çıktı beş durumdan birini taşır: AI_TASLAK / KAYNAK_GEREKLI /
+INSAN_INCELEMESI_BEKLIYOR / KABUL_EDILDI / REDDEDILDI — kural 11'in ("AI
+puanı/uyum durumunu belirleyemez") birebir genişlemesi.
+
+**Bugün mevcut (M37, §1.26/§1.36/§1.45 — ÜRETİMDE):** `/ai-guvence` hub'ı;
+risk sınıflı AI sistem envanteri; yazma yetkili ajanlarda insan onayı + kill/
+disable; AI karar makbuzlarının SUGGESTED doğması + yalnız insanın kabul/red
+edebilmesi; olay (incident) ve değerlendirme (eval) kaydı; model/veri
+soyağacı (lisans, sürüm, sentetik oran, poisoning riski — eşik yoksa
+DEĞERLENDİRİLEMEDİ, uydurulmaz); drift izleme.
+
+**Planlanan/geliştirilmesi gereken:** H1'in kritik-hizmet/etkilenen-taraf
+alanları, H2'nin hukuki-sınıflandırma iş akışı, H3'ün AI-özel test manifesti,
+H5'in kontrollü yardımcı AI özellikleri.
+
+**Henüz yok / iddia edilmeyecek (kural 18):** WardProof'un bugün generative
+AI kullandığı, AI'ın otomatik uyum kararı verdiği, AI'ın tüm mevzuatı
+yorumladığı, "AI Act uyumluluğunu garanti eder" gibi bir garanti dili.
+
+### 1.70 Mimari karar kaydı — 22 Temmuz 2026 (Dikey I — Kriptografik Kanıt ve Şeffaflık Defteri, KOD YOK — yalnız roadmap tanımı)
+
+M5.5/G3'ün (§1.32/§1.37/§1.33 — Merkle + JWS + transactional outbox zaten
+ÜRETİMDE) üzerine, KOD YAZILMADAN, gelecek beş alt aşama:
+
+**I1 — KMS/HSM Destekli Production Signer:** bugünkü `LocalDevSigner`
+(`manifest-signature.ts`) yalnız geliştirme amaçlı, bellek-içi bir ECDSA
+anahtarıdır — production-grade DEĞİLDİR (kural 19). Planlanan: KMS/HSM
+destekli signer, anahtar kimliği + sürümü + rotasyonu, eski imzaların
+rotasyon-sonrası doğrulanabilmesi, imzalama yetkisi ayrımı, anahtar erişim
+audit'i.
+
+**I2 — Bağımsız Doğrulama Servisi (`/dogrula` önerisi):** doğrulanacak
+alanlar canonical hash, JWS, signer key id, algoritma, ledger kayıt zamanı,
+Merkle inclusion proof, consistency proof, anchor durumu. Önerilen sonuç
+kümesi (kural 13'ün ruhu — birleştirilemez): IMZA_GECERLI / IMZA_GECERSIZ /
+LEDGER_KAYDI_BULUNDU / INCLUSION_PROOF_GECERLI / ANCHOR_BEKLIYOR /
+DOGRULANAMADI.
+
+**I3 — Merkle Makbuzu:** indirilebilir doğrulama makbuzu (artefakt türü+id,
+canonical hash, leaf hash, Merkle root, inclusion path, signer bilgisi, kayıt
+zamanı, anchor referansı, doğrulama talimatı). Proof Room'a "Kaydı Doğrula"
+eylemi olası bir sonraki dilim (mevcut beş polimorfik dala altıncı AÇMADAN,
+ilişkisel eklenebilir mi — ayrı ADR ister).
+
+**I4 — Harici Timestamp / Anchor:** değerlendirilecek seçenekler bağımsız
+timestamp authority (RFC 3161 TSA, `timestamp.ts` arayüzü zaten hazır),
+harici transparency service, güvenilir üçüncü taraf anchor, gerekirse public
+blockchain'e YALNIZ Merkle root anchor'ı. **Kural 18:** ham müşteri verisi,
+PII veya mevzuat içeriği hiçbir genel/public chain'e YAZILMAZ — anchor
+seçeneği yalnız kök hash'i için değerlendirilir.
+
+**I5 — SCITT Uyum Değerlendirmesi:** mevcut envelope/receipt yapısının SCITT
+ile karşılaştırılması, uyum matrisi, eksik claim/receipt alanlarının
+belirlenmesi. **Kural 19:** "SCITT sertifikalı" ya da teknik inceleme
+olmadan "tam uyumlu" DENMEZ — SCITT 22 Temmuz 2026 itibarıyla hâlâ IETF
+taslak sürecinde (bağımsız doğrulanmadı, bu tarihten sonra değişmiş
+olabilir); dış iletişimde RFC 6962 yerine RFC 9162 tercih edilir (RFC 6962
+RFC Editor tarafından obsolete işaretli).
+
+**Bugün mevcut (M5.5/G3 — ÜRETİMDE):** kanonik hash (RFC 8785, kendi
+uygulamamız); imzalı kayıt sözleşmesi (ES256 detached JWS); Merkle tabanlı
+append-only şeffaflık defteri (`transparency.ts`); bağımsız doğrulama için
+teknik temel (`verify-paket.ts`, `verify-seffaflik.ts` — DB'siz CLI'lar).
+
+**Planlanan/geliştirilmesi gereken:** production-grade KMS/HSM signer,
+bağımsız doğrulama servisi (`/dogrula` ekranı), Merkle inclusion/consistency
+proof'un UI'a bağlanması, indirilebilir doğrulama makbuzu, harici anchor.
+
+**Henüz yok / iddia edilmeyecek (kural 18/19):** gerçek public blockchain
+altyapısı, production-grade KMS/HSM imza, nitelikli elektronik imza, tam
+SCITT uyumu, tam RFC 9162 uyumu, bağımsız harici anchor'ın üretimde çalıştığı,
+"değiştirilemezlik garantisi" dili.
 
 ---
 

@@ -1,6 +1,29 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**Dikey H ve Dikey I roadmap'e girdi + landing sayfası AI/kriptografi kartları
+tamamlandı (22 Temmuz 2026, KOD YOK bu turda).** Kurucunun "sitede AI ve chain
+teknolojisinden bahsedelim ama abartmadan" talebine karşılık: (1) `/tanitim`
+sayfasına gerçek ürün yüzeyini anlatan iki kart eklendi — Modüller bölümüne
+"AI Güvence" (risk sınıflı AI envanteri, yazma yetkili ajanlarda insan onayı,
+AI karar makbuzlarının SUGGESTED doğması), Güven bölümüne "Kriptografik
+Şeffaflık Defteri" (kanonik hash + imza + Merkle tabanlı append-only defter +
+bağımsız doğrulama) — "blockchain", "SCITT sertifikalı", "nitelikli imza",
+"AI otomatik karar verir" gibi ifadeler KULLANILMADI (kural 16-19). (2)
+`src/lib/transparency.ts`'teki eski "RFC 6962" referansı `RFC 9162`e
+düzeltildi (RFC 6962 obsolete — RFC Editor kaydı) + "SCITT yaklaşımından
+esinlenir, tam standart uyumu iddia edilmez" hedge'i eklendi; DAVRANIŞSAL KOD
+DEĞİŞMEDİ. (3) İki yeni PLANLANAN (kod yok) dikey `docs/ROADMAP.md` §1.69
+(Dikey H — AI Yönetişimi ve Güvence: H1 AI sistem envanteri → H2 risk/
+uygulanabilirlik → H3 kontrol/test manifesti → H4 provenance+insan onayı →
+H5 kontrollü yardımcı AI) ve §1.70 (Dikey I — Kriptografik Kanıt ve Şeffaflık
+Defteri: I1 KMS/HSM production signer → I2 bağımsız doğrulama servisi → I3
+Merkle makbuzu → I4 harici timestamp/anchor → I5 SCITT uyum değerlendirmesi)
+olarak kaydedildi — ikisi de yalnız tanım/ADR seviyesinde, migration yok.
+**Öncelik sırası DEĞİŞMEDİ ve kural 20'ye yazıldı:** özel SMTP → K1 restore
+provası → K2 → hukukça doğrulanmış ilk mevzuat paketi → ilk pilot → pilot
+geri bildirimi TAMAMLANMADAN H1/I1 kodsuz analizi bile açılmaz, G2 hiç açılmaz.
+
 **Dikey G1.1 kararlaştırıldı (22 Temmuz 2026) — Pilot Operasyon Hazırlığı:
 kod DEĞİL, iki operasyonel kapı.** G1 canlı/kabul edildikten sonra kurucu G2'ye
 (self-servis + ödeme) DOĞRUDAN geçilmemesine karar verdi — önce iki bloklayıcı
@@ -834,3 +857,19 @@ Yönetim Kurulu Beyanı modülü onun yerini almalı ama henüz bağlanmadı.
 15. Bir hash'in NEYİ doğruladığı adında yazar (`reportDataHash` ≠ `pdfFileHash` ≠
    `coreManifestHash` ≠ `packageManifestHash`); kanıt köken güvencesi zarfsız verilemez —
    zarfsız eski kayıt `LEGACY_FILE_HASH_ONLY` kalır, alan uydurulmaz.
+16. AI hiçbir zaman insan onayı olmadan PASSED/UYUMLU/KAPALI/DOĞRULANDI/KARŞILANDI gibi
+   nihai bir durum üretemez; AI çıktısı her zaman taslak/öneri (SUGGESTED/PROPOSED) olarak
+   doğar, kesin durum değişikliği yetkili insan onayıyla (gerekirse maker-checker'la) yapılır.
+17. AI çıktısının provenance'ı zorunludur: kullanılan model/sürüm, kaynak, üretim zamanı ve
+   insan inceleme/onay durumu birlikte taşınır — bunlardan biri eksikse çıktı "doğrulanmış"
+   sayılmaz.
+18. Ürün dilinde (kod, doküman, pazarlama) "blockchain" iddiası kullanılmaz; ham müşteri
+   verisi, PII veya mevzuat içeriği hiçbir genel/public chain'e yazılmaz. Kriptografik kanıt
+   zinciri "kriptografik şeffaflık defteri" gibi doğru ve dürüst dille anlatılır.
+19. Bugünkü imza/zaman-damgası altyapısının sınırı açıkça taşınır: `LocalDevSigner`
+   production-grade bir imzalayıcı DEĞİLDİR; SCITT veya RFC 9162 ile "tam uyum" ya da
+   "sertifikalı" iddia edilmez — yalnız bu mimarilerden esinlenildiği söylenir.
+20. Pilot operasyon önceliği sabit sıradadır: özel SMTP → K1 restore provası → K2 kritik
+   zamanlanmış görev güvencesi → hukukça doğrulanmış ilk mevzuat paketi → ilk kontrollü pilot
+   → pilot geri bildirimi — bu sıra tamamlanmadan Dikey H (AI Yönetişimi) ve Dikey I
+   (Kriptografik Kanıt/KMS) kodsuz analizi bile açılmaz, G2 (self-servis+ödeme) hiç açılmaz.

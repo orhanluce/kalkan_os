@@ -7,6 +7,22 @@ doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine g
 açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1-G1'de bu iki-faz
 disiplini tutarlı uygulandı).
 
+## -8. Dikey H/I roadmap tanımı + landing sayfası AI/kriptografi kartları (22 Temmuz 2026, KOD YOK)
+
+Bir "vertical BİTTİ" değil — kodsuz bir doküman+pazarlama-metni turu.
+Kurucunun "sitede AI ve chain teknolojisinden bahsedelim ama abartmadan"
+talebi karşılandı: `/tanitim`e iki kart eklendi (Modüller: "AI Güvence" —
+mevcut `/ai-guvence` M37'yi anlatır; Güven bölümü: "Kriptografik Şeffaflık
+Defteri" — mevcut `transparency.ts` Merkle/JWS defterini anlatır), ikisi de
+"blockchain"/"AI otomatik karar verir"/"SCITT sertifikalı" gibi iddialar
+KULLANMADAN. `transparency.ts`'teki eski RFC 6962 referansı RFC 9162'ye
+düzeltildi (davranış değişmedi, yalnız yorum). ROADMAP.md §1.69 (Dikey H —
+AI Yönetişimi, H1-H5) ve §1.70 (Dikey I — Kriptografik Kanıt, I1-I5) planlı
+(kod yok) dikey olarak eklendi; CLAUDE.md'ye kural 16-20 (AI karar sınırı,
+provenance zorunluluğu, blockchain/SCITT/RFC iddia yasağı, pilot önceliği)
+eklendi. **Öncelik sırası DEĞİŞMEDİ:** özel SMTP → K1 → K2 → mevzuat paketi
+→ pilot → geri bildirim tamamlanmadan H1/I1 kodsuz analizi bile açılmaz.
+
 ## -7. DİKEY G1 BİTTİ (22 Temmuz 2026) — Kontrollü Pilot Provisioning ve
 Kurum Onboarding
 
