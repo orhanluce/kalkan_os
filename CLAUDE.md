@@ -1,6 +1,35 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**Özel SMTP kapısı TAMAMLANDI + Entra ID Connector MVP'yi tamamlayan
+zorunlu dikey ilan edildi (22 Temmuz 2026, bu ikinci madde KOD YOK).**
+G1.1'in SMTP yarısı canlıda uçtan uca doğrulandı — Resend bağlandı, gerçek
+bir `resetPasswordForEmail` gönderilip alınıp linkin `wardproof.com`'a
+gittiği tıklanarak teyit edildi. Bu doğrulama sırasında İKİ gerçek canlı
+açık bulunup düzeltildi (`docs/operasyon/OZEL_SMTP_KURULUMU.md` §3.6): (1)
+Supabase SMTP Username alanına runbook'un açıklama metni ("resend (literal
+metin)") yanlışlıkla birebir kopyalanmıştı → `535 Invalid username`; (2)
+Authentication → URL Configuration'da `Site URL` hâlâ `localhost:3000`
+VE `Redirect URLs` allow-list'i TAMAMEN BOŞTU → gerçek e-postalardaki
+linkler sessizce yerel geliştirme adresine düşüyordu (kural 20'nin "dev/
+staging URL'i production e-postasına SIZMAMALI" maddesinin tam yakaladığı
+senaryo). `inviteUserByEmail` bu turda uçtan uca tıklanarak test
+EDİLEMEDİ (test adresi zaten kayıtlıydı) ama aynı yapılandırmayı/
+`redirectTo`'yu kullandığı için kapıyı bloklamadı — ilk gerçek pilot
+davetinde ilk kez canlı görülecek, dürüstçe not edildi. **Sıradaki gerçek
+iş: K1 (staging + backup/restore provası), hâlâ HENÜZ YAPILMADI.**
+
+Aynı oturumda kurucu ikinci, ayrı bir karar verdi: Entra ID Connector
+artık "MVP sonrası isteğe bağlı özellik" değil, **WardProof MVP'sini
+TAMAMLAYAN zorunlu son dikey**dir (CLAUDE.md kural 25) — MVP, manuel kanıt
+akışı VE otomatik connector akışının İKİSİ birlikte çalışmadan
+tamamlanmış sayılmaz. Kapsam kesin: yalnız Entra ID, en fazla üç kontrol
+(MFA/CA/ayrıcalıklı rol), connector asla PASSED/FAILED/UYUMLU üretmez.
+**Öncelik sırası DEĞİŞMEDİ** — bu dikey de K1/K2/mevzuat paketi/pilot/geri
+bildirim kapıları kapanmadan başlamaz; bu turda da KOD YAZILMADI, yalnız
+ürün kapsamı/kilometre taşı sınıflandırması güncellendi (ROADMAP §1.71,
+`docs/adr/PR0-dikeyJ-otomatik-kanit-toplama-2026-07-22.md`).
+
 **Dikey K — Enterprise Readiness ve Otomatik Kanıt Altyapısı Analizi
 BİTTİ (22 Temmuz 2026, KOD YOK) — Dikey J'yi derinleştiren ikinci tur.**
 Kurucunun "Faz 0 pilot öncesi / Faz 1-4 ölçekleme sonrası" ürün planına
@@ -925,10 +954,25 @@ Yönetim Kurulu Beyanı modülü onun yerini almalı ama henüz bağlanmadı.
 19. Bugünkü imza/zaman-damgası altyapısının sınırı açıkça taşınır: `LocalDevSigner`
    production-grade bir imzalayıcı DEĞİLDİR; SCITT veya RFC 9162 ile "tam uyum" ya da
    "sertifikalı" iddia edilmez — yalnız bu mimarilerden esinlenildiği söylenir.
-20. Pilot operasyon önceliği sabit sıradadır: özel SMTP → K1 restore provası → K2 kritik
-   zamanlanmış görev güvencesi → hukukça doğrulanmış ilk mevzuat paketi → ilk kontrollü pilot
-   → pilot geri bildirimi — bu sıra tamamlanmadan Dikey H (AI Yönetişimi) ve Dikey I
-   (Kriptografik Kanıt/KMS) kodsuz analizi bile açılmaz, G2 (self-servis+ödeme) hiç açılmaz.
+20. Pilot operasyon önceliği sabit sıradadır: **özel SMTP (TAMAMLANDI, 22 Temmuz 2026)** → K1
+   restore provası → K2 kritik zamanlanmış görev güvencesi → hukukça doğrulanmış ilk mevzuat
+   paketi → ilk kontrollü pilot → pilot geri bildirimi → evidence kaynak modeli → **Entra ID
+   Connector MVP** — bu sıra tamamlanmadan Dikey H (AI Yönetişimi) ve Dikey I (Kriptografik
+   Kanıt/KMS) kodsuz analizi bile açılmaz, G2 (self-servis+ödeme) hiç açılmaz. **Entra ID
+   Connector artık "MVP sonrası isteğe bağlı özellik" DEĞİL — kurucunun 22 Temmuz 2026 kararıyla
+   WardProof MVP'sini TAMAMLAYAN zorunlu son dikeydir** (bkz. madde 25); yine de bu sıradaki
+   yerini korur, K1/K2/mevzuat/pilot/geri-bildirim kapıları kapanmadan geliştirmesi başlamaz.
+25. WardProof MVP'si iki kanıt kaynağını BİRLİKTE desteklemeden tamamlanmış sayılmaz: (a)
+   manuel kanıt girişi (mevcut, korunacak — kritik hizmet→kontrol→manuel kanıt→test→bulgu→
+   düzeltici faaliyet→retest→bağımsız kapanış→Proof Room) ve (b) otomatik connector kanıtı
+   (Entra ID→WardProof Connector→ham gözlem→kanıt artefaktı→kontrol eşlemesi→insan
+   incelemesi→kontrol testi→kriptografik güvence zinciri→Proof Room). İlk ve TEK MVP
+   connector'ı Microsoft Entra ID'dir, en fazla ÜÇ kontrolle sınırlıdır (MFA kayıt durumu,
+   Conditional Access politika varlığı, ayrıcalıklı yönetici rolleri) — M365/Azure/AWS/SIEM/
+   ticket sistemleri MVP SONRASINA bırakılır. Connector çıktısı doğrudan PASSED/FAILED/
+   UYUMLU/KAPALI üretemez (kural 16/21/22'nin somutlaşması) — yalnız kaynak gözlemi + kanıt
+   artefaktı üretir, kontrol eşlemesi ve test değerlendirmesi mevcut insan-incelemeli güvence
+   akışından geçer.
 21. Connector/otomatik toplama arızası (kimlik doğrulama hatası, zaman aşımı, rate-limit,
    kaynak bulunamadı) ASLA `FAILED` üretmez — kural 13'ün `Gozlem.toplamaBasarisiz` gatesi
    zaten bunun için yazıldı, yeni bir `TestSonuc` durumu icat edilmez; arıza türü yalnız

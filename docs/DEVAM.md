@@ -7,6 +7,44 @@ doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine g
 açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1-G1'de bu iki-faz
 disiplini tutarlı uygulandı).
 
+## -11. Özel SMTP kapısı KAPANDI + Entra ID Connector MVP'yi tamamlayan zorunlu dikey ilan edildi (22 Temmuz 2026)
+
+**Özel SMTP — G1.1'in yarısı BİTTİ, canlıda uçtan uca doğrulandı.** Resend
+bağlandı (domain doğrulaması zaten tamamdı), Supabase Auth SMTP alanları
+kurucu tarafından girildi, gerçek bir `resetPasswordForEmail` gönderilip
+alınıp linkin `wardproof.com`'a gittiği TIKLANARAK teyit edildi. Doğrulama
+sırasında canlıda İKİ gerçek açık bulunup düzeltildi (ayrıntı
+`docs/operasyon/OZEL_SMTP_KURULUMU.md` §3.6): (1) SMTP Username alanına
+runbook'un açıklama metni ("resend (literal metin)") yanlışlıkla birebir
+girilmişti → Resend `535 Invalid username` ile reddediyordu; (2)
+Authentication → URL Configuration'da `Site URL` hâlâ `localhost:3000` VE
+`Redirect URLs` allow-list'i TAMAMEN BOŞTU → linkler sessizce yerel
+geliştirme adresine düşüyordu (üretim e-postasına dev URL sızması —
+checklist'in tam yakalamayı amaçladığı senaryo, gerçekten yakaladı).
+`inviteUserByEmail` bu turda uçtan uca TIKLANARAK test edilemedi (test
+adresi zaten kayıtlıydı) ama aynı yapılandırmayı paylaştığı için kapıyı
+bloklamadı — dürüstçe not edildi, ilk gerçek pilot davetinde ilk kez
+canlı görülecek. **Sıradaki gerçek iş: K1 (staging + backup/restore
+provası) — `docs/operasyon/YEDEKLEME_GERI_YUKLEME.md` §5, hâlâ HENÜZ
+YAPILMADI.**
+
+**Ayrı, ikinci kurucu kararı — kod yok, yalnız kapsam/sınıflandırma:**
+Entra ID Connector artık "MVP sonrası isteğe bağlı özellik" değil,
+**WardProof MVP'sini tamamlayan zorunlu son dikey**. Gerekçe: otomatik
+kanıt toplama MVP dışında kalırsa ürün, güçlü güvence zincirine rağmen
+"kanıtları yine biz mi elle gireceğiz?" itirazına açık, manuel-ağırlıklı
+bir GRC aracı gibi algılanabilir. MVP artık İKİ kanıt kaynağını BİRLİKTE
+gerektirir: manuel akış (mevcut, korunur) + Entra ID otomatik akışı
+(ham gözlem→kanıt artefaktı→kontrol eşlemesi→insan incelemesi→test→
+kriptografik zincir→Proof Room). Kapsam DARALTILDI: yalnız Entra ID (M365/
+Azure/AWS/SIEM MVP sonrasına), en fazla ÜÇ kontrol (MFA/CA/ayrıcalıklı
+rol), connector asla PASSED/FAILED/UYUMLU üretmez (kural 16/21/22 aynen
+geçerli). Ayrıntı: `docs/adr/PR0-dikeyJ-otomatik-kanit-toplama-2026-07-22.md`
+§7, `docs/ROADMAP.md` §1.73, `CLAUDE.md` kural 20 (güncellendi) + kural 25
+(yeni). **Öncelik sırası DEĞİŞMEDİ:** bu dikey de K1/K2/mevzuat paketi/
+pilot/geri bildirim kapıları kapanmadan başlamaz — bu turda kod
+YAZILMADI.
+
 ## -10. Dikey K — Enterprise Readiness ve Otomatik Kanıt Altyapısı Analizi (22 Temmuz 2026, KOD YOK)
 
 Kodsuz, ikinci-tur mimari analiz — Dikey J'nin YERİNE değil, ÜZERİNE.

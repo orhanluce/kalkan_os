@@ -1,12 +1,42 @@
 # Özel SMTP Kurulumu (Dikey G1.1 — kurucunun 22 Temmuz 2026 kararı)
 
-**Durum: HENÜZ YAPILMADI (yapılandırma tarafı) — SEÇİM YAPILDI (22 Temmuz
-2026).** İlk gerçek pilot davetinden önce ZORUNLU bloklayıcı çıkış kapısı.
-Bu bir kod görevi DEĞİLDİR — Supabase proje panelinde, sağlayıcı hesabında
-ve `wardproof.com`'un DNS kayıtlarında yapılan bir yapılandırmadır; Claude bu
-adımları YÜRÜTEMEZ (harici sağlayıcı hesabı/kimlik bilgisi/DNS erişimi
-gerektirir), yalnız doğrulama scripti/checklist hazırlayabilir ve DNS'in
-GÜNCEL halini salt-okur sorgulayabilir.
+**Durum: TAMAMLANDI (22 Temmuz 2026) — kapı GEÇTİ.** Canlıda uçtan uca
+doğrulandı: Resend bağlandı, DNS doğrulandı, Supabase Auth SMTP alanları
+yapılandırıldı, gerçek bir parola sıfırlama e-postası gönderilip alınıp
+doğru domaine (`wardproof.com`) yönlendiği tıklanarak teyit edildi.
+
+## 3.6 Kapanış — canlı doğrulama sırasında bulunup düzeltilen İKİ gerçek açık
+
+**1) SMTP kimlik doğrulama hatası (`535 "Invalid username"`).** Supabase
+Auth SMTP panelinin Username alanına bu belgenin §1.5 Adım B tablosundaki
+açıklama metni ("resend (literal metin)") YANLIŞLIKLA birebir kopyalanmıştı
+— Resend yalnız tam olarak `resend` bekliyor. Supabase Auth logları
+(`/recover`, HTTP 500) bunu doğrudan gösterdi. Düzeltme: alan `resend`
+olarak sadeleştirildi. **Ders (bu belge için):** tablo değerleri artık
+kopyala-yapıştır riskine karşı açıklama metninden ayrı tutulmalı — bkz.
+§1.5 Adım B, parantez içi açıklamalar DEĞER değildir.
+
+**2) Redirect linkleri `localhost:3000`'e gidiyordu.** Supabase
+Authentication → URL Configuration'da `Site URL` hâlâ
+`http://localhost:3000` idi VE `Redirect URLs` allow-list'i TAMAMEN
+BOŞTU — bu ikisi birlikte, kodun gönderdiği `redirectTo=https://
+wardproof.com/ilk-giris` parametresini Supabase'in sessizce reddedip
+yerel geliştirme adresine düşmesine sebep oluyordu (canlı e-postada
+gerçek bir kullanıcıya localhost linki gitme riski — §2'nin "dev/staging
+URL'i production e-postasına SIZMAMALI" maddesinin tam olarak yakaladığı
+senaryo). Düzeltme: `Site URL` → `https://wardproof.com`, `Redirect URLs`
+→ `https://wardproof.com/**` eklendi. Düzeltme sonrası gönderilen e-posta
+tıklanarak doğru domaine gittiği TEYİT edildi (bir önceki, düzeltme-öncesi
+e-postanın tek-kullanımlık linki zaten tüketilmişti — `otp_expired` hatası
+bu yüzdendi, ayrı bir sorun değildi).
+
+**Kapsam notu:** `inviteUserByEmail` akışı bu turda UÇTAN UCA tıklanarak
+test EDİLEMEDİ (test adresi zaten kayıtlı kullanıcıydı, "already
+registered" ile durdu) — ama AYNI Supabase SMTP/URL yapılandırmasını,
+AYNI `redirectTo` sabitini kullanıyor, ve `resetPasswordForEmail` uçtan
+uca doğrulandı. Farklı davranmasını gerektiren bir kod yolu YOK — bu
+nedenle kapı KAPANDI sayıldı, ama ilk gerçek pilot davetinde ilk kez
+canlı görülecek.
 
 ## 0. Kararlaştırılan seçim (kurucunun 22 Temmuz 2026 kararı)
 
@@ -103,31 +133,44 @@ olarak yeniden sorgulanıp TEYİT edildi:
       2026) — Resend / `wardproof.com` / `info@wardproof.com` / `WardProof`.
 - [x] Resend'de `wardproof.com` domain doğrulaması TAMAMLANDI (§1.6.1, 22
       Temmuz 2026 — bağımsız DNS sorgusuyla teyitli).
-- [ ] Özel SMTP sağlayıcısı Supabase projesine bağlanmış (§1.5 Adım B).
+- [x] Özel SMTP sağlayıcısı Supabase projesine bağlanmış (§1.5 Adım B, §3.6
+      madde 1 — username düzeltmesi sonrası canlıda doğrulandı).
 - [x] SPF kaydı yapılandırılmış (`send.wardproof.com` üzerinde Resend
       include'u + root `@` Hostinger'da korunuyor, §1.6.1).
 - [x] DKIM kaydı (Resend'in ürettiği TXT, `resend._domainkey`) yapılandırılmış
       (§1.6.1).
 - [ ] DMARC kaydı yapılandırılmış (zaten `p=none` var — tercihen, kurucunun
-      notu: SPF/DKIM'den farklı olarak zorunlu değil ama önerilir).
-- [ ] Davet e-postası (`inviteUserByEmail`) gerçek bir alıcıya test edilmiş.
-- [ ] Parola sıfırlama e-postası (`resetPasswordForEmail` / recovery)
-      gerçek bir alıcıya test edilmiş.
+      notu: SPF/DKIM'den farklı olarak zorunlu değil ama önerilir; kapıyı
+      BLOKLAMAZ).
+- [ ] Davet e-postası (`inviteUserByEmail`) gerçek bir alıcıya test edilmiş
+      — BU TURDA YAPILAMADI (test adresi zaten kayıtlıydı, §3.6 kapsam
+      notu); aynı yapılandırma/redirectTo'yu kullanan `resetPasswordForEmail`
+      uçtan uca doğrulandığı için kapıyı BLOKLAMADI, ilk gerçek pilot
+      davetinde ilk kez canlı görülecek.
+- [x] Parola sıfırlama e-postası (`resetPasswordForEmail` / recovery)
+      gerçek bir alıcıya test edilmiş (22 Temmuz 2026, 14:39:39 UTC — link
+      tıklanarak `wardproof.com`'a gittiği teyit edildi, §3.6).
 - [ ] E-posta doğrulama (signup confirmation — bu dilimde kullanılmıyor ama
-      şablon olarak var; ileride açılırsa aynı kapıdan geçmeli) test edilmiş.
+      şablon olarak var; ileride açılırsa aynı kapıdan geçmeli) test edilmiş
+      — kapsam dışı, bu dilimde tetiklenmiyor.
 - [ ] Gönderim HATALARI loglanıyor (SMTP sağlayıcısının kendi dashboard'u
       veya webhook'u üzerinden — Supabase'in kendisi gönderim başarısızlığını
       uygulamaya sessizce bildirir, `inviteUserByEmail`'in dönüş değeri
       yalnız "kabul edildi mi" der, "gerçekten teslim oldu mu" demez).
+      Bu turda YALNIZ manuel gözlemle doğrulandı (Resend dashboard'da
+      kurucu tarafından); kalıcı bir izleme/uyarı KURULMADI, bilinçli
+      kapsam sınırı, gerekirse ayrı iş.
 - [ ] Bounce (geri dönen) ve rate-limit davranışı izleniyor (sağlayıcının
       kendi panelinden — WardProof tarafında ayrı bir izleme kurulmadı,
       bu bilinçli bir kapsam sınırı, gerekirse ayrı bir iş).
-- [ ] Davet bağlantılarının (`redirectTo`) doğru PRODUCTION domaine
-      (`https://wardproof.com/ilk-giris`) yönlendiği doğrulanmış — dev/
-      staging URL'i production e-postasına SIZMAMALI.
-- [ ] Test e-postalarında eski Hostinger geçici domaini
-      (`blue-yak-865668.hostingersite.com`) veya eski ürün adı
-      ("Wardproof" değil "WardProof", "KALKAN-OS" hiç) GEÇMİYOR.
+- [x] Davet/reset bağlantılarının (`redirectTo`) doğru PRODUCTION domaine
+      (`https://wardproof.com/ilk-giris`) yönlendiği doğrulanmış (§3.6 madde
+      2) — dev/staging URL'i production e-postasına SIZMAMASI canlıda
+      TEYİT edildi (önce localhost'a gittiği bulundu, düzeltildi, tekrar
+      test edilip artık doğru gittiği görüldü).
+- [x] Test e-postalarında eski Hostinger geçici domaini veya eski ürün adı
+      GEÇMEDİĞİ (ekran görüntüsüyle) teyit edildi — gönderici
+      `WardProof <info@wardproof.com>` olarak doğru görüldü.
 
 ## 3. Doğrulama script'i (hazır, çalıştırılabilir)
 
@@ -240,8 +283,9 @@ doğrulanmalı.
 - Bu belge ve ilgili commit'ler API key/parola İÇERMEZ — yalnız alan
   adları/host/port gibi genel yapılandırma bilgisi taşır.
 
-## 4. Kapı geçince
+## 4. Kapı GEÇTİ (22 Temmuz 2026, kurucu onayı — "tama mail işi çözüldü")
 
-Bu belgeye bir "Doğrulandı" bölümü + tarih + kurucunun onayı eklenir; G1.1
-bu kapı olmadan "bitti" sayılmaz. Kapı geçtikten sonra §2'deki checklist bu
-dosyada kalıcı kanıt olarak saklanır (silinmez).
+§2 checklist'i ve §3.6'daki kapanış notu kalıcı kanıt olarak bu dosyada
+saklanır (silinmez). G1.1'in SMTP yarısı BİTTİ. **Sıradaki gerçek
+operasyonel iş: K1 (staging + gerçek backup/restore provası)** —
+`docs/operasyon/YEDEKLEME_GERI_YUKLEME.md` §5, hâlâ "HENÜZ YAPILMADI".

@@ -1,9 +1,11 @@
 # ADR — Dikey J: Otomatik Kanıt Toplama ve Sürekli Güvence Katmanı
 
-**Tarih:** 22 Temmuz 2026
-**Durum:** KEŞİF / KODSUZ ANALİZ — kurucu onayı bekliyor. Migration yok,
-connector yok, API yok, sahte UI yok. Bu belge yalnızca mimari konumlandırma
-ve ürün/yatırımcı anlatımı içindir.
+**Tarih:** 22 Temmuz 2026 (güncelleme: 22 Temmuz 2026, §7)
+**Durum:** MİMARİ ANALİZ KABUL EDİLDİ + KAPSAM KARARI ALINDI (§7) — hâlâ
+KOD YOK. Migration yok, connector yok, API yok, sahte UI yok. Entra ID
+connector'ı artık WardProof MVP'sini tamamlayan zorunlu dikey olarak
+sınıflandırıldı (§7), ama geliştirmesi K1/K2/mevzuat paketi/pilot/geri-
+bildirim kapıları kapanmadan BAŞLAMAZ (kural 20 değişmedi).
 
 **Adlandırma notu:** Kurucunun talebinde bu vertikal "Dikey H" olarak
 adlandırılmıştı, ama `docs/ROADMAP.md` §1.69'da AYNI GÜN İÇİNDE zaten farklı
@@ -170,9 +172,76 @@ kullanır — kesinlik veya tarih iddiası taşımaz.
 
 ## 6. Sıradaki adımlar (bu belgenin KENDİSİNDE kapsam dışı)
 
-Öncelik sırası DEĞİŞMEDİ (CLAUDE.md kural 20): özel SMTP → K1 restore
-provası → K2 → hukukça doğrulanmış ilk mevzuat paketi → ilk pilot → pilot
-geri bildirimi. Dikey J'nin (ve Dikey H/I'nin) kodsuz analizi bile bu sıra
-kapanmadan açılmaz. Sıra açıldığında ilk gerçek adım muhtemelen
-`evidences.kaynak_kontrol_id` borcunu kapatmak olur (§3.3) — connector
-olmadan bile değerli, kanıt→kontrol izlenebilirliğini bugünden güçlendirir.
+Öncelik sırası DEĞİŞMEDİ (CLAUDE.md kural 20): **özel SMTP TAMAMLANDI** (22
+Temmuz 2026, canlı doğrulama — `docs/operasyon/OZEL_SMTP_KURULUMU.md` §3.6)
+→ K1 restore provası → K2 → hukukça doğrulanmış ilk mevzuat paketi → ilk
+pilot → pilot geri bildirimi. Dikey J'nin (ve Dikey H/I/K'nın) kodsuz
+analizi/uygulaması bile bu sıra kapanmadan açılmaz. Sıra açıldığında ilk
+gerçek adım muhtemelen `evidences.kaynak_kontrol_id` borcunu kapatmak olur
+(§3.3) — connector olmadan bile değerli, kanıt→kontrol izlenebilirliğini
+bugünden güçlendirir.
+
+## 7. Kurucu kararı — Entra ID Connector, MVP'yi tamamlayan zorunlu dikey (22 Temmuz 2026)
+
+Bu bölümden ÖNCEKİ tüm içerik (§1-6) Dikey J/K'nın "planlanan, kod yok,
+öncelik sırasının GERİSİNDE" statüsündeki analiziydi. Kurucu bu analizin
+üzerine AYRI, somut bir kapsam kararı verdi — bu bölüm o kararı kayıt
+altına alır, önceki analizi GEÇERSİZ KILMAZ, üzerine ekler.
+
+**Gerekçe (kurucunun kendi ifadesiyle):** otomatik kanıt toplama katmanı
+MVP dışında bırakılırsa, WardProof güçlü bir güvence zincirine sahip olsa
+bile müşteri gözünde "kanıtların tamamını yine biz mi elle gireceğiz?"
+itirazına açık, yoğun-manuel-veri-girişli bir GRC uygulaması gibi
+algılanabilir.
+
+**Karar — MVP'nin yeni, DARALTILMIŞ kapsamı** (çok sayıda entegrasyon
+değil, tek gerçek connector uçtan uca çalışsın):
+
+1. **MVP artık iki kanıt kaynağını BİRLİKTE desteklemeden tamamlanmış
+   sayılmaz:**
+   - **Senaryo A — manuel akış (mevcut, korunacak):** kritik hizmet →
+     kontrol → manuel kanıt → test → bulgu → düzeltici faaliyet → retest
+     → bağımsız kapanış → Proof Room.
+   - **Senaryo B — otomatik akış (yeni, MVP'ye eklenecek):** Microsoft
+     Entra ID → WardProof Connector → ham gözlem → kanıt artefaktı →
+     kontrol eşlemesi → insan incelemesi → kontrol testi → kriptografik
+     güvence zinciri → Proof Room.
+2. **İlk ve TEK MVP connector'ı Microsoft Entra ID'dir.** Microsoft 365,
+   Azure, AWS, SIEM ve ticket sistemleri MVP SONRASINA bırakılır —
+   kurucunun bilinçli kararı, tek entegrasyonu güvenli/izole/denetlenebilir/
+   uçtan uca tamamlamak için.
+3. **MVP kapsamı en fazla ÜÇ kontrolle sınırlıdır:** MFA kayıt durumu,
+   Conditional Access politika varlığı, ayrıcalıklı yönetici rolleri —
+   Dikey K'nın (§1.72, §8) beş adaydan daralttığı asgari küme.
+4. **Connector çıktısı doğrudan PASSED/FAILED/UYUMLU/KAPALI ÜRETMEZ**
+   (kural 16/21/22'nin somutlaşması) — yalnız kaynak gözlemi + kanıt
+   artefaktı üretir; kontrol eşlemesi ve test değerlendirmesi mevcut
+   insan-incelemeli güvence akışından geçer. Örnek: connector "Conditional
+   Access politikası bulundu" gözlemler → WardProof "inceleme için otomatik
+   kanıt oluşturuldu" der — ASLA "kurum uyumludur, kontrol PASSED" demez.
+5. **Hata semantiği DEĞİŞMEDİ, yeniden teyit edildi** (kural 21, aynen
+   geçerli — yeni bir durum İCAT EDİLMEDİ): connector hatası ≠ kontrol
+   başarısızlığı; yetki eksikliği ≠ FAILED; veri alınamaması ≠ kontrol
+   uygulanmıyor; eski/eksik veri ≠ güncel kanıt; otomatik kanıt ≠ otomatik
+   uyum kararı. Hatalar `UNKNOWN`/`COLLECTION_ERROR`/`CREDENTIAL_EXPIRED`
+   veya mevcut nötr durum sözlüğüyle yönetilir.
+
+**MVP tamamlanmış sayılma şartı:** Senaryo A VE Senaryo B birlikte
+çalışmadan MVP bitmiş sayılmaz. Bu, sunum/yatırımcı dilinde şöyle
+söylenebilir hâle gelir: *"WardProof, kurumların manuel olarak sunduğu
+kanıtları yönetmenin yanında, Microsoft Entra ID gibi kurumsal sistemlerden
+kontrollü biçimde otomatik kanıt toplayarak bu verileri test, inceleme ve
+kriptografik doğrulama zincirine dönüştürür."*
+
+**Sıralama — DEĞİŞMEDİ, yalnız Entra connector'ın SINIFLANDIRMASI
+değişti:** özel SMTP (TAMAMLANDI) → K1 → K2 → hukukça doğrulanmış ilk
+mevzuat paketi → kontrollü pilot → pilot geri bildirimi → evidence kaynak
+modeli → **Entra ID Connector MVP** → MVP kapanışı. Entra connector artık
+"MVP sonrası isteğe bağlı özellik" değil, **MVP'yi tamamlayan zorunlu son
+ürün dikeyidir** — ama sıradaki YERİ değişmedi; bu kapılar kapanmadan
+geliştirmesi başlamaz.
+
+**Bu turda kod yazılmadı.** Yalnız `CLAUDE.md` (kural 20 güncellendi, yeni
+kural 25 eklendi), `docs/ROADMAP.md` (§1.73) ve bu ADR güncellendi —
+ürün kapsamı ve kilometre taşı sınıflandırması değişti, migration/
+connector/API/UI değişmedi.

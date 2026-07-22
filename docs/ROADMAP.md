@@ -2716,6 +2716,55 @@ kapanmadan BAŞLAMAZ** — kullanıcının öncelik sırasını doğruluyor, boz
 paketi → ilk pilot → geri bildirim tamamlanmadan Dikey K'nın KENDİSİNDE
 önerilen hiçbir adım (Faz 0 evidence şeması dahil) açılmaz.
 
+### 1.73 Mimari karar kaydı — 22 Temmuz 2026 (Entra ID Connector, MVP'yi tamamlayan zorunlu dikey ilan edildi — KOD YOK, yalnız kapsam/sınıflandırma güncellemesi)
+
+**Özel SMTP kapısı bu turda TAMAMLANDI** (canlı doğrulama +
+`docs/operasyon/OZEL_SMTP_KURULUMU.md` §3.6 — iki gerçek açık bulunup
+düzeltildi: SMTP Username alanına açıklama metni kopyalanmıştı, ve
+Authentication → URL Configuration'da Site URL hâlâ localhost'tu +
+Redirect URLs allow-list'i boştu). Sıradaki gerçek iş K1.
+
+**Ayrı, ikinci bir kurucu kararı:** Dikey J/K'nın "planlanan, kod yok"
+statüsündeki Entra ID connector'ı artık isteğe bağlı bir gelecek özellik
+DEĞİL — **WardProof MVP'sini tamamlayan zorunlu son üründür.** Gerekçe:
+otomatik kanıt toplama katmanı MVP dışında bırakılırsa, ürün güçlü bir
+güvence zincirine sahip olsa bile müşteriye "kanıtların tamamını yine biz
+mi elle gireceğiz?" itirazına açık, yoğun-manuel-veri-girişli bir GRC
+aracı gibi görünme riski taşır.
+
+**MVP'nin kesin, DARALTILMIŞ kapsamı** (çok sayıda entegrasyon değil, tek
+gerçek connector uçtan uca):
+- MVP artık İKİ kanıt kaynağını BİRLİKTE desteklemeden tamamlanmış
+  sayılmaz: **(A) manuel akış** (mevcut, korunacak: kritik hizmet→
+  kontrol→manuel kanıt→test→bulgu→düzeltici faaliyet→retest→bağımsız
+  kapanış→Proof Room) ve **(B) otomatik akış** (Entra ID→WardProof
+  Connector→ham gözlem→kanıt artefaktı→kontrol eşlemesi→insan
+  incelemesi→kontrol testi→kriptografik güvence zinciri→Proof Room).
+- İlk ve TEK MVP connector'ı **Microsoft Entra ID**; M365/Azure/AWS/SIEM/
+  ticket sistemleri MVP SONRASINA bırakıldı (kurucunun bilinçli kararı —
+  "çok sayıda entegrasyon değil, uçtan uca çalışan tek bir gerçek
+  connector").
+- En fazla **ÜÇ** kontrol: MFA kayıt durumu, Conditional Access politika
+  varlığı, ayrıcalıklı yönetici rolleri (Dikey K'nın Entra MVP analizinin
+  5 adaydan daralttığı asgari küme).
+- Connector çıktısı doğrudan PASSED/FAILED/UYUMLU/KAPALI ÜRETEMEZ (kural
+  16/21/22) — yalnız kaynak gözlemi + kanıt artefaktı üretir; kontrol
+  eşlemesi ve test değerlendirmesi mevcut insan-incelemeli akıştan geçer.
+  Hata semantiği DEĞİŞMEDİ: connector hatası ≠ kontrol başarısızlığı,
+  yetki eksikliği ≠ FAILED, eski veri ≠ güncel kanıt (kural 21, birebir
+  geçerli — yeni bir kural İCAT EDİLMEDİ).
+
+**Öncelik sırası hâlâ DEĞİŞMEDİ (kural 20, güncellendi):** özel SMTP
+(TAMAMLANDI) → K1 → K2 → mevzuat paketi → ilk pilot → geri bildirim →
+evidence kaynak modeli → **Entra ID Connector MVP** → MVP kapanışı. Tek
+gerçek değişiklik: Entra connector artık bu sıranın SONUNDA "isteğe
+bağlı" değil, MVP'nin KENDİSİNİ tamamlayan zorunlu son adım olarak
+sınıflandırılıyor — ama YERİ değişmedi, K1/K2/mevzuat/pilot/geri-bildirim
+kapıları kapanmadan geliştirmesi başlamaz. **Bu turda kod YAZILMADI** —
+yalnız CLAUDE.md (kural 20 güncellendi + yeni kural 25), ROADMAP.md (bu
+girdi) ve `docs/adr/PR0-dikeyJ-otomatik-kanit-toplama-2026-07-22.md`
+(founder decision bölümü) güncellendi.
+
 ---
 
 ## 2. Veri modeli çekirdeği (M1'de şema olarak yazılacak)
