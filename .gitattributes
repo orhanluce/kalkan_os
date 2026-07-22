@@ -1,0 +1,2 @@
+# Resmî kaynak artefaktları içerik-adreslidir; Git satır sonlarını değiştiremez.
+docs/mevzuat/wardproof/**/sources/** -text

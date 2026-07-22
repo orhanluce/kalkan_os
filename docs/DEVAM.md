@@ -7,6 +7,30 @@ doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine g
 açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1-G1'de bu iki-faz
 disiplini tutarlı uygulandı).
 
+## -17. WardProof resmî kaynak + araştırma zinciri CANLIDA (22 Temmuz 2026; G1/K8 kapanmadı)
+
+`docs/mevzuat/wardproof/2026-07-22/` paketindeki 36 yerel resmî kaynak dosyası
+SHA-256 manifestiyle doğrulandı ve mevcut `regulatory_sources` /
+`source_artifacts` / `source_fetch_runs` tablolarına idempotent seed edildi.
+`control_chain.csv` içindeki 49 benzersiz kaynak+madde araştırma satırı da mevcut
+`provisions` + `obligations` zincirine aktarıldı. Hüküm metni alanında kayıtlar
+açıkça **“ARAŞTIRMA ÖZETİ — RESMÎ HÜKÜM METNİ DEĞİLDİR”** etiketi taşır;
+hüküm ve yükümlülükler `DRAFT_RESEARCH` doğdu, `VERIFIED=0`.
+
+Kural 3 sınırı korundu: `obligation_control_mappings` yazılmadı,
+`data/controls/*.yaml` değiştirilmedi, tenant `applicability_decisions` üretilmedi.
+SPK III-62.2, BDDK-BANK-BS ve KVKK-6698'in çoklu/geçişli yürürlük tarihleri
+paketteki resmî PDF'lerin yürürlük maddelerinden madde bazında çözüldü; sessiz
+tarih tahmini yapılmadı. Canlı ilk koşu: 36 kaynak + 36 artifact + 36 fetch run +
+49 hüküm + 49 yükümlülük. İkinci koşu: bütün yeni sayaçlar `0` (idempotency).
+Saf katalog testi 9/9, typecheck ve değişen-dosya lint'i yeşil.
+
+**G1/K8 HÂLÂ KAPANMADI:** 49 satır hukuk incelemesi bekleyen araştırma
+taslağıdır; ≥20 hukukça VERIFIED kontrol, ≥5 gerçek test tanımı ve hukuk
+doğrulayıcı rolü kapısı değişmeden açıktır. Sonraki içerik işi, ayrı insan
+doğrulaması sonrası control-chain satırlarını mevcut kontrol kütüphanesine
+eşlemektir; bugünkü placeholder `data/controls/*.yaml` bu amaçla kullanılamaz.
+
 ## -16. K2 dış tetik kararı KAPANDI: şimdilik C, pilot öncesi A (22 Temmuz 2026, KOD YOK)
 
 Kurucu, `ADR-dis-cron.md`'nin açık A/B/C sorusunu kapattı (tam metin K2

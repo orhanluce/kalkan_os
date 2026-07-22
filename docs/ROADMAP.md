@@ -2908,6 +2908,28 @@ otomatik tetik doğrulaması yapılmadığı için tamamen KAPALI sayılmaz —
 `K2_LIVE_VALIDATION_PENDING` sürüyor; production migration onayı da bu
 turda VERİLMEDİ.
 
+### 1.76 WardProof resmî kaynak paketi + DRAFT araştırma zinciri ✅ CANLIDA (22 Temmuz 2026)
+
+36 gerçek resmî kaynak dosyası (`docs/mevzuat/wardproof/2026-07-22/`) SHA-256
+manifesti ve 12 alanlı kaynak envanteriyle doğrulandı; mevcut global
+`regulatory_sources` → `source_artifacts` → `source_fetch_runs` zincirine
+idempotent seed edildi. `control_chain.csv` içindeki 49 benzersiz
+kaynak+madde kaydı mevcut `provisions` → `obligations` modeline aktarıldı.
+Hükümler açıkça “ARAŞTIRMA ÖZETİ — RESMÎ HÜKÜM METNİ DEĞİLDİR” olarak
+etiketlidir; bütün yeni hüküm/yükümlülükler `DRAFT_RESEARCH` doğdu.
+
+**Kural 3 sınırı:** `obligation_control_mappings` yazımı `0`;
+`data/controls/*.yaml` değişikliği `0`; tenant uygulanabilirlik kararı `0`;
+`VERIFIED=0`. İlk canlı seed 36 kaynak/artifact/fetch run ve 49
+hüküm/yükümlülük yazdı; ikinci canlı seed bütün yeni sayaçlarda `0` verdi.
+SPK III-62.2, BDDK-BANK-BS ve KVKK-6698'in geçişli yürürlük tarihleri paketteki
+resmî PDF yürürlük hükümlerinden ayrıştırıldı. 9 saf test + typecheck + hedefli
+lint yeşil.
+
+Bu dilim G1/K8'i KAPATMAZ: ≥20 hukukça `VERIFIED` kontrol, ≥5 gerçek test
+tanımı ve hukuk doğrulayıcı rolü hâlâ açık kapıdır. Placeholder kontrol YAML'ı
+ile araştırma zinciri arasında doğrulanmamış eşleme kurulmayacaktır.
+
 ---
 
 ## 2. Veri modeli çekirdeği (M1'de şema olarak yazılacak)
