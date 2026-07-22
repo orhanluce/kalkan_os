@@ -52,6 +52,8 @@ next-env.d.ts
 
 # generated local artifacts (e.g. YK Beyanı PDF sample)
 /.local-output/
+/output/
+/tmp/
 
 # supabase CLI: linked project ref + local state (proje kimliği sızmasın)
 /supabase/.temp/
