@@ -2804,6 +2804,31 @@ pilot → geri bildirim → Entra ID Connector MVP. K1'in gerçek provası
 onaylamasını ve açık "başla" talimatını bekliyor — bu turda hiçbir
 Supabase projesi oluşturulmadı, backup alınmadı, restore denenmedi.
 
+#### 1.74.1 ADR §15'in beş kararı KAPANDI (22 Temmuz 2026, aynı gün — hâlâ KOD YOK)
+
+Kurucu, hazırlık analizinin üzerine aynı gün beş kararı verdi: **(1)
+staging modeli** — kalıcı, tamamen ayrı Supabase projesi (önceki "geçici"
+önerisinin YERİNE); **(2) backup yöntemi** — ana yöntem managed backup
+(önce PRODUCTION projesinin panelinden PITR/plan uygunluğu doğrulanır,
+kullanılamıyorsa `pg_dump`'a döner ve sapma kanıt paketine yazılır),
+bağımsız doğrulama açık şema kapsamlı (`public`+`auth`+`cron`) `pg_dump`;
+**(3) Storage yedeği** — DB backup'tan ayrı gerçek dosya kopyalama + object
+manifest, restore sonrası yalnız metadata değil gerçek dosya+hash de
+doğrulanır; **(4) staging SMTP** — açık kalır ama yalnız kurucu onaylı
+allow-list adreslerine, e-posta içeriği staging olduğunu gösterir; **(5)
+ledger/outbox** — restore hedefinde cron/worker/outbox consumer VARSAYILAN
+KAPALI, PENDING/PROCESSING otomatik claim edilmez, eski artefaktlar yeniden
+üretilmez yalnız doğrulanır, production signer/anchor kullanılmaz,
+duplicate/orphan-leaf/idempotency kontrolleri tamamlanmadan consumer
+açılmaz (önceki "riski gözlemleyerek çalıştır" önerisinin YERİNE — kurucu
+riski önce kapatmayı tercih etti). Kararlar `docs/adr/PR0-K1-production-
+like-staging-backup-restore-hazirlik-2026-07-22.md` §15'e ve
+`YEDEKLEME_GERI_YUKLEME.md` §6.0/§6.2-6.6'ya işlendi. **Karar kapanmış
+olmak provanın BAŞLADIĞI anlamına gelmez** — ayrı, açık bir "K1 provasına
+başla" talimatı gerekiyor; bu turda da hiçbir Supabase projesi
+oluşturulmadı, secret istenmedi/değiştirilmedi, cron açılmadı,
+production/staging canlı ayarı yapılmadı.
+
 ---
 
 ## 2. Veri modeli çekirdeği (M1'de şema olarak yazılacak)

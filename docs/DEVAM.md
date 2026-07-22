@@ -7,6 +7,30 @@ doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine g
 açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1-G1'de bu iki-faz
 disiplini tutarlı uygulandı).
 
+## -13. K1 ADR §15'in beş kararı KAPANDI — prova HÂLÂ BAŞLAMADI (22 Temmuz 2026, KOD YOK)
+
+Aynı gün, K1 hazırlık analizinin (§-12) hemen üzerine kurucu beş kararı
+verdi: (1) **staging kalıcı**, tamamen ayrı proje; (2) **backup ana
+yöntemi managed backup**, önce PRODUCTION panelinden PITR/plan uygunluğu
+doğrulanır, olmazsa `pg_dump`'a döner (sapma kanıt paketine yazılır),
+bağımsız doğrulama açık şema kapsamlı (`public`+`auth`+`cron`) `pg_dump`;
+(3) **Storage yedeği** DB'den ayrı gerçek dosya kopyalama + manifest,
+restore sonrası gerçek dosya+hash de doğrulanır; (4) **staging SMTP açık
+kalır** ama yalnız kurucu onaylı allow-list adreslerine, staging olduğu
+e-postada belli olur; (5) **ledger/outbox restore hedefinde VARSAYILAN
+KAPALI**, duplicate/orphan-leaf/idempotency kontrolleri (§9 H2)
+tamamlanmadan açılmaz — önceki "riski gözlemleyerek çalıştır" önerisinin
+yerine, kurucu riski önce kapatmayı seçti.
+
+Kararlar `docs/adr/PR0-K1-production-like-staging-backup-restore-
+hazirlik-2026-07-22.md` §15'e, `docs/operasyon/YEDEKLEME_GERI_YUKLEME.md`
+§6.0/§6.2-6.6'ya, `docs/ROADMAP.md` §1.74.1'e işlendi.
+
+**Bu turda da:** Supabase projesi oluşturulmadı, backup alınmadı, restore
+çalıştırılmadı, secret istenmedi/değiştirilmedi, cron açılmadı, production/
+staging canlı ayarı yapılmadı. **Sıradaki gerçek adım:** kurucudan açık
+"K1 provasına BAŞLA" talimatı — karar kapanmış olmak bunun yerine geçmez.
+
 ## -12. K1 hazırlık analizi TAMAMLANDI — prova HENÜZ BAŞLAMADI (22 Temmuz 2026, KOD YOK)
 
 Kodsuz analiz + runbook: `docs/adr/PR0-K1-production-like-staging-backup-

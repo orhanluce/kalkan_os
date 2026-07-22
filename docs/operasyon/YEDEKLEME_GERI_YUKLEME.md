@@ -122,11 +122,13 @@ olarak eklenir — üzerine yazılmaz (kural 2'nin ruhu, operasyonel belgede de
 geçerli): tarih, ortam, ölçülen RTO, bulunan sorunlar, bağımsız inceleyenin
 adı/tarihi.
 
-**Durum: HAZIRLIK ANALİZİ TAMAMLANDI (22 Temmuz 2026), PROVANIN KENDİSİ
-HENÜZ YAPILMADI.** Tam mimari analiz + karşılaştırma + karar seçenekleri:
-`docs/adr/PR0-K1-production-like-staging-backup-restore-hazirlik-2026-07-22.md`.
-Dikey G2'ye geçmeden önce ve gerçek müşteri (pilot) verisi sisteme girmeden
-önce PROVANIN KENDİSİ zorunlu — bu belge yalnız YAZILI/ÇALIŞTIRILABİLİR bir
+**Durum: HAZIRLIK ANALİZİ TAMAMLANDI + BEŞ KURUCU KARARI KAPANDI (22 Temmuz
+2026), PROVANIN KENDİSİ HENÜZ BAŞLAMADI.** Tam mimari analiz + karşılaştırma
++ kapanan kararlar: `docs/adr/PR0-K1-production-like-staging-backup-restore-
+hazirlik-2026-07-22.md` §15 (özet §6.0 aşağıda). Dikey G2'ye geçmeden önce
+ve gerçek müşteri (pilot) verisi sisteme girmeden önce PROVANIN KENDİSİ
+zorunlu — karar kapanmış olmak provanın BAŞLADIĞI anlamına gelmez, ayrı bir
+açık "başla" talimatı gerekir. Bu belge yalnız YAZILI/ÇALIŞTIRILABİLİR bir
 runbook'tur, aşağıdaki hiçbir adım bu ADR/runbook güncellemesi sırasında
 UYGULANMADI.
 
@@ -137,11 +139,35 @@ YAPILACAK adımlar, komut şablonları ve kontrol listeleri var.
 
 ### 6.1 Ön koşullar
 
-- [ ] Özel SMTP kapısı KAPALI (✅ tamamlandı, `OZEL_SMTP_KURULUMU.md`).
-- [ ] Bu runbook'un ADR'si (§15'teki 5 karar) kurucu tarafından onaylandı.
+- [x] Özel SMTP kapısı KAPALI (✅ tamamlandı, `OZEL_SMTP_KURULUMU.md`).
+- [x] Bu runbook'un ADR'si (PR0-K1 §15'teki 5 karar) kurucu tarafından
+      KAPANDI (22 Temmuz 2026) — özet §6.0 aşağıda.
 - [ ] Supabase hesabında yeni proje açma yetkisi var.
 - [ ] `.env.local`'in BUGÜN hangi projeye (`jgunbctnoprklseusaee`,
       production) işaret ettiği teyit edildi.
+- [ ] Kurucudan açık "K1 provasına BAŞLA" talimatı alındı — karar kapanmış
+      olmak provanın kendisini BAŞLATMAZ.
+
+### 6.0 Kapanan beş karar — özet (tam gerekçe PR0-K1 ADR §15'te)
+
+1. **Staging modeli:** KALICI, tamamen ayrı Supabase projesi — ayrı DB/
+   Auth/Storage/key/URL/environment. Production verisi ASLA kopyalanmaz.
+2. **Backup yöntemi:** ANA = Supabase managed backup (önce PRODUCTION
+   projesinin panelinden PITR/plan uygunluğu doğrulanır). Bağımsız
+   doğrulama = açık şema kapsamlı (`public`+`auth`+`cron`) `pg_dump`/
+   `pg_restore`. Managed backup kullanılamıyorsa ana yöntem `pg_dump`'a
+   döner ve bu sapma kanıt paketine yazılır.
+3. **Storage yedeği:** DB backup'tan AYRI, gerçek dosya kopyalama + object
+   manifest (path/size/MIME/checksum/evidence kaydı). Restore sonrası
+   metadata YETMEZ — gerçek dosya indirilip hash'i yeniden hesaplanır.
+4. **Staging SMTP:** AÇIK kalır (invite/reset testi için), ama yalnız
+   kurucu onaylı allow-list adreslerine gönderim; gerçek müşteri/pilot
+   adresi YASAK; e-posta içeriği/konusu staging olduğunu gösterir.
+5. **Ledger/outbox:** Restore hedefinde cron/worker/outbox consumer
+   VARSAYILAN KAPALI; PENDING/PROCESSING otomatik claim edilmez; eski
+   artefaktlar yeniden üretilmez, yalnız doğrulanır; production signer/
+   anchor kullanılmaz; duplicate/orphan-leaf/idempotency kontrolleri
+   (§9 H2) TAMAMLANMADAN consumer açılmaz.
 
 ### 6.2 GÜVENLİK UYARILARI (her adımdan önce okunur)
 
@@ -165,6 +191,14 @@ YAPILACAK adımlar, komut şablonları ve kontrol listeleri var.
 6. **Hiçbir secret (service_role key, DB parolası, API key) bu belgeye,
    commit'e, chat'e veya log'a YAZILMAZ** — yalnız panel veya
    `.env.*.local` (gitignore'da) dosyalarına girilir.
+7. **Restore hedefinde cron/worker/`ledger_outbox` consumer VARSAYILAN
+   KAPALI başlar** (karar 5) — §9 H2'deki duplicate/orphan-leaf/
+   idempotency kontrolleri TAMAMLANMADAN elle de AÇILMAZ.
+8. **Staging SMTP yalnız kurucu onaylı allow-list adreslerine gönderim
+   yapar** (karar 4) — gerçek müşteri/pilot adresine gönderim YASAK,
+   e-posta konu/içeriği staging olduğunu göstermeli.
+9. **Production signer veya production anchor staging'de KULLANILMAZ**
+   (karar 5) — yeni bir staging artefaktı gerekiyorsa AYRI test signer.
 
 ### 6.3 Komut şablonları (ÇALIŞTIRILMADI — yalnız şablon)
 
@@ -185,36 +219,70 @@ pnpm db:types     # staging şemasına göre tip üret (geçici, commit edilmez)
 #    yeni bir script — bu turda YAZILMADI, yalnız tasarımı var):
 pnpm exec tsx scripts/setup-k1-fixtures.ts     # (henüz mevcut değil)
 
-# 4) Bağımsız pg_dump (Yöntem B, managed backup'a ek doğrulama):
+# 4) ANA yöntem: Supabase managed backup (karar 2) — panelden tetiklenir,
+#    komut YOK. Önce panelde (§6.4 madde 7) PITR/plan uygunluğu doğrulanır;
+#    kullanılamıyorsa bu adım atlanır ve pg_dump ANA yönteme döner (karar 2
+#    sapma notu, kanıt paketine yazılır).
+
+# 5) Bağımsız doğrulama: açık şema kapsamlı pg_dump (karar 2, Yöntem B —
+#    auth/cron şemaları BİLİNÇLİ dahil, varsayılana bırakılmaz):
 pg_dump --schema=public --schema=auth --schema=cron \
   "postgresql://postgres:$SUPABASE_DB_PASSWORD@$SUPABASE_DB_POOLER_HOST:5432/postgres" \
   -f k1-prova-dump.sql
 sha256sum k1-prova-dump.sql
 
-# 5) Restore sonrası doğrulama (mevcut tooling, hedef projeye karşı):
+# 6) Storage yedeği (karar 3) — gerçek dosya kopyalama + manifest (henüz
+#    yazılmamış bir script tasarımı, path/size/MIME/checksum/evidence-id
+#    kolonlu bir CSV/JSON üretir):
+pnpm exec tsx scripts/export-k1-storage-manifest.ts   # (henüz mevcut değil)
+
+# 7) Restore hedefinde cron/outbox consumer'ın KAPALI olduğunu teyit et
+#    (karar 5 — restore SONRASI, herhangi bir doğrulama testinden ÖNCE):
+#    panelden Database -> Extensions/Cron bölümünde pg_cron job'larının
+#    ya hiç kurulmadığını ya da devre dışı olduğunu kontrol et.
+
+# 8) Restore sonrası doğrulama (mevcut tooling, hedef projeye karşı):
 pnpm db:verify
 pnpm exec tsx scripts/verify-paket.ts <klasor>
 pnpm exec tsx scripts/verify-seffaflik.ts <klasor>
 pnpm exec vitest run src/lib/__tests__/rls-dikey-g1-onboarding.test.ts
 
-# 6) Temizlik (§6.6):
+# 9) Storage restore doğrulaması (karar 3 — yalnız metadata DEĞİL, gerçek
+#    dosya + hash):
+#    indirilen dosyanın sha256'sını hesapla, path'teki hash ile karşılaştır
+#    (mevcut §2.3 yöntemi, K1'in genişlemesi §9 D2).
+
+# 10) Temizlik (§6.6):
 rm .env.local.bak-oncesi k1-prova-dump.sql   # yerel geçici dosyalar
 ```
 
 ### 6.4 Panel adımları (kurucunun elle yapması gereken — PR0-K1 ADR §14)
 
-1. Supabase Dashboard → yeni proje oluştur (staging), bölge/plan seç (plan
-   PITR/backup özelliğini destekliyor mu KONTROL ET).
+0. **ÖNCE, staging açılmadan:** PRODUCTION projesinin (`jgunbctnoprklseusaee`)
+   panelinden Database → Backups'ta managed backup/PITR özelliğinin plan
+   dahilinde gerçekten var olduğunu doğrula (karar 2) — sonucu ne olursa
+   olsun bu belgeye/kanıt paketine yazılır.
+1. Supabase Dashboard → **yeni, KALICI** bir staging projesi oluştur (karar
+   1 — geçici/prova-başına DEĞİL), bölge/plan seç.
 2. Yeni projenin `Project Settings → API`'sinden URL/anon key'i
-   `.env.staging.local`'e gir.
+   `.env.staging.local`'e gir (AYRI dosya, production ile karışmaz).
 3. `Project Settings → Database`'den DB şifresini ve pooler host'unu al.
 4. Authentication → URL Configuration: staging'in KENDİ Site URL'i +
-   Redirect URLs'i ayarla (production'la KARIŞTIRMA).
+   Redirect URLs'i ayarla (production'la KARIŞTIRMA — bu oturumda AYNI
+   sınıf bir hatanın gerçek sonucu `OZEL_SMTP_KURULUMU.md` §3.6'da kayıtlı).
 5. Storage: `evidence` bucket'ını staging'de de private olarak oluştur.
-6. (İsteğe bağlı, §15 karar 4) SMTP: staging'de custom SMTP bağlamadan
-   Supabase varsayılanını kullanmaya karar verildiyse bu adım ATLANIR.
+6. SMTP (karar 4): custom SMTP staging'de de BAĞLANIR (kapatılmaz), ama
+   gönderim yalnız kurucu onaylı allow-list test adreslerine yapılacak
+   şekilde disiplinli kullanılır — e-posta şablonuna `[STAGING]` benzeri
+   bir gösterge eklenmesi ayrı, küçük bir kod/panel işi (bu turda
+   YAPILMADI, yalnız gereksinim olarak kayıtlı).
 7. Backup: Database → Backups panelinden mevcut PITR/günlük backup
    özelliğini ve restore akışını incele (henüz TETİKLEME).
+8. **pg_cron/Extensions:** staging projesinde migration'lar uygulandıktan
+   sonra hangi cron job'larının otomatik kurulduğunu kontrol et — restore
+   sonrası consumer'ın kapalı kalması gerektiği için (karar 5), gerekirse
+   ilgili job'lar panelden/SQL ile devre dışı bırakılır (bu turda
+   YAPILMADI).
 
 ### 6.5 Test matrisi
 
@@ -226,12 +294,16 @@ edilmedi, tek kaynak ADR'dir.
 - Prova BAŞARISIZ olursa: restore hedefi SİLİNMEZ (kök neden analizi için
   saklanır), §5.3'e "BAŞARISIZ" olarak işlenir, tekrar denemeden önce kök
   neden yazılır (kural: sessizce atlanmaz).
-- Prova BAŞARILI olursa ve §15 karar 1 = "geçici" seçildiyse: restore
-  hedefi kanıt paketi (§6.7) TAMAMLANDIKTAN SONRA silinir/arşivlenir;
-  staging'in KENDİSİ (kaynak, restore hedefi değil) karar 1'e göre
-  kalıcı/geçici kalır.
-- Yerel geçici dosyalar (`*.bak-oncesi`, dump dosyaları, `.env.staging-
-  restore.local`) prova sonunda SİLİNİR — hiçbiri commit edilmez.
+- **Staging projesinin KENDİSİ (kaynak) KALICIDIR (karar 1)** — prova
+  başarılı da olsa başarısız da olsa SİLİNMEZ; yalnız restore HEDEFİ
+  (§7 adım 4'teki üçüncü, ayrı ortam) prova/kanıt paketi tamamlandıktan
+  sonra arşivlenir veya silinir, kaynak staging etkilenmez.
+- Restore hedefinde açılan (varsa) herhangi bir cron/outbox consumer,
+  prova bitince — başarılı da olsa — TEKRAR kapatılır (karar 5'in
+  varsayılan-kapalı ilkesi kalıcı, tek seferlik bir istisna değildir).
+- Yerel geçici dosyalar (`*.bak-oncesi`, dump dosyaları, storage manifest
+  export'u, `.env.staging-restore.local`) prova sonunda SİLİNİR — hiçbiri
+  commit edilmez.
 
 ### 6.7 Kanıt paketi
 

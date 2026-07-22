@@ -1,12 +1,14 @@
 # ADR — K1: Production-like Staging ve Gerçek Backup/Restore Provası Hazırlık Analizi
 
-**Tarih:** 22 Temmuz 2026
-**Durum:** KEŞİF / KODSUZ ANALİZ + RUNBOOK HAZIRLIĞI — kurucu onayı bekliyor.
-Bu turda migration yazılmadı, staging/Supabase projesi oluşturulmadı, backup
-alınmadı, restore denenmedi, DB'ye bağlanılmadı, seed/migration çalıştırılmadı,
-Storage kopyalanmadı, Auth kullanıcısı oluşturulmadı, DNS/Hostinger/SMTP/cron
-değiştirilmedi, production deploy yapılmadı, gerçek veri export edilmedi,
-secret okunmadı/yazılmadı. Yalnızca analiz + `docs/operasyon/
+**Tarih:** 22 Temmuz 2026 (güncelleme: 22 Temmuz 2026, §15 — 5 kurucu kararı KAPANDI)
+**Durum:** MİMARİ ANALİZ + KARAR SEÇENEKLERİ KABUL EDİLDİ, BEŞ KARAR KAPANDI
+(§15) — provanın KENDİSİ hâlâ BAŞLAMADI, ayrı açık "başla" talimatı
+bekliyor. Bu turda (analiz + karar kapanışı) migration yazılmadı, staging/
+Supabase projesi oluşturulmadı, backup alınmadı, restore denenmedi, DB'ye
+bağlanılmadı, seed/migration çalıştırılmadı, Storage kopyalanmadı, Auth
+kullanıcısı oluşturulmadı, DNS/Hostinger/SMTP/cron değiştirilmedi,
+production deploy yapılmadı, gerçek veri export edilmedi, secret
+okunmadı/yazılmadı. Yalnızca analiz + `docs/operasyon/
 YEDEKLEME_GERI_YUKLEME.md`'nin çalıştırılabilir bir runbook'a dönüştürülmesi.
 
 ## 1. Bağlam
@@ -406,64 +408,69 @@ veya güvenli environment store'a girilir, bana asla yapıştırılmamalı (bu
 oturumun kendi disiplini — SMTP kapanışında da API key hiç istenmedi/
 paylaşılmadı).
 
-## 15. Açık kurucu kararları (en fazla 5)
+## 15. Kurucu kararları — KAPANDI (22 Temmuz 2026)
 
-**1. Ayrı KALICI staging projesi mi, prova başına GEÇİCİ restore projesi mi?**
-   - *Alternatif A (kalıcı):* bir staging projesi sürekli var olur, hem
-     genel geliştirme/manuel test hem restore hedefi olarak kullanılır.
-     Risk: zamanla "staging"de de gerçek-benzeri hassas veri birikebilir,
-     hijyen disiplini gerektirir. Maliyet: sürekli aylık ücret.
-   - *Alternatif B (geçici):* staging yalnız K1 provası SIRASINDA açılır,
-     prova bitince kapatılır/arşivlenir. Risk: her provada sıfırdan kurulum
-     ek efor. Maliyet: yalnız kullanım süresince.
-   - **Öneri:** B (geçici) — K1'in amacı bir kez kanıtlamak, sürekli bir
-     ortam işletmek değil; K2 kapandıktan ve gerçek pilot başladıktan sonra
-     "kalıcı staging" ayrı bir karar olarak yeniden değerlendirilebilir.
+Aşağıdaki beş karar kurucu tarafından verildi. Bu belge artık bunları
+"açık seçenek" olarak DEĞİL, bağlayıcı karar olarak taşır. **Karar
+verilmiş olmak K1 provasının BAŞLADIĞI anlamına gelmez** — provanın
+kendisi hâlâ ayrı, açık bir "başla" talimatı bekliyor (bu belgenin üstündeki
+"Durum" satırı, ROADMAP §1.74, DEVAM -12).
 
-**2. K1 ana backup yöntemi managed backup mı, `pg_dump` mı?**
-   - *Alternatif A:* yalnız managed backup (Supabase'in kendi mekanizması).
-     Risk: tek noktaya güven, `auth`/`cron` şemalarının gerçekten dahil
-     olup olmadığı doğrulanmamış.
-   - *Alternatif B:* yalnız `pg_dump`. Risk: `auth` şeması bilinçli dahil
-     edilmezse kaçar (insan hatası riski).
-   - **Öneri:** §6'daki gibi İKİSİ BİRDEN (A ana + B bağımsız doğrulama) —
-     maliyeti düşük, güvenilirliği çok artırır.
+**1. Staging modeli — KALICI, tamamen ayrı proje.** Kendi başına duran,
+   sürekli var olan bir Supabase staging projesi kurulacak: ayrı DB, ayrı
+   Auth kullanıcı havuzu, ayrı Storage bucket'ları, ayrı `anon`/
+   `service_role` key, ayrı URL, ayrı environment. **Production verisi
+   staging'e KESİNLİKLE kopyalanmayacak** — yalnız §8'deki sentetik veri
+   paketi kullanılacak. (Önceki §15 taslağının "geçici/prova-başına"
+   önerisinin YERİNE geçti — kurucu kalıcı modeli tercih etti; hijyen
+   disiplini riski §6.2'nin güvenlik uyarılarına ve §13'ün kabul
+   kriterlerine işlendi.)
 
-**3. Storage yedeği hangi yöntemle alınacak?**
-   - *Alternatif A:* Supabase Storage API/CLI ile bucket'ı başka bir
-     bucket'a/staging'e kopyalama.
-   - *Alternatif B:* yalnız content-addressed path+hash doğrulaması (dosya
-     kopyalanmaz, yalnız bütünlük test edilir).
-   - **Öneri:** A (gerçek kopyalama) — B tek başına "restore edilebilirlik"
-     kanıtlamaz, yalnız mevcut dosyanın bozulmadığını kanıtlar.
+**2. Backup yöntemi — ANA yöntem Supabase managed backup, koşullu geri
+   düşüş `pg_dump`'a.** Managed backup/PITR özelliğinin ve plan
+   uygunluğunun GERÇEKTEN var olduğu, ÖNCE doğru WardProof PRODUCTION
+   projesinin (`jgunbctnoprklseusaee`) panelinden doğrulanacak — tahmin
+   edilmeyecek. Bağımsız doğrulama ve taşınabilirlik testi için AYRICA
+   açık şema kapsamlı `pg_dump`/`pg_restore` kullanılacak (`--schema=public
+   --schema=auth --schema=cron` — §6'daki AÇIK şema riski burada çözülüyor,
+   şema bayrağı ASLA varsayılana bırakılmayacak). **Managed backup/PITR
+   panelde KULLANILAMIYORSA** (plan desteklemiyor vb.), ana yöntem
+   `pg_dump`/`pg_restore`'a ÇEVRİLECEK ve bu sapma kanıt paketinde (§12)
+   AÇIKÇA kayıt edilecek — sessizce "plan B'ye geçildi" denmeyecek.
 
-**4. Staging e-postaları TAMAMEN sink'e mi yönlendirilecek, yalnız allow-list
-   test adreslerine mi?**
-   - *Alternatif A (sink):* staging'de custom SMTP HİÇ bağlanmaz, Supabase'in
-     kendi (düşük hacimli, staging için yeterli) varsayılan e-posta servisi
-     kullanılır — hiçbir gerçek adrese YANLIŞLIKLA gitme riski daha düşük
-     (test hacmi zaten düşük).
-   - *Alternatif B (allow-list):* staging'e AYRI bir Resend/sink servisi
-     (örn. Mailtrap benzeri bir "e-postaları asla gerçekten göndermeyen"
-     test SMTP'si) bağlanır.
-   - **Öneri:** A basitlik için yeterli — K1'in amacı SMTP'yi tekrar test
-     etmek değil (o kapı zaten kapandı), yalnız restore sonrası Auth
-     akışlarının ÇALIŞTIĞINI görmek.
+**3. Storage yedeği — DB backup'tan AYRI, gerçek dosya kopyalama.** Storage
+   dosyaları veritabanı yedeğinden bağımsız olarak yedeklenecek (§6 Yöntem
+   E). Bir object manifest tutulacak: path, size, MIME, checksum ve ilgili
+   `evidence` kaydının kimliği. **Restore sonrası doğrulama yalnız
+   `storage.objects` metadata'sıyla YETİNMEYECEK** — gerçek dosya içeriği
+   indirilip SHA-256'sı yeniden hesaplanacak ve path'teki hash'le
+   eşleştirilecek (§9 madde D2'nin zaten önerdiği yöntem, şimdi ZORUNLU).
 
-**5. Restore sonrası `ledger_outbox` kayıtlarının yeniden işlenmesi
-   ENGELLENECEK mi, izole test signer ile mi çalışacak?**
-   - *Alternatif A (engelle):* restore sonrası `ledger_outbox` drain'i
-     BİLİNÇLİ olarak devre dışı bırakılır/atlanır, yalnız MEVCUT
-     (restore-öncesi) ledger kayıtları doğrulanır.
-   - *Alternatif B (izole signer ile çalıştır):* restore sonrası drain
-     NORMAL şekilde çalışır (zaten `LocalDevSigner` dev-grade, staging'de de
-     aynısı) — ama §10'daki orphan-leaf riski AÇIKÇA gözlemlenip
-     raporlanır.
-   - **Öneri:** B — K1'in amacı GERÇEKÇİ bir restore senaryosunu kanıtlamak;
-     drain'i atlamak, §10'da tespit edilen gerçek bir tasarım riskini test
-     etme fırsatını kaçırır. Risk kabul edilir ama KAYIT ALTINA alınır
-     (kanıt paketinde açıkça not edilir, gerekirse ayrı bir düzeltici iş
-     açılır).
+**4. Staging SMTP — açık kalacak, ama yalnız kurucu onaylı allow-list
+   adreslerine.** Staging'de custom SMTP TAMAMEN KAPATILMAYACAK (invite/
+   reset akışlarının gerçekten test edilebilmesi için gerekli — SMTP
+   kapısının kendisini yeniden kanıtlamak değil, restore-sonrası Auth
+   zincirinin ÇALIŞTIĞINI göstermek amacıyla). Gönderim yalnız kurucu
+   tarafından ÖNCEDEN onaylanmış allow-list test adreslerine yapılacak —
+   gerçek müşteri/pilot adreslerine gönderim KESİNLİKLE YASAK. E-posta
+   içeriği ve konu satırı staging olduğunu AÇIKÇA gösterecek (örn. konu
+   satırına `[STAGING]` öneki — bu, gerçek uygulanışı K1 provası
+   sırasında/sonrasında panel şablon düzenlemesiyle yapılacak bir
+   gereksinim, bu turda kod/şablon DEĞİŞMEDİ).
 
-Her karar kurucunun onayını bekliyor — bu ADR hiçbirini kendiliğinden
-uygulamaz.
+**5. Ledger/outbox — restore hedefinde VARSAYILAN OLARAK KAPALI, kontrol
+   tamamlanmadan AÇILMAYACAK.** Restore hedefinde cron işleri, worker'lar
+   ve `ledger_outbox` consumer'ı (drain) VARSAYILAN OLARAK KAPALI
+   başlayacak. `PENDING`/`PROCESSING` kayıtlar OTOMATİK claim
+   EDİLMEYECEK. Eski JWS/manifest/şeffaflık defteri artefaktları restore
+   sonrası YENİDEN ÜRETİLMEYECEK — yalnız DOĞRULANACAK (§10'daki "restore
+   güven sınırı" ilkesinin somutlaşması). Production signer veya
+   production anchor staging'de KULLANILMAYACAK. Yeni staging artefaktı
+   üretilmesi gerekiyorsa AYRI bir test signer ve staging'e özgü bir güven
+   alanında üretilecek. **§10'daki duplicate-leaf/orphan-leaf/idempotency
+   kontrolleri (H2, §9) TAMAMLANMADAN outbox consumer AÇILMAYACAK** —
+   önceki taslağın "riski gözlemleyerek çalıştır" önerisinin YERİNE geçti;
+   kurucu riski önce KAPATMAYI, sonra AÇMAYI tercih etti.
+
+Her beş karar `docs/operasyon/YEDEKLEME_GERI_YUKLEME.md` §6 runbook'una ve
+ROADMAP/DEVAM'daki açık karar listelerine işlendi.
