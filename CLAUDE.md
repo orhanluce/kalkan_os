@@ -1,6 +1,20 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**Dikey J — Otomatik Kanıt Toplama ve Sürekli Güvence Katmanı roadmap'e
+girdi + landing vizyon notu (22 Temmuz 2026, KOD YOK).** Kurucunun "WardProof'un
+manuel-kanıt-yükleme aracı olmadığını, otomatik kanıt toplamaya doğru
+tasarlandığını gösterelim ama sahte özellik üretmeyelim" talebine karşılık:
+tam mimari analiz `docs/adr/PR0-dikeyJ-otomatik-kanit-toplama-2026-07-22.md`'de
+(Kurumsal Sistemler → Connector Layer → Evidence Collector → Kontrol
+Eşleştirme → Test Motoru → Kriptografik Kanıt Zinciri → Proof Room; son
+dört katman BUGÜN ZATEN ÜRETİMDE, eksik yalnız ilk iki katman). ROADMAP.md
+§1.71'e işlendi — kurucu bunu "Dikey H" olarak önermişti ama §1.69'daki
+AI Yönetişimi vertikaliyle çakışmayı önlemek için **Dikey J** oldu (kavram
+birebir aynı, yalnız harf değişti). `/tanitim`e "yakında" demeyen küçük bir
+vizyon notu eklendi. Gerçek ön koşul borcu not edildi: `evidences.
+kaynak_kontrol_id` yok. **Öncelik sırası DEĞİŞMEDİ (kural 20).**
+
 **Özel SMTP sağlayıcı/gönderici kararı SABİTLENDİ (22 Temmuz 2026) — kod
 DEĞİL, kararın kendisi.** Kurucu G1.1'in SMTP kapısı için (yukarı bkz.) somut
 kararını verdi: sağlayıcı **Resend**, domain `wardproof.com` (yalnız domain

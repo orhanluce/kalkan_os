@@ -553,10 +553,12 @@ gate sırasıyla): M34 Policy Lifecycle (G2), M35 TPRM/ICT (G4), M36
 PrivacyOps (G6), M37 AI Assurance (G5), M38 Regulatory Engagement (G7),
 M39 Connector Hub (G3), M40 Risk/Board (G8), M41 Partner Network (G7).**
 Mevcut milestone numaraları değişmedi; rapor formatı artık nihai §15.
-**(22 Temmuz 2026 eki, kod yok):** M37'nin üzerine iki ek gelecek dikey
-tanımlandı — §1.69 **Dikey H — AI Yönetişimi ve Güvence** (H1-H5) ve §1.70
-**Dikey I — Kriptografik Kanıt ve Şeffaflık Defteri** (I1-I5); ikisi de
-pilot operasyon önceliğinin (CLAUDE.md kural 20) GERİSİNDE.
+**(22 Temmuz 2026 eki, kod yok):** M37'nin üzerine üç ek gelecek dikey
+tanımlandı — §1.69 **Dikey H — AI Yönetişimi ve Güvence** (H1-H5), §1.70
+**Dikey I — Kriptografik Kanıt ve Şeffaflık Defteri** (I1-I5) ve §1.71
+**Dikey J — Otomatik Kanıt Toplama ve Sürekli Güvence Katmanı** (M08/M39
+placeholder'larının ilk detaylı mimarisi); üçü de pilot operasyon
+önceliğinin (CLAUDE.md kural 20) GERİSİNDE.
 
 ### 1.21 G1 kapanış dilimi — Proof Room ✅ (18 Temmuz gece)
 
@@ -2604,6 +2606,49 @@ proof'un UI'a bağlanması, indirilebilir doğrulama makbuzu, harici anchor.
 altyapısı, production-grade KMS/HSM imza, nitelikli elektronik imza, tam
 SCITT uyumu, tam RFC 9162 uyumu, bağımsız harici anchor'ın üretimde çalıştığı,
 "değiştirilemezlik garantisi" dili.
+
+### 1.71 Mimari karar kaydı — 22 Temmuz 2026 (Dikey J — Otomatik Kanıt Toplama ve Sürekli Güvence Katmanı, KOD YOK — yalnız roadmap tanımı)
+
+Kurucunun "kurumsal müşterilere ve yatırımcılara WardProof'un yalnız manuel
+kanıt yüklemesi yapan bir GRC aracı olmadığını, otomatik kanıt toplamaya
+doğru tasarlandığını gösterelim" talebinin karşılığı. Tam mimari analiz +
+ürün/yatırımcı mesajlaşması `docs/adr/PR0-dikeyJ-otomatik-kanit-toplama-
+2026-07-22.md`'de. **Adlandırma notu:** kurucu bunu "Dikey H" olarak
+önermişti, ama §1.69 aynı gün içinde başka bir "Dikey H" (AI Yönetişimi)
+tanımlandığı için çakışmayı önlemek adına **Dikey J** olarak kaydedildi —
+kavram birebir aynı, yalnız harf değişti. Bu vertikal, ROADMAP'te iki kez
+placeholder olarak anılmış modüllerin (M08 "Connector Platform" §2976; M39
+"Connector Hub" §1.20) İLK detaylı mimari dökümüdür — üçüncü bir isim
+İCAT EDİLMEDİ.
+
+**Önerilen mimari (kod yok):** Kurumsal Sistemler → Connector Layer →
+Evidence Collector → Kontrol Eşleştirme → Test Motoru → Kriptografik Kanıt
+Zinciri → Proof Room. Analiz şunu gösterdi: son dört katman (Kontrol
+Eşleştirme kısmen, Test Motoru, Kriptografik Kanıt Zinciri, Proof Room)
+BUGÜN ZATEN ÜRETİMDE — `control-test.ts`'in `Gozlem` sözleşmesi, kural
+13'ün "toplama/connector arızası ASLA FAILED üretmez" ilkesi dahil,
+connector'lı bir dünyayı ZATEN varsayıyordu. Eksik olan yalnız en baştaki
+iki katman: Connector Layer ve Evidence Collector.
+
+**Gerçek ön koşul borcu:** `evidences.kaynak_kontrol_id` kolonunun eksikliği
+(ROADMAP §2710) — connector'dan gelen bir kanıtın hangi kontrole ait olduğu
+bugün deterministik değil; bu borç Dikey J başlamadan önce kapanmalı.
+
+**Bugün mevcut:** kullanıcı yüklemesi kanıtlar, kontrol testleri (5 ayrı
+durum), immutable kayıt zinciri, kriptografik doğrulama (RFC 8785 + JWS +
+Merkle şeffaflık defteri).
+
+**Planlanan:** Microsoft Entra ID / Microsoft 365 / Azure / AWS connector'ları,
+güvenli API tabanlı kanıt toplama, otomatik kontrol doğrulama (connector'dan
+beslenen `Gozlem` → değişmeyen `testDegerlendir` motoru).
+
+**İddia edilmeyecek:** bugün canlı connector var denmesi, gerçek zamanlı
+güvenlik taraması iddiası, "otomatik uyumluluk garantisi" dili, "AI
+kullanıyoruz" dili (connector mekanik bir API istemcisidir, AI değildir).
+
+**Öncelik sırası DEĞİŞMEDİ (kural 20):** özel SMTP → K1 → K2 → mevzuat
+paketi → pilot → geri bildirim tamamlanmadan Dikey J'nin kodsuz analizi
+bile açılmaz.
 
 ---
 

@@ -7,6 +7,27 @@ doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine g
 açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1-G1'de bu iki-faz
 disiplini tutarlı uygulandı).
 
+## -9. Dikey J — Otomatik Kanıt Toplama roadmap tanımı + landing vizyon notu (22 Temmuz 2026, KOD YOK)
+
+Kodsuz bir konumlandırma turu, vertikal BİTTİ değil. Kurucunun "WardProof'un
+otomatik kanıt toplama altyapısına doğru tasarlandığını gösterelim ama sahte
+özellik üretmeyelim" talebi karşılandı: `docs/adr/PR0-dikeyJ-otomatik-kanit-
+toplama-2026-07-22.md`'de tam mimari analiz (Kurumsal Sistemler → Connector
+Layer → Evidence Collector → Kontrol Eşleştirme → Test Motoru → Kriptografik
+Kanıt Zinciri → Proof Room) + bugün/planlanan/iddia-edilmeyecek ayrımı +
+landing/yatırımcı mesajlaşması. **Bulgu:** son dört katman zaten üretimde
+(`control-test.ts`'in `Gozlem` sözleşmesi connector'lı bir dünyayı zaten
+varsayıyordu — kural 13); eksik yalnız Connector Layer + Evidence Collector.
+Gerçek ön koşul borcu: `evidences.kaynak_kontrol_id` yok (ROADMAP §2710).
+ROADMAP.md §1.71'e işlendi (M08 Connector Platform + M39 Connector Hub
+placeholder'larının ilk detaylı mimarisi — **"Dikey H" değil "Dikey J"**,
+§1.69'daki AI Yönetişimi vertikaliyle ad çakışmasını önlemek için kurucunun
+önerdiği harften değiştirildi). `/tanitim`e küçük, "yakında" demeyen bir
+gelecek-vizyonu notu eklendi (Güven bölümü altına, mevcut AI Güvence/
+Kriptografik Şeffaflık Defteri kartlarıyla aynı üslupta). **Öncelik sırası
+DEĞİŞMEDİ:** özel SMTP → K1 → K2 → mevzuat paketi → pilot → geri bildirim
+tamamlanmadan Dikey J'nin kodsuz analizi bile açılmaz.
+
 ## -8. Dikey H/I roadmap tanımı + landing sayfası AI/kriptografi kartları (22 Temmuz 2026, KOD YOK)
 
 Bir "vertical BİTTİ" değil — kodsuz bir doküman+pazarlama-metni turu.

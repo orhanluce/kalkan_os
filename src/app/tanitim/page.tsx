@@ -817,6 +817,11 @@ export default function TanitimSayfasi() {
               </div>
             ))}
           </div>
+          <p className="mx-auto mt-8 max-w-2xl text-center text-sm leading-6 text-slate-400">
+            WardProof, kurumların mevcut sistemlerinden güvenli şekilde kanıt
+            toplayabilen ve bu kanıtları kontrol, test ve doğrulama zinciriyle
+            ilişkilendiren bir güvence altyapısına doğru genişlemektedir.
+          </p>
         </section>
 
         {/* ------------------------------------------------ 8 · SON CTA */}
