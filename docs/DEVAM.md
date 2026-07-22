@@ -7,6 +7,37 @@ doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine g
 açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1-G1'de bu iki-faz
 disiplini tutarlı uygulandı).
 
+## -15. K2 — Kritik Zamanlanmış Görev Güvenilirliği, repo-içi kısım BİTTİ: K2_LOCAL_READY (22 Temmuz 2026, Supabase'den bağımsız)
+
+Tam analiz: `docs/adr/PR0-K2-kritik-zamanlanmis-gorev-guvenilirligi-2026-
+07-22.md`. K1'in ayrı, açık bir borç olarak kaldığı (§-14) doğrulanan
+gerçek boşluk — `ledger_outbox`'u güvenilir tüketen üretim cron/consumer
+sözleşmesi eksikti — bu turda REPO-İÇİ kısmıyla kapatıldı; K2'nin dış-tetik
+kararı (`ADR-dis-cron.md`, A/B/C) hâlâ AÇIK, bu turda VERİLMEDİ.
+
+**Yapılan:** mevcut `ledger_outbox`/`artifact_ledger_links` additive
+güçlendirildi (yeni genel queue tablosu KURULMADI) — tüm-sistem kill-switch
+(K1 kararı 5'in somut mekanizması: restore hedefinde consumer artık
+GERÇEKTEN kapatılabilir), terminal-hata kısayolu, manuel dead-letter
+kurtarma (audit'li), minimize operasyon görünürlüğü (platform_operator
+için tenant-kimliksiz global toplam). **Gerçek bir orphan-leaf açığı**
+(crash-retry sonrası bağlanmayan defter yaprağı — Dikey K'nın önceki
+bulgusuyla aynı sınıf) testle doğrulanıp iki katmanlı (önleme+görünürlük)
+kapatıldı. Yol boyunca PGlite test harness'inin eski migration revoke
+satırlarını stale bırakacağı gerçek bir tuzak bulunup kaçınıldı (RPC
+imzası değiştirmek yerine AYRI isimli yeni fonksiyon — CLAUDE.md kural 31).
+
+**1687 mevcut + 29 yeni test (19 RLS/PGlite + 10 saf fonksiyon), hepsi
+yeşil; typecheck/lint/build yeşil.** Yeni runbook:
+`docs/operasyon/ZAMANLANMIS_GOREV_GUVENILIRLIGI.md`.
+
+**Sonuç: `K2_LOCAL_READY`.** Production/staging Supabase'e bağlanılmadı,
+migration production'a UYGULANMADI, K1 durumuna dokunulmadı. **Sıradaki
+gerçek adımlar (`K2_LIVE_VALIDATION_PENDING`):** (1) kurucunun migration'ı
+production'a uygulama onayı, (2) canlı smoke doğrulaması, (3) K2'nin
+GERÇEK açık kararı — dış tetik A/B/C (`ADR-dis-cron.md`) — hâlâ kurucuyu
+bekliyor.
+
 ## -14. K1 provası ERTELENDİ — kurucu nihai kararı (22 Temmuz 2026)
 
 Staging, hesap-geneli 2-ücretsiz-proje limitine takıldı (Free planda ek

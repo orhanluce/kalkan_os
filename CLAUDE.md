@@ -1,6 +1,29 @@
 # KALKAN-OS
 TR finans kuruluşları için sürekli uyum SaaS'ı. Stack: Next.js + TS + Supabase (Postgres/RLS/Storage).
 
+**K2 — Kritik Zamanlanmış Görev Güvenilirliği, repo-içi kısım BİTTİ:
+K2_LOCAL_READY (22 Temmuz 2026, Supabase'den bağımsız).** Tam analiz
+`docs/adr/PR0-K2-kritik-zamanlanmis-gorev-guvenilirligi-2026-07-22.md`'de.
+Doğrulanan gerçek boşluk: `ledger_outbox`'u güvenilir tüketen üretim
+cron/consumer sözleşmesi eksikti (bugün yalnız route-tetikli/manuel —
+`ADR-dis-cron.md`'nin dış-tetik kararı A/B/C hâlâ AÇIK). Mevcut `ledger_
+outbox`/`artifact_ledger_links` additive güçlendirildi (yeni genel queue
+tablosu KURULMADI): tüm-sistem kill-switch (K1 kararı 5'in somut
+mekanizması), terminal-hata kısayolu, admin/uyum-gated manuel dead-letter
+kurtarma, platform_operator için tenant-kimliksiz global sağlık özeti.
+**Gerçek bir orphan-leaf açığı** (crash-retry sonrası bağlanmayan defter
+yaprağı, Dikey K'nın önceki bulgusuyla aynı sınıf) testle doğrulanıp iki
+katmanlı (uygulama-seviyesi önleme + DB-seviyesi audit görünürlüğü,
+immutable deftere DOKUNULMADI) kapatıldı. Yol boyunca PGlite test
+harness'inin eski migration `revoke` satırlarını stale bırakacağı gerçek
+bir tuzak bulunup RPC imzası DEĞİŞTİRİLMEDEN, ayrı isimli yeni fonksiyonla
+kaçınıldı (kural 31, yeni). **29 yeni test (1687→1716) + typecheck/lint/
+build yeşil.** Yeni runbook `docs/operasyon/ZAMANLANMIS_GOREV_
+GUVENILIRLIGI.md`. Production/staging'e bağlanılmadı, migration
+UYGULANMADI, K1 durumuna dokunulmadı. **K2_LIVE_VALIDATION_PENDING:**
+production migration onayı + canlı smoke + K2'nin dış-tetik kararının
+kendisi hâlâ kurucuyu bekliyor.
+
 **K1 — Production-like Staging ve Gerçek Backup/Restore Provası hazırlık
 analizi TAMAMLANDI (22 Temmuz 2026, KOD YOK — provanın kendisi hâlâ
 yapılmadı).** Tam analiz `docs/adr/PR0-K1-production-like-staging-backup-
@@ -1034,3 +1057,9 @@ Yönetim Kurulu Beyanı modülü onun yerini almalı ama henüz bağlanmadı.
    herhangi bir imza/ledger kaydı (örn. backup-anı `PENDING`/`PROCESSING` outbox satırlarının
    yeniden işlenmesi) restore ÖNCESİ üretilenlerle KARIŞTIRILMAZ, kanıt paketinde ayrı
    listelenir (K1 ADR §10).
+31. Mevcut bir Postgres fonksiyonunun İMZASINI (parametre sayısı/tipi) `DROP`+`CREATE` ile
+   değiştirme — PGlite test harness'i (`helpers/pg.ts`) TÜM migration dosyalarındaki
+   `revoke ... on function` satırlarını migration'lar bittikten SONRA yeniden uygular; eski
+   imzayı hedefleyen satır STALE kalıp patlar (K2 ADR §6'da gerçekten yaşandı). Davranışı
+   genişletmek gerekiyorsa AYRI, yeni isimli bir fonksiyon eklenir — eski fonksiyon ve onun
+   `revoke`/`grant` satırları DOKUNULMADAN kalır.

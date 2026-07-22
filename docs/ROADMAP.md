@@ -2846,6 +2846,52 @@ borçtur ve gerçek pilot müşteri verisi alınmadan önce kapatılmalıdır."*
 K1 DONE/KAPANDI olarak işaretlenmez; kural 20'deki öncelik sırasındaki yeri
 ve ADR §13'teki kabul kriterleri DEĞİŞMEDEN kalır.
 
+### 1.75 K2 — Kritik Zamanlanmış Görev Güvenilirliği, repo-içi kısım ✅ K2_LOCAL_READY (22 Temmuz 2026, Supabase'den bağımsız)
+
+Tam analiz + tasarım: `docs/adr/PR0-K2-kritik-zamanlanmis-gorev-
+guvenilirligi-2026-07-22.md`. Kurucunun daha önceki oturumlarda işaret
+ettiği boşluk doğrulandı: `ledger_outbox`'u güvenilir tüketen bir üretim
+cron/consumer sözleşmesi gerçekten eksikti — bugün drenaj yalnız route-
+tetikli/manuel (`ADR-dis-cron.md`, K2 dış-tetik kararı A/B/C hâlâ AÇIK, bu
+turda VERİLMEDİ). Kritik iş envanteri 6 sınıfa ayrıldı; yalnız Sınıf 1
+(ledger/transparency outbox) gerçek bir güçlendirme gerektirdiği bulundu —
+9 mevcut pg_cron süpürme işi (Sınıf 4) ve manuel/senkron SMTP (Sınıf 5)
+zaten sağlam, dokunulmadı. **Yeni genel queue tablosu KURULMADI** — mevcut
+`ledger_outbox`/`artifact_ledger_links` additive olarak güçlendirildi
+(migration `20260722070000`): tüm-sistem kill-switch (`ledger_outbox_
+ayarlari`, K1 kararı 5'in somut mekanizması), terminal-hata kısayolu (AYRI
+isimli `ledger_outbox_mark_failed_terminal` — mevcut `mark_failed`'in
+imzasını DEĞİŞTİRMEDİ, PGlite test harness'inin eski migration'lardaki
+`revoke` satırlarını stale bırakacağı gerçek bir hata bu turda BULUNUP
+KAÇINILDI), manuel dead-letter kurtarma (`ledger_outbox_manual_retry`,
+admin/uyum-gated, audit'li), ve minimize edilmiş operasyon görünürlüğü
+(`ledger_outbox_saglik_ozeti` — platform_operator için tenant-kimliksiz
+GLOBAL toplam, diğerleri için yalnız kendi tenant'ı).
+
+**Gerçek bir tasarım açığı bulunup kapatıldı:** `ledger_outbox_mark_
+processed`'in idempotency backstop'u (`ON CONFLICT DO NOTHING`) crash-retry
+sonrası aynı artefakt için farklı bir `ledger_entry_id` ile ikinci kez
+çağrılırsa, YENİ imzalanan defter satırının ASLA bağlanmayan bir "orphan
+leaf" olarak kaldığı — Dikey K'nın önceki bulgusuyla AYNI sınıf, bu turda
+testle DOĞRULANDI. İki katmanlı çözüm: uygulama seviyesinde önleme
+(`ledger-outbox.ts`, yeniden imzalamadan önce mevcut bağlantı kontrolü) +
+DB seviyesinde görünürlük (audit_log izi, silme YOK — immutable deftere
+dokunulmadı).
+
+Alarm eşikleri (`src/lib/ledger-outbox-saglik.ts`, harici servis YOK, saf
+kod) + yeni operasyon runbook'u (`docs/operasyon/
+ZAMANLANMIS_GOREV_GUVENILIRLIGI.md`). **1687 mevcut birim testine ek 29
+yeni test** (19 RLS/PGlite + 10 saf fonksiyon), hepsi yeşil; typecheck/
+lint/build yeşil (yol boyunca ilgisiz, önceden var olan bir SMTP script
+typecheck hatası da düzeltildi).
+
+**Sonuç: `K2_LOCAL_READY`.** Production/staging Supabase'e bağlanılmadı,
+Supabase MCP kullanılmadı, pg_cron canlıda değiştirilmedi, migration
+production'a UYGULANMADI, deploy yapılmadı, K1 durumuna dokunulmadı.
+**`K2_LIVE_VALIDATION_PENDING`:** migration'ın production'a uygulanması +
+canlı smoke testi + K2'nin dış-tetik kararının (`ADR-dis-cron.md`) kendisi
+hâlâ kurucuyu bekliyor.
+
 ---
 
 ## 2. Veri modeli çekirdeği (M1'de şema olarak yazılacak)

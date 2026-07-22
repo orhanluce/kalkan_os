@@ -20,7 +20,7 @@ async function main() {
   }
 
   const skipInvite = process.argv[3] === "--skip-invite";
-  let inviteData: { user?: { id: string } } | undefined;
+  let inviteData: { user: { id: string } | null } | undefined;
   if (!skipInvite) {
     console.log(`[1/2] inviteUserByEmail -> ${REDIRECT_TO}`);
     const t0 = Date.now();

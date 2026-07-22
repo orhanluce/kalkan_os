@@ -339,9 +339,38 @@ export async function ledgerOutboxDrain(db: Db, limit = 10): Promise<DrenajSonuc
 
   for (const olay of claimed) {
     try {
+      // İDEMPOTENCY: bu artefakt için ZATEN bir defter kaydı bağlanmışsa
+      // (crash-retry sonrası re-claim — bkz. K2 ADR §6 "orphan leaf" riski),
+      // YENİDEN imzalayıp YENİ bir yaprak üretmek yerine mevcut bağlantıya
+      // yakınsanır. `mark_processed` zaten bunu idempotent şekilde kabul
+      // eder; asıl kazanç burada YENİ bir imzalama+INSERT hiç YAPILMAMASI —
+      // aksi halde her retry Merkle ağacına sahipsiz (orphan) bir yaprak
+      // ekler.
+      const { data: mevcutLink } = await db
+        .from("artifact_ledger_links")
+        .select("ledger_entry_id")
+        .eq("artifact_table", olay.artifact_table)
+        .eq("artifact_id", olay.artifact_id)
+        .maybeSingle();
+      if (mevcutLink) {
+        const { error: markErr } = await db.rpc("ledger_outbox_mark_processed", {
+          p_id: olay.id,
+          p_ledger_entry_id: mevcutLink.ledger_entry_id,
+        });
+        if (markErr) throw new Error(markErr.message);
+        islenen++;
+        continue;
+      }
+
       const manifestSonuc = await manifestKur(db, olay.artifact_table, olay.artifact_id);
       if (!manifestSonuc) {
-        throw new Error(`Artefakt turu icin manifest kurulamadi: ${olay.artifact_table} (${olay.artifact_id})`);
+        // DÜRÜSTLÜK: bu artefakt türü için hiç wiring yapılmamış — bu bir
+        // yapılandırma eksikliğidir, RETRY İLE DÜZELMEZ. Deneme bütçesini
+        // (5 hak) tüketmeden doğrudan terminal FAILED'e düşürülür.
+        const mesaj = `Artefakt turu icin manifest kurulamadi: ${olay.artifact_table} (${olay.artifact_id})`;
+        await db.rpc("ledger_outbox_mark_failed_terminal", { p_id: olay.id, p_hata: mesaj });
+        basarisiz++;
+        continue;
       }
 
       const signer = await LocalDevSigner.olustur();

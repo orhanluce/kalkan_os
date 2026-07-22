@@ -9379,6 +9379,18 @@ export type Database = {
         Args: { p_hata: string; p_id: string }
         Returns: undefined
       }
+      ledger_outbox_mark_failed_terminal: {
+        Args: { p_hata: string; p_id: string }
+        Returns: undefined
+      }
+      ledger_outbox_manual_retry: {
+        Args: { p_id: string }
+        Returns: boolean
+      }
+      ledger_outbox_saglik_ozeti: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       ledger_outbox_mark_processed: {
         Args: { p_id: string; p_ledger_entry_id: string }
         Returns: undefined
