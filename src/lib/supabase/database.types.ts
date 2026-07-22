@@ -3916,6 +3916,35 @@ export type Database = {
           },
         ]
       }
+      ledger_outbox_ayarlari: {
+        Row: {
+          consumer_etkin: boolean
+          degistiren: string | null
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          consumer_etkin?: boolean
+          degistiren?: string | null
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          consumer_etkin?: boolean
+          degistiren?: string | null
+          id?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_outbox_ayarlari_degistiren_fkey"
+            columns: ["degistiren"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matter_access_grants: {
         Row: {
           bagimsizlik_beyani_id: string | null
@@ -4216,6 +4245,7 @@ export type Database = {
           payment_volume_band: string | null
           payroll_in_scope: boolean
           profil_tamamlandi_at: string | null
+          regulated_entity_types: string[]
           regulated_status: string | null
           regulator_types: string[]
           supplier_master_in_scope: boolean
@@ -4237,6 +4267,7 @@ export type Database = {
           payment_volume_band?: string | null
           payroll_in_scope?: boolean
           profil_tamamlandi_at?: string | null
+          regulated_entity_types?: string[]
           regulated_status?: string | null
           regulator_types?: string[]
           supplier_master_in_scope?: boolean
@@ -4258,6 +4289,7 @@ export type Database = {
           payment_volume_band?: string | null
           payroll_in_scope?: boolean
           profil_tamamlandi_at?: string | null
+          regulated_entity_types?: string[]
           regulated_status?: string | null
           regulator_types?: string[]
           supplier_master_in_scope?: boolean
@@ -5495,6 +5527,73 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regulatory_scope_rules: {
+        Row: {
+          created_at: string
+          entity_type: string | null
+          id: string
+          module_keys: string[]
+          rationale: string
+          required_jurisdiction: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_id: string
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_type?: string | null
+          id?: string
+          module_keys?: string[]
+          rationale: string
+          required_jurisdiction?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string | null
+          id?: string
+          module_keys?: string[]
+          rationale?: string
+          required_jurisdiction?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_scope_rules_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_scope_rules_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_scope_rules_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -8187,6 +8286,89 @@ export type Database = {
           },
         ]
       }
+      tenant_regulatory_scopes: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          id: string
+          manual_authority: string | null
+          manual_title: string | null
+          manual_url: string | null
+          matched_entity_type: string | null
+          module_keys: string[]
+          note: string | null
+          origin: string
+          rule_id: string | null
+          scope_status: string
+          source_id: string | null
+          superseded_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          id?: string
+          manual_authority?: string | null
+          manual_title?: string | null
+          manual_url?: string | null
+          matched_entity_type?: string | null
+          module_keys?: string[]
+          note?: string | null
+          origin: string
+          rule_id?: string | null
+          scope_status: string
+          source_id?: string | null
+          superseded_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          id?: string
+          manual_authority?: string | null
+          manual_title?: string | null
+          manual_url?: string | null
+          matched_entity_type?: string | null
+          module_keys?: string[]
+          note?: string | null
+          origin?: string
+          rule_id?: string | null
+          scope_status?: string
+          source_id?: string | null
+          superseded_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_regulatory_scopes_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_regulatory_scopes_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_scope_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_regulatory_scopes_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_regulatory_scopes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_subscriptions: {
         Row: {
           baslangic: string
@@ -9375,6 +9557,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      ledger_outbox_manual_retry: { Args: { p_id: string }; Returns: boolean }
       ledger_outbox_mark_failed: {
         Args: { p_hata: string; p_id: string }
         Returns: undefined
@@ -9383,18 +9566,11 @@ export type Database = {
         Args: { p_hata: string; p_id: string }
         Returns: undefined
       }
-      ledger_outbox_manual_retry: {
-        Args: { p_id: string }
-        Returns: boolean
-      }
-      ledger_outbox_saglik_ozeti: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
       ledger_outbox_mark_processed: {
         Args: { p_id: string; p_ledger_entry_id: string }
         Returns: undefined
       }
+      ledger_outbox_saglik_ozeti: { Args: never; Returns: Json }
       manifest_dogrula: {
         Args: { target_hash: string }
         Returns: {
@@ -9420,6 +9596,14 @@ export type Database = {
       policy_istisna_suresi_dolanlari_isle: { Args: never; Returns: undefined }
       proof_room_goruntule: { Args: { p_token: string }; Returns: Json }
       proof_room_ledger_malzeme: { Args: { p_token: string }; Returns: Json }
+      regulatory_scope_refresh: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          aktif_modul_kurali: number
+          eklenen: number
+          inceleme_gerekli: number
+        }[]
+      }
       roi_export_runs_yeniden_inceleme_isle: { Args: never; Returns: undefined }
       simulation_manifest_durumu: {
         Args: { target_manifest_id: string }

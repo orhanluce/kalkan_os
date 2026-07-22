@@ -44,12 +44,18 @@ async function globalKalintilariTemizle(db: ReturnType<typeof admin>) {
   }
 }
 
-test("legal-basis guard: doğrulanmamış eşleme zorunlu kontrolü bloklar; doğrulanınca koşar", async ({ page }) => {
+test("legal-basis guard: doğrulanmamış eşleme zorunlu kontrolü bloklar; doğrulanınca koşar", async ({
+  page,
+}) => {
   test.setTimeout(90_000);
   const db = admin();
   await globalKalintilariTemizle(db);
 
-  const { data: kurum } = await db.from("tenants").select("id").eq("name", "E2E Test Kurumu A.Ş.").single();
+  const { data: kurum } = await db
+    .from("tenants")
+    .select("id")
+    .eq("name", "E2E Test Kurumu A.Ş.")
+    .single();
   // Fixture'ın seed ettiği tanımı ADIYLA seç: kontrol-test.spec'in UI testi bu
   // spec'ten önce İKİNCİ bir MANUAL_PROCEDURE tanımı yaratıyor — tur filtresi
   // tek başına .single()'ı "birden fazla satır" ile patlatır.
@@ -63,25 +69,49 @@ test("legal-basis guard: doğrulanmamış eşleme zorunlu kontrolü bloklar; do�
   // 1) Fixture ingest: zincir TODO_DOGRULA doğar (kural 3).
   const { data: src } = await db
     .from("regulatory_sources")
-    .insert({ authority: "SPK", jurisdiction: "TR", kaynak_seviyesi: "A", ad: KAYNAK_ADI, erisim_politikasi_durumu: "manuel" })
-    .select("id").single();
-  const sha = [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("");
+    .insert({
+      authority: "SPK",
+      jurisdiction: "TR",
+      kaynak_seviyesi: "A",
+      ad: KAYNAK_ADI,
+      erisim_politikasi_durumu: "manuel",
+    })
+    .select("id")
+    .single();
+  const sha = [...crypto.getRandomValues(new Uint8Array(32))]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
   const { data: art } = await db
     .from("source_artifacts")
     .insert({ source_id: src!.id, baslik: "E2E sentetik artifact", sha256: sha })
-    .select("id").single();
+    .select("id")
+    .single();
   const { data: prov } = await db
     .from("provisions")
-    .insert({ source_artifact_id: art!.id, provision_ref: "E2E-LB md. 1", metin: "Sentetik e2e hükmü", effective_from: "2020-01-01" })
-    .select("id").single();
+    .insert({
+      source_artifact_id: art!.id,
+      provision_ref: "E2E-LB md. 1",
+      metin: "Sentetik e2e hükmü",
+      effective_from: "2020-01-01",
+    })
+    .select("id")
+    .single();
   const { data: obl } = await db
     .from("obligations")
-    .insert({ provision_id: prov!.id, kod: "E2E-LB-1", baslik: "Sentetik yükümlülük", amac: "e2e", nitelik: "zorunlu" })
-    .select("id").single();
+    .insert({
+      provision_id: prov!.id,
+      kod: "E2E-LB-1",
+      baslik: "Sentetik yükümlülük",
+      amac: "e2e",
+      nitelik: "zorunlu",
+    })
+    .select("id")
+    .single();
   const { data: map } = await db
     .from("obligation_control_mappings")
     .insert({ obligation_id: obl!.id, control_id: tanim!.control_id })
-    .select("id").single();
+    .select("id")
+    .single();
 
   await girisYap(page);
 
@@ -105,24 +135,46 @@ test("legal-basis guard: doğrulanmamış eşleme zorunlu kontrolü bloklar; do�
   //    admin doğrular; incelemeye alanın kendi sunumunu doğrulaması DB'de
   //    reddedilir (guard, service_role bile atlayamaz).
   const { data: onaylayanProfil } = await db
-    .from("profiles").select("id").eq("tenant_id", kurum!.id).eq("role", "admin").limit(1).single();
+    .from("profiles")
+    .select("id")
+    .eq("tenant_id", kurum!.id)
+    .eq("role", "admin")
+    .limit(1)
+    .single();
   const { data: sunanProfil } = await db
-    .from("profiles").select("id").eq("tenant_id", kurum!.id).eq("role", "uyum").limit(1).single();
+    .from("profiles")
+    .select("id")
+    .eq("tenant_id", kurum!.id)
+    .eq("role", "uyum")
+    .limit(1)
+    .single();
   for (const tablo of ["obligations", "obligation_control_mappings"] as const) {
     const id = tablo === "obligations" ? obl!.id : map!.id;
     await db
       .from(tablo)
-      .update({ dogrulama_durumu: "LEGAL_REVIEW", incelemeye_alan: sunanProfil!.id, incelemeye_alinma_zamani: new Date().toISOString() })
+      .update({
+        dogrulama_durumu: "LEGAL_REVIEW",
+        incelemeye_alan: sunanProfil!.id,
+        incelemeye_alinma_zamani: new Date().toISOString(),
+      })
       .eq("id", id);
     // Dört-göz ihlali: sunan kendi sunumunu doğrulayamaz.
     const { error: dortGoz } = await db
       .from(tablo)
-      .update({ dogrulama_durumu: "VERIFIED", dogrulayan: sunanProfil!.id, dogrulama_zamani: new Date().toISOString() })
+      .update({
+        dogrulama_durumu: "VERIFIED",
+        dogrulayan: sunanProfil!.id,
+        dogrulama_zamani: new Date().toISOString(),
+      })
       .eq("id", id);
     expect(dortGoz?.message).toContain("dort goz");
     const { error } = await db
       .from(tablo)
-      .update({ dogrulama_durumu: "VERIFIED", dogrulayan: onaylayanProfil!.id, dogrulama_zamani: new Date().toISOString() })
+      .update({
+        dogrulama_durumu: "VERIFIED",
+        dogrulayan: onaylayanProfil!.id,
+        dogrulama_zamani: new Date().toISOString(),
+      })
       .eq("id", id);
     expect(error).toBeNull();
   }
@@ -134,20 +186,30 @@ test("legal-basis guard: doğrulanmamış eşleme zorunlu kontrolü bloklar; do�
   expect(uyarili.ok()).toBeTruthy();
   const uyariliGovde = await uyarili.json();
   expect(uyariliGovde.dayanak.karar).toBe("ALLOW_WITH_WARNING");
-  expect(uyariliGovde.dayanak.sebepler.map((s: { kod: string }) => s.kod)).toContain("KAPSAM_DEGERLENDIRILMEMIS");
+  expect(uyariliGovde.dayanak.sebepler.map((s: { kod: string }) => s.kod)).toContain(
+    "KAPSAM_DEGERLENDIRILMEMIS",
+  );
 
   // 5) Applicability: güncel profilden APPLICABLE karar (motor kaynaklı).
   //    Profil yoksa kur (diğer spec'ler kurmuş olabilir — oku ya da oluştur).
   let { data: profil } = await db
     .from("organization_profiles")
-    .select("organization_type, regulated_status, regulator_types, jurisdictions, operating_sectors, finance_department_enabled, employee_band, legal_entity_count")
-    .eq("tenant_id", kurum!.id).maybeSingle();
+    .select(
+      "organization_type, regulated_entity_types, regulated_status, regulator_types, jurisdictions, operating_sectors, finance_department_enabled, employee_band, legal_entity_count",
+    )
+    .eq("tenant_id", kurum!.id)
+    .maybeSingle();
   if (!profil) {
-    await db.from("organization_profiles").insert({ tenant_id: kurum!.id, organization_type: "REGULATED_FINANCIAL_INSTITUTION" });
+    await db
+      .from("organization_profiles")
+      .insert({ tenant_id: kurum!.id, organization_type: "REGULATED_FINANCIAL_INSTITUTION" });
     ({ data: profil } = await db
       .from("organization_profiles")
-      .select("organization_type, regulated_status, regulator_types, jurisdictions, operating_sectors, finance_department_enabled, employee_band, legal_entity_count")
-      .eq("tenant_id", kurum!.id).single());
+      .select(
+        "organization_type, regulated_entity_types, regulated_status, regulator_types, jurisdictions, operating_sectors, finance_department_enabled, employee_band, legal_entity_count",
+      )
+      .eq("tenant_id", kurum!.id)
+      .single());
   }
   const snap = applicabilityFactSnapshot(profil!);
   const { error: kararErr } = await db.from("applicability_decisions").insert({
@@ -178,7 +240,11 @@ test("legal-basis guard: doğrulanmamış eşleme zorunlu kontrolü bloklar; do�
 
   // 6b) PR-Q2b': kontrol detayındaki kanıt izi rayı Hüküm/Yükümlülük
   //     düğümlerini artık GERÇEK zincirden gösterir ("Bağlı değil" değil).
-  const { data: kontrol } = await db.from("controls").select("madde_ref").eq("id", tanim!.control_id).single();
+  const { data: kontrol } = await db
+    .from("controls")
+    .select("madde_ref")
+    .eq("id", tanim!.control_id)
+    .single();
   await page.goto("/controls");
   await page.getByRole("link", { name: kontrol!.madde_ref }).click();
   const ray = page.getByRole("list", { name: "Kanıt izi: hükümden kanıta zincir" });
@@ -194,7 +260,9 @@ test("legal-basis guard: doğrulanmamış eşleme zorunlu kontrolü bloklar; do�
   expect(paket.schema).toBe("KALKAN_CITATION_BUNDLE_V1");
   expect(paket.imzaDurumu).toBe("IMZASIZ_HASH_BUTUNLUKLU");
   expect(paket.legalSnapshotHash).toMatch(/^[0-9a-f]{64}$/);
-  expect(paket.kaynakZinciri.map((k: { artifactSha256: string }) => k.artifactSha256)).toContain(sha);
+  expect(paket.kaynakZinciri.map((k: { artifactSha256: string }) => k.artifactSha256)).toContain(
+    sha,
+  );
   expect(paket.applicability[0].durum).toBe("APPLICABLE");
 
   const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");

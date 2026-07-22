@@ -68,7 +68,7 @@ export async function dayanakEslemeleriniTopla(
   const { data: profil } = await db
     .from("organization_profiles")
     .select(
-      "organization_type, regulated_status, regulator_types, jurisdictions, operating_sectors, finance_department_enabled, employee_band, legal_entity_count",
+      "organization_type, regulated_entity_types, regulated_status, regulator_types, jurisdictions, operating_sectors, finance_department_enabled, employee_band, legal_entity_count",
     )
     .eq("tenant_id", tenantId)
     .maybeSingle();

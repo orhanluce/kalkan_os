@@ -6,8 +6,12 @@
 // PR-Q1': kaynak başına TAZELİK (kural 8: çekim yoksa "güncellik iddia
 // edilemez" — "güncel" DENMEZ) ve artifact listesi (hash + doğrulama rozeti).
 import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { StatusBadge, type SemantikDurum } from "@/components/durum/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -19,6 +23,8 @@ import {
 import { kaynakTazeligi } from "@/lib/kaynak-tazelik";
 import { createClient } from "@/lib/supabase/client";
 import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
+import { useAuth } from "@/lib/auth";
+import { REGULATED_ENTITY_LABEL, type RegulatedEntityType } from "@/lib/regulatory-scope";
 
 interface Kaynak {
   id: string;
@@ -41,6 +47,19 @@ interface Artifact {
   issued_at: string | null;
   effective_from: string | null;
   dogrulama_durumu: string;
+}
+
+interface TenantScope {
+  id: string;
+  source_id: string | null;
+  manual_authority: string | null;
+  manual_title: string | null;
+  manual_url: string | null;
+  note: string | null;
+  origin: "PROFILE_RULE" | "MANUAL";
+  scope_status: "AUTO_ACTIVE" | "REVIEW_REQUIRED" | "MANUAL_TRACKED";
+  matched_entity_type: string | null;
+  module_keys: string[];
 }
 
 const SEVIYE_LABEL: Record<string, string> = {
@@ -71,15 +90,23 @@ function tarihEtiketi(tarih: string | null, yokMetni: string): string {
 }
 
 export default function KaynaklarPage() {
+  const { currentUser } = useAuth();
   const [kaynaklar, setKaynaklar] = useState<Kaynak[]>([]);
   const [artifactlar, setArtifactlar] = useState<Artifact[]>([]);
   // Kaynak başına son BAŞARILI çekim zamanı (tazelik türetiminin girdisi).
   const [sonCekim, setSonCekim] = useState<Record<string, string>>({});
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [kapsamlar, setKapsamlar] = useState<TenantScope[]>([]);
+  const [kurulusTurleri, setKurulusTurleri] = useState<string[]>([]);
+  const [islemMesaji, setIslemMesaji] = useState<string | null>(null);
+  const [manuelBaslik, setManuelBaslik] = useState("");
+  const [manuelOtorite, setManuelOtorite] = useState("");
+  const [manuelUrl, setManuelUrl] = useState("");
+  const [manuelNot, setManuelNot] = useState("");
 
   const yukle = useCallback(async () => {
     const db = createClient();
-    const [{ data: k }, { data: a }, { data: r }] = await Promise.all([
+    const [{ data: k }, { data: a }, { data: r }, { data: s }, { data: p }] = await Promise.all([
       db
         .from("regulatory_sources")
         .select(
@@ -98,6 +125,14 @@ export default function KaynaklarPage() {
         .select("source_id, fetched_at")
         .eq("durum", "BASARILI")
         .order("fetched_at", { ascending: false }),
+      db
+        .from("tenant_regulatory_scopes")
+        .select(
+          "id, source_id, manual_authority, manual_title, manual_url, note, origin, scope_status, matched_entity_type, module_keys",
+        )
+        .is("superseded_at", null)
+        .order("created_at", { ascending: false }),
+      db.from("organization_profiles").select("regulated_entity_types").maybeSingle(),
     ]);
     setKaynaklar((k ?? []) as Kaynak[]);
     setArtifactlar((a ?? []) as Artifact[]);
@@ -106,8 +141,64 @@ export default function KaynaklarPage() {
       if (!(run.source_id in son)) son[run.source_id] = run.fetched_at;
     }
     setSonCekim(son);
+    setKapsamlar((s ?? []) as TenantScope[]);
+    setKurulusTurleri(p?.regulated_entity_types ?? []);
     setYukleniyor(false);
   }, []);
+
+  const yetkili = currentUser?.role === "admin" || currentUser?.role === "uyum";
+  const manuelUrlGecerli = manuelUrl.trim() === "" || manuelUrl.trim().startsWith("https://");
+
+  async function kapsamiEsleştir() {
+    if (!currentUser || !yetkili) return;
+    setIslemMesaji(null);
+    const db = createClient();
+    const { data, error } = await db.rpc("regulatory_scope_refresh", {
+      p_tenant_id: currentUser.tenantId,
+    });
+    if (error) {
+      setIslemMesaji(error.message);
+      return;
+    }
+    const sonuc = data?.[0];
+    setIslemMesaji(
+      sonuc
+        ? `${sonuc.eklenen} yeni eşleşme eklendi; ${sonuc.inceleme_gerekli} kayıt hukuk incelemesi bekliyor, ${sonuc.aktif_modul_kurali} doğrulanmış kural modül açıyor.`
+        : "Kapsam yenilendi.",
+    );
+    await yukle();
+  }
+
+  async function manuelKaynakEkle() {
+    if (!currentUser || !yetkili || manuelBaslik.trim() === "" || !manuelUrlGecerli) return;
+    setIslemMesaji(null);
+    const db = createClient();
+    const { error } = await db.from("tenant_regulatory_scopes").insert({
+      tenant_id: currentUser.tenantId,
+      source_id: null,
+      rule_id: null,
+      manual_authority: manuelOtorite.trim() || null,
+      manual_title: manuelBaslik.trim(),
+      manual_url: manuelUrl.trim() || null,
+      note: manuelNot.trim() || null,
+      origin: "MANUAL",
+      scope_status: "MANUAL_TRACKED",
+      module_keys: [],
+      added_by: currentUser.id,
+    });
+    if (error) {
+      setIslemMesaji(error.message);
+      return;
+    }
+    setManuelBaslik("");
+    setManuelOtorite("");
+    setManuelUrl("");
+    setManuelNot("");
+    setIslemMesaji(
+      "Manuel mevzuat izleme kapsamına eklendi; hukuki uygulanabilirlik kararı ayrıca verilir.",
+    );
+    await yukle();
+  }
 
   useEffect(() => {
     const c = async () => {
@@ -131,6 +222,145 @@ export default function KaynaklarPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Kurum mevzuat kapsamı</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div>
+            <p className="text-muted-foreground text-sm">Kayıtlı kuruluş türü</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {kurulusTurleri.length === 0 ? (
+                <span className="text-warning text-sm">Kesin kuruluş türü seçilmemiş.</span>
+              ) : (
+                kurulusTurleri.map((tur) => (
+                  <StatusBadge key={tur} durum="info">
+                    {REGULATED_ENTITY_LABEL[tur as RegulatedEntityType] ?? tur}
+                  </StatusBadge>
+                ))
+              )}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              disabled={!yetkili || kurulusTurleri.length === 0}
+              onClick={() => void kapsamiEsleştir()}
+            >
+              Kurum türüne göre kapsamı yenile
+            </Button>
+            {kurulusTurleri.length === 0 ? (
+              <a href="/kurulum" className="text-primary text-sm underline">
+                Kurum türünü seç
+              </a>
+            ) : null}
+          </div>
+          {islemMesaji ? (
+            <p role="status" className="text-sm">
+              {islemMesaji}
+            </p>
+          ) : null}
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div className="rounded-md border p-3">
+              <p className="text-muted-foreground text-xs">Otomatik aktif</p>
+              <p className="text-xl font-semibold">
+                {kapsamlar.filter((x) => x.scope_status === "AUTO_ACTIVE").length}
+              </p>
+            </div>
+            <div className="rounded-md border p-3">
+              <p className="text-muted-foreground text-xs">Hukuk incelemesi gerekli</p>
+              <p className="text-xl font-semibold">
+                {kapsamlar.filter((x) => x.scope_status === "REVIEW_REQUIRED").length}
+              </p>
+            </div>
+            <div className="rounded-md border p-3">
+              <p className="text-muted-foreground text-xs">Manuel izlenen</p>
+              <p className="text-xl font-semibold">
+                {kapsamlar.filter((x) => x.scope_status === "MANUAL_TRACKED").length}
+              </p>
+            </div>
+          </div>
+          <p className="text-muted-foreground text-xs">
+            Yalnız dört-göz hukuk doğrulamasından geçen kapsam kuralı ilgili modülü otomatik
+            açabilir. Araştırma taslağı eşleşmeleri görünürdür fakat “uygulanır” sonucu sayılmaz.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Manuel mevzuat ekle</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1 sm:col-span-2">
+            <Label htmlFor="manuel-mevzuat-baslik">Mevzuat adı</Label>
+            <Input
+              id="manuel-mevzuat-baslik"
+              value={manuelBaslik}
+              onChange={(e) => setManuelBaslik(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="manuel-mevzuat-otorite">Otorite</Label>
+            <Input
+              id="manuel-mevzuat-otorite"
+              value={manuelOtorite}
+              onChange={(e) => setManuelOtorite(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="manuel-mevzuat-url">Resmî bağlantı</Label>
+            <Input
+              id="manuel-mevzuat-url"
+              type="url"
+              value={manuelUrl}
+              onChange={(e) => setManuelUrl(e.target.value)}
+            />
+            {!manuelUrlGecerli ? (
+              <p className="text-danger text-xs">Yalnız HTTPS resmî bağlantısı kabul edilir.</p>
+            ) : null}
+          </div>
+          <div className="flex flex-col gap-1 sm:col-span-2">
+            <Label htmlFor="manuel-mevzuat-not">Not</Label>
+            <Textarea
+              id="manuel-mevzuat-not"
+              value={manuelNot}
+              onChange={(e) => setManuelNot(e.target.value)}
+              rows={2}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <Button
+              disabled={!yetkili || manuelBaslik.trim() === "" || !manuelUrlGecerli}
+              onClick={() => void manuelKaynakEkle()}
+            >
+              İzleme kapsamına ekle
+            </Button>
+          </div>
+          {kapsamlar.filter((x) => x.origin === "MANUAL").length > 0 ? (
+            <ul className="flex flex-col gap-2 sm:col-span-2">
+              {kapsamlar
+                .filter((x) => x.origin === "MANUAL")
+                .map((x) => (
+                  <li key={x.id} className="rounded-md border p-3 text-sm">
+                    <strong>{x.manual_title}</strong>
+                    {x.manual_authority ? ` — ${x.manual_authority}` : ""}
+                    {x.manual_url ? (
+                      <a
+                        href={x.manual_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary ml-2 underline"
+                      >
+                        Resmî kaynak
+                      </a>
+                    ) : null}
+                  </li>
+                ))}
+            </ul>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Kaynaklar ({kaynaklar.length})</CardTitle>
         </CardHeader>
         <CardContent>
@@ -150,6 +380,7 @@ export default function KaynaklarPage() {
                     <TableHead>Yargı</TableHead>
                     <TableHead>Seviye</TableHead>
                     <TableHead>Ad</TableHead>
+                    <TableHead>Kurum kapsamı</TableHead>
                     <TableHead>Erişim politikası</TableHead>
                     <TableHead>Tazelik</TableHead>
                     <TableHead>Artifact</TableHead>
@@ -178,6 +409,29 @@ export default function KaynaklarPage() {
                             </a>
                           ) : (
                             k.ad
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {kapsamlar.some((x) => x.source_id === k.id) ? (
+                            <StatusBadge
+                              durum={
+                                kapsamlar.some(
+                                  (x) => x.source_id === k.id && x.scope_status === "AUTO_ACTIVE",
+                                )
+                                  ? "success"
+                                  : "warning"
+                              }
+                            >
+                              {kapsamlar.some(
+                                (x) => x.source_id === k.id && x.scope_status === "AUTO_ACTIVE",
+                              )
+                                ? "Otomatik aktif"
+                                : "İnceleme gerekli"}
+                            </StatusBadge>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">
+                              Kapsam dışı / karar yok
+                            </span>
                           )}
                         </TableCell>
                         <TableCell>

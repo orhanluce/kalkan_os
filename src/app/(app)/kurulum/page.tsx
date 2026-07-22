@@ -11,16 +11,28 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
-import { financeVarsayilanAcik, ONBOARDING_SECENEKLERI, type OrganizationType } from "@/lib/organizasyon";
+import {
+  financeVarsayilanAcik,
+  ONBOARDING_SECENEKLERI,
+  type OrganizationType,
+} from "@/lib/organizasyon";
 import { useLocalStore } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
 import { EkranYardimPaneli } from "@/components/yardim/ekran-yardim-paneli";
+import {
+  REGULATED_ENTITY_LABEL,
+  REGULATED_ENTITY_TYPES,
+  regulatedEntitySelectionRequired,
+  regulatorTypesForEntities,
+  type RegulatedEntityType,
+} from "@/lib/regulatory-scope";
 
 export default function KurulumPage() {
   const router = useRouter();
   const { currentUser } = useAuth();
   const { kurum, yenidenYukle } = useLocalStore();
   const [secilen, setSecilen] = useState<OrganizationType | null>(null);
+  const [kurulusTurleri, setKurulusTurleri] = useState<RegulatedEntityType[]>([]);
   const [suruyor, setSuruyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -29,6 +41,7 @@ export default function KurulumPage() {
 
   async function kaydet() {
     if (!secilen || !currentUser) return;
+    if (regulatedEntitySelectionRequired(secilen) && kurulusTurleri.length === 0) return;
     setSuruyor(true);
     setHata(null);
     const db = createClient();
@@ -39,6 +52,17 @@ export default function KurulumPage() {
       {
         tenant_id: currentUser.tenantId,
         organization_type: secilen,
+        regulated_entity_types: regulatedEntitySelectionRequired(secilen) ? kurulusTurleri : [],
+        regulated_status:
+          secilen === "REGULATED_FINANCIAL_INSTITUTION"
+            ? "REGULATED"
+            : secilen === "MIXED_GROUP"
+              ? "PARTIALLY_REGULATED"
+              : "NOT_REGULATED",
+        regulator_types: regulatedEntitySelectionRequired(secilen)
+          ? regulatorTypesForEntities(kurulusTurleri)
+          : [],
+        jurisdictions: ["TR"],
         finance_department_enabled: financeVarsayilanAcik(secilen),
         profil_tamamlandi_at: new Date().toISOString(),
       },
@@ -52,7 +76,11 @@ export default function KurulumPage() {
     // Aktivasyon (ADR-V2-5): TTV başlangıcı. PII yok — yalnız tür + org tipi.
     await db
       .from("activation_events")
-      .insert({ tenant_id: currentUser.tenantId, event_type: "PROFILE_COMPLETED", meta: { organization_type: secilen } });
+      .insert({
+        tenant_id: currentUser.tenantId,
+        event_type: "PROFILE_COMPLETED",
+        meta: { organization_type: secilen },
+      });
     await yenidenYukle();
     router.push("/");
   }
@@ -63,7 +91,7 @@ export default function KurulumPage() {
         <h1 className="text-2xl font-semibold tracking-tight">
           KALKAN_OS&apos;u hangi amaçla kuruyorsunuz?
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="text-muted-foreground mt-1 text-sm">
           Bu seçim ürün hattını ve varsayılan ekranları belirler. Kilitli değildir — yetkili bir
           kullanıcı sonradan değiştirebilir; değişiklik kapsam yeniden hesaplaması ve denetim kaydı
           üretir.
@@ -71,7 +99,9 @@ export default function KurulumPage() {
         {mevcut && (
           <p className="mt-2 text-sm">
             Mevcut seçim:{" "}
-            <strong>{ONBOARDING_SECENEKLERI.find((s) => s.tur === mevcut)?.baslik ?? mevcut}</strong>
+            <strong>
+              {ONBOARDING_SECENEKLERI.find((s) => s.tur === mevcut)?.baslik ?? mevcut}
+            </strong>
           </p>
         )}
       </div>
@@ -79,12 +109,18 @@ export default function KurulumPage() {
       <EkranYardimPaneli modulId="kurum-profili" />
 
       {!yetkili && (
-        <p role="alert" className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
+        <p
+          role="alert"
+          className="border-warning/40 bg-warning/10 text-warning rounded-md border px-3 py-2 text-sm"
+        >
           Kurum türünü yalnızca admin veya uyum rolü belirleyebilir.
         </p>
       )}
       {hata && (
-        <p role="alert" className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+        <p
+          role="alert"
+          className="border-danger/40 bg-danger/10 text-danger rounded-md border px-3 py-2 text-sm"
+        >
           {hata}
         </p>
       )}
@@ -95,7 +131,7 @@ export default function KurulumPage() {
           return (
             <Card
               key={s.tur}
-              className={`cursor-pointer transition-colors ${seciliMi ? "border-brand-accent ring-1 ring-brand-accent" : "hover:bg-accent"}`}
+              className={`cursor-pointer transition-colors ${seciliMi ? "border-brand-accent ring-brand-accent ring-1" : "hover:bg-accent"}`}
             >
               <button
                 type="button"
@@ -108,7 +144,7 @@ export default function KurulumPage() {
                   <CardTitle className="text-base">{s.baslik}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">{s.aciklama}</p>
+                  <p className="text-muted-foreground text-sm">{s.aciklama}</p>
                 </CardContent>
               </button>
             </Card>
@@ -116,8 +152,51 @@ export default function KurulumPage() {
         })}
       </div>
 
+      {secilen && regulatedEntitySelectionRequired(secilen) ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Düzenlemeye tabi kuruluş türü</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-3 text-sm">
+              Bir veya birden fazla kesin tür seçin. Sistem mevzuat izleme kapsamını bu seçimden
+              üretir; doğrulanmamış eşleşmeler hukuk kararı sayılmaz ve inceleme kuyruğunda kalır.
+            </p>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Kuruluş türleri">
+              {REGULATED_ENTITY_TYPES.map((tur) => {
+                const seciliMi = kurulusTurleri.includes(tur);
+                return (
+                  <Button
+                    key={tur}
+                    type="button"
+                    size="sm"
+                    variant={seciliMi ? "default" : "outline"}
+                    aria-pressed={seciliMi}
+                    onClick={() =>
+                      setKurulusTurleri((onceki) =>
+                        seciliMi ? onceki.filter((x) => x !== tur) : [...onceki, tur],
+                      )
+                    }
+                  >
+                    {REGULATED_ENTITY_LABEL[tur]}
+                  </Button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <div className="flex gap-2">
-        <Button onClick={kaydet} disabled={!secilen || suruyor || !yetkili}>
+        <Button
+          onClick={kaydet}
+          disabled={
+            !secilen ||
+            suruyor ||
+            !yetkili ||
+            (regulatedEntitySelectionRequired(secilen) && kurulusTurleri.length === 0)
+          }
+        >
           {mevcut ? "Değiştir" : "Kur ve devam et"}
         </Button>
         {mevcut && (

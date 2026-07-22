@@ -10,6 +10,7 @@ import {
 
 const TAM_PROFIL: ProfilOlgulari = {
   organization_type: "REGULATED_FINANCIAL_INSTITUTION",
+  regulated_entity_types: ["ARACI_KURUM"],
   regulated_status: "REGULATED",
   regulator_types: ["SPK", "BDDK"],
   jurisdictions: ["TR"],

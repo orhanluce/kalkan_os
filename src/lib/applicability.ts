@@ -25,8 +25,9 @@ export const APPLICABILITY_DURUM_LABEL: Record<ApplicabilityDurum, string> = {
 
 /** Kararın dayandığı profil olguları — karar anında kopyalanır. */
 export interface ApplicabilityFactSnapshot {
-  schema: "KALKAN_APPLICABILITY_FACTS_V1";
+  schema: "KALKAN_APPLICABILITY_FACTS_V2";
   organizationType: OrganizationType | null;
+  regulatedEntityTypes: string[];
   regulatedStatus: string | null;
   regulatorTypes: string[];
   jurisdictions: string[];
@@ -39,6 +40,7 @@ export interface ApplicabilityFactSnapshot {
 /** Snapshot'a giren profil alt kümesi (DB satırından seçilir). */
 export interface ProfilOlgulari {
   organization_type: string | null;
+  regulated_entity_types: string[] | null;
   regulated_status: string | null;
   regulator_types: string[] | null;
   jurisdictions: string[] | null;
@@ -59,8 +61,9 @@ function normalizeDizi(v: string[] | null): string[] {
  */
 export function applicabilityFactSnapshot(profil: ProfilOlgulari): ApplicabilityFactSnapshot {
   return {
-    schema: "KALKAN_APPLICABILITY_FACTS_V1",
+    schema: "KALKAN_APPLICABILITY_FACTS_V2",
     organizationType: (profil.organization_type as OrganizationType | null) ?? null,
+    regulatedEntityTypes: normalizeDizi(profil.regulated_entity_types),
     regulatedStatus: profil.regulated_status ?? null,
     regulatorTypes: normalizeDizi(profil.regulator_types),
     jurisdictions: normalizeDizi(profil.jurisdictions),
@@ -89,6 +92,13 @@ export function factSnapshotFingerprint(snapshot: ApplicabilityFactSnapshot): Pr
 export function eksikProfilAlanlari(snapshot: ApplicabilityFactSnapshot): string[] {
   const eksik: string[] = [];
   if (snapshot.organizationType === null) eksik.push("organizationType");
+  if (
+    (snapshot.organizationType === "REGULATED_FINANCIAL_INSTITUTION" ||
+      snapshot.organizationType === "MIXED_GROUP") &&
+    snapshot.regulatedEntityTypes.length === 0
+  ) {
+    eksik.push("regulatedEntityTypes");
+  }
   if (snapshot.regulatedStatus === null || snapshot.regulatedStatus === "UNKNOWN") {
     eksik.push("regulatedStatus");
   }
