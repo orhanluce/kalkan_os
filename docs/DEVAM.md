@@ -7,6 +7,39 @@ doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine g
 açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1-G1'de bu iki-faz
 disiplini tutarlı uygulandı).
 
+## -19. FAZ 1 kabul kapısı KAPANDI — 10 e2e hatası kök nedenine kadar düzeltildi (23 Temmuz 2026)
+
+Önceki girişte (-18) FAZ 1 production'a çıkmıştı ama tam e2e paketinde
+(87 test) 10 hata vardı, kapı resmen kapalı sayılmamıştı. Kurucu "FAZ 2'ye
+geçme, önce bu 10 hatayı kök nedenine kadar düzelt" talimatı verdi — junction
+table/Entra/yeni kod kesinlikle YASAK kapsam sınırıyla. **Sonuç: hepsi
+gerçek koda bakılarak sınıflandırıldı ve düzeltildi, hiçbiri skip/zayıflatma/
+kör-retry/timeout-yükseltmesiyle gizlenmedi.** Tam liste ve sınıflandırma
+ROADMAP.md §1.77'de. Özet: 6'sı `e559faf`in yeni zorunlu `regulated_entity_
+types` alanını/nav etiket değişikliğini yansıtmayan test boşluğu, 4'ü
+"Çıkış"→ikinci-kullanıcı-girişi arasında eksik `waitForURL` yüzünden kök→
+landing yönlendirmesiyle çakışan gerçek bir test race'i (7 spec'ten 4'ünde
+eksikti, sod/sod-import/tema'daki doğru desenden kopyalandı), 1'i paylaşılan
+kiracıda başka bir spec'in aktif şablonunu görmezden gelen kırılgan
+`.single()`, 1'i özel SMTP kapanışının BİLİNÇLİ Supabase Auth redirect
+allow-list kısıtlamasıyla (localhost çıkarıldı — GEVŞETİLMEDİ) çakışan test
+akışı, +1 full-suite derinliğinde (test #73/87) yakalanan gerçek bir ağ-turu
+zaman aşımı (keyfi süre yerine gerçek PATCH yanıtı beklenecek şekilde
+düzeltildi).
+
+**Doğrulama:** 8 dosya, izole + 3× ardışık temiz koşu + tam 87 testlik paket
+İKİ KEZ arka arkaya 87/87 SIFIR hata. `pnpm check` (1717 birim) + production
+build + `pnpm db:verify` yeşil. Bu turda yalnız `e2e/*.spec.ts` değişti —
+src/ kodu/migration YOK, production smoke gerekmiyor.
+
+**ÖNEMLİ KEŞİF — eşzamanlı çalışma çakışması:** Bu görev sırasında daha önce
+işaretlenmiş `task_3c536765` arka plan görevinin **kurucu tarafından zaten
+başlatıldığı** görüldü (muhtemelen ayrı bir worktree/oturumda, AYNI 10 hatayı
+düzeltmek için). Bu çalışma dizininde çakışan bir değişiklik GÖRÜLMEDİ (git
+status/log temiz, yalnız bu oturumun kendi düzenlemeleri) — ama iki ayrı
+çözüm aynı anda var olabilir. **Commit/push yapılmadan önce kurucunun bu
+durumu görmesi ve hangi çözümün kalacağına karar vermesi gerekiyor.**
+
 ## -18. Continuous Assurance Runtime programı FAZ 0 + FAZ 1 (Kanonik Kanıt) BİTTİ (23 Temmuz 2026)
 
 Kurucunun WardProof'u "Provable Compliance Infrastructure / Continuous

@@ -39,7 +39,11 @@ test("uygulanabilirlik: tam profilde APPLICABLE kararı; eksik profilde yalnız 
   await temizle(db);
 
   const { data: kurum } = await db.from("tenants").select("id").eq("name", E2E_KURUM_ADI).single();
-  // TAM profil: kritik olguların hepsi dolu (organizationType/regulatedStatus/jurisdictions).
+  // TAM profil: kritik olguların hepsi dolu (organizationType/regulatedStatus/
+  // jurisdictions/regulatedEntityTypes — sonuncusu organizasyon-farkında
+  // regülasyon kapsam motorunun (e559faf) eksikProfilAlanlari()'ye eklediği
+  // kritik olgu; eksik bırakılırsa "Uygulanır" tüm test boyunca disabled
+  // kalır — 2026-07-23'te bulunan root-cause).
   await db.from("organization_profiles").upsert(
     {
       tenant_id: kurum!.id,
@@ -47,6 +51,7 @@ test("uygulanabilirlik: tam profilde APPLICABLE kararı; eksik profilde yalnız 
       regulated_status: "REGULATED",
       jurisdictions: ["TR"],
       regulator_types: ["SPK"],
+      regulated_entity_types: ["ARACI_KURUM"],
     },
     { onConflict: "tenant_id" },
   );

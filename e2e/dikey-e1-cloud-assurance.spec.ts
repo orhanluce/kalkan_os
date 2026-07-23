@@ -104,8 +104,16 @@ test("Dikey E1: kritik tedarikçi güvence profili — bağımsız kapanış + m
 
     // Farklı yetkili (Mehmet) kanıtla kapatır. Önce çıkış yapılmalı — oturumu
     // açık kullanıcı /giris'e giderse proxy onu doğrudan "/"e geri yollar
-    // (src/proxy.ts), form hiç görünmez.
+    // (src/proxy.ts), form hiç görünmez. `waitForURL` ŞART: signOut() asenkron
+    // ve tıklama sonrası hemen /giris'e gidilirse eski oturum cookie'si HÂLÂ
+    // geçerli görünebilir — proxy o anda /giris'i /'e, / de (henüz tam
+    // temizlenmemiş oturumla) tekrar bir yere yönlendirebilir. AppLayout'un
+    // kendi `router.replace("/giris")`'i (src/app/(app)/layout.tsx) tetiklenip
+    // GERÇEKTEN /giris'e ULAŞILDIĞINI beklemeden ikinci girişe geçmek, bu
+    // yarışın tam suite koşusunda ara sıra /tanitim'de (kök→landing
+    // yönlendirmesi) TIKANMASINA yol açıyordu (root-cause bulundu 2026-07-23).
     await page.getByRole("button", { name: "Çıkış", exact: true }).click();
+    await page.waitForURL("**/giris");
     await ikinciKullaniciGirisYap(page);
     await page.goto(`/tedarikciler/${vendorId}`);
     await page.getByLabel(`${fId} kapanış kanıtı`).fill("HSM doğrulandı, kanıt #E2E");

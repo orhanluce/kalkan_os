@@ -46,18 +46,25 @@ test("onboarding: kurum türü seç → kaydet → header'da görünür → değ
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page.getByRole("link", { name: /Kurum finans/ })).toBeVisible();
 
-  // Değiştir: MIXED_GROUP → scope-recalc olayı düşer.
+  // Değiştir: MIXED_GROUP → scope-recalc olayı düşer. MIXED_GROUP (organizasyon-
+  // farkında regülasyon kapsam motoru, e559faf) "Düzenlemeye tabi kuruluş türü"
+  // seçimini ZORUNLU kılıyor — regulatedEntitySelectionRequired(MIXED_GROUP)
+  // true döner, en az bir tür seçilmeden "Değiştir" disabled kalır.
   await page.goto("/kurulum");
   await page.getByText("Karma şirketler grubu").first().click();
+  // "Aracı kurum" ismi bazı kart açıklama metinlerinde de (alt string olarak)
+  // geçiyor — grup içine daralt (role="group" aria-label="Kuruluş türleri").
+  await page.getByRole("group", { name: "Kuruluş türleri" }).getByRole("button", { name: "Aracı kurum" }).click();
   await page.getByRole("button", { name: "Değiştir" }).click();
   await page.waitForURL((u) => u.pathname === "/", { timeout: 15_000 });
 
   const { data: prof2 } = await db
     .from("organization_profiles")
-    .select("organization_type")
+    .select("organization_type, regulated_entity_types")
     .eq("tenant_id", kurum!.id)
     .single();
   expect(prof2!.organization_type).toBe("MIXED_GROUP");
+  expect(prof2!.regulated_entity_types).toContain("ARACI_KURUM");
 
   const { data: olaylar } = await db
     .from("sod_outbox")

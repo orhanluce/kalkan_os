@@ -80,16 +80,30 @@ test("tedarikçi: değerlendirme + KRİTİK bulgu tamamlamayı engeller, kapanı
     // Farklı yetkili (Mehmet) kanıtla kapatır (kural 14). Önce çıkış yapılmalı
     // — oturumu açık kullanıcı /giris'e giderse proxy onu doğrudan "/"e geri
     // yollar (src/proxy.ts), form hiç görünmez (sod-import.spec.ts'in AYNI dersi).
+    // `waitForURL` şart (2026-07-23 root-cause: bkz. dikey-e1-cloud-assurance.
+    // spec.ts) — signOut() asenkron, beklemeden ikinci girişe geçmek eski
+    // oturum cookie'siyle yarışıp /tanitim'de tıkanabiliyordu.
     await page.getByRole("button", { name: "Çıkış", exact: true }).click();
+    await page.waitForURL("**/giris");
     await ikinciKullaniciGirisYap(page);
     await page.goto(`/tedarikciler/${vendorId}`);
     await page.getByLabel(`${fId} kapanış kanıtı`).fill("HSM devreye alındı, kanıt #123");
     await page.getByRole("button", { name: "Kapat" }).click();
     await expect(page.getByText("KAPANDI")).toBeVisible();
 
-    // Artık tamamlanabilir.
-    await page.getByRole("button", { name: "Değerlendirmeyi Tamamla" }).click();
-    await expect(page.getByText("TAMAMLANDI")).toBeVisible();
+    // Artık tamamlanabilir. `degerlendirmeTamamla` PATCH sonrası ayrıca
+    // /api/seffaflik/outbox/isle'yi (mühür/imza) TETİKLER — bu ekstra ağ
+    // turu, uzun tam-suite koşularında (86 test derinlik, tek worker) 5sn'lik
+    // varsayılan expect penceresini bazen aşabiliyordu (2026-07-23'te
+    // yakalandı). Keyfi bir süre uzatmak yerine GERÇEK PATCH yanıtını
+    // bekliyoruz — UI o yanıt üzerine yeniden okuyup "TAMAMLANDI" basıyor.
+    await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes("/rest/v1/third_party_assessments") && r.request().method() === "PATCH" && r.ok(),
+      ),
+      page.getByRole("button", { name: "Değerlendirmeyi Tamamla" }).click(),
+    ]);
+    await expect(page.getByText("TAMAMLANDI")).toBeVisible({ timeout: 15_000 });
 
     // DB: TAMAMLANDI + degerlendiren + tamamlandi_at.
     const { data: son } = await db

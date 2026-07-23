@@ -117,7 +117,11 @@ test("Dikey E2: öner → incelemeye gönder → bağımsız onay → AKTIF (bul
     await expect(page.getByText("Kritik bulgu nedeniyle engellendi")).toBeVisible({ timeout: 10_000 });
 
     // Farklı yetkili (Mehmet) onaylar.
+    // `waitForURL` şart — bkz. dikey-e1-cloud-assurance.spec.ts'teki
+    // 2026-07-23 root-cause notu: signOut() asenkron, hemen ikinci girişe
+    // geçmek eski oturum cookie'siyle yarışıp /tanitim'de tıkanabiliyordu.
     await page.getByRole("button", { name: "Çıkış", exact: true }).click();
+    await page.waitForURL("**/giris");
     await ikinciKullaniciGirisYap(page);
     await page.goto(`/tedarikciler/${fx.vendorId}`);
     const telafiBlokMehmet = page.getByTestId(`telafi-blok-${fId}`);
@@ -180,7 +184,11 @@ test("Dikey E2: reddetme ve iptal — downgrade gerçek zamanla OYNAMADAN kanıt
     await expect(telafiBlok.getByText("İncelemede")).toBeVisible({ timeout: 10_000 });
 
     // 2) Farklı yetkili REDDEDER (gerçek zamanla oynamadan bir "olumsuz karar" downgrade'i).
+    // `waitForURL` şart — bkz. dikey-e1-cloud-assurance.spec.ts'teki
+    // 2026-07-23 root-cause notu: signOut() asenkron, hemen ikinci girişe
+    // geçmek eski oturum cookie'siyle yarışıp /tanitim'de tıkanabiliyordu.
     await page.getByRole("button", { name: "Çıkış", exact: true }).click();
+    await page.waitForURL("**/giris");
     await ikinciKullaniciGirisYap(page);
     await page.goto(`/tedarikciler/${fx.vendorId}`);
     const telafiBlokMehmet = page.getByTestId(`telafi-blok-${fId}`);
@@ -202,6 +210,7 @@ test("Dikey E2: reddetme ve iptal — downgrade gerçek zamanla OYNAMADAN kanıt
     await expect(telafiBlokMehmet.getByText("İncelemede")).toBeVisible({ timeout: 10_000 });
 
     await page.getByRole("button", { name: "Çıkış", exact: true }).click();
+    await page.waitForURL("**/giris");
     await girisYap(page);
     await page.goto(`/tedarikciler/${fx.vendorId}`);
     const telafiBlokAyse = page.getByTestId(`telafi-blok-${fId}`);

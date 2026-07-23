@@ -51,14 +51,29 @@ test("tedarikçi: anket şablonu bir kez yazılır, değerlendirmeye kopyalanır
     await expect(page.getByText(`• ${SORU}`)).toBeVisible();
 
     // DB: assessment_questions'a kopyalandı; ŞABLON değişmedi (bağımsız kayıt).
+    //
+    // "Şablondan Soru Kopyala" AKTİF olan TÜM "DORA" şablonlarını kopyalar —
+    // yalnız bu spec'in kendi şablonunu değil. Paylaşılan e2e kiracısında
+    // başka spec'lerin (ör. dikey-e1-cloud-assurance.spec.ts) KENDİ aktif DORA
+    // şablonları da eşzamanlı var olabilir; bu YANLIŞ değil, `sablondanKopyala`
+    // fonksiyonunun tasarımı budur. Bu yüzden `.single()` ile "yalnız bir
+    // satır var" varsaymak yerine, KENDİ sorumuzu `soru=SORU` ile açıkça
+    // süzüyoruz — testler arası izolasyon veri hacmine değil, doğru filtreye
+    // dayanmalı.
     const { data: asmt } = await db.from("third_party_assessments").select("id").eq("third_party_id", vendorId).single();
-    const { data: kopya } = await db.from("assessment_questions").select("soru").eq("assessment_id", asmt!.id).single();
+    const { data: kopya } = await db
+      .from("assessment_questions")
+      .select("soru")
+      .eq("assessment_id", asmt!.id)
+      .eq("soru", SORU)
+      .single();
     expect(kopya!.soru).toBe(SORU);
     const { data: sablonSonra } = await db
       .from("assessment_question_templates")
       .select("soru")
       .eq("tenant_id", kurum!.id)
       .eq("tur", "DORA")
+      .eq("soru", SORU)
       .single();
     expect(sablonSonra!.soru).toBe(SORU);
   } finally {

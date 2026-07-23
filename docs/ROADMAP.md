@@ -2692,7 +2692,31 @@ biri endpoint+permission+application-permission desteğiyle), 2 aday
 (eski kimlik doğrulama yöntemleri, inaktif ayrıcalıklı hesap) BU TURDA
 doğrulanmadı, uydurulmadı — "sonraki dilim" olarak işaretlendi.
 
-### 1.76 Continuous Assurance Runtime programı — FAZ 1 (Kanonik Kanıt) BİTTİ (23 Temmuz 2026)
+**Connector error semantiği:** yeni bir `TestSonuc` durumu GEREKMİYOR —
+kural 13'ün 5 durumu kapalı kalır; connector arıza TÜRÜ (auth/rate-limit/
+timeout) `Gozlem.toplamaHatasi`'nın yanına yeni bir `toplamaHataKategori`
+alt-alanıyla taşınır, motor değişmez.
+
+**Secret/OAuth:** repoda service-to-service OAuth ve secret/vault/
+encryption-at-rest HİÇ YOK (genişletilmedi, gerçekten sıfır). Supabase
+Vault kural 4 (taşınabilirlik) gereği KULLANILAMAZ — bu Dikey K'nın icat
+ettiği bir kısıt değil, projenin önceden çizdiği sınır. Platform operatör
+sızıntısı EK KOD OLMADAN önlenir: mevcut `tenant_id = current_tenant_id()`
+RLS idiomu + platform_operator'a bypass GRANT edilmemesi yeterli (G1'de
+zaten negatif test edilmiş mekanizma).
+
+**Scheduler/K2:** `ledger_outbox`'u drenaj eden hiçbir pg_cron işi YOK
+(9 gerçek iş var, hiçbiri bu değil) — drenaj yalnız route-tetikli/manuel.
+K2 (`docs/adr/ADR-dis-cron.md`, üç seçenek A/B/C) AÇIK KARAR, bugün C
+(mevcut route-tetikli drenaj) fiilen yürürlükte. **Tek seferlik "Şimdi
+Topla" K2'siz geliştirilebilir; sürekli/periyodik connector polling K2
+kapanmadan BAŞLAMAZ** — kullanıcının öncelik sırasını doğruluyor, bozmuyor.
+
+**Öncelik sırası DEĞİŞMEDİ (kural 20):** özel SMTP → K1 → K2 → mevzuat
+paketi → ilk pilot → geri bildirim tamamlanmadan Dikey K'nın KENDİSİNDE
+önerilen hiçbir adım (Faz 0 evidence şeması dahil) açılmaz.
+
+### 1.77 Continuous Assurance Runtime programı — FAZ 1 (Kanonik Kanıt) kabul kapısı KAPANDI (23 Temmuz 2026, sayı çakışması düzeltildi — bkz. §1.76 kaynak paketi ile karışmasın diye kaydırıldı)
 
 Kurucunun "WardProof'u Provable Compliance Infrastructure / Continuous
 Assurance Operating System olarak güçlendir" 9 fazlı programının FAZ 0
@@ -2738,6 +2762,60 @@ sanıyordu — ama Dikey K ADR §4'ün netleştirdiği gibi bu bir EVIDENCE
 satırının id'si; alan hep `null` olduğu için bu asla tetiklenmemişti.
 Gerçek bir evidence-id→control-id haritasıyla düzeltildi.
 
+**23 Temmuz 2026 — KABUL KAPISI KAPANDI (ikinci tur, regresyon kapatma):**
+İlk turda production'a uygulanan migration + hedefli testler + typecheck/
+lint/build yeşildi, ama tam e2e paketinde (87 test) 10 hata vardı — FAZ 1
+ile ilgisizdi ama kapı resmen kapalı sayılmamıştı. Kurucu "10 hatayı kök
+nedenine kadar düzelt" talimatı verdi (junction table/Entra/yeni FAZ 2 kodu
+YASAKLI kapsam sınırıyla). Her 10 hata GERÇEK koda bakılarak sınıflandırıldı
+— hiçbiri test.skip/zayıflatılmış assertion/kör retry/timeout-yükseltmesiyle
+"düzeltilmedi":
+
+- **6'sı main'e FAZ 1'den ÖNCE giren `e559faf` (organizasyon-farkında
+  regülasyon kapsam motoru) ile GERÇEKTEN İLİŞKİLİ, test-tarafı boşluklar**
+  (ürünün kendisi doğru davranıyordu, testler yeni zorunlu alanı/etiketi
+  yansıtmıyordu): `kurulum.spec.ts` ve `uygulanabilirlik.spec.ts` — MIXED_GROUP/
+  REGULATED_FINANCIAL_INSTITUTION artık `regulated_entity_types` seçimini
+  ZORUNLU kılıyor (`eksikProfilAlanlari`), testler bu yeni adımı atlıyordu;
+  `regulasyon-kaynaklar.spec.ts` (2 test) — nav etiketi `ceacc2c`'de
+  "Kaynaklar"dan "Kanun ve Yönetmelikler"e değişmişti + artık 36 gerçek
+  kaynak+artifact seed'liyken `.first()`/sabit-metin varsayımları kırılgan
+  kalmıştı (SHA gösterimi zaten tam hash, "…" kısaltması hiç yoktu).
+- **4'ü main'e ÖNCEDEN VAR OLAN, gerçek bir TEST RACE'i** (regülasyon
+  çalışmasıyla ilgisiz): `dikey-e1-cloud-assurance.spec.ts`,
+  `dikey-e2-telafi-edici-kontrol.spec.ts` (2 test), `tedarikci-degerlendirme.
+  spec.ts` — "Çıkış" tıklamasından hemen sonra ikinci kullanıcı girişine
+  geçiliyordu (signOut() asenkron); eski oturum cookie'si `/giris` isteğinde
+  hâlâ geçerli görünürse proxy onu `/`'e, `/` de (kök→landing yönlendirmesi,
+  ayrı ve önceki bir commit) `/tanitim`'e düşürüyor, test orada tıkanıyordu.
+  Kod tabanında AYNI riski taşıyan 7 spec'ten 4'ü `await page.waitForURL(
+  "**/giris")` GÜVENCESİNİ atlamıştı (diğer 3'ü — `sod`/`sod-import`/`tema`
+  — zaten doğru desendeydi, oradan kopyalandı).
+- **1'i (tedarikci-anket-sablonu.spec.ts) test izolasyonu sorunu:**
+  `sablondanKopyala` tasarım gereği o tenant'taki TÜM aktif "DORA" şablonlarını
+  kopyalar (doğru davranış); test `.single()` ile "yalnız benim şablonum var"
+  varsayıyordu — paylaşılan e2e kiracısında `dikey-e1-cloud-assurance.spec.ts`
+  KENDİ aktif DORA şablonunu bıraktığında bu varsayım kırılıyordu.
+- **1'i (dikey-g1-pilot-onboarding.spec.ts) ortam/altyapı sorunu:** özel SMTP
+  kapanışında (22 Temmuz, BİLİNÇLİ güvenlik kararı) Supabase Auth Redirect
+  URLs allow-list'inden `localhost` ÇIKARILMIŞTI — gerçek davet e-postasına
+  yerel bağlantı sızmasını önlemek için. Bu doğru karar GEVŞETİLMEDİ; test
+  jetonları (access_token/refresh_token) NEREYE düşerse düşsün hash'ten alıp
+  AYNI jetonlarla lokal `/ilk-giris`'e giden bir köprü eklendi.
+- **Full-suite derinliğinde (test #73/87, 14+ dakika tek worker) YENİ bir
+  flake daha yakalandı:** `tedarikci-degerlendirme.spec.ts`'in son adımı
+  (Tamamla → "TAMAMLANDI") ekstra bir ağ turu (mühür/imza tetikleyen
+  `/api/seffaflik/outbox/isle`) nedeniyle varsayılan 5sn pencereyi ara sıra
+  aşıyordu — keyfi timeout yükseltmesi yerine GERÇEK PATCH yanıtı beklenecek
+  şekilde düzeltildi.
+
+**Doğrulama:** 8 dosyadaki tüm düzeltmeler İZOLE + 3 ardışık temiz koşuda
+doğrulandı, ardından tam 87 testlik paket İKİ KEZ arka arkaya SIFIR hatayla
+geçti (87/87, ~14 dakika). `pnpm check` (typecheck+lint+1717 birim testi),
+production build ve `pnpm db:verify` yeşil. Bu turda src/ kodu veya migration
+DEĞİŞMEDİ — yalnız `e2e/*.spec.ts` (8 dosya); production'a smoke gerektiren
+yeni bir davranış değişikliği yok.
+
 **Testler:** 12 yeni birim/RLS testi (control-mappings + rls-kanit-zarfi,
 cross-tenant/tek-katman-soy/aynı-hash guard'ları dahil) + 1 yeni Chromium
 e2e (`kanit-motoru.spec.ts`: eşdeğer kontrolde yansıma görünür, kısmi-
@@ -2745,45 +2823,13 @@ destek rozeti doğru davranır, kaynak linki doğru kontrole gider). 142
 dosya / 1717 birim testi + typecheck/lint/build yeşil. Migration
 production'a uygulandı, canlı `db:verify` + tipler yenilendi.
 
-**Tam e2e paketinde (87 test) bulunan, FAZ 1 İLE İLGİSİZ 10 hata** ayrı
-işaretlendi (spawn_task) — 5'i önceden belgelenmiş bilinen fixture-cascade
-flaky sınıfı (dikey-e1/dikey-e2/tedarikçi-*), 5'i main'e FAZ 1'den ÖNCE
-commit edilmiş eşzamanlı regülasyon/onboarding çalışmasında (`e559faf`,
-`ceacc2c`, `8776f64`) yeni bulunan gerçek regresyonlar (regulasyon-
-kaynaklar, kurulum, dikey-g1-pilot-onboarding, uygulanabilirlik) — izole
-koşuda da tekrarlandı, bu programın kapsamı dışında bırakıldı.
-
 **Kapsam dışı (bilinçli):** çoktan-çoğa junction table (Dikey K'nın "Faz
 1"i — Entra MVP netleşince ayrı kurucu kararı, bu ROADMAP girişinin FAZ
 1'iyle İSİM ÇAKIŞMASI var ama AYNI ŞEY DEĞİL), obligation/test hedefli
-kanıt bağlantıları (bugüne kadar kanıtlanmış gerçek bir ihtiyaç yok).
-**Sıradaki:** FAZ 2 (Entra ID Connector) — K1/K2-canlı/pilot kapıları
-kapanmadan production'a çıkmaz; kod-seviyesi tasarımı bu programın
-sıradaki dilimi.
-
-**Connector error semantiği:** yeni bir `TestSonuc` durumu GEREKMİYOR —
-kural 13'ün 5 durumu kapalı kalır; connector arıza TÜRÜ (auth/rate-limit/
-timeout) `Gozlem.toplamaHatasi`'nın yanına yeni bir `toplamaHataKategori`
-alt-alanıyla taşınır, motor değişmez.
-
-**Secret/OAuth:** repoda service-to-service OAuth ve secret/vault/
-encryption-at-rest HİÇ YOK (genişletilmedi, gerçekten sıfır). Supabase
-Vault kural 4 (taşınabilirlik) gereği KULLANILAMAZ — bu Dikey K'nın icat
-ettiği bir kısıt değil, projenin önceden çizdiği sınır. Platform operatör
-sızıntısı EK KOD OLMADAN önlenir: mevcut `tenant_id = current_tenant_id()`
-RLS idiomu + platform_operator'a bypass GRANT edilmemesi yeterli (G1'de
-zaten negatif test edilmiş mekanizma).
-
-**Scheduler/K2:** `ledger_outbox`'u drenaj eden hiçbir pg_cron işi YOK
-(9 gerçek iş var, hiçbiri bu değil) — drenaj yalnız route-tetikli/manuel.
-K2 (`docs/adr/ADR-dis-cron.md`, üç seçenek A/B/C) AÇIK KARAR, bugün C
-(mevcut route-tetikli drenaj) fiilen yürürlükte. **Tek seferlik "Şimdi
-Topla" K2'siz geliştirilebilir; sürekli/periyodik connector polling K2
-kapanmadan BAŞLAMAZ** — kullanıcının öncelik sırasını doğruluyor, bozmuyor.
-
-**Öncelik sırası DEĞİŞMEDİ (kural 20):** özel SMTP → K1 → K2 → mevzuat
-paketi → ilk pilot → geri bildirim tamamlanmadan Dikey K'nın KENDİSİNDE
-önerilen hiçbir adım (Faz 0 evidence şeması dahil) açılmaz.
+kanıt bağlantıları (bugüne kadar kanıtlanmış gerçek bir ihtiyaç yok), FAZ 2
+Entra ID Connector kodu (bu turun açık kapsam sınırıydı).
+**Sıradaki:** FAZ 2 (Entra ID Connector) tasarımı — K1/K2-canlı/pilot
+kapıları kapanmadan production'a çıkmaz.
 
 ### 1.73 Mimari karar kaydı — 22 Temmuz 2026 (Entra ID Connector, MVP'yi tamamlayan zorunlu dikey ilan edildi — KOD YOK, yalnız kapsam/sınıflandırma güncellemesi)
 
