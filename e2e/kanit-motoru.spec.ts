@@ -91,6 +91,33 @@ test("denetim izi sayfası kim/ne/ne zaman gösterir ve sayfa yenilenince kalıc
   await expect(page.getByText("Durum değişti").first()).toBeVisible();
 });
 
+// FAZ 1 (Kanonik Kanıt, 2026-07-23): "bir kanıt, dört çerçeve" yansıtması artık
+// kaynak_kontrol_id ile hangi ORİJİNAL yüklemeden geldiğini taşıyor (önceden
+// bu alan DB'de hiç yoktu, hep null görünüyordu — bkz. src/lib/supabase/
+// veri.ts'teki eski "ŞEMA EKSİĞİ" yorumu). Bu test, seed'de gerçekten var olan
+// bir 'esdeger' eşlemesini (VII-128.10 TODO-DOGRULA-05 <-> 7545
+// TODO-DOGRULA-7545-01, scripts/seed-controls.ts) kullanarak uçtan uca
+// doğruluyor: yansıtılan satır doğru kaynağa LİNKLENİYOR (önceden bu link
+// kaynakKontrolId'yi bir KONTROL id'si sanıp kırık olurdu — Dikey K ADR §4'ün
+// "adı yanıltıcı" uyarısı; kod tarafında bu turda düzeltildi).
+test("kanıt yansıtması: eşdeğer kontrolde görünür ve kaynağa doğru linklenir", async ({ page }) => {
+  await girisYap(page);
+  await kontrolAc(page, "TODO-DOGRULA-05");
+
+  await beyanKanitiYukle(page, "FAZ 1 e2e: bilgi güvenliği politikası " + Date.now());
+  await expect(page.getByText("Yüklenen Kanıtlar (1)")).toBeVisible({ timeout: 10_000 });
+
+  // Eşdeğer kontrole geç: yansıtılan satır orada, "esdeger" olduğu için
+  // kısmi-destek rozeti YOK, ve kaynağa dönen link gerçekten çalışıyor.
+  await kontrolAc(page, "TODO-DOGRULA-7545-01");
+  const yansitmaNotu = page.getByText("Eşlenik kanıt").first();
+  await expect(yansitmaNotu).toBeVisible();
+  await expect(page.getByText("Kısmi destek — kontrolü tam karşılamıyor")).toHaveCount(0);
+
+  await page.getByRole("link", { name: "kaynak kontrolden" }).first().click();
+  await expect(page.getByText("TODO-DOGRULA-05").first()).toBeVisible();
+});
+
 // BİLİNEN, İZLENEN AÇIK (docs/ROADMAP.md "Supabase geçişi" borçları):
 // "Kanıt süresi dolması artık yalnızca yükleme anında hesaplanıyor; DB'de
 // 'karsilaniyor' kalıp UI'da 'kismi' görünen kayıtlar oluşabilir."

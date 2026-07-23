@@ -29,9 +29,10 @@ import { useAuth } from "./auth";
 import { EVIDENCE_ENVELOPE_SCHEMA } from "./canonical";
 import { deriveDurumFromEvidenceExpiry } from "./evidence";
 import type { Evidence } from "./evidence-types";
-import { findEquivalentControlIds } from "./control-mappings";
+import { findRelatedControlIds } from "./control-mappings";
 import type { StoreState } from "./store-logic";
 import { createClient } from "./supabase/client";
+import type { Database } from "./supabase/database.types";
 import {
   fetchKurum,
   fetchKutuphane,
@@ -209,16 +210,29 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        // "Bir kanıt, dört çerçeve": eşdeğer kontrollere de yansıt.
-        const hedefKontroller = [
-          evidence.controlId,
-          ...findEquivalentControlIds(evidence.controlId, kutuphane.mappings),
+        // "Bir kanıt, dört çerçeve": orijinal + eşdeğer/kısmi eşdeğer
+        // kontrollere yansıt. FAZ 1 (Kanonik Kanıt, 2026-07-23): her yansıtılan
+        // satır artık kaynak_kontrol_id ile ORİJİNAL yükleme satırına dürüstçe
+        // bağlı, ve kendi kapsamını ('esdeger' -> tam, 'kismi' -> kismi) taşıyor
+        // -- 'kismi' ilişkiler önceden HİÇ yansıtılmıyordu (gerçek bir boşluk).
+        const hedefKontroller: { controlId: string; kapsam: "tam" | "kismi" }[] = [
+          { controlId: evidence.controlId, kapsam: "tam" },
+          ...findRelatedControlIds(evidence.controlId, kutuphane.mappings).map((r) => ({
+            controlId: r.controlId,
+            kapsam: (r.iliski === "esdeger" ? "tam" : "kismi") as "tam" | "kismi",
+          })),
         ];
 
-        for (const controlId of hedefKontroller) {
-          const { error } = await db.from("evidences").insert({
+        let orijinalEvidenceId: string | null = null;
+
+        for (const hedef of hedefKontroller) {
+          // NOT: insert payload'u AYRI bir sabitte kuruyoruz (inline değil) —
+          // aksi halde `kaynak_kontrol_id: orijinalEvidenceId` ile aşağıdaki
+          // `orijinalEvidenceId = insertSonucu.data.id` ataması aynı ifadede
+          // döngüsel tip çıkarımına yol açıyor (TS7022).
+          const yeniKanit: Database["public"]["Tables"]["evidences"]["Insert"] = {
             tenant_id: tenantId,
-            control_id: controlId,
+            control_id: hedef.controlId,
             tip: evidence.tip,
             storage_path: evidence.storagePathOrLink || null,
             hash_sha256: evidence.hashSha256,
@@ -242,8 +256,16 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
             storage_object_key: storageObjectKey,
             // Bucket sürümleme kapalı; içerik-adreslemede sürüm yolun kendisinde.
             storage_version_id: null,
-          });
-          if (error) throw error;
+            // FAZ 1: orijinal (ilk) satırda null; sonraki yansıtılan
+            // satırlarda orijinalin id'si -- soy tek katmanlı kalır.
+            kaynak_kontrol_id: orijinalEvidenceId,
+            kapsam: hedef.kapsam,
+          };
+          const insertSonucu = await db.from("evidences").insert(yeniKanit).select("id").single();
+          if (insertSonucu.error) throw insertSonucu.error;
+          if (orijinalEvidenceId === null) {
+            orijinalEvidenceId = insertSonucu.data.id;
+          }
 
           // Kanıt geldi: kontrolün durumu kanıtın geçerliliğine göre türetilir.
           const yeniDurum = deriveDurumFromEvidenceExpiry(
@@ -254,7 +276,7 @@ export function LocalStoreProvider({ children }: { children: ReactNode }) {
           const { error: tcError } = await db
             .from("tenant_controls")
             .update({ durum: yeniDurum, son_degerlendirme: new Date().toISOString() })
-            .eq("control_id", controlId);
+            .eq("control_id", hedef.controlId);
           if (tcError) throw tcError;
         }
       }),

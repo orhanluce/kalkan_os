@@ -1,4 +1,4 @@
-# DEVAM TALİMATI — kaldığın yerden sürdür (22 Temmuz 2026 güncellemesi — Dikey G1)
+# DEVAM TALİMATI — kaldığın yerden sürdür (23 Temmuz 2026 güncellemesi — Continuous Assurance Runtime FAZ 1)
 
 Bu dosya oturumlar arası devir içindir. **Kurucu kalıcı onay verdi:
 "her bitişte onaya gerek yok, V2 PR sırasının SONUNA KADAR devam."** Her PR'ı
@@ -6,6 +6,42 @@ doğrula → commit → push → deploy health kontrol, duraksamadan sonrakine g
 **AMA:** her GERÇEKTEN YENİ mimari karar için önce KODSUZ analiz sun, kurucunun
 açık "Kararlarım"ını bekle, sonra tam uygula + rapor (F1-G1'de bu iki-faz
 disiplini tutarlı uygulandı).
+
+## -18. Continuous Assurance Runtime programı FAZ 0 + FAZ 1 (Kanonik Kanıt) BİTTİ (23 Temmuz 2026)
+
+Kurucunun WardProof'u "Provable Compliance Infrastructure / Continuous
+Assurance Operating System" olarak konumlandıran 9 fazlı program talimatı
+işlendi. **FAZ 0** (gerçek durum/kapı raporu, kod yok): K1 ERTELENMİŞ,
+K2 LOCAL_READY/LIVE_VALIDATION_PENDING, 0/20 hukukça VERIFIED kontrol
+(içerik blokajı, `data/controls/*.yaml` sahte iskele), pilot başlamadı —
+tam liste ROADMAP §1.76. Kurucu bu kapılar kapanmadan fazların İNŞASINA
+başlanmasını AÇIKÇA onayladı ("a") + "diğer işlemler için de onaya ihtiyaç
+duyma devam et" dedi — kural 20'nin öncelik SIRASI değişmedi, yalnız kod
+yazımının BAŞLAMA zamanı genişledi; her production migration/canlı yazma
+yine kendi anında (auto-mode classifier'ı geçerek) uygulandı.
+
+**FAZ 1 — Kanonik Kanıt BİTTİ:** `evidences.kaynak_kontrol_id` +
+`evidences.kapsam` (migration `20260723000000`, Dikey K ADR §4'ün "Faz 0"
+önerisi — self-referencing FK, `previous_evidence_id`/`redaksiyon_kaynak_id`
+ile aynı idiomun dördüncüsü). Yol boyunca bulunup kapatılan İKİ gerçek
+boşluk: (1) `control_mappings.iliski='kismi'` hiçbir kod yolunda
+kullanılmıyordu — artık yansıtılıyor (`kapsam:'kismi'`); (2) kontrol
+detay sayfasındaki "kaynak kontrolden" linki `kaynakKontrolId`'yi
+(gerçek DEĞERİ hep null olduğu için hiç tetiklenmemiş) bir KONTROL id'si
+sanıyordu — gerçek EVIDENCE id'sine düzeltildi. **12 yeni birim/RLS testi
++ 1 yeni Chromium e2e; 142 dosya/1717 birim testi + typecheck/lint/build
+yeşil; migration production'a uygulandı ve canlı doğrulandı.**
+
+**Tam e2e paketinde (87 test) 10 FAZ-1-DIŞI hata bulunup ayrı işaretlendi**
+(spawn_task, task_3c536765) — 5'i önceden belgelenmiş flaky sınıf, 5'i
+main'e FAZ 1'den ÖNCE commit edilmiş eşzamanlı regülasyon/onboarding
+çalışmasında (`e559faf`/`ceacc2c`/`8776f64`) yeni bulunan gerçek
+regresyonlar (regulasyon-kaynaklar/kurulum/dikey-g1-pilot-onboarding/
+uygulanabilirlik) — izole koşuda da tekrarlandı, DÜZELTİLMEDİ (kapsam
+dışı, başka bir çalışmaya ait kod).
+
+**Sıradaki:** FAZ 2 (Entra ID Connector) tasarımı — K1/K2-canlı/pilot
+kapıları kapanmadan production'a çıkmaz (kural 20/25 aynen geçerli).
 
 ## -17. WardProof resmî kaynak + araştırma zinciri CANLIDA (22 Temmuz 2026; G1/K8 kapanmadı)
 

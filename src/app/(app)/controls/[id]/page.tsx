@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/durum/status-badge";
 import { EvidenceTraceRail } from "@/components/evidence-trace-rail";
 import { Button } from "@/components/ui/button";
@@ -81,6 +81,18 @@ export default function ControlDetailPage() {
   const equivalentControls = findEquivalentControlIds(params.id, kutuphane.mappings)
     .map((id) => kutuphane.controls.find((c) => c.id === id))
     .filter((c): c is NonNullable<typeof c> => Boolean(c));
+
+  // FAZ 1 (Kanonik Kanıt, 2026-07-23): ev.kaynakKontrolId artık başka bir
+  // KONTROLÜN değil, ORİJİNAL evidences SATIRININ id'si (Dikey K ADR §4 —
+  // "adı yanıltıcı olsa da mevcut adlandırma korunur"). Kaynak kontrole
+  // bağlanabilmek için o satırın hangi kontrole ait olduğunu bulmamız gerekir.
+  const evidenceIdToControlId = useMemo(() => {
+    const harita: Record<string, string> = {};
+    for (const liste of Object.values(evidencesByControl)) {
+      for (const e of liste) harita[e.id] = e.controlId;
+    }
+    return harita;
+  }, [evidencesByControl]);
 
   // Bu kontrole ait kayıtlar: doğrudan tenant_controls hedefli olanlar, ve
   // kanıt kayıtları (hedefId kanıt id'si olduğu için detay.controlId'den).
@@ -232,7 +244,11 @@ export default function ControlDetailPage() {
         hashSha256,
         gecerlilikBitis: gecerlilikBitis || null,
         createdAt: new Date().toISOString(),
+        // Bu, kullanıcının DOĞRUDAN yüklediği taslak -- her zaman orijinaldir.
+        // Yansıtılan (kaynaktan türetilmiş) satırları store.tsx'in addEvidence'ı
+        // ayrıca oluşturur (FAZ 1, 2026-07-23).
         kaynakKontrolId: null,
+        kapsam: "tam",
         // Zarf (M9): mime/boyut dosyanın KENDİSİNDEN okunur, uydurulmaz.
         // Dosya olmayan kanıtta (link/beyan) ikisi de null — orada bir dosya
         // yok, olmayan bir dosyaya boyut atfetmek yanlış olurdu.
@@ -597,15 +613,26 @@ export default function ControlDetailPage() {
                       Geçerlilik bitiş: {ev.gecerlilikBitis}
                     </p>
                   )}
-                  {ev.kaynakKontrolId && (
-                    <p className="mt-1 text-xs text-warning">
-                      Eşlenik kanıt —{" "}
-                      <Link href={`/controls/${ev.kaynakKontrolId}`} className="underline">
-                        kaynak kontrolden
-                      </Link>{" "}
-                      otomatik yansıtıldı
-                    </p>
+                  {ev.kapsam === "kismi" && (
+                    <p className="mt-1 text-xs text-warning">Kısmi destek — kontrolü tam karşılamıyor</p>
                   )}
+                  {ev.kaynakKontrolId &&
+                    (evidenceIdToControlId[ev.kaynakKontrolId] ? (
+                      <p className="mt-1 text-xs text-warning">
+                        Eşlenik kanıt —{" "}
+                        <Link
+                          href={`/controls/${evidenceIdToControlId[ev.kaynakKontrolId]}`}
+                          className="underline"
+                        >
+                          kaynak kontrolden
+                        </Link>{" "}
+                        otomatik yansıtıldı
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-warning">
+                        Eşlenik kanıt — kaynak kontrolden otomatik yansıtıldı
+                      </p>
+                    ))}
                 </li>
               ))}
             </ul>

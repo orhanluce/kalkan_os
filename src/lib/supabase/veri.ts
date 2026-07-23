@@ -152,7 +152,7 @@ export async function fetchStoreState(db: Db): Promise<StoreState> {
     db
       .from("evidences")
       .select(
-        "id, tenant_id, control_id, tip, storage_path, hash_sha256, yukleyen, gecerlilik_bitis, created_at, mime_type, file_size, classification, retention_class, captured_at, storage_object_key",
+        "id, tenant_id, control_id, tip, storage_path, hash_sha256, yukleyen, gecerlilik_bitis, created_at, mime_type, file_size, classification, retention_class, captured_at, storage_object_key, kaynak_kontrol_id, kapsam",
       ),
     db
       .from("findings")
@@ -193,12 +193,10 @@ export async function fetchStoreState(db: Db): Promise<StoreState> {
       retentionClass: r.retention_class as Evidence["retentionClass"],
       capturedAt: r.captured_at,
       storageObjectKey: r.storage_object_key,
-      // ŞEMA EKSİĞİ: evidences tablosunda kaynak_kontrol_id kolonu yok, bu
-      // yüzden "bir kanıt, dört çerçeve" yansıtmasında kanıtın hangi
-      // kontrolden geldiği DB'de kaybolur (audit_log detayında duruyor ama
-      // orası sorgulanacak yer değil). Yansıtılan kanıt, doğrudan yüklenmiş
-      // gibi görünür. Kolon eklenene kadar null.
-      kaynakKontrolId: null,
+      // FAZ 1 (Kanonik Kanıt, 2026-07-23): artık gerçek DB kolonu — yansıtılan
+      // bir satırsa hangi orijinal yüklemeden geldiğini taşır.
+      kaynakKontrolId: r.kaynak_kontrol_id,
+      kapsam: r.kapsam as Evidence["kapsam"],
     };
     (evidencesByControl[r.control_id] ??= []).push(evidence);
   }

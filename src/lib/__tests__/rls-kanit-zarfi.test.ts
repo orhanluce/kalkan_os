@@ -180,6 +180,70 @@ describe("redaksiyon guard (belge M01)", () => {
   });
 });
 
+describe("evidence yansitma guard (FAZ 1 — Kanonik Kanit, kaynak_kontrol_id)", () => {
+  it("kapsam varsayilan 'tam'dir", async () => {
+    const { rows } = await tamKanit();
+    const { rows: k } = await db.sql(`select kapsam from public.evidences where id = $1`, [rows[0].id]);
+    expect(k[0].kapsam).toBe("tam");
+  });
+
+  it("gecerli bir yansitma yazilabilir — orijinalle ayni hash, ayni kiraci", async () => {
+    const { rows: orijinal } = await tamKanit();
+    const { rows: yansitma } = await tamKanit({
+      kaynak_kontrol_id: orijinal[0].id,
+      kapsam: "kismi",
+    });
+    expect(yansitma).toHaveLength(1);
+    const { rows: k } = await db.sql(`select kapsam, kaynak_kontrol_id from public.evidences where id = $1`, [
+      yansitma[0].id,
+    ]);
+    expect(k[0].kapsam).toBe("kismi");
+    expect(k[0].kaynak_kontrol_id).toBe(orijinal[0].id);
+  });
+
+  it("gecersiz kapsam degeri reddedilir", async () => {
+    await expect(tamKanit({ kapsam: "yarim" })).rejects.toThrow();
+  });
+
+  it("baska kiracinin kanitindan yansitma yapilamaz (kural 1)", async () => {
+    const { rows: bKanit } = await tamKanit({ tenant_id: seed.B.tenantId, control_id: seed.controlId });
+    await expect(
+      tamKanit({ tenant_id: seed.A.tenantId, kaynak_kontrol_id: bKanit[0].id }),
+    ).rejects.toThrow(/baska bir kiraciya ait/i);
+  });
+
+  it("yansitma kaynagi kendisi bir yansitma olamaz — soy tek katmanli kalmali", async () => {
+    const { rows: orijinal } = await tamKanit();
+    const { rows: birinciYansitma } = await tamKanit({ kaynak_kontrol_id: orijinal[0].id });
+    await expect(
+      tamKanit({ kaynak_kontrol_id: birinciYansitma[0].id }),
+    ).rejects.toThrow(/kendisi bir yansitma olamaz/i);
+  });
+
+  it("farkli hash'li bir satir 'yansitma' olarak isaretlenemez — yansitma icerik uretmez", async () => {
+    const { rows: orijinal } = await tamKanit({ hash_sha256: HASH });
+    await expect(
+      tamKanit({ kaynak_kontrol_id: orijinal[0].id, hash_sha256: "99".repeat(32) }),
+    ).rejects.toThrow(/ayni dosya hash/i);
+  });
+
+  it("orijinal, yansitmasi dururken silinemez (on delete restrict)", async () => {
+    const { rows: orijinal } = await tamKanit();
+    await tamKanit({ kaynak_kontrol_id: orijinal[0].id });
+    await expect(
+      db.sql(`delete from public.evidences where id = $1`, [orijinal[0].id]),
+    ).rejects.toThrow();
+  });
+
+  it("yansitma olmayan bir satirin kaynak_kontrol_id'si null kalir", async () => {
+    const { rows } = await tamKanit();
+    const { rows: k } = await db.sql(`select kaynak_kontrol_id from public.evidences where id = $1`, [
+      rows[0].id,
+    ]);
+    expect(k[0].kaynak_kontrol_id).toBeNull();
+  });
+});
+
 describe("evidence_butunluk_durumu", () => {
   it("zarflı kanıt FULL_ENVELOPE", async () => {
     const { rows } = await tamKanit();

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findEquivalentControlIds } from "../control-mappings";
+import { findEquivalentControlIds, findRelatedControlIds } from "../control-mappings";
 import type { ControlMapping } from "../types";
 
 const mappings: ControlMapping[] = [
@@ -20,5 +20,28 @@ describe("findEquivalentControlIds", () => {
 
   it("returns an empty array for a control with no mappings", () => {
     expect(findEquivalentControlIds("c-01", mappings)).toEqual([]);
+  });
+});
+
+describe("findRelatedControlIds", () => {
+  it("includes both esdeger and kismi relations, each labeled with its own iliski", () => {
+    expect(findRelatedControlIds("c-05", mappings)).toEqual([
+      { controlId: "c-7545-01", iliski: "esdeger" },
+    ]);
+    expect(findRelatedControlIds("c-09", mappings)).toEqual([{ controlId: "c-99", iliski: "kismi" }]);
+  });
+
+  it("resolves regardless of which side of the mapping the control is on", () => {
+    expect(findRelatedControlIds("c-99", mappings)).toEqual([{ controlId: "c-09", iliski: "kismi" }]);
+  });
+
+  it("returns an empty array for a control with no mappings", () => {
+    expect(findRelatedControlIds("c-01", mappings)).toEqual([]);
+  });
+
+  it("does not mutate findEquivalentControlIds' existing esdeger-only contract", () => {
+    // Regresyon kilidi: findRelatedControlIds eklenmesi findEquivalentControlIds'i
+    // değiştirmemeli (mevcut çağıranlar hâlâ yalnız esdeger görmeli).
+    expect(findEquivalentControlIds("c-09", mappings)).toEqual([]);
   });
 });

@@ -45,6 +45,7 @@ function baseEvidence(overrides: Partial<Evidence> = {}): Evidence {
     capturedAt: null,
     storageObjectKey: null,
     kaynakKontrolId: null,
+    kapsam: "tam",
     ...overrides,
   };
 }

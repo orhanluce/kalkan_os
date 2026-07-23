@@ -3002,6 +3002,8 @@ export type Database = {
           hash_algorithm: string
           hash_sha256: string | null
           id: string
+          kapsam: string
+          kaynak_kontrol_id: string | null
           legal_hold: boolean
           mime_type: string | null
           previous_envelope_hash: string | null
@@ -3032,6 +3034,8 @@ export type Database = {
           hash_algorithm?: string
           hash_sha256?: string | null
           id?: string
+          kapsam?: string
+          kaynak_kontrol_id?: string | null
           legal_hold?: boolean
           mime_type?: string | null
           previous_envelope_hash?: string | null
@@ -3062,6 +3066,8 @@ export type Database = {
           hash_algorithm?: string
           hash_sha256?: string | null
           id?: string
+          kapsam?: string
+          kaynak_kontrol_id?: string | null
           legal_hold?: boolean
           mime_type?: string | null
           previous_envelope_hash?: string | null
@@ -3087,6 +3093,13 @@ export type Database = {
             columns: ["control_id"]
             isOneToOne: false
             referencedRelation: "controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidences_kaynak_kontrol_id_fkey"
+            columns: ["kaynak_kontrol_id"]
+            isOneToOne: false
+            referencedRelation: "evidences"
             referencedColumns: ["id"]
           },
           {

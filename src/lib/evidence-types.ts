@@ -17,6 +17,14 @@ export type KanitSinifi = (typeof KANIT_SINIFLARI)[number];
 export const SAKLAMA_SINIFLARI = ["1y", "5y", "10y", "surekli"] as const;
 export type SaklamaSinifi = (typeof SAKLAMA_SINIFLARI)[number];
 
+/**
+ * FAZ 1 (Kanonik Kanıt): bu SATIRIN kendi control_id'si için kanıt tam mı
+ * kısmi mi destek sağlıyor. `obligation_control_mappings.kapsam` ile aynı
+ * sözlük — yeni bir şekil icat edilmedi.
+ */
+export const KANIT_KAPSAMLARI = ["tam", "kismi"] as const;
+export type KanitKapsami = (typeof KANIT_KAPSAMLARI)[number];
+
 export interface Evidence {
   id: string;
   controlId: string;
@@ -45,7 +53,10 @@ export interface Evidence {
    * uydurulmuş bir tarih, olmayan bir güncelliği iddia ederdi.
    */
   capturedAt: string | null;
-  /** "Bir kanıt, dört çerçeve": bu kanıt başka bir kontrole yüklenip
-   * eşdeğerlik üzerinden buraya otomatik yansıtıldıysa kaynak kontrolün id'si. */
+  /** "Bir kanıt, dört çerçeve": bu satır başka bir kontrolden eşdeğerlik/
+   * kısmi eşdeğerlik üzerinden yansıtıldıysa, yansıtıldığı ORİJİNAL
+   * `evidences` satırının id'si. NULL = doğrudan yüklenmiş (orijinal). */
   kaynakKontrolId: string | null;
+  /** Bu satırın kendi controlId'si için kanıt tam mı kısmi mi destek sağlıyor. */
+  kapsam: KanitKapsami;
 }

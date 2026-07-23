@@ -2692,6 +2692,75 @@ biri endpoint+permission+application-permission desteğiyle), 2 aday
 (eski kimlik doğrulama yöntemleri, inaktif ayrıcalıklı hesap) BU TURDA
 doğrulanmadı, uydurulmadı — "sonraki dilim" olarak işaretlendi.
 
+### 1.76 Continuous Assurance Runtime programı — FAZ 1 (Kanonik Kanıt) BİTTİ (23 Temmuz 2026)
+
+Kurucunun "WardProof'u Provable Compliance Infrastructure / Continuous
+Assurance Operating System olarak güçlendir" 9 fazlı programının FAZ 0
+(gerçek durum/kapı analizi) + FAZ 1'i (kanonik kanıt) tamamlandı. Kurucu,
+K1/K2-canlı/pilot kapılarının kendisini kapatmadan fazların İNŞASINA
+başlanmasını AÇIKÇA onayladı ("a" kararı) — kural 20'nin öncelik SIRASI
+(özel SMTP → K1 → K2 → mevzuat paketi → pilot → geri bildirim) hâlâ
+YÜRÜRLÜKTE, yalnız hangi işin NE ZAMAN başlayabileceği genişletildi;
+production migration/secret/OAuth/harici erişim gerektiren HER adım kendi
+ayrı onayını istemeye devam ediyor (bu turda migration onayı ayrıca alındı).
+
+**FAZ 0 bulgusu (kod yok):** K1 hâlâ ERTELENMİŞ (EXTERNAL_BLOCKED), K2
+LOCAL_READY/LIVE_VALIDATION_PENDING, ≥20 hukukça VERIFIED kontrol 0/20
+(içerik blokajı — mevcut `data/controls/*.yaml` açıkça sahte iskele),
+pilot hiç başlamadı. Bu program kapsamındaki gelecek fazlar da (Entra
+connector dahil) bu kapılara bağımlı kalmaya devam ediyor.
+
+**FAZ 1 — Kanonik Kanıt:** Dikey K ADR §4'ün "Faz 0" önerisi (self-
+referencing `kaynak_kontrol_id`, Alternatif A) uygulandı — `evidences`
+tablosunda ZATEN üç kez kullanılan self-referencing soy idiomunun
+(`previous_evidence_id`, `redaksiyon_kaynak_id`) dördüncü örneği.
+Migration `20260723000000_evidence_kaynak_kontrol_kapsam.sql`: yeni
+`kaynak_kontrol_id` (yansıtılan satırın ORİJİNAL yükleme satırına
+bağlanması) + `kapsam` (`tam`/`kismi`, `obligation_control_mappings` ile
+aynı sözlük) kolonları; zarf guard'ı (`evidence_envelope_guard`) genişledi
+— cross-tenant yansıtma reddi, tek-katmanlı soy zorunluluğu (yansıtma
+kaynağı kendisi bir yansıtma olamaz), aynı-dosya-hash zorunluluğu
+(yansıtma yeni içerik üretmez). **Bilinçli sınır:** iki alan da Evidence
+Envelope hash'ine (`KALKAN_EVIDENCE_ENVELOPE_V1`) DAHIL EDİLMEDİ — bunlar
+içerik/köken iddiası değil, yönlendirme/ilişki metadatası; şema sürümünü
+V2'ye taşımak Merkle/manifest/ledger/verify-CLI zincirinin tamamını
+etkilerdi, bu turun kapsamı dışında bırakıldı (ayrı karar).
+
+**Gerçek bir ikinci boşluk da kapatıldı:** `control_mappings.iliski='kismi'`
+(kısmi eşdeğerlik) şemada vardı ama HİÇBİR kod yolu onu kanıt
+yansıtmasında kullanmıyordu (`findEquivalentControlIds` yalnızca
+`esdeger`i görüyordu) — yeni `findRelatedControlIds` ikisini de döner,
+`store.tsx`'in `addEvidence`'ı artık kısmi eşlenik kontrollere de
+`kapsam:'kismi'` ile yansıtıyor. **Yol boyunca bulunan gerçek bug:**
+`controls/[id]/page.tsx`'teki "Eşlenik kanıt — kaynak kontrolden" linki
+`kaynakKontrolId`'yi (artık gerçek dolan bir alan) bir KONTROL id'si
+sanıyordu — ama Dikey K ADR §4'ün netleştirdiği gibi bu bir EVIDENCE
+satırının id'si; alan hep `null` olduğu için bu asla tetiklenmemişti.
+Gerçek bir evidence-id→control-id haritasıyla düzeltildi.
+
+**Testler:** 12 yeni birim/RLS testi (control-mappings + rls-kanit-zarfi,
+cross-tenant/tek-katman-soy/aynı-hash guard'ları dahil) + 1 yeni Chromium
+e2e (`kanit-motoru.spec.ts`: eşdeğer kontrolde yansıma görünür, kısmi-
+destek rozeti doğru davranır, kaynak linki doğru kontrole gider). 142
+dosya / 1717 birim testi + typecheck/lint/build yeşil. Migration
+production'a uygulandı, canlı `db:verify` + tipler yenilendi.
+
+**Tam e2e paketinde (87 test) bulunan, FAZ 1 İLE İLGİSİZ 10 hata** ayrı
+işaretlendi (spawn_task) — 5'i önceden belgelenmiş bilinen fixture-cascade
+flaky sınıfı (dikey-e1/dikey-e2/tedarikçi-*), 5'i main'e FAZ 1'den ÖNCE
+commit edilmiş eşzamanlı regülasyon/onboarding çalışmasında (`e559faf`,
+`ceacc2c`, `8776f64`) yeni bulunan gerçek regresyonlar (regulasyon-
+kaynaklar, kurulum, dikey-g1-pilot-onboarding, uygulanabilirlik) — izole
+koşuda da tekrarlandı, bu programın kapsamı dışında bırakıldı.
+
+**Kapsam dışı (bilinçli):** çoktan-çoğa junction table (Dikey K'nın "Faz
+1"i — Entra MVP netleşince ayrı kurucu kararı, bu ROADMAP girişinin FAZ
+1'iyle İSİM ÇAKIŞMASI var ama AYNI ŞEY DEĞİL), obligation/test hedefli
+kanıt bağlantıları (bugüne kadar kanıtlanmış gerçek bir ihtiyaç yok).
+**Sıradaki:** FAZ 2 (Entra ID Connector) — K1/K2-canlı/pilot kapıları
+kapanmadan production'a çıkmaz; kod-seviyesi tasarımı bu programın
+sıradaki dilimi.
+
 **Connector error semantiği:** yeni bir `TestSonuc` durumu GEREKMİYOR —
 kural 13'ün 5 durumu kapalı kalır; connector arıza TÜRÜ (auth/rate-limit/
 timeout) `Gozlem.toplamaHatasi`'nın yanına yeni bir `toplamaHataKategori`
@@ -3032,7 +3101,7 @@ store'dan gerçek Supabase'e taşınıyor.
 > Düzeltme: `20260717093000_fix_digest_search_path.sql`.
 > Çıkarım: PGlite testleri RLS mantığını kanıtlar, **Supabase'in kurulum farklarını kanıtlamaz**. Şemaya dokunan her migration'dan sonra canlıya karşı gerçek bir yazma denemesi yapılmalı — `pnpm db:verify` tabloların varlığını gösterir, çalıştıklarını değil.
 - [x] ~~Denetçi paylaşımı çalışmıyor~~ — **kapatıldı** (`20260717100000_share_link_guest_access.sql`). `paylasim_goruntule` RPC'si (security definer) token'ı doğrular, süreyi kontrol eder ve kapsamı belirler; RLS politikası yerine RPC seçildi çünkü anon'un JWT'si yok, yani token'ı politikaya taşıyacak bir kanal da yok. Veri minimizasyonu: yalnızca kontrol durumu + kanıt SAYISI döner (dosya yolu/hash/yükleyen dönmez). Erişim `paylasim_goruntulendi` olarak denetim izine yazılır, token loglanmaz. Geçersiz ve süresi dolmuş token aynı cevabı verir (geçerli token elenemesin). **Canlıda doğrulandı**: gerçek token ile 15 kontrol göründü (7545 kapsam dışı kaldı), süresi dolmuş token reddedildi, iki erişim audit'lendi, zincir sağlam.
-- [ ] **`evidences.kaynak_kontrol_id` kolonu yok.** "Bir kanıt, dört çerçeve" yansıtmasında kanıtın hangi kontrolden geldiği DB'de kaybolur (yalnızca `audit_log` detayında kalır); yansıtılan kanıt doğrudan yüklenmiş gibi görünür.
+- [x] ~~`evidences.kaynak_kontrol_id` kolonu yok~~ — **kapatıldı** (FAZ 1 — Kanonik Kanıt, 23 Temmuz 2026, `20260723000000_evidence_kaynak_kontrol_kapsam.sql`). Bkz. §"Continuous Assurance Runtime programı" FAZ 1 girişi.
 - [ ] **Kanıt süresi dolması** artık yalnızca yükleme anında hesaplanıyor; DB'de "karsilaniyor" kalıp UI'da "kismi" görünen kayıtlar oluşabilir. Cron/trigger ile şemaya taşınmalı.
 - [ ] `scripts/generate-yk-beyani.ts` hâlâ `mock-data`'dan okuyor.
 - [x] ~~Playwright akışları devre dışı~~ — **kapatıldı**. `scripts/setup-e2e-fixtures.ts` ayrı bir
